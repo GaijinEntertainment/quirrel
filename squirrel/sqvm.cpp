@@ -250,7 +250,7 @@ bool SQVM::ObjCmp(const SQObjectPtr &o1,const SQObjectPtr &o2,SQInteger &result)
         default:
             _RET_SUCCEED( _userpointer(o1) < _userpointer(o2)?-1:1 );
         }
-        assert(0);
+        UNREACHABLE
         //if(sq_type(res)!=OT_INTEGER) { Raise_CompareError(o1,o2); return false; }
         //  _RET_SUCCEED(_integer(res));
 
@@ -273,8 +273,7 @@ bool SQVM::ObjCmp(const SQObjectPtr &o1,const SQObjectPtr &o2,SQInteger &result)
         else { Raise_CompareError(o1,o2); return false; }
 
     }
-    assert(0);
-    _RET_SUCCEED(0); //cannot happen
+    UNREACHABLE
 }
 
 bool SQVM::CMP_OP(CmpOP op, const SQObjectPtr &o1,const SQObjectPtr &o2,SQObjectPtr &res)
@@ -1236,8 +1235,7 @@ exception_trap:
         _lasterror = currerror;
         return false;
     }
-    assert(0);
-    return false;
+    UNREACHABLE
 }
 
 bool SQVM::CreateClassInstance(SQClass *theclass, SQObjectPtr &inst, SQObjectPtr &constructor)

@@ -11,6 +11,12 @@
 #pragma warning(disable: 4611) // interaction between '_setjmp' and C++ object destruction is non-portable
 #endif
 
+#if defined(_MSC_VER) 
+#define UNREACHABLE
+#else
+#define UNREACHABLE assert(0);
+#endif
+
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
