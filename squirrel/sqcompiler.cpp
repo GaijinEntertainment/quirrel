@@ -1148,7 +1148,9 @@ public:
         if(target < 0) {
             target = _fs->PushTarget();
         }
-        if(sizeof(SQFloat) == sizeof(SQInt32)) {
+        // Fixes warning C4127: conditional expression is constant
+        static bool floatIs32Bit = (sizeof(SQFloat) == sizeof(SQInt32)); 
+        if(floatIs32Bit) {
             _fs->AddInstruction(_OP_LOADFLOAT, target,*((SQInt32 *)&value));
         }
         else {
