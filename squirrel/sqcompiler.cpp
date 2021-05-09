@@ -977,13 +977,14 @@ public:
                     break;
                 }
 
-                SQObject id;
+                SQObject id = {};
                 SQObject constant;
 
                 switch(_token) {
                     case TK_IDENTIFIER:  id = _fs->CreateString(_lex._svalue);       break;
                     case TK_THIS:        id = _fs->CreateString(_SC("this"),4);        break;
                     case TK_CONSTRUCTOR: id = _fs->CreateString(_SC("constructor"),11); break;
+                    default: Error("Unhandled token type %d", _token); break;
                 }
 
                 if (_stringval(id) == _stringval(_fs->_name)) {
