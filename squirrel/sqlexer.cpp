@@ -498,7 +498,7 @@ SQInteger SQLexer::LexSingleToken()
                     NEXT();
                     RETURN_TOKEN(c);
                 }
-                RETURN_TOKEN(0);
+                UNREACHABLE
             }
         }
     }

@@ -63,7 +63,6 @@ HSQUIRRELVM sq_open(SQInteger initialstacksize)
         sq_vm_destroy_alloc_context(&allocctx);
         return NULL;
     }
-    return v;
 }
 
 HSQUIRRELVM sq_newthread(HSQUIRRELVM friendvm, SQInteger initialstacksize)
