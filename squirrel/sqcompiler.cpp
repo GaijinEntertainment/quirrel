@@ -1017,13 +1017,14 @@ public:
                     break;
                 }
 
-                SQObject id;
+                SQObject id = {};
                 SQObject constant;
 
                 switch(_token) {
                     case TK_IDENTIFIER:  id = _fs->CreateString(_lex._svalue);       break;
                     case TK_THIS:        id = _fs->CreateString(_SC("this"),4);        break;
                     case TK_CONSTRUCTOR: id = _fs->CreateString(_SC("constructor"),11); break;
+                    default: Error("Unhandled token type %d", _token); break;
                 }
 
                 if (_stringval(id) == _stringval(_fs->_name)) {
@@ -1186,7 +1187,9 @@ public:
         if(target < 0) {
             target = _fs->PushTarget();
         }
-        if(sizeof(SQFloat) == sizeof(SQInt32)) {
+        // Fixes warning C4127: conditional expression is constant
+        static bool floatIs32Bit = (sizeof(SQFloat) == sizeof(SQInt32)); 
+        if(floatIs32Bit) {
             _fs->AddInstruction(_OP_LOADFLOAT, target,*((SQInt32 *)&value));
         }
         else {
