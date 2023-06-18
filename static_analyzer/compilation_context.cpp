@@ -6,6 +6,8 @@
 #  define NOMINMAX
 #  define WIN32_LEAN_AND_MEAN
 #  include <Windows.h>
+#elif defined(__APPLE__)
+#  include <unistd.h>
 #else
 #  include <unistd.h>
 #  include <linux/limits.h>

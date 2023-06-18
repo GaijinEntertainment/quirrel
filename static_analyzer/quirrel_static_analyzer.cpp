@@ -1484,12 +1484,14 @@ class Analyzer
       if (arg->nodeType == PNT_STRING)
       {
         int formatsCount = 0;
-        for (const char * p = arg->tok.u.s; *p; p++)
-          if (*p == '%')
-            if (*(p + 1) == '%')
-              p++;
-            else
-              formatsCount++;
+        for (const char * p = arg->tok.u.s; *p; p++) {
+            if (*p == '%') {
+                if (*(p + 1) == '%')
+                    p++;
+                else
+                    formatsCount++;
+            }
+        }
 
         if (formatsCount > 0 && formatsCount != fn_call->children.size() - i - 1)
         {
@@ -2817,33 +2819,36 @@ public:
     {
       for (size_t i = 0; i < node->children.size() - 1; i++)
       {
-        if (node->children[i]->nodeType == PNT_BINARY_OP && node->children[i]->tok.type == TK_ASSIGN)
-          for (size_t j = i + 1; j < node->children.size(); j++)
-            if (node->children[j]->nodeType == PNT_BINARY_OP && node->children[j]->tok.type == TK_ASSIGN)
-            {
-              if (isNodeEquals(node->children[i]->children[0], node->children[j]->children[0]))
+          if (node->children[i]->nodeType == PNT_BINARY_OP && node->children[i]->tok.type == TK_ASSIGN) {
+              for (size_t j = i + 1; j < node->children.size(); j++)
               {
-                Node * firstAssignee = node->children[i]->children[0];
-                bool ignore = existsInTree(firstAssignee, node->children[j]->children[1]);
-                if (!ignore && firstAssignee->nodeType == PNT_ACCESS_MEMBER && indexChangedInTree(firstAssignee->children[1]))
-                  ignore = true;
-
-                if (!ignore && firstAssignee->nodeType == PNT_ACCESS_MEMBER && firstAssignee->tok.type == TK_LSQUARE)
-                  for (size_t m = i + 1; m < j; m++)
-                    if (isNodeEquals(firstAssignee->children[1], node->children[m]->children[0]))
-                    {
-                      ignore = true;
+                  if (node->children[j]->nodeType == PNT_BINARY_OP && node->children[j]->tok.type == TK_ASSIGN)
+                  {
+                      if (isNodeEquals(node->children[i]->children[0], node->children[j]->children[0]))
+                      {
+                          Node * firstAssignee = node->children[i]->children[0];
+                          bool ignore = existsInTree(firstAssignee, node->children[j]->children[1]);
+                          if (!ignore && firstAssignee->nodeType == PNT_ACCESS_MEMBER && indexChangedInTree(firstAssignee->children[1]))
+                              ignore = true;
+                          
+                          if (!ignore && firstAssignee->nodeType == PNT_ACCESS_MEMBER && firstAssignee->tok.type == TK_LSQUARE)
+                              for (size_t m = i + 1; m < j; m++)
+                                  if (isNodeEquals(firstAssignee->children[1], node->children[m]->children[0]))
+                                  {
+                                      ignore = true;
+                                      break;
+                                  }
+                          
+                          if (!ignore)
+                              ctx.warning("assigned-twice", node->children[j]->children[0]->tok);
+                      }
+                  }
+                  else
+                  {
                       break;
-                    }
-
-                if (!ignore)
-                  ctx.warning("assigned-twice", node->children[j]->children[0]->tok);
+                  }
               }
-            }
-            else
-            {
-              break;
-            }
+          }
       }
     }
 
@@ -5398,7 +5403,14 @@ void before_exit()
   if (!json_write_files())
     CompilationContext::setErrorLevel(ERRORLEVEL_FATAL);
 
-  fcloseall();
+#if defined(__APPLE__)
+    // Keep an array of file pointers and iterate it now to call fclose()
+    // on each. Unless we're shutting down, in which case make sure the app
+    // calls exit() and then we're fine without fcloseall().
+    // NOTE: the UnixToOSX port of this function just closes stdin/out/err.
+#else
+    fcloseall();
+#endif
 }
 
 void before_exit_check_args()
@@ -5412,7 +5424,14 @@ void before_exit_check_args()
   if (!json_write_files())
     CompilationContext::setErrorLevel(ERRORLEVEL_FATAL);
 
-  fcloseall();
+#if defined(__APPLE__)
+    // Keep an array of file pointers and iterate it now to call fclose()
+    // on each. Unless we're shutting down, in which case make sure the app
+    // calls exit() and then we're fine without fcloseall().
+    // NOTE: the UnixToOSX port of this function just closes stdin/out/err.
+#else
+    fcloseall();
+#endif
 }
 
 
