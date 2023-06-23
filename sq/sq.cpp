@@ -14,6 +14,7 @@
 #include <sqstdsystem.h>
 #include <sqstddatetime.h>
 #include <sqstdio.h>
+#include <sqastio.h>
 #include <sqstdmath.h>
 #include <sqstdstring.h>
 #include <sqstdaux.h>
@@ -73,11 +74,54 @@ void PrintUsage()
         _SC("   -c              compiles the file to bytecode(default output 'out.cnut')\n")
         _SC("   -o              specifies output file for the -c option\n")
         _SC("   -ast            use AST compiler\n")
+        _SC("   -b              compiles to binary\n")
         _SC("   -c              compiles only\n")
         _SC("   -optCH          enable Closure Hoisting Optimization\n")
         _SC("   -d              generates debug infos\n")
         _SC("   -v              displays version infos\n")
         _SC("   -h              prints help\n"));
+}
+
+static const SQChar *OutputBinaryASTFileName(const SQChar *filename) {
+    static SQChar buffer[1024] = { 0 };
+
+    int l = snprintf(buffer, sizeof buffer, "%s.bin", filename);
+    assert(l < sizeof buffer);
+
+    return buffer;
+}
+
+static int compileFileToBinaryAST(HSQUIRRELVM v, const SQChar *sourceFile, const SQChar *outputFile) {
+  FILE *f = fopen(sourceFile, "r");
+
+  if (!f) {
+    printf(_SC("Script file '%s' not found\n"), sourceFile);
+    return 0;
+  }
+
+  fseek(f, 0, SEEK_END);
+  long len = ftell(f);
+  if (len < 0) {
+    fclose(f);
+    printf(_SC("Cannot read script file '%s'"), sourceFile);
+    return 0;
+  }
+
+  fseek(f, 0, SEEK_SET);
+  std::vector<char> buf;
+
+  buf.resize(len + 1);
+  fread(&buf[0], 1, len, f);
+  buf[len] = 0;
+  fclose(f);
+
+  FileOutputStream fos(outputFile);
+  if (!fos.valid()) {
+    printf(_SC("Cannot open output file '%s'"), outputFile);
+    return 0;
+  }
+
+  return SQ_SUCCEEDED(sq_parsetobinaryast(v, &buf[0], len, sourceFile, &fos, true));
 }
 
 #define _INTERACTIVE 0
@@ -87,6 +131,8 @@ void PrintUsage()
 int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 {
     int compiles_only = 0;
+    int binary = 0;
+    int useAst = 0;
 #ifdef SQUNICODE
     static SQChar temp[500];
 #endif
@@ -105,18 +151,21 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 {
                 case 'a':
                     if (strcmp("-ast", argv[arg]) == 0) {
+                        useAst = 1;
                         sq_setcompilationoption(v, CompilationOptions::CO_USE_AST_COMPILER, true);
                         break;
                     }
                     else {
                         goto unknown_opt;
                     }
-                case 'd': //DEBUG(debug infos)
-                    sq_enabledebuginfo(v,1);
-                    sq_lineinfo_in_expressions(v, 1);
-                    break;
+                case 'b':
+                    binary = 1;
                 case 'c':
                     compiles_only = 1;
+                    break;
+                case 'd': //DEBUG(debug infos)
+                    sq_enabledebuginfo(v, 1);
+                    sq_lineinfo_in_expressions(v, 1);
                     break;
                 case 'o':
                     if (strcmp("-optCH", argv[arg]) == 0) {
@@ -156,7 +205,24 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             arg++;
 
             if (compiles_only) {
-                if(SQ_SUCCEEDED(sqstd_loadfile(v,filename,SQTrue))){
+                if (binary) {
+                    if (!useAst) {
+                        PrintVersionInfos();
+                        printf(_SC("Compilation into binary format requires AST compiler (use -ast)\n"));
+                        *retval = -1;
+                        return _ERROR;
+                    }
+                    const SQChar *outfile = output;
+                    if (!outfile) {
+                        outfile = OutputBinaryASTFileName(filename);
+                    }
+                    if (!compileFileToBinaryAST(v, filename, outfile)) {
+                        printf(_SC("Failed to compile file '%s'\n"), filename);
+                        return _ERROR;
+                    }
+                    return _DONE;
+                }
+                else if(SQ_SUCCEEDED(sqstd_loadfile(v,filename,SQTrue))){
                     const SQChar *outfile = _SC("out.cnut");
                     if(output) {
                         outfile = output;
