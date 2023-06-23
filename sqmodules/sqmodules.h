@@ -68,6 +68,7 @@ private:
 
   void  resolveFileName(const char *fn, string &res);
   bool  checkCircularReferences(const char *resolved_fn, const char *orig_fn);
+  FILE *checkBinaryFile(const char *resolved_fn, const char *requested_fn);
   enum class CompileScriptResult
   {
     Ok,

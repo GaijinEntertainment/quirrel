@@ -123,45 +123,77 @@ bool SqModules::checkCircularReferences(const char* resolved_fn, const char *)
   return true;
 }
 
+FILE *SqModules::checkBinaryFile(const char *resolved_fn, const char *requested_fn) {
+  char buffer[1024] = { 0 };
+
+  if (!sq_checkcompilationoption(sqvm, CompilationOptions::CO_USE_AST_COMPILER)) {
+    return nullptr;
+  }
+
+  snprintf(buffer, sizeof buffer, "%s.bin", resolved_fn);
+
+  return fopen(buffer, "rb");
+}
+
+template<typename T>
+bool loadFileData(std::vector<T> &buf, FILE *f) {
+
+  fseek(f, 0, SEEK_END);
+  long len = ftell(f);
+  if (len < 0)
+  {
+    fclose(f);
+    return false;
+  }
+
+  fseek(f, 0, SEEK_SET);
+
+  buf.resize(len + 1);
+  fread(&buf[0], 1, len, f);
+  buf[len] = 0;
+  fclose(f);
+  return true;
+}
 
 SqModules::CompileScriptResult SqModules::compileScript(const char *resolved_fn, const char *requested_fn,
                                                         const HSQOBJECT *bindings,
                                                         Sqrat::Object &script_closure, string &out_err_msg)
 {
   script_closure.release();
-  FILE* f = fopen(resolved_fn, "r");
+
+  FILE *bf = checkBinaryFile(resolved_fn, requested_fn);
+  if (bf) {
+    std::vector<uint8_t> buf;
+    if (loadFileData(buf, bf)) {
+      if (SQ_SUCCEEDED(sq_translateasttobytecode(sqvm, &buf[0], buf.size() - 1, bindings, false))) {
+        script_closure.attachToStack(sqvm, -1);
+        sq_pop(sqvm, 1);
+
+        return CompileScriptResult::Ok;
+      }
+    }
+  }
+
+  FILE* f = fopen(resolved_fn, "rb");
   if (!f)
   {
-    out_err_msg = string("Script file not found: ") + requested_fn +" / " + resolved_fn;
+    out_err_msg = string("Script file not found: ") + requested_fn + " / " + resolved_fn;
     return CompileScriptResult::FileNotFound;
   }
 
   std::vector<char> buf;
 
-#ifdef _WIN32
-  long len = _filelength(_fileno(f));
-#else
-  fseek(f, 0, SEEK_END);
-  long len = ftell(f);
-  if (len < 0)
-  {
-    fclose(f);
-    out_err_msg = string("Cannot read script file: ") + requested_fn +" / " + resolved_fn;
-    return CompileScriptResult::FileNotFound;
+  if (loadFileData(buf, f)) {
+    if (SQ_FAILED(sq_compilebuffer(sqvm, &buf[0], buf.size() - 1, resolved_fn, true, bindings)))
+    {
+      out_err_msg = string("Failed to compile file: ") + requested_fn + " / " + resolved_fn;
+      return CompileScriptResult::CompilationFailed;
+    }
   }
-
-  fseek(f, 0, SEEK_SET);
-#endif
-
-  buf.resize(len+1);
-  fread(&buf[0], 1, len, f);
-  buf[len] = 0;
-  fclose(f);
-
-  if (SQ_FAILED(sq_compilebuffer(sqvm, &buf[0], len, resolved_fn, true, bindings)))
-  {
-    out_err_msg = string("Failed to compile file: ") + requested_fn +" / " + resolved_fn;
-    return CompileScriptResult::CompilationFailed;
+  else {
+    fclose(f);
+    out_err_msg = string("Cannot read script file: ") + requested_fn + " / " + resolved_fn;
+    return CompileScriptResult::FileNotFound;
   }
 
   script_closure.attachToStack(sqvm, -1);
