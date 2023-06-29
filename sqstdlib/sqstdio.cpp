@@ -353,7 +353,11 @@ SQRESULT sqstd_loadfile(HSQUIRRELVM v,const SQChar *filename,SQBool printerror)
             buffer.ptr = 0;
             buffer.size = 0;
             buffer.file = file;
-            if(SQ_SUCCEEDED(sq_compile(v,func,&buffer,filename,printerror))){
+            SQCompilerConfig config = { 0 };
+            config.sourceName = filename;
+            config.raiseError = printerror;
+            config.useAST = sq_checkcompilationoption(v, CompilationOptions::CO_USE_AST_COMPILER);
+            if(SQ_SUCCEEDED(sq_compile(v,func,&buffer,&config))){
                 sqstd_fclose(file);
                 return SQ_OK;
             }

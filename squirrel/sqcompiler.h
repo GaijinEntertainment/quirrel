@@ -149,5 +149,5 @@ enum SQExpressionContext
 
 
 typedef void(*CompilerErrorFunc)(void *ud, const SQChar *s);
-bool Compile(SQVM *vm, SQLEXREADFUNC rg, SQUserPointer up, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo, bool use_ast);
+bool Compile(SQVM *vm, SQLEXREADFUNC rg, SQUserPointer up, const HSQOBJECT *bindings, SQObjectPtr &out, const SQCompilerConfig *config);
 #endif //_SQCOMPILER_H_

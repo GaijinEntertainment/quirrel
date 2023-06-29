@@ -124,15 +124,14 @@ bool SqModules::checkCircularReferences(const char* resolved_fn, const char *)
 }
 
 
-SqModules::CompileScriptResult SqModules::compileScript(const char *resolved_fn, const char *requested_fn,
-                                                        const HSQOBJECT *bindings,
-                                                        Sqrat::Object &script_closure, string &out_err_msg)
+SqModules::CompileScriptResult SqModules::compileScript(const char *requested_fn, const HSQOBJECT *bindings,
+                                                        Sqrat::Object &script_closure, string &out_err_msg, SQCompilerConfig *config)
 {
   script_closure.release();
-  FILE* f = fopen(resolved_fn, "r");
+  FILE* f = fopen(config->sourceName, "rb");
   if (!f)
   {
-    out_err_msg = string("Script file not found: ") + requested_fn +" / " + resolved_fn;
+    out_err_msg = string("Script file not found: ") + requested_fn +" / " + config->sourceName;
     return CompileScriptResult::FileNotFound;
   }
 
@@ -158,9 +157,11 @@ SqModules::CompileScriptResult SqModules::compileScript(const char *resolved_fn,
   buf[len] = 0;
   fclose(f);
 
-  if (SQ_FAILED(sq_compilebuffer(sqvm, &buf[0], len, resolved_fn, true, bindings)))
+  config->raiseError = true;
+
+  if (SQ_FAILED(sq_compilebuffer(sqvm, &buf[0], len, config, bindings)))
   {
-    out_err_msg = string("Failed to compile file: ") + requested_fn +" / " + resolved_fn;
+    out_err_msg = string("Failed to compile file: ") + requested_fn + " / " + config->sourceName;
     return CompileScriptResult::CompilationFailed;
   }
 
@@ -224,9 +225,13 @@ void SqModules::bindRequireApi(HSQOBJECT bindings)
   sq_poptop(sqvm); // bindings
 }
 
+static void copyConfig(const SQCompilerConfig*src, SQCompilerConfig *dst)
+{
+  memcpy(dst, src, sizeof(SQCompilerConfig));
+}
 
 bool SqModules::requireModule(const char *requested_fn, bool must_exist, const char *__name__,
-                              Sqrat::Object &exports, string &out_err_msg)
+                              Sqrat::Object &exports, string &out_err_msg, const SQCompilerConfig *oldConfig)
 {
   out_err_msg.clear();
   exports.release();
@@ -247,6 +252,10 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
     return true;
   }
 
+  SQCompilerConfig config;
+  copyConfig(oldConfig, &config);
+  config.sourceName = resolvedFn.c_str();
+
   HSQUIRRELVM vm = sqvm;
   SQInteger prevTop = sq_gettop(sqvm);
   (void)prevTop;
@@ -256,7 +265,7 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   HSQOBJECT hBindings;
   sq_getstackobj(vm, -1, &hBindings);
   Sqrat::Object bindingsTbl(vm, hBindings); // add ref
-  Sqrat::Object stateStorage = setupStateStorage(resolvedFn.c_str());
+  Sqrat::Object stateStorage = setupStateStorage(config.sourceName);
 
   SQRAT_ASSERT(sq_gettop(vm) == prevTop+1); // bindings table
 
@@ -291,7 +300,7 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
 
 
   Sqrat::Object scriptClosure;
-  CompileScriptResult res = compileScript(resolvedFn.c_str(), requested_fn, &hBindings, scriptClosure, out_err_msg);
+  CompileScriptResult res = compileScript(requested_fn, &hBindings, scriptClosure, out_err_msg, &config);
   if (!must_exist && res == CompileScriptResult::FileNotFound)
   {
     exports.release();
@@ -301,10 +310,10 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
     return false;
 
   if (__name__ == __fn__)
-    __name__ = resolvedFn.c_str();
+    __name__ = config.sourceName;
 
   size_t rsIdx = runningScripts.size();
-  runningScripts.emplace_back(resolvedFn.c_str());
+  runningScripts.emplace_back(config.sourceName);
 
 
   sq_pushobject(vm, scriptClosure.o);
@@ -323,7 +332,7 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
 
   if (SQ_FAILED(callRes))
   {
-    out_err_msg = string("Failed to run script ") + requested_fn + " / " + resolvedFn;
+    out_err_msg = string("Failed to run script ") + requested_fn + " / " + config.sourceName;
     sq_pop(vm, 1); // clojure, no return value on error
     return false;
   }
@@ -350,7 +359,7 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
 }
 
 
-bool SqModules::reloadModule(const char *fn, bool must_exist, const char *__name__, Sqrat::Object &exports, string &out_err_msg)
+bool SqModules::reloadModule(const char *fn, bool must_exist, const char *__name__, Sqrat::Object &exports, string &out_err_msg, const SQCompilerConfig *config)
 {
   SQRAT_ASSERT(prevModules.empty());
 
@@ -358,7 +367,7 @@ bool SqModules::reloadModule(const char *fn, bool must_exist, const char *__name
   modules.clear(); // just in case
 
   string errMsg;
-  bool res = requireModule(fn, must_exist, __name__, exports, out_err_msg);
+  bool res = requireModule(fn, must_exist, __name__, exports, out_err_msg, config);
 
   prevModules.clear();
 
@@ -366,7 +375,7 @@ bool SqModules::reloadModule(const char *fn, bool must_exist, const char *__name
 }
 
 
-bool SqModules::reloadAll(string &full_err_msg)
+bool SqModules::reloadAll(string &full_err_msg, const SQCompilerConfig *config)
 {
   SQRAT_ASSERT(prevModules.empty());
   full_err_msg.clear();
@@ -379,7 +388,7 @@ bool SqModules::reloadAll(string &full_err_msg)
   string errMsg;
   for (const Module &prev : prevModules)
   {
-    if (!requireModule(prev.fn.c_str(), true, prev.__name__.c_str(), exportsTmp, errMsg))
+    if (!requireModule(prev.fn.c_str(), true, prev.__name__.c_str(), exportsTmp, errMsg, config))
     {
       res = false;
       full_err_msg += prev.fn + ": " + errMsg + "\n";
@@ -435,9 +444,12 @@ template<bool must_exist> SQInteger SqModules::sqRequire(HSQUIRRELVM vm)
     return 1;
   }
 
+  SQCompilerConfig config = { 0 };
+  sq_fillcompilerconfig(vm, &config);
+
   Sqrat::Object exports;
   string errMsg;
-  if (!self->requireModule(fileName, must_exist, __fn__, exports, errMsg))
+  if (!self->requireModule(fileName, must_exist, __fn__, exports, errMsg, &config))
     return sq_throwerror(vm, errMsg.c_str());
 
   sq_pushobject(vm, exports.o);

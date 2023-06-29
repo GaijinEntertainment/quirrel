@@ -203,6 +203,17 @@ typedef struct tagSQFunctionInfo {
     SQInteger line;
 }SQFunctionInfo;
 
+typedef struct tagSQCompilerConfig {
+  const SQChar *sourceName;
+  const SQChar *astDumpFileName;
+
+  bool compileOnly;
+  bool useAST;
+  bool dumpAST;
+  bool raiseError;
+  bool lineInfo;
+}SQCompilerConfig;
+
 #define BIT(n) (1ULL << (n))
 
 enum CompilationOptions : SQUnsignedInteger {
@@ -233,8 +244,9 @@ SQUIRREL_API SQInteger sq_getvmstate(HSQUIRRELVM v);
 SQUIRREL_API SQRESULT sq_registerbaselib(HSQUIRRELVM v);
 
 /*compiler*/
-SQUIRREL_API SQRESULT sq_compile(HSQUIRRELVM v,SQLEXREADFUNC read,SQUserPointer p,const SQChar *sourcename,SQBool raiseerror,const HSQOBJECT *bindings=nullptr);
-SQUIRREL_API SQRESULT sq_compilebuffer(HSQUIRRELVM v,const SQChar *s,SQInteger size,const SQChar *sourcename,SQBool raiseerror,const HSQOBJECT *bindings=nullptr);
+SQUIRREL_API void sq_fillcompilerconfig(HSQUIRRELVM v, SQCompilerConfig *config);
+SQUIRREL_API SQRESULT sq_compile(HSQUIRRELVM v,SQLEXREADFUNC read,SQUserPointer p,SQCompilerConfig *config,const HSQOBJECT *bindings=nullptr);
+SQUIRREL_API SQRESULT sq_compilebuffer(HSQUIRRELVM v,const SQChar *s,SQInteger size,SQCompilerConfig *config,const HSQOBJECT *bindings=nullptr);
 SQUIRREL_API void sq_setcompilationoption(HSQUIRRELVM v, enum CompilationOptions co, bool value);
 SQUIRREL_API bool sq_checkcompilationoption(HSQUIRRELVM v, enum CompilationOptions co);
 SQUIRREL_API void sq_enabledebuginfo(HSQUIRRELVM v, SQBool enable);

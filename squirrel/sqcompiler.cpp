@@ -2043,22 +2043,22 @@ private:
 };
 
 
-static bool CompileOnePass(SQVM *vm, SQLEXREADFUNC rg, SQUserPointer up, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo) {
-    SQCompiler p(vm, rg, up, bindings, sourcename, raiseerror, lineinfo);
+static bool CompileOnePass(SQVM *vm, SQLEXREADFUNC rg, SQUserPointer up, const HSQOBJECT *bindings, SQObjectPtr &out, const SQCompilerConfig *config) {
+    SQCompiler p(vm, rg, up, bindings, config->sourceName, config->raiseError, config->lineInfo);
 
     if (vm->_on_compile_file)
-        vm->_on_compile_file(vm, sourcename);
+        vm->_on_compile_file(vm, config->sourceName);
 
     return p.Compile(out);
 }
 
-static bool CompileWithAst(SQVM *vm,SQLEXREADFUNC rg, SQUserPointer up, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo)
+static bool CompileWithAst(SQVM *vm,SQLEXREADFUNC rg, SQUserPointer up, const HSQOBJECT *bindings, SQObjectPtr &out, const SQCompilerConfig *config)
 {
     Arena astArena(_ss(vm)->_alloc_ctx, "AST");
-    SQParser p(vm, rg, up, sourcename, &astArena, raiseerror);
+    SQParser p(vm, rg, up, config->sourceName, &astArena, config->raiseError);
 
     if (vm->_on_compile_file)
-      vm->_on_compile_file(vm, sourcename);
+      vm->_on_compile_file(vm, config->sourceName);
 
     RootBlock *r = p.parse();
 
@@ -2074,20 +2074,22 @@ static bool CompileWithAst(SQVM *vm,SQLEXREADFUNC rg, SQUserPointer up, const HS
 
 
     Arena cgArena(_ss(vm)->_alloc_ctx, "Codegen");
-    CodegenVisitor codegen(&cgArena, bindings, vm, sourcename, lineinfo, raiseerror);
+    CodegenVisitor codegen(&cgArena, bindings, vm, config->sourceName, config->lineInfo, config->raiseError);
 
     return codegen.generate(r, out);
 }
 
-bool Compile(SQVM *vm, SQLEXREADFUNC rg, SQUserPointer up, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo, bool use_ast) {
+bool Compile(SQVM *vm, SQLEXREADFUNC rg, SQUserPointer up, const HSQOBJECT *bindings, SQObjectPtr &out, const SQCompilerConfig *config) {
+    bool use_ast = config->useAST;
 #ifdef FORCE_NEW_COMPILER
     use_ast = true;
 #endif // FORCE_NEW_COMPILER
 
+    assert(config->sourceName != nullptr);
 
     return use_ast
-        ? CompileWithAst(vm, rg, up, bindings, sourcename, out, raiseerror, lineinfo)
-        : CompileOnePass(vm, rg, up, bindings, sourcename, out, raiseerror, lineinfo);
+        ? CompileWithAst(vm, rg, up, bindings, out, config)
+        : CompileOnePass(vm, rg, up, bindings, out, config);
 }
 
 

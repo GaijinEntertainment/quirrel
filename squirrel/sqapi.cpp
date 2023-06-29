@@ -158,12 +158,13 @@ void sq_close(HSQUIRRELVM v)
     sq_vm_destroy_alloc_context(&allocctx);
 }
 
-SQRESULT sq_compile(HSQUIRRELVM v,SQLEXREADFUNC read,SQUserPointer p,const SQChar *sourcename,SQBool raiseerror,const HSQOBJECT *bindings)
+SQRESULT sq_compile(HSQUIRRELVM v,SQLEXREADFUNC read,SQUserPointer p, SQCompilerConfig *config,const HSQOBJECT *bindings)
 {
     SQObjectPtr o;
 #ifndef NO_COMPILER
-    bool useAst = _ss(v)->checkCompilationOption(CompilationOptions::CO_USE_AST_COMPILER);
-    if(Compile(v, read, p, bindings, sourcename, o, raiseerror?true:false, _ss(v)->_debuginfo, useAst)) {
+    config->lineInfo = _ss(v)->_debuginfo;
+
+    if(Compile(v, read, p, bindings, o, config)) {
         v->Push(SQClosure::Create(_ss(v), _funcproto(o),
                 _table(v->_roottable)->GetWeakRef(_ss(v)->_alloc_ctx, OT_TABLE, 0)));
         return SQ_OK;
@@ -1709,12 +1710,17 @@ SQInteger buf_lexfeed(SQUserPointer file)
     return buf->buf[buf->ptr++];
 }
 
-SQRESULT sq_compilebuffer(HSQUIRRELVM v,const SQChar *s,SQInteger size,const SQChar *sourcename,SQBool raiseerror,const HSQOBJECT *bindings) {
+SQRESULT sq_compilebuffer(HSQUIRRELVM v,const SQChar *s,SQInteger size, SQCompilerConfig *config,const HSQOBJECT *bindings) {
     BufState buf;
     buf.buf = s;
     buf.size = size;
     buf.ptr = 0;
-    return sq_compile(v, buf_lexfeed, &buf, sourcename, raiseerror, bindings);
+    return sq_compile(v, buf_lexfeed, &buf, config, bindings);
+}
+
+void sq_fillcompilerconfig(HSQUIRRELVM v, SQCompilerConfig *config)
+{
+    config->useAST = _ss(v)->checkCompilationOption(CompilationOptions::CO_USE_AST_COMPILER);
 }
 
 void sq_move(HSQUIRRELVM dest,HSQUIRRELVM src,SQInteger idx)

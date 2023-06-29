@@ -41,11 +41,11 @@ public:
   // Note: accessing files outside of current base paths (via ../../)
   // can mess things up (breaking load module once rule)
   // __name__ is put to module this. Use __fn__ constant to use resolved filename or custom string to override
-  bool  requireModule(const char *fn, bool must_exist, const char *__name__, Sqrat::Object &exports, string &out_err_msg);
+  bool  requireModule(const char *fn, bool must_exist, const char *__name__, Sqrat::Object &exports, string &out_err_msg, const SQCompilerConfig *config);
   // This can also be used for initial module execution
-  bool  reloadModule(const char *fn, bool must_exist, const char *__name__, Sqrat::Object &exports, string &out_err_msg);
+  bool  reloadModule(const char *fn, bool must_exist, const char *__name__, Sqrat::Object &exports, string &out_err_msg, const SQCompilerConfig *config);
 
-  bool  reloadAll(string &err_msg);
+  bool  reloadAll(string &err_msg, const SQCompilerConfig *config);
 
   bool  addNativeModule(const char *module_name, const Sqrat::Object &exports);
 
@@ -74,8 +74,8 @@ private:
     FileNotFound,
     CompilationFailed
   };
-  CompileScriptResult compileScript(const char *resolved_fn, const char *orig_fn, const HSQOBJECT *bindings,
-                                    Sqrat::Object &script_closure, string &out_err_msg);
+  CompileScriptResult compileScript(const char *orig_fn, const HSQOBJECT *bindings,
+                                    Sqrat::Object &script_closure, string &out_err_msg, SQCompilerConfig *config);
   Sqrat::Object  setupStateStorage(const char *resolved_fn);
   Module * findModule(const char * resolved_fn);
 

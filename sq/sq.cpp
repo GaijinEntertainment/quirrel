@@ -86,6 +86,7 @@ void PrintUsage()
 //<<FIXME>> this func is a mess
 int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 {
+    SQCompilerConfig config = { 0 };
     int compiles_only = 0;
 #ifdef SQUNICODE
     static SQChar temp[500];
@@ -105,6 +106,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 {
                 case 'a':
                     if (strcmp("-ast", argv[arg]) == 0) {
+                        config.useAST = true;
                         sq_setcompilationoption(v, CompilationOptions::CO_USE_AST_COMPILER, true);
                         break;
                     }
@@ -112,10 +114,12 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                         goto unknown_opt;
                     }
                 case 'd': //DEBUG(debug infos)
+                    config.lineInfo = true;
                     sq_enabledebuginfo(v,1);
                     sq_lineinfo_in_expressions(v, 1);
                     break;
                 case 'c':
+                    config.compileOnly = true;
                     compiles_only = 1;
                     break;
                 case 'o':
@@ -168,7 +172,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             else {
                 Sqrat::Object exports;
                 std::string errMsg;
-                if (!module_mgr->requireModule(filename, true, "__main__", exports, errMsg)) {
+                if (!module_mgr->requireModule(filename, true, "__main__", exports, errMsg, &config)) {
                     printf(_SC("Error [%s]\n"), errMsg.c_str());
                     return _ERROR;
                 }
@@ -254,7 +258,13 @@ void Interactive(HSQUIRRELVM v)
         i=strlen(buffer);
         if(i>0){
             SQInteger oldtop=sq_gettop(v);
-            if(SQ_SUCCEEDED(sq_compilebuffer(v,buffer,i,_SC("interactive console"),SQTrue))){
+
+            SQCompilerConfig config = { 0 };
+            config.sourceName = _SC("interactive console");
+            config.raiseError = true;
+            config.useAST = true;
+
+            if(SQ_SUCCEEDED(sq_compilebuffer(v,buffer,i,&config))){
                 sq_pushroottable(v);
                 if(SQ_SUCCEEDED(sq_call(v,1,retval,SQTrue)) &&  retval){
                     printf(_SC("\n"));
