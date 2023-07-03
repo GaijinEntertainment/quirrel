@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <iostream>
+#include <fstream>
 
 #if defined(_MSC_VER) && defined(_DEBUG)
 #include <crtdbg.h>
@@ -53,11 +55,13 @@ void printfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const SQChar *s,...)
     va_end(vl);
 }
 
+static FILE *errorStream = stderr;
+
 void errorfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const SQChar *s,...)
 {
     va_list vl;
     va_start(vl, s);
-    scvprintf(stderr, s, vl);
+    scvprintf(errorStream, s, vl);
     va_end(vl);
 }
 
@@ -70,14 +74,71 @@ void PrintUsage()
 {
     fprintf(stderr,_SC("usage: sq <options> <scriptpath [args]>.\n")
         _SC("Available options are:\n")
-        _SC("   -c              compiles the file to bytecode(default output 'out.cnut')\n")
-        _SC("   -o              specifies output file for the -c option\n")
-        _SC("   -ast            use AST compiler\n")
-        _SC("   -c              compiles only\n")
-        _SC("   -optCH          enable Closure Hoisting Optimization\n")
-        _SC("   -d              generates debug infos\n")
-        _SC("   -v              displays version infos\n")
-        _SC("   -h              prints help\n"));
+        _SC("   -c               compiles the file to bytecode(default output 'out.cnut')\n")
+        _SC("   -o               specifies output file for the -c option\n")
+        _SC("   -ast             use AST compiler\n")
+        _SC("   -ast-dump [file] dump AST into console or file if specified\n")
+        _SC("   -bytecode-dump [file] dump SQ bytecode into console or file if specified\n")
+        _SC("   -c               compiles only\n")
+        _SC("   -diag-file file  write diagnostics into specified file")
+        _SC("   -optCH           enable Closure Hoisting Optimization\n")
+        _SC("   -d               generates debug infos\n")
+        _SC("   -v               displays version infos\n")
+        _SC("   -h               prints help\n"));
+}
+
+struct DumpOptions {
+  bool astDump;
+  bool bytecodeDump;
+
+  const char *astDumpFileName;
+  const char *bytecodeDumpFileName;
+};
+
+static void dumpAst_callback(HSQUIRRELVM vm, Node *ast, void *opts)
+{
+    if (opts == NULL)
+      return;
+    DumpOptions *dumpOpt = (DumpOptions *)opts;
+    if (dumpOpt->astDump)
+    {
+        FILE *os = dumpOpt->astDumpFileName ? fopen(dumpOpt->astDumpFileName, "w") : stdout;
+        if (os)
+        {
+            sq_dumpast(vm, ast, os);
+            if (dumpOpt->astDumpFileName)
+            {
+                fclose(os);
+            }
+        }
+        else
+        {
+            printf(_SC("Error: cannot open AST dump file '%s'\n"), dumpOpt->astDumpFileName);
+        }
+    }
+}
+
+static void dumpBytecodeAst_callback(HSQUIRRELVM vm, void *opts)
+{
+    if (opts == NULL)
+      return;
+    DumpOptions *dumpOpt = (DumpOptions *)opts;
+    if (dumpOpt->bytecodeDump)
+    {
+        FILE *os = dumpOpt->bytecodeDumpFileName ? fopen(dumpOpt->bytecodeDumpFileName, "w") : stdout;
+        if (os)
+        {
+            sq_dumpbytecode(vm, os);
+            if (dumpOpt->bytecodeDumpFileName)
+            {
+                fclose(os);
+            }
+        }
+        else
+        {
+            printf(_SC("Error: cannot open Bytecode dump file '%s'\n"), dumpOpt->bytecodeDumpFileName);
+        }
+    }
 }
 
 #define _INTERACTIVE 0
@@ -86,6 +147,8 @@ void PrintUsage()
 //<<FIXME>> this func is a mess
 int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 {
+    DumpOptions dumpOpt;
+    FILE *diagFile = nullptr;
     int compiles_only = 0;
 #ifdef SQUNICODE
     static SQChar temp[500];
@@ -105,15 +168,64 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 {
                 case 'a':
                     if (strcmp("-ast", argv[arg]) == 0) {
-                        sq_setcompilationoption(v, CompilationOptions::CO_USE_AST_COMPILER, true);
-                        break;
+                        module_mgr->compilationOptions.useAST = true;
+                        //sq_setcompilationoption(v, CompilationOptions::CO_USE_AST_COMPILER, true);
+                    }
+                    else if (strcmp("-ast-dump", argv[arg]) == 0)
+                    {
+                        dumpOpt.astDump = true;
+                        if (((arg + 1) < argc) && argv[arg + 1][0] != '-')
+                        {
+                            dumpOpt.astDumpFileName = argv[++arg];
+                        }
                     }
                     else {
                         goto unknown_opt;
                     }
+                    break;
                 case 'd': //DEBUG(debug infos)
-                    sq_enabledebuginfo(v,1);
-                    sq_lineinfo_in_expressions(v, 1);
+                    if (strcmp("-d", argv[arg]) == 0)
+                    {
+                        module_mgr->compilationOptions.debugInfo = true;
+                        //sq_enabledebuginfo(v,1);
+                        sq_lineinfo_in_expressions(v, 1);
+                    }
+                    else if (strcmp("-diag-file", argv[arg]) == 0)
+                    {
+                        if (((arg + 1) < argc) && argv[arg + 1][0] != '-')
+                        {
+                            const char *fileName = argv[++arg];
+                            diagFile = fopen(fileName, "w");
+                            if (diagFile == NULL)
+                            {
+                                printf(_SC("Cannot open diagnostic output file '%s'\n"), fileName);
+                                return _ERROR;
+                            }
+                        }
+                        else
+                        {
+                            printf(_SC("-diag-file option requires file name to be specified\n"));
+                            return _ERROR;
+                        }
+                    }
+                    else
+                    {
+                        goto unknown_opt;
+                    }
+                    break;
+                case 'b':
+                    if (strcmp("-bytecode-dump", argv[arg]) == 0)
+                    {
+                      dumpOpt.bytecodeDump = 1;
+                      if (((arg + 1) < argc) && argv[arg + 1][0] != '-')
+                      {
+                          dumpOpt.bytecodeDumpFileName = argv[++arg];
+                      }
+                    }
+                    else
+                    {
+                        goto unknown_opt;
+                    }
                     break;
                 case 'c':
                     compiles_only = 1;
@@ -145,6 +257,15 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 }
             }else break;
             arg++;
+        }
+
+        module_mgr->up_data = &dumpOpt;
+        module_mgr->onAST_cb = &dumpAst_callback;
+        module_mgr->onBytecode_cb = &dumpBytecodeAst_callback;
+
+        if (diagFile)
+        {
+            errorStream = diagFile;
         }
 
         // src file
@@ -318,6 +439,11 @@ int main(int argc, char* argv[])
     case _ERROR:
     default:
         break;
+    }
+
+    if (errorStream != stderr)
+    {
+        fclose(errorStream);
     }
 
     delete module_mgr;

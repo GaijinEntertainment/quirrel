@@ -22,6 +22,7 @@
     DEF_TREE_OP(BREAK), \
     DEF_TREE_OP(CONTINUE), \
     DEF_TREE_OP(EXPR_STMT), \
+    DEF_TREE_OP(IMPORT), \
     DEF_TREE_OP(EMPTY), \
     DEF_TREE_OP(DIRECTIVE), \
     DEF_TREE_OP(STATEMENT_MARK), \
@@ -530,6 +531,34 @@ public:
     DirectiveStmt() : Statement(TO_DIRECTIVE) {}
     SQInteger setFlags = 0, clearFlags = 0;
     bool applyToDefault = false;
+};
+
+
+struct Slot {
+
+  Slot(Arena *arena) : path(arena) {}
+
+  const SQChar *importId;
+  ArenaVector<const SQChar *> path;
+};
+
+class ImportStmt : public Statement {
+public:
+  ImportStmt(Arena *arena) : Statement(TO_IMPORT), _slots(arena) {}
+
+
+  const ArenaVector<Slot> &slots() const { return _slots; }
+  ArenaVector<Slot> &slots() { return _slots; }
+
+  const SQChar *moduleName() const { return _moduleName; }
+  const SQChar *moduleId() const { return _moduleId; }
+
+private:
+
+  ArenaVector<Slot> _slots;
+
+  const SQChar *_moduleName;
+  const SQChar *_moduleId;
 };
 
 enum DeclarationContext {
