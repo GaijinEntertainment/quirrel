@@ -1794,7 +1794,7 @@ class CheckerVisitor : public Visitor {
   void computeNameRef(const GetFieldExpr *access, SQChar *b, int32_t &ptr, int32_t size);
   int32_t computeNameLength(const Expr *e);
   void computeNameRef(const Expr *lhs, SQChar *buffer, int32_t &ptr, int32_t size);
-  const SQChar *computeNameRef(const Expr *lhs);
+  const SQChar *computeNameRef(const Expr *lhs, SQChar *buffer, size_t bufferSize);
 
   ValueRef *findValueInScopes(const SQChar *ref);
   void applyKnownInvocationToScope(const ValueRef *ref);
@@ -3027,7 +3027,8 @@ void CheckerVisitor::visitTerExpr(TerExpr *expr) {
 
 void CheckerVisitor::visitIncExpr(IncExpr *expr) {
 
-  const SQChar *name = computeNameRef(deparen(expr->argument()));
+  SQChar buffer[64] = { 0 };
+  const SQChar *name = computeNameRef(deparen(expr->argument()), buffer, sizeof buffer);
   if (name) {
     ValueRef *v = findValueInScopes(name);
 
@@ -4406,7 +4407,8 @@ void CheckerVisitor::checkEnumConstUsage(const GetFieldExpr *acc) {
   if (effectsOnly)
     return;
 
-  const SQChar *receiverName = computeNameRef(acc->receiver());
+  SQChar buffer[64] = { 0 };
+  const SQChar *receiverName = computeNameRef(acc->receiver(), buffer, sizeof buffer);
 
   if (!receiverName)
     return;
@@ -4542,7 +4544,8 @@ void CheckerVisitor::applyAssignEqToScope(const BinExpr *bin) {
   const Expr *lhs = bin->lhs();
   const Expr *rhs = bin->rhs();
 
-  const SQChar *name = computeNameRef(lhs);
+  SQChar buffer[128] = { 0 };
+  const SQChar *name = computeNameRef(lhs, buffer, sizeof buffer);
   if (!name)
     return;
 
@@ -4612,20 +4615,28 @@ void CheckerVisitor::computeNameRef(const Expr *e, SQChar *b, int32_t &ptr, int3
   }
 }
 
-const SQChar *CheckerVisitor::computeNameRef(const Expr *lhs) {
+const SQChar *CheckerVisitor::computeNameRef(const Expr *lhs, SQChar *buffer, size_t bufferSize) {
   int32_t length = computeNameLength(lhs);
   if (length < 0)
     return nullptr;
 
-  SQChar *b = (SQChar *)arena->allocate(length + 1);
+  SQChar *result = buffer;
+
+  if (!result || bufferSize < (length + 1)) {
+    result = (SQChar *)arena->allocate(length + 1);
+  }
+
   int32_t ptr = 0;
-  computeNameRef(lhs, b, ptr, length + 1);
-  assert(ptr = length);
-  return b;
+  computeNameRef(lhs, result, ptr, length + 1);
+  assert(ptr == length);
+  return result;
 }
 
 void CheckerVisitor::setValueFlags(const Expr *lvalue, unsigned pf, unsigned nf) {
-  const SQChar *name = computeNameRef(lvalue);
+
+  SQChar buffer[128] = { 0 };
+
+  const SQChar *name = computeNameRef(lvalue, buffer, sizeof buffer);
 
   if (!name)
     return;
@@ -4642,7 +4653,10 @@ void CheckerVisitor::setValueFlags(const Expr *lvalue, unsigned pf, unsigned nf)
 
 const ValueRef *CheckerVisitor::findValueForExpr(const Expr *e) {
   e = deparen(e);
-  const SQChar *n = computeNameRef(e);
+
+  SQChar buffer[128] = { 0 };
+
+  const SQChar *n = computeNameRef(e, buffer, sizeof buffer);
 
   if (!n) {
     return nullptr;
@@ -4865,7 +4879,9 @@ const FunctionInfo *CheckerVisitor::findFunctionInfo(const Expr *e, bool &isCtor
     }
   }
 
-  const SQChar *name = computeNameRef(ee);
+  SQChar buffer[128] = { 0 };
+
+  const SQChar *name = computeNameRef(ee, buffer, sizeof buffer);
 
   if (!name)
     return nullptr;
@@ -4990,7 +5006,8 @@ void CheckerVisitor::applyCallToScope(const CallExpr *call) {
     }
   }
   else if (callee->op() == TO_GETFIELD) {
-    const SQChar *ref = computeNameRef(callee);
+    SQChar buffer[128] = { 0 };
+    const SQChar *ref = computeNameRef(callee, buffer, sizeof buffer);
     const ValueRef *value = findValueInScopes(ref);
     if (value) {
       applyKnownInvocationToScope(value);
