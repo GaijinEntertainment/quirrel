@@ -883,11 +883,11 @@ void SQParser::ParseTableOrClass(TableDecl *decl, SQInteger separator, SQInteger
     while(_token != terminator) {
         SQInteger l = line();
         SQInteger c = column();
-        bool isstatic = false;
+        unsigned flags = 0;
         //check if is an static
         if(otype == NOT_CLASS) {
             if(_token == TK_STATIC) {
-                isstatic = true;
+                flags |= TMF_STATIC;
                 Lex();
             }
         }
@@ -905,18 +905,17 @@ void SQParser::ParseTableOrClass(TableDecl *decl, SQInteger separator, SQInteger
             FunctionDecl *f = CreateFunction(funcName, false, tk == TK_CONSTRUCTOR);
             DeclExpr *e = newNode<DeclExpr>(f);
             setCoordinates(e, l, c);
-            decl->addMember(key, e, isstatic);
+            decl->addMember(key, e, flags);
         }
         break;
         case _SC('['): {
             Lex();
-
             Expr *key = Expression(SQE_RVALUE); //-V522
             assert(key);
             Expect(_SC(']'));
             Expect(_SC('='));
             Expr *value = Expression(SQE_RVALUE);
-            decl->addMember(key, value, isstatic);
+            decl->addMember(key, value, flags | TMF_DYNAMIC_KEY);
             break;
         }
         case TK_STRING_LITERAL: //JSON
@@ -925,7 +924,7 @@ void SQParser::ParseTableOrClass(TableDecl *decl, SQInteger separator, SQInteger
                 assert(key);
                 Expect(_SC(':'));
                 Expr *expr = Expression(SQE_RVALUE);
-                decl->addMember(key, expr, isstatic);
+                decl->addMember(key, expr, flags | TMF_JSON);
                 break;
             }  //-V796
         default: {
@@ -936,12 +935,12 @@ void SQParser::ParseTableOrClass(TableDecl *decl, SQInteger separator, SQInteger
             if ((otype == NOT_TABLE) &&
                 (_token == TK_IDENTIFIER || _token == separator || _token == terminator || _token == _SC('[')
                     || _token == TK_FUNCTION)) {
-                decl->addMember(key, id, isstatic);
+                decl->addMember(key, id, flags);
             }
             else {
                 Expect(_SC('='));
                 Expr *expr = Expression(SQE_RVALUE);
-                decl->addMember(key, expr, isstatic);
+                decl->addMember(key, expr, flags);
             }
         }
         }

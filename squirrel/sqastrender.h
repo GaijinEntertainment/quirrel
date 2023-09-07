@@ -374,9 +374,12 @@ public:
 
         for (auto &m : tbl->members()) {
             indent(_indent);
-            if (m.isStatic) _out->writeString("STATIC ");
+            if (m.isStatic()) _out->writeString("STATIC ");
+            if (m.isDynamicKey()) _out->writeChar('[');
             m.key->visit(this);
-            _out->writeString(" <- ");
+            if (m.isDynamicKey()) _out->writeChar(']');
+            const char *op = m.isJson() ? " : " : " <- ";
+            _out->writeString(op);
             m.value->visit(this);
             newLine();
         }

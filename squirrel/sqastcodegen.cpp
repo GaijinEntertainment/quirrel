@@ -622,7 +622,7 @@ void CodegenVisitor::generateTableDecl(TableDecl *tableDecl) {
         SQInteger table = _fs->TopTarget(); //<<BECAUSE OF THIS NO COMMON EMIT FUNC IS POSSIBLE
 
         if (isKlass) {
-            _fs->AddInstruction(_OP_NEWSLOTA, m.isStatic ? NEW_SLOT_STATIC_FLAG : 0, table, key, val);
+            _fs->AddInstruction(_OP_NEWSLOTA, m.isStatic() ? NEW_SLOT_STATIC_FLAG : 0, table, key, val);
         }
         else {
             _fs->AddInstruction(_OP_NEWSLOT, 0xFF, table, key, val);
