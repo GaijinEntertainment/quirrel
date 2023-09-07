@@ -1804,6 +1804,7 @@ class CheckerVisitor : public Visitor {
 
   void setValueFlags(const Expr *lvalue, unsigned pf, unsigned nf);
   const ValueRef *findValueForExpr(const Expr *e);
+  const Expr *maybeEval(const Expr *e, int32_t &evalId, std::unordered_set<const Expr *> &visited);
   const Expr *maybeEval(const Expr *e, int32_t &evalId);
   const Expr *maybeEval(const Expr *e);
 
@@ -4789,6 +4790,17 @@ const Expr *CheckerVisitor::maybeEval(const Expr *e) {
 }
 
 const Expr *CheckerVisitor::maybeEval(const Expr *e, int32_t &evalId) {
+  std::unordered_set<const Expr *> visited;
+  return maybeEval(e, evalId, visited);
+}
+
+const Expr *CheckerVisitor::maybeEval(const Expr *e, int32_t &evalId, std::unordered_set<const Expr *> &visited) {
+
+  if (visited.find(e) != visited.end())
+    return e;
+
+  visited.emplace(e);
+
   e = deparen(e);
   const ValueRef *v = findValueForExpr(e);
 
