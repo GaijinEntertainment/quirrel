@@ -341,7 +341,7 @@ void SQASTWritingVisitor::visitTableDecl(TableDecl *table) {
   for (auto &m : table->members()) {
     m.key->visit(this);
     m.value->visit(this);
-    stream->writeInt8(m.isStatic);
+    stream->writeUInt32(m.flags);
   }
 }
 
@@ -1048,9 +1048,9 @@ void SQASTReader::readTableBody(TableDecl *table) {
   for (size_t i = 0; i < size; ++i) {
     Expr *key = readExpression();
     Expr *value = readExpression();
-    bool isStatic = stream->readInt8();
+    unsigned flags = stream->readUInt32();
 
-    table->addMember(key, value, isStatic);
+    table->addMember(key, value, flags);
   }
 }
 

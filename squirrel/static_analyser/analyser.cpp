@@ -348,7 +348,7 @@ class NodeEqualChecker {
       if (!check(lm.value, rm.value))
         return false;
 
-      if (lm.isStatic != rm.isStatic)
+      if (lm.flags != rm.flags)
         return false;
     }
 

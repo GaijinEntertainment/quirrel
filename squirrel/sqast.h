@@ -623,17 +623,27 @@ private:
     bool _destructured;
 };
 
+enum TableMemberFlags : unsigned {
+  TMF_STATIC = (1U << 0),
+  TMF_DYNAMIC_KEY = (1U << 1),
+  TMF_JSON = (1U << 2)
+};
+
 struct TableMember {
     Expr *key;
     Expr *value;
-    bool isStatic;
+    unsigned flags;
+
+    bool isStatic() const { return (flags & TMF_STATIC) != 0; }
+    bool isDynamicKey() const { return (flags & TMF_DYNAMIC_KEY) != 0; }
+    bool isJson() const { return (flags & TMF_JSON) != 0; }
 };
 
 class TableDecl : public Decl {
 public:
     TableDecl(Arena *arena) : Decl(TO_TABLE), _members(arena) {}
 
-    void addMember(Expr *key, Expr *value, bool isStatic = false) { _members.push_back({ key, value, isStatic }); }
+    void addMember(Expr *key, Expr *value, unsigned keys = 0) { _members.push_back({ key, value, keys }); }
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
