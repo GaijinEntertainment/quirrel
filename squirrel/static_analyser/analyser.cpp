@@ -2581,6 +2581,10 @@ const SQChar *tryExtractKeyName(const Expr *e) {
   if (e->op() == TO_GETFIELD)
     return e->asGetField()->fieldName();
 
+  if (e->op() == TO_GETTABLE) {
+    e = e->asGetTable()->key();
+  }
+
   if (e->op() == TO_LITERAL) {
     if (e->asLiteral()->kind() == LK_STRING)
       return e->asLiteral()->s();
@@ -2589,7 +2593,41 @@ const SQChar *tryExtractKeyName(const Expr *e) {
   return nullptr;
 }
 
+static bool isValidId(const SQChar *id) {
+  assert(id != nullptr);
+
+  if (!isalpha(id[0]) && id[0] != '_')
+    return false;
+
+  for (int i = 1; id[i]; ++i) {
+    SQChar c = id[i];
+    if (!isalpha(c) && !isdigit(c) && c != '_')
+      return false;
+  }
+
+  return true;
+}
+
 void CheckerVisitor::checkKeyNameMismatch(const Expr *key, const Expr *e) {
+
+  /*
+    let function bar() {}
+    let tt = {
+      "1foo" : function bar1() { .. }, // OK, not id
+      "foo2" : function bar2() { .. }, // WARN
+      "foo3" : function foo3() { .. }, // OK
+
+      foo4 = function bar5() { ... }, // WARN
+      foo6 = function foo6() { ... }, // OK
+
+      ["foo7"] = function bar7() { ... }, // WARN
+      ["8foo"] = function bar8() { ... } // OK, not id
+    }
+    tt.foo <- bar // OK
+    tt.qux <- function fex() { .. } // WARN
+    tt["fk"] <- function uyte() { .. } // WARN
+    tt["f:g:h"] <- function fgh() { .. } // OK
+  */
 
   if (effectsOnly)
     return;
@@ -2613,10 +2651,14 @@ void CheckerVisitor::checkKeyNameMismatch(const Expr *key, const Expr *e) {
     }
   }
 
-  if (declName) {
-    if (strcmp(fieldName, declName) != 0) {
-      report(e, DiagnosticsId::DI_KEY_NAME_MISMATCH, fieldName, declName);
-    }
+  if (!declName)
+    return;
+
+  if (!isValidId(fieldName))
+    return;
+
+  if (strcmp(fieldName, declName) != 0) {
+    report(e, DiagnosticsId::DI_KEY_NAME_MISMATCH, fieldName, declName);
   }
 }
 
