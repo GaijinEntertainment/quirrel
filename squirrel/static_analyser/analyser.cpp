@@ -2384,8 +2384,10 @@ void CheckerVisitor::checkDeclarationInArith(const BinExpr *bin) {
       report(bin->lhs(), DiagnosticsId::DI_DECL_IN_EXPR);
     }
 
-    if (rhs->op() == TO_DECL_EXPR || rhs->op() == TO_ARRAYEXPR) {
-      report(bin->rhs(), DiagnosticsId::DI_DECL_IN_EXPR);
+    if (bin->op() != TO_OROR && bin->op() != TO_ANDAND) {
+      if (rhs->op() == TO_DECL_EXPR || rhs->op() == TO_ARRAYEXPR) {
+        report(bin->rhs(), DiagnosticsId::DI_DECL_IN_EXPR);
+      }
     }
   }
 }
