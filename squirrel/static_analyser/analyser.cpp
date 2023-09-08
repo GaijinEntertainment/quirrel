@@ -779,7 +779,7 @@ public:
   bool check(const Node *toCheck, Node *tree) {
     result = false;
     checkee = toCheck;
-    tree->visit(this);
+    tree->visit(this); // -V522
     return result;
   }
 };
@@ -853,9 +853,12 @@ static bool isBinaryArith(const Expr *expr) {
   return TO_OROR <= expr->op() && expr->op() <= TO_SUB;
 }
 
-static bool isAssignExpr(const Expr *expr) {
-  enum TreeOp op = expr->op();
+static bool isAssignOp(const TreeOp op) {
   return op == TO_ASSIGN || op == TO_INEXPR_ASSIGN || (TO_PLUSEQ <= op && op <= TO_MODEQ);
+}
+
+static bool isAssignExpr(const Expr *expr) {
+  return isAssignOp(expr->op());
 }
 
 class LoopTerminatorCollector : public Visitor {
@@ -966,6 +969,51 @@ public:
     return (hasUnconditionalTerm && !hasCondContinue) || hasUnconditionalContinue;
   }
 };
+
+
+class AssignSeqTerminatorFinder : public Visitor {
+
+  const Expr *assigne;
+  bool foundUsage;
+  bool foundInteruptor;
+
+  NodeEqualChecker eqChecker;
+
+public:
+  AssignSeqTerminatorFinder(const Expr *asg) : assigne(asg), foundUsage(false), foundInteruptor(false), eqChecker() {}
+
+  void visitNode(Node *n) {
+    if (!foundInteruptor && !foundUsage)
+      Visitor::visitNode(n);
+  }
+
+  void visitCallExpr(CallExpr *c) {
+    foundInteruptor = true; // consider call as potenrial usage
+  }
+
+  void visitExpr(Expr *e) {
+    Visitor::visitExpr(e);
+
+    if (eqChecker.check(assigne, e))
+      foundUsage = true;
+  }
+
+  void visitFunctionDecl(FunctionDecl *e) { /* skip */ }
+
+  bool check(Node *tree) {
+
+    tree->visit(this);
+
+    return foundUsage || foundInteruptor;
+  }
+};
+
+static bool terminateAssignSequence(const Expr *assignee, Node *tree) {
+  AssignSeqTerminatorFinder finder(assignee);
+
+  return finder.check(tree);
+}
+
 
 static bool isSuspiciousNeighborOfNullCoalescing(enum TreeOp op) {
   return (op == TO_3CMP || op == TO_ANDAND || op == TO_OROR || op == TO_IN || /*op == TO_NOTIN ||*/ op == TO_EQ || op == TO_NE || op == TO_LE ||
@@ -2064,10 +2112,10 @@ void CheckerVisitor::checkIdUsed(const Id *id, const Node *p, ValueRef *v) {
     bool simpleAsgn = e->op() == TO_ASSIGN || e->op() == TO_INEXPR_ASSIGN;
     if (id == lhs) {
       bool used = v->info->usedAfterAssign || existsInTree(id, bin->rhs());
-      if (!used && assigned && simpleAsgn) {
-        if (!v->lastAssigneeScope || currentScope->owner == v->lastAssigneeScope->owner)
-          report(bin, DiagnosticsId::DI_REASSIGN_WITH_NO_USAGE);
-      }
+      //if (!used && assigned && simpleAsgn) {
+      //  if (!v->lastAssigneeScope || currentScope->owner == v->lastAssigneeScope->owner)
+      //    report(bin, DiagnosticsId::DI_REASSIGN_WITH_NO_USAGE);
+      //}
       v->info->used |= used;
       v->assigned = true;
       v->lastAssigneeScope = currentScope;
@@ -3358,22 +3406,23 @@ void CheckerVisitor::checkAssignedTwice(const Block *b) {
   const auto &statements = b->statements();
 
   for (int32_t i = 0; i < int32_t(statements.size()) - 1; ++i) {
-    Expr *iexpr = unwrapExprStatement(statements[i]);
+    const Expr *iexpr = unwrapExprStatement(statements[i]);
 
-    if (iexpr && iexpr->op() == TO_ASSIGN) {
+    if (iexpr && isAssignOp(iexpr->op())) {
+      const BinExpr *iassgn = static_cast<const BinExpr *>(iexpr);
+      const Expr *firstAssignee = iassgn->lhs();
+
       for (int32_t j = i + 1; j < statements.size(); ++j) {
-        Expr *jexpr = unwrapExprStatement(statements[j]);
+        Statement *stmt = statements[j];
+        Expr *jexpr = unwrapExprStatement(stmt);
 
         if (jexpr && jexpr->op() == TO_ASSIGN) {
-          BinExpr *iassgn = static_cast<BinExpr *>(iexpr);
-          BinExpr *jassgn = static_cast<BinExpr *>(jexpr);
+          const BinExpr *jassgn = static_cast<const BinExpr *>(jexpr);
 
-          if (_equalChecker.check(iassgn->lhs(), jassgn->lhs())) {
-            Expr *firstAssignee = iassgn->lhs();
-
+          if (_equalChecker.check(firstAssignee, jassgn->lhs())) {
             bool ignore = existsInTree(firstAssignee, jassgn->rhs());
             if (!ignore && firstAssignee->op() == TO_GETTABLE) {
-              GetTableExpr *getT = firstAssignee->asGetTable();
+              const GetTableExpr *getT = firstAssignee->asGetTable();
               ignore = indexChangedInTree(getT->key());
               if (!ignore) {
                 for (int32_t m = i + 1; m < j; ++m) {
@@ -3389,6 +3438,9 @@ void CheckerVisitor::checkAssignedTwice(const Block *b) {
               report(jassgn, DiagnosticsId::DI_ASSIGNED_TWICE);
             }
           }
+        }
+        else if (terminateAssignSequence(firstAssignee, stmt)) {
+          break;
         }
       }
     }
