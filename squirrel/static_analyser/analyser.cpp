@@ -551,6 +551,16 @@ class FunctionReturnTypeEvaluator {
   bool checkTry(const TryStatement *trstmt);
   bool checkThrow(const ThrowStatement *thrw);
 
+  const Statement *unwrapLastStatement(const Statement *stmt) {
+    if (stmt->op() == TO_BLOCK) {
+      const Block *b = stmt->asBlock();
+      auto &stmts = b->statements();
+      return stmts.empty() ? nullptr : unwrapLastStatement(stmts.back());
+    }
+
+    return stmt;
+  }
+
 public:
 
   unsigned flags;
@@ -558,8 +568,9 @@ public:
   unsigned compute(const Statement *n, bool &r) {
     flags = 0;
     r = checkNode(n);
-    if (!r)
+    if (!r) {
       flags |= RT_NOTHING;
+    }
 
     return flags;
   }
@@ -728,7 +739,7 @@ bool FunctionReturnTypeEvaluator::checkBlock(const Block *block) {
   bool allReturns = false;
 
   for (const Statement *stmt : block->statements()) {
-    allReturns |= checkNode(stmt);
+    allReturns = checkNode(stmt);
   }
 
   return allReturns;
@@ -738,11 +749,21 @@ bool FunctionReturnTypeEvaluator::checkSwitch(const SwitchStatement *swtch) {
   bool allReturns = true;
 
   for (auto &c : swtch->cases()) {
-    allReturns &= checkNode(c.stmt);
+    bool caseR = checkNode(c.stmt);;
+
+    if (!caseR) {
+      const Statement *last = unwrapLastStatement(c.stmt);
+      if (!last || last->op() != TO_BREAK) // fall through
+        continue;
+    }
+    allReturns &= caseR;
   }
 
   if (swtch->defaultCase().stmt) {
     allReturns &= checkNode(swtch->defaultCase().stmt);
+  }
+  else {
+    allReturns = false;
   }
 
   return allReturns;
