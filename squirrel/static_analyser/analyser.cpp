@@ -5416,19 +5416,22 @@ const Node *NameShadowingChecker::extractPointedNode(const SymbolInfo *info) {
 
 void NameShadowingChecker::declareSymbol(const SQChar *name, SymbolInfo *info) {
   const SymbolInfo *existedInfo = scope->findSymbol(name);
+  bool addSymbol = true;
   if (existedInfo) {
     bool warn = name[0] != '_';
     if (strcmp(name, "this") == 0) {
       warn = false;
     }
 
-    if ((existedInfo->kind == SK_BINDING || existedInfo->kind == SK_VAR) && info->kind == SK_FUNCTION) {
-      if (nodeStack.size() > 2) {
-        const Node *ln = nodeStack[nodeStack.size() - 1];
-        const Node *lln = nodeStack[nodeStack.size() - 2];
-        if (ln->op() == TO_DECL_EXPR && static_cast<const DeclExpr *>(ln)->declaration() == info->declaration.f) {
-          if (existedInfo->declaration.v == lln) {
+    if (existedInfo->ownerScope == info->ownerScope) { // something like `let foo = expr<function foo() { .. }>`
+      if ((existedInfo->kind == SK_BINDING || existedInfo->kind == SK_VAR) && info->kind == SK_FUNCTION) {
+        if (nodeStack.size() > 2) {
+          const Node *ln = nodeStack[nodeStack.size() - 1];
+          const Node *lln = nodeStack[nodeStack.size() - 2];
+          if (ln->op() == TO_DECL_EXPR && static_cast<const DeclExpr *>(ln)->declaration() == info->declaration.f) {
             warn = false;
+            // if it `let foo = function foo() {}` or `let function foo() {}` or `function foo() {}`
+            addSymbol = existedInfo->declaration.v == lln;
           }
         }
       }
@@ -5458,7 +5461,8 @@ void NameShadowingChecker::declareSymbol(const SQChar *name, SymbolInfo *info) {
     }
   }
 
-  scope->symbols[name] = info;
+  if (addSymbol)
+    scope->symbols[name] = info;
 }
 
 NameShadowingChecker::SymbolInfo *NameShadowingChecker::Scope::findSymbol(const SQChar *name) const {
