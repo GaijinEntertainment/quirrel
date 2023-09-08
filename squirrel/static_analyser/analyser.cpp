@@ -1132,6 +1132,10 @@ static bool nameLooksLikeResultMustBeString(const SQChar *name) {
   return hasAnyPrefix(name, SQCompilationContext::function_can_return_string);
 }
 
+static bool nameLooksLikeCallsLambdaInPlace(const SQChar *name) {
+  return hasAnyPrefix(name, SQCompilationContext::function_calls_lambda_inplace);
+}
+
 static bool canFunctionReturnNull(const SQChar *n) {
   return hasAnyPrefix(n, SQCompilationContext::function_can_return_null);
 }
@@ -1981,9 +1985,65 @@ void CheckerVisitor::checkForeachIteratorInClosure(const Id *id, const ValueRef 
   if (v->info->kind != SK_FOREACH)
     return;
 
-  if (v->info->ownedScope->owner != currentScope->owner) {
-    report(id, DiagnosticsId::DI_ITER_IN_CLOSURE, id->id());
+  const FunctionDecl *thisScopeOwner = currentScope->owner;
+  const FunctionDecl *vOwnerScope = v->info->ownedScope->owner;
+
+  if (v->info->ownedScope->owner == currentScope->owner)
+    return;
+
+  int32_t i = nodeStack.size() - 1;
+  assert(i > 0);
+
+  int32_t thisId = -1;
+  auto rit = nodeStack.rbegin();
+  auto rie = nodeStack.rend();
+
+  while (i >= 0) {
+    auto &m = nodeStack[i];
+
+    if (m.sst == SST_NODE) {
+      if (m.n == thisScopeOwner) {
+        thisId = i;
+        break;
+      }
+    }
+    --i;
   }
+
+  assert(thisId > 0);
+
+  if (i > 2) { // decl_expr + call + foreach
+
+    auto &candidate = nodeStack[i - 2];
+
+    if (candidate.sst == SST_NODE && candidate.n->op() == TO_CALL) {
+      const CallExpr *call = candidate.n->asExpression()->asCallExpr();
+
+      bool found = false;
+      for (auto arg : call->arguments()) {
+        if (arg->op() == TO_DECL_EXPR && arg->asDeclExpr()->declaration() == thisScopeOwner) {
+          found = true;
+          break;
+        }
+      }
+
+      if (found) {// in call arguments
+        const Expr *callee = call->callee();
+        const SQChar *name = nullptr;
+
+        if (callee->op() == TO_ID)
+          name = callee->asId()->id();
+        else if (callee->op() == TO_GETFIELD)
+          name = callee->asGetField()->fieldName();
+
+        if (name && nameLooksLikeCallsLambdaInPlace(name)) {
+          return;
+        }
+      }
+    }
+  }
+
+  report(id, DiagnosticsId::DI_ITER_IN_CLOSURE, id->id());
 }
 
 void CheckerVisitor::checkIdUsed(const Id *id, const Node *p, ValueRef *v) {
