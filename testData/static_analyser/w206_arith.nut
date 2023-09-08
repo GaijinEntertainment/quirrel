@@ -9,3 +9,7 @@ x *= foo();
 x %= foo();
 x /= foo();
 x = foo();
+::print(x)
+x = foo()
+::print("")
+x = foo()
