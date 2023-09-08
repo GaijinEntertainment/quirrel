@@ -2587,8 +2587,8 @@ void CheckerVisitor::checkCompareWithContainer(const BinExpr *bin) {
   if (!isCompareOperator(bin->op()))
     return;
 
-  const Expr *l = maybeEval(bin->lhs());
-  const Expr *r = maybeEval(bin->rhs());
+  const Expr *l = bin->lhs();
+  const Expr *r = bin->rhs();
 
   if (l->op() == TO_ARRAYEXPR || r->op() == TO_ARRAYEXPR) {
     report(bin, DiagnosticsId::DI_CMP_WITH_CONTAINER, "array");
