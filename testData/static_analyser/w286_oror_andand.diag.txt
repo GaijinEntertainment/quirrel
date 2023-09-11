@@ -1,12 +1,4 @@
 WARNING: w286 (decl-in-expression) Declaration used in arith expression as operand.
-testData/static_analyser/w286_oror_andand.nut:5:17
-
-let _p = t?.x || {}
-                 ^
-let _x = {} || t?.y
-
-
-WARNING: w286 (decl-in-expression) Declaration used in arith expression as operand.
 testData/static_analyser/w286_oror_andand.nut:6:9
 
 let _p = t?.x || {}
@@ -22,15 +14,6 @@ let _p = t?.x || {}
 let _x = {} || t?.y
          ^---------
 let _y = t?.z && []
-
-
-WARNING: w286 (decl-in-expression) Declaration used in arith expression as operand.
-testData/static_analyser/w286_oror_andand.nut:7:17
-
-let _x = {} || t?.y
-let _y = t?.z && []
-                 ^-
-let _z = [] && t?.g
 
 
 WARNING: w233 (const-in-bool-expr) Constant in a boolean expression.
