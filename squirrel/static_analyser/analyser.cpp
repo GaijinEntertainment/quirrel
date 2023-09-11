@@ -739,6 +739,8 @@ bool FunctionReturnTypeEvaluator::checkBlock(const Block *block) {
   bool allReturns = false;
 
   for (const Statement *stmt : block->statements()) {
+    if (stmt->op() == TO_EMPTY)
+      continue;
     allReturns = checkNode(stmt);
   }
 
