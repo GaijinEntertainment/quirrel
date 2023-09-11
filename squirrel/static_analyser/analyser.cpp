@@ -75,6 +75,25 @@ static const Statement *unwrapBodyNonEmpty(const Statement *stmt) {
   return unwrapBodyNonEmpty(last);
 }
 
+static const Statement *unwrapSingleBlock(const Statement *stmt) {
+  if (!stmt)
+    return nullptr;
+
+  if (stmt->op() != TO_BLOCK)
+    return stmt;
+
+  int32_t effectiveSize = 0;
+  const Statement *last = lastNonEmpty(stmt->asBlock(), effectiveSize);
+
+  if (effectiveSize == 0)
+    return nullptr;
+
+  if (effectiveSize != 1)
+    return stmt;
+
+  return unwrapSingleBlock(last);
+}
+
 static Expr *unwrapExprStatement(Statement *stmt) {
   return stmt->op() == TO_EXPR_STMT ? static_cast<ExprStatement *>(stmt)->expression() : nullptr;
 }
@@ -1783,15 +1802,16 @@ class CheckerVisitor : public Visitor {
   void checkBoolIndex(const GetTableExpr *expr);
   void checkNullableIndex(const GetTableExpr *expr);
 
-  bool findIfWithTheSameCondition(const Expr * condition, const IfStatement * elseNode) {
+  bool findIfWithTheSameCondition(const Expr * condition, const IfStatement * elseNode, const Expr *&duplicated) {
     if (_equalChecker.check(condition, elseNode->condition())) {
+      duplicated = elseNode->condition();
       return true;
     }
 
-    const Statement *elseB = unwrapBodyNonEmpty(elseNode->elseBranch());
+    const Statement *elseB = unwrapSingleBlock(elseNode->elseBranch());
 
     if (elseB && elseB->op() == TO_IF) {
-      return findIfWithTheSameCondition(condition, static_cast<const IfStatement *>(elseB));
+      return findIfWithTheSameCondition(condition, static_cast<const IfStatement *>(elseB), duplicated);
     }
 
     return false;
@@ -3356,11 +3376,13 @@ void CheckerVisitor::checkDuplicateIfConditions(IfStatement *ifStmt) {
   if (effectsOnly)
     return;
 
-  const Statement *elseB = unwrapBodyNonEmpty(ifStmt->elseBranch());
+  const Statement *elseB = unwrapSingleBlock(ifStmt->elseBranch());
+  const Expr *duplicated = nullptr;
 
   if (elseB && elseB->op() == TO_IF) {
-    if (findIfWithTheSameCondition(ifStmt->condition(), static_cast<const IfStatement *>(elseB))) {
-      report(ifStmt->condition(), DiagnosticsId::DI_DUPLICATE_IF_EXPR);
+    if (findIfWithTheSameCondition(ifStmt->condition(), static_cast<const IfStatement *>(elseB), duplicated)) {
+      // TODO: high-light both conditions, original and duplicated
+      report(duplicated, DiagnosticsId::DI_DUPLICATE_IF_EXPR);
     }
   }
 }
