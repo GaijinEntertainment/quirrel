@@ -29,7 +29,36 @@ const Expr *skipUnary(const Expr *e) {
   return e;
 }
 
-const Statement *unwrapBody(const Statement *stmt) {
+static const Statement *lastNonEmpty(const Block *b, int32_t &effetiveSize) {
+  const Statement *r = nullptr;
+  effetiveSize = 0;
+  for (auto stmt : b->statements()) {
+    if (stmt->op() != TO_EMPTY) {
+      r = stmt;
+      effetiveSize += 1;
+    }
+  }
+
+  return r;
+}
+
+static const Statement *unwrapBody(const Statement *stmt) {
+  if (!stmt)
+    return nullptr;
+
+  if (stmt->op() != TO_BLOCK)
+    return stmt;
+
+  auto &stmts = stmt->asBlock()->statements();
+
+  if (stmts.empty())
+    return nullptr;
+
+  return unwrapBody(stmts.back());
+}
+
+// in contrast to `unwrapBody(...)` above this function skips empty statements
+static const Statement *unwrapBodyNonEmpty(const Statement *stmt) {
 
   if (stmt == nullptr)
     return stmt;
@@ -37,12 +66,13 @@ const Statement *unwrapBody(const Statement *stmt) {
   if (stmt->op() != TO_BLOCK)
     return stmt;
 
-  auto &stmts = stmt->asBlock()->statements();
+  int32_t effectiveSize = 0;
+  const Statement *last = lastNonEmpty(stmt->asBlock(), effectiveSize);
 
-  if (stmts.size() != 1)
-    return stmt;
+  if (effectiveSize == 0)
+    return nullptr;
 
-  return unwrapBody(stmts[0]);
+  return unwrapBodyNonEmpty(last);
 }
 
 static Expr *unwrapExprStatement(Statement *stmt) {
@@ -1758,7 +1788,7 @@ class CheckerVisitor : public Visitor {
       return true;
     }
 
-    const Statement *elseB = unwrapBody(elseNode->elseBranch());
+    const Statement *elseB = unwrapBodyNonEmpty(elseNode->elseBranch());
 
     if (elseB && elseB->op() == TO_IF) {
       return findIfWithTheSameCondition(condition, static_cast<const IfStatement *>(elseB));
@@ -3261,31 +3291,53 @@ void CheckerVisitor::checkMissedBreak(const SwitchStatement *swtch) {
 
   FunctionReturnTypeEvaluator rtEvaluator;
 
+  const Statement *last = nullptr;
   for (auto &c : cases) {
+
+    if (last) {
+      report(last, DiagnosticsId::DI_MISSED_BREAK);
+    }
+    last = nullptr;
+
     const Statement *stmt = c.stmt;
     bool r = false;
     unsigned f = rtEvaluator.compute(stmt, r);
     if (!r) {
-      stmt = unwrapBody(stmt);
-      bool warn = false;
-      const Statement *last = nullptr;
-      if (stmt->op() != TO_BLOCK) { // -V522
-        last = stmt;
-        warn = stmt->op() != TO_BREAK;
+      const Statement *uw = unwrapBodyNonEmpty(stmt);
+
+      if (!uw)
+        continue; // empty case statement -> FT
+
+      const enum TreeOp op = uw->op();
+      if (op != TO_BLOCK) {
+        if (op != TO_BREAK)
+          last = unwrapBody(stmt);
       }
       else {
-        auto &stmts = stmt->asBlock()->statements();
-        if (!stmts.empty()) {
-          last = stmts.back();
-          warn = last->op() != TO_BREAK;
+        const Block *b = uw->asBlock();
+        int32_t dummy;
+        const Statement *tmp = lastNonEmpty(b, dummy);
+        if (tmp && tmp->op() != TO_BREAK) {
+          last = unwrapBody(b);
         }
       }
-
-      if (warn) {
-        assert(last);
-        report(last, DiagnosticsId::DI_MISSED_BREAK);
-      }
     }
+  }
+
+  if (last && swtch->defaultCase().stmt) {
+    /*
+      switch (x) {
+        case A:
+          ...
+          break;
+
+        case B:
+          ...   <-- missed break
+        default:
+          ...
+      }
+    */
+    report(last, DiagnosticsId::DI_MISSED_BREAK);
   }
 }
 
@@ -3304,7 +3356,7 @@ void CheckerVisitor::checkDuplicateIfConditions(IfStatement *ifStmt) {
   if (effectsOnly)
     return;
 
-  const Statement *elseB = unwrapBody(ifStmt->elseBranch());
+  const Statement *elseB = unwrapBodyNonEmpty(ifStmt->elseBranch());
 
   if (elseB && elseB->op() == TO_IF) {
     if (findIfWithTheSameCondition(ifStmt->condition(), static_cast<const IfStatement *>(elseB))) {
