@@ -1948,6 +1948,7 @@ public:
   void visitFunctionDecl(FunctionDecl *func);
 
   void visitTableDecl(TableDecl *table);
+  void visitClassDecl(ClassDecl *klass);
 
   void visitParamDecl(ParamDecl *p);
   void visitVarDecl(VarDecl *decl);
@@ -4578,6 +4579,20 @@ void CheckerVisitor::visitTableDecl(TableDecl *table) {
     member.value->visit(this);
     nodeStack.pop_back();
   }
+}
+
+void CheckerVisitor::visitClassDecl(ClassDecl *klass) {
+  nodeStack.push_back({ SST_NODE, klass });
+
+  if (klass->classKey())
+    klass->classKey()->visit(this);
+
+  if (klass->classBase())
+    klass->classBase()->visit(this);
+
+  visitTableDecl(klass);
+
+  nodeStack.pop_back();
 }
 
 void CheckerVisitor::visitFunctionDecl(FunctionDecl *func) {
