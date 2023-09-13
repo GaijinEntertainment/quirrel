@@ -5050,7 +5050,7 @@ const Expr *CheckerVisitor::maybeEval(const Expr *e, int32_t &evalId, std::unord
 
   evalId = v->evalIndex;
   if (v->hasValue()) {
-    return maybeEval(v->expression, evalId);
+    return maybeEval(v->expression, evalId, visited);
   }
   else {
     return e;
