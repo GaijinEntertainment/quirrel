@@ -131,6 +131,7 @@ public:
     SwitchStatement* parseSwitchStatement();
     FunctionDecl* parseFunctionStatement();
     ClassDecl* parseClassStatement();
+    Expr *parseStringTemplate();
     LiteralExpr* ExpectScalar();
     ConstDecl* parseConstStatement(bool global);
     EnumDecl* parseEnumStatement(bool global);

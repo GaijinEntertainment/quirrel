@@ -1,7 +1,0 @@
-ERROR: recursion in reader macro
-testData/diagnostics/invalid_string_interp_2.nut:1:10
-
-println($"{$"{2}"}");
-          ^
-
-

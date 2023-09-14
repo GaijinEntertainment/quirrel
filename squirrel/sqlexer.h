@@ -42,9 +42,19 @@ struct SQLexerMacroState
 
 using namespace SQCompilation;
 
+enum SQLexerState {
+  LS_REGULAR,
+  LS_TEMPALTE
+};
+
+enum SQLexerMode {
+  LM_LEGACY,
+  LM_AST
+};
+
 struct SQLexer
 {
-    SQLexer(SQSharedState *ss, SQCompilationContext &ctx);
+    SQLexer(SQSharedState *ss, SQCompilationContext &ctx, enum SQLexerMode mode);
     ~SQLexer();
     void Init(SQSharedState *ss, const char *code, size_t codeSize);
     SQInteger Lex();
@@ -52,7 +62,7 @@ struct SQLexer
 private:
     SQInteger LexSingleToken();
     SQInteger GetIDType(const SQChar *s,SQInteger len);
-    SQInteger ReadString(SQInteger ndelim,bool verbatim);
+    SQInteger ReadString(SQInteger ndelim,bool verbatim, bool advance = true);
     SQInteger ReadNumber();
     void LexBlockComment();
     void LexLineComment();
@@ -81,6 +91,9 @@ public:
     SQInteger _currentcolumn;
     SQInteger _tokencolumn;
     SQInteger _tokenline;
+    SQInteger _expectedToken;
+    enum SQLexerState _state;
+    enum SQLexerMode _mode;
     const SQChar *_svalue;
     SQInteger _nvalue;
     SQFloat _fvalue;
