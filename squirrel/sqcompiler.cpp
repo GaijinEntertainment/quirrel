@@ -49,7 +49,7 @@ class SQCompiler //-V553
 {
 public:
     SQCompiler(SQVM *v, const char *code, size_t codeSize, const HSQOBJECT *bindings, const SQChar* sourcename, SQCompilationContext &ctx, bool lineinfo) :
-        _lex(_ss(v), ctx),
+        _lex(_ss(v), ctx, LM_LEGACY),
         _scopedconsts(_ss(v)->_alloc_ctx),
         _member_constant_keys_check(_ss(v)->_alloc_ctx),
         _ctx(ctx),

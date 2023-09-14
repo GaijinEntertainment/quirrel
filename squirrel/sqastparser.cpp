@@ -33,7 +33,7 @@ struct NestingChecker {
 };
 
 SQParser::SQParser(SQVM *v, const char *sourceText, size_t sourceTextSize, const SQChar* sourcename, Arena *astArena, SQCompilationContext &ctx)
-    : _lex(_ss(v), ctx)
+    : _lex(_ss(v), ctx, LM_AST)
     , _ctx(ctx)
     , _astArena(astArena)
 {
@@ -728,6 +728,89 @@ Expr* SQParser::PrefixedExpr()
     }
 }
 
+static void appendStringData(sqvector<SQChar> &dst, const SQChar *b) {
+  while (*b) {
+    dst.push_back(*b++);
+  }
+}
+
+Expr *SQParser::parseStringTemplate() {
+
+    // '$' TK_TEMPLATE_PREFIX? (arg TK_TEMPLATE_INFIX)* arg? TK_TEMPLATE_SUFFX
+
+    _lex._state = LS_TEMPALTE;
+    _lex._expectedToken = TK_TEMPLATE_PREFIX;
+
+    SQInteger l = line(), c = column();
+
+    Lex();
+    int idx = 0;
+
+    sqvector<SQChar> formatString(_ctx.allocContext());
+    sqvector<Expr *> args(_ctx.allocContext());
+    char buffer[64] = {0};
+
+    SQInteger fmtL = line(), fmtC = column();
+    SQInteger tok = -1;
+
+    while ((tok = _token) != SQUIRREL_EOB) {
+
+      if (tok != TK_TEMPLATE_PREFIX && tok != TK_TEMPLATE_INFIX && tok != TK_TEMPLATE_SUFFIX) {
+          reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, _SC("STRING_LITERAL"));
+          return nullptr;
+      }
+
+      appendStringData(formatString, _lex._svalue);
+      if (tok != TK_TEMPLATE_SUFFIX) {
+        snprintf(buffer, sizeof buffer, "%d", idx++);
+        appendStringData(formatString, buffer);
+        _lex._expectedToken = -1;
+        _lex._state = LS_REGULAR;
+        Lex();
+        Expr *arg = Expression(SQE_FUNCTION_ARG);
+        args.push_back(arg);
+
+        if (_token != _SC('}')) {
+            reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, _SC("}"));
+            return nullptr;
+        }
+
+        formatString.push_back(_SC('}'));
+
+        _lex._state = LS_TEMPALTE;
+        _lex._expectedToken = TK_TEMPLATE_INFIX;
+      }
+      else {
+        break;
+      }
+      Lex();
+    }
+
+    formatString.push_back('\0');
+
+    Expr *result = nullptr;
+    LiteralExpr *fmt = setCoordinates(newStringLiteral(&formatString[0]), fmtL, fmtC);
+
+    if (args.empty()) {
+      result = fmt;
+    }
+    else {
+      Expr *callee = setCoordinates(newNode<GetFieldExpr>(fmt, "subst", false), l, c);
+      CallExpr *call = setCoordinates(newNode<CallExpr>(arena(), callee, false), l, c);
+
+      for (Expr *arg : args)
+        call->addArgument(arg);
+
+      result = call;
+    }
+
+    _lex._expectedToken = -1;
+    _lex._state = LS_REGULAR;
+    Lex();
+
+    return result;
+}
+
 Expr* SQParser::Factor(SQInteger &pos)
 {
     NestingChecker nc(this);
@@ -741,6 +824,9 @@ Expr* SQParser::Factor(SQInteger &pos)
         r = newStringLiteral(_lex._svalue);
         r->setLineStartPos(l); r->setColumnStartPos(c);
         Lex();
+        break;
+    case _SC('$'):
+        r = parseStringTemplate();
         break;
     case TK_BASE:
         r = setCoordinates(newNode<BaseExpr>(), l, c);
