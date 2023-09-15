@@ -22,7 +22,7 @@ void ClosureHoistingOpt::ScopeComputeVisitor::visitFunctionDecl(FunctionDecl *f)
     currentScope->declareSymbol(f->name(), f);
   }
 
-  VarScope *newScope = new(arena) VarScope(arena, currentScope, 
+  VarScope *newScope = new(arena) VarScope(arena, currentScope,
     currentScope->kind == CLASS_SCOPE ? METHOD_SCOPE : FUNC_SCOPE);
   currentScope = newScope;
   scopeMap[f] = newScope;
@@ -191,7 +191,7 @@ void ClosureHoistingOpt::CandidateCounterVisitor::visitId(Id *id) {
 }
 
 void ClosureHoistingOpt::CandidateCounterVisitor::visitFunctionDecl(FunctionDecl *f) {
-  
+
   CounterState cs(this);
   VarScope *oldScope = currentScope;
 
@@ -384,7 +384,7 @@ void ClosureHoistingOpt::remapUsages(RootBlock *root) {
   root->transform(&transformer);
 }
 
-void ClosureHoistingOpt::run(RootBlock *root) {
+void ClosureHoistingOpt::run(RootBlock *root, const char *fname) {
 
   if (!_ss->checkCompilationOption(CompilationOptions::CO_CLOSURE_HOISTING_OPT))
     return;
@@ -402,7 +402,7 @@ void ClosureHoistingOpt::run(RootBlock *root) {
 
     // 3. Hoist candidates to appropriate places
     hoistClosures(root);
-    
+
     // 4. Link hoisted closures with their usages
     remapUsages(root);
 

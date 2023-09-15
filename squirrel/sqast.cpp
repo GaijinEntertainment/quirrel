@@ -303,7 +303,7 @@ void SetTableExpr::transformChildren(Transformer *transformer) {
 
 void IncExpr::visitChildren(Visitor *visitor) { _arg->visit(visitor); }
 
-void IncExpr::transformChildren(Transformer *transformer) { 
+void IncExpr::transformChildren(Transformer *transformer) {
   _arg = _arg->transform(transformer)->asExpression();
 }
 
@@ -400,11 +400,11 @@ void FunctionDecl::transformChildren(Transformer *transformer) {
 void FunctionDecl::setBody(Block *body) { _body = body; body->setIsBody(); }
 
 void ConstDecl::visitChildren(Visitor *visitor) {
-    _value->visit(visitor);
+  _value->visit(visitor);
 }
 
 void ConstDecl::transformChildren(Transformer *transformer) {
-    _value = _value->transform(transformer)->asExpression()->asLiteral();
+  _value = _value->transform(transformer)->asExpression()->asLiteral();
 }
 
 void DeclGroup::visitChildren(Visitor *visitor) {
@@ -425,8 +425,8 @@ void DestructuringDecl::visitChildren(Visitor *visitor) {
 }
 
 void DestructuringDecl::transformChildren(Transformer *transformer) {
-    DeclGroup::transformChildren(transformer);
-    _expr = _expr->transform(transformer)->asExpression();
+  DeclGroup::transformChildren(transformer);
+  _expr = _expr->transform(transformer)->asExpression();
 }
 
 void Block::visitChildren(Visitor *visitor) {
@@ -589,10 +589,10 @@ const char* treeopStr(enum TreeOp op) {
   case TO_DIV: return "/";
   case TO_MOD: return "%";
   case TO_ADD: return "+";
-  case TO_SUB: return "-";
+  case TO_SUB:
+  case TO_NEG: return "-";
   case TO_NOT: return "!";
   case TO_BNOT: return "~";
-  case TO_NEG: return "-";
   case TO_INEXPR_ASSIGN: return ":=";
   case TO_NEWSLOT: return "<-";
   case TO_PLUSEQ: return "+=";

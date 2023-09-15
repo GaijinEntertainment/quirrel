@@ -26,7 +26,6 @@
 #include "static_analyser/analyser.h"
 
 
-
 #define EXPR   1
 #define OBJECT 2
 #define BASE   3
@@ -75,13 +74,13 @@ public:
         }
     }
 
-    void reportDiagnostic(enum DiagnosticsId id, ...) {
-      va_list vargs;
-      va_start(vargs, id);
+    void reportDiagnostic(int32_t id, ...) {
+        va_list vargs;
+        va_start(vargs, id);
 
-      _ctx.vreportDiagnostic(id, line(), column(), width(), vargs);
+        _ctx.vreportDiagnostic((enum DiagnosticsId)id, line(), column(), width(), vargs);
 
-      va_end(vargs);
+        va_end(vargs);
     }
 
     bool IsConstant(const SQObject &name, SQObject &e)
@@ -194,7 +193,7 @@ public:
 
     const char *tok2str(SQInteger tok) {
         static char s[3];
-        snprintf(s, sizeof s, "%c", tok);
+        snprintf(s, sizeof s, "%c", (SQChar)tok);
         return s;
     }
 
@@ -398,7 +397,7 @@ public:
                 END_SCOPE_NO_CLOSE();
             }
         }
-                       break;
+        break;
         case TK_TRY:
             TryCatchStatement();
             break;
@@ -896,6 +895,7 @@ public:
                 {
                 case EXPR:
                     reportDiagnostic(DiagnosticsId::DI_CANNOT_INC_DEC, "an expression");
+                    break;
                 case BASE:
                     reportDiagnostic(DiagnosticsId::DI_BASE_NOT_MODIFIABLE);
                     break;
@@ -1369,7 +1369,7 @@ public:
         if (ignore_global_consts ? IsLocalConstant(name, constant) : IsConstant(name, constant))
             reportDiagnostic(DiagnosticsId::DI_CONFLICTS_WITH, desc, _stringval(name), "existing constant/enum/import");
     }
-    
+
     void LocalFunctionDeclStmt(bool assignable)
     {
         assert(_token == TK_FUNCTION);
@@ -1394,7 +1394,7 @@ public:
         _fs->PopTarget();
         _fs->PushLocalVariable(varname, assignable);
     }
-    
+
     void LocalDeclStatement()
     {
         assert(_token == TK_LET || _token == TK_LOCAL);
@@ -2112,12 +2112,13 @@ RootBlock *ParseToAST(Arena *astArena, SQVM *vm, const char *sourceText, size_t 
   RootBlock *r = p.parse();
 
   if (r) {
-      ClosureHoistingOpt opt(_ss(vm), astArena);
-      opt.run(r);
+    ClosureHoistingOpt opt(_ss(vm), astArena);
+    opt.run(r, sourcename);
   }
 
   return r;
 }
+
 
 bool CompileWithAst(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo)
 {
@@ -2125,9 +2126,11 @@ bool CompileWithAst(SQVM *vm, const char *sourceText, size_t sourceTextSize, con
       vm->_on_compile_file(vm, sourcename);
 
     Arena astArena(_ss(vm)->_alloc_ctx, "AST");
-    RootBlock * r = ParseToAST(&astArena, vm, sourceText, sourceTextSize, sourcename, raiseerror);
 
-    if (!r) return false;
+    RootBlock *r = ParseToAST(&astArena, vm, sourceText, sourceTextSize, sourcename, raiseerror);
+
+    if (!r)
+      return false;
 
     Arena cgArena(_ss(vm)->_alloc_ctx, "Codegen");
     SQCompilationContext ctx(vm, &cgArena, sourcename, sourceText, sourceTextSize, raiseerror);

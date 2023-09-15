@@ -40,7 +40,7 @@ public:
 
 private:
 
-    void reportDiagnostic(Node *n, enum DiagnosticsId id, ...);
+    void reportDiagnostic(Node *n, int32_t id, ...);
 
     void CheckDuplicateLocalIdentifier(Node *n, SQObject name, const SQChar *desc, bool ignore_global_consts);
     bool CheckMemberUniqueness(ArenaVector<Expr *> &vec, Expr *obj);

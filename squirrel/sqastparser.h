@@ -72,7 +72,7 @@ class SQParser
 public:
     SQCompilationContext &_ctx;
 
-    void reportDiagnostic(enum DiagnosticsId id, ...);
+    void reportDiagnostic(int32_t id, ...);
 
     uint32_t _depth;
 

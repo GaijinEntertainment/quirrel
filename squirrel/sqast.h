@@ -136,13 +136,13 @@ public:
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
 
-    bool isDeclaration() const { return TO_EXPR_MARK < op()  && op() < TO_DECLARATION_MARK; }
+    bool isDeclaration() const { return TO_EXPR_MARK < op() && op() < TO_DECLARATION_MARK; }
     bool isStatement() const { return _op < TO_STATEMENT_MARK; }
     bool isExpression() const { return TO_STATEMENT_MARK < _op && _op < TO_EXPR_MARK; }
     bool isStatementOrDeclaration() const { return isStatement() || isDeclaration(); }
 
     inline Expr *asExpression() const { assert(isExpression()); return (Expr *)(this); }
-    inline Statement *asStatement() const { assert(isStatementOrDeclaration()); return (Statement *)(this); }
+    inline Statement *asStatement() const { assert(isStatement() || isDeclaration()); return (Statement *)(this); }
     inline Decl *asDeclaration() const { assert(isDeclaration()); return (Decl *)(this); }
 
     Id *asId() { assert(_op == TO_ID); return (Id*)this; }
@@ -164,13 +164,13 @@ public:
 
 private:
 
-    struct {
-      SQInteger lineStart;
-      SQInteger columnStart;
+  struct {
+    SQInteger lineStart;
+    SQInteger columnStart;
 
-      SQInteger lineEnd;
-      SQInteger columnEnd;
-    } _coordinates;
+    SQInteger lineEnd;
+    SQInteger columnEnd;
+  } _coordinates;
 
     enum TreeOp _op;
 };
@@ -214,7 +214,7 @@ public:
     const SQChar *id() const { return _id; }
 
     void setOuterPos(SQInteger pos) { _outpos = pos; }
-    
+
     bool isOuter() const { return _outpos >= 0; }
     bool isField() const { return _outpos == ID_FIELD; }
     void setField() { _outpos = ID_FIELD; }
@@ -235,8 +235,8 @@ private:
 class UnExpr : public Expr {
 public:
     UnExpr(enum TreeOp op, Expr *arg): Expr(op), _arg(arg) {
-        setLineEndPos(arg->lineEnd());
-        setColumnEndPos(arg->columnEnd());
+      setLineEndPos(arg->lineEnd());
+      setColumnEndPos(arg->columnEnd());
     }
 
     void visitChildren(Visitor *visitor);
@@ -251,10 +251,10 @@ private:
 class BinExpr : public Expr {
 public:
     BinExpr(enum TreeOp op, Expr *lhs, Expr *rhs) : Expr(op), _lhs(lhs), _rhs(rhs) {
-        setLineStartPos(lhs->lineStart());
-        setColumnStartPos(lhs->columnStart());
-        setLineEndPos(rhs->lineEnd());
-        setColumnEndPos(rhs->columnEnd());
+      setLineStartPos(lhs->lineStart());
+      setColumnStartPos(lhs->columnStart());
+      setLineEndPos(rhs->lineEnd());
+      setColumnEndPos(rhs->columnEnd());
     }
 
     void visitChildren(Visitor *visitor);
@@ -270,10 +270,10 @@ public:
 class TerExpr : public Expr {
 public:
     TerExpr(Expr *a, Expr *b, Expr *c) : Expr(TO_TERNARY), _a(a), _b(b), _c(c) {
-        setLineStartPos(a->lineStart());
-        setColumnStartPos(a->columnStart());
-        setLineEndPos(c->lineEnd());
-        setColumnEndPos(c->columnEnd());
+      setLineStartPos(a->lineStart());
+      setColumnStartPos(a->columnStart());
+      setLineEndPos(c->lineEnd());
+      setColumnEndPos(c->columnEnd());
     }
 
     void visitChildren(Visitor *visitor);
@@ -341,7 +341,7 @@ public:
 
     Expr *value() const { return _value; }
 
-private:
+protected:
     Expr *_value;
 };
 
@@ -379,7 +379,7 @@ private:
 class BaseExpr : public Expr {
 public:
     BaseExpr() : Expr(TO_BASE), _pos(-1) {}
-    
+
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
 
@@ -611,7 +611,7 @@ public:
 
 class VarDecl : public ValueDecl {
 public:
-    VarDecl(const SQChar *name, Expr *init, bool assignable, bool destruct = false) : ValueDecl(TO_VAR, name, init), _assignable(assignable), _destructured(destruct) {}
+    VarDecl(const SQChar *name, Expr *init, bool assignable, bool destructured = false) : ValueDecl(TO_VAR, name, init), _assignable(assignable), _destructured(destructured) {}
 
     Expr *initializer() const { return expression(); }
 
@@ -685,7 +685,7 @@ public:
     FunctionDecl(Arena *arena, const SQChar *name) : Decl(TO_FUNCTION), _arena(arena), _parameters(arena), _name(name), _vararg(false), _body(NULL), _lambda(false), _sourcename(NULL), _hoistingLevel(0) {}
 
     void addParameter(const SQChar *name, Expr *defaultVal = NULL) { _parameters.push_back(new (_arena) ParamDecl(name, defaultVal)); }
-    
+
     ArenaVector<ParamDecl *> &parameters() { return _parameters; }
     const ArenaVector<ParamDecl *> &parameters() const { return _parameters; }
 
@@ -715,7 +715,7 @@ private:
     Block * _body;
     bool _vararg;
     bool _lambda;
-    
+
     const SQChar *_sourcename;
     int _hoistingLevel;
 
@@ -885,7 +885,7 @@ private:
 class DoWhileStatement : public LoopStatement {
 public:
     DoWhileStatement(Statement *body, Expr *cond) : LoopStatement(TO_DOWHILE, body), _cond(cond) {}
-    
+
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
 
@@ -1406,6 +1406,8 @@ Node *Node::transform(T *transformer) {
     return transformer->transformEnumDecl(static_cast<EnumDecl *>(this));
   case TO_TABLE:
     return transformer->transformTableDecl(static_cast<TableDecl *>(this));
+  case TO_DIRECTIVE:
+    return this;
   default:
     assert(0 && "Unknown tree type");
     return this;
