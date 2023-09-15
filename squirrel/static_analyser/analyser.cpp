@@ -29,13 +29,13 @@ const Expr *skipUnary(const Expr *e) {
   return e;
 }
 
-static const Statement *lastNonEmpty(const Block *b, int32_t &effetiveSize) {
+static const Statement *lastNonEmpty(const Block *b, int32_t &effectiveSize) {
   const Statement *r = nullptr;
-  effetiveSize = 0;
+  effectiveSize = 0;
   for (auto stmt : b->statements()) {
     if (stmt->op() != TO_EMPTY) {
       r = stmt;
-      effetiveSize += 1;
+      effectiveSize += 1;
     }
   }
 
@@ -1762,7 +1762,7 @@ class CheckerVisitor : public Visitor {
 
   bool isUpperCaseIdentifier(const Expr *expr);
 
-  void report(const Node *n, enum DiagnosticsId id, ...);
+  void report(const Node *n, int32_t id, ...);
 
   void checkKeyNameMismatch(const Expr *key, const Expr *expr);
 
@@ -2061,14 +2061,14 @@ void CheckerVisitor::visitNode(Node *n) {
   nodeStack.pop_back();
 }
 
-void CheckerVisitor::report(const Node *n, enum DiagnosticsId id, ...) {
+void CheckerVisitor::report(const Node *n, int32_t id, ...) {
   if (effectsOnly)
     return;
 
   va_list vargs;
   va_start(vargs, id);
 
-  _ctx.vreportDiagnostic(id, n->lineStart(), n->columnStart(), n->columnEnd() - n->columnStart(), vargs);
+  _ctx.vreportDiagnostic((enum DiagnosticsId)id, n->lineStart(), n->columnStart(), n->columnEnd() - n->columnStart(), vargs); // -V522
 
   va_end(vargs);
 }
@@ -5392,11 +5392,11 @@ class NameShadowingChecker : public Visitor {
 
   std::vector<const Node *> nodeStack;
 
-  void report(const Node *n, enum DiagnosticsId id, ...) {
+  void report(const Node *n, int32_t id, ...) {
     va_list vargs;
     va_start(vargs, id);
 
-    _ctx.vreportDiagnostic(id, n->lineStart(), n->columnStart(), n->columnEnd() - n->columnStart(), vargs);
+    _ctx.vreportDiagnostic((enum DiagnosticsId)id, n->lineStart(), n->columnStart(), n->columnEnd() - n->columnStart(), vargs); //-V522
 
     va_end(vargs);
   }

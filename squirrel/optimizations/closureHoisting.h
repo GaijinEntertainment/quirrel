@@ -78,9 +78,8 @@ class ClosureHoistingOpt {
     void visitFunctionDecl(FunctionDecl *decl);
     void visitClassDecl(ClassDecl *klass);
 
-
-    ScopeComputeVisitor(ScopeMap &map, Arena *a, VarScope *rootScope) 
-      : scopeMap(map), arena(a), currentScope(rootScope) {}
+    ScopeComputeVisitor(ScopeMap &map, Arena *a, VarScope *rootScope)
+      : scopeMap(map), arena(a), currentScope(rootScope), maxFrameSize(0) {}
   };
 
   class CandidateCounterVisitor : public Visitor {
@@ -100,7 +99,7 @@ class ClosureHoistingOpt {
       SK_OUT_LOCAL = 1,
       SK_OUT_OUT
     };
-    
+
     int getSymbolKind(const char *) const;
 
   public:
@@ -190,8 +189,9 @@ public:
 
   ClosureHoistingOpt(SQSharedState *ss, Arena *astArena);
 
-  void run(RootBlock *root);
+  void run(RootBlock *root, const char *fname);
 };
+
 
 } // namespace SQCompilation
 

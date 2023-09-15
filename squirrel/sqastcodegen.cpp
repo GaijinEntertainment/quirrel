@@ -9,7 +9,7 @@
 #include "sqvm.h"
 #include "sqoptimizer.h"
 #include "sqtable.h"
-#include <stdarg.h>
+
 
 namespace SQCompilation {
 
@@ -50,14 +50,13 @@ CodegenVisitor::CodegenVisitor(Arena *arena, const HSQOBJECT *bindings, SQVM *vm
     }
 }
 
+void CodegenVisitor::reportDiagnostic(Node *n, int32_t id, ...) {
+    va_list vargs;
+    va_start(vargs, id);
 
-void CodegenVisitor::reportDiagnostic(Node *n, enum DiagnosticsId id, ...) {
-  va_list vargs;
-  va_start(vargs, id);
+    _ctx.vreportDiagnostic((enum DiagnosticsId)id, n->lineStart(), n->columnStart(), n->columnEnd() - n->columnStart(), vargs);
 
-  _ctx.vreportDiagnostic(id, n->lineStart(), n->columnStart(), n->columnEnd() - n->columnStart(), vargs);
-
-  va_end(vargs);
+    va_end(vargs);
 }
 
 bool CodegenVisitor::generate(RootBlock *root, SQObjectPtr &out) {
@@ -111,13 +110,19 @@ void CodegenVisitor::CheckDuplicateLocalIdentifier(Node *n, SQObject name, const
 }
 
 static bool compareLiterals(LiteralExpr *a, LiteralExpr *b) {
-  if (a->kind() != b->kind()) return false;
-  if (a->kind() == LK_STRING) {
-    return strcmp(a->s(), b->s()) == 0;
-  }
+    if (a->kind() != b->kind()) return false;
+    if (a->kind() == LK_STRING) {
+        return strcmp(a->s(), b->s()) == 0;
+    }
 
-  return a->raw() == b->raw();
+    return a->raw() == b->raw();
 }
+
+#ifdef _SQ64
+# define SQ_UINT_FMT PRIu64
+#else
+# define SQ_UINT_FMT PRIuPTR
+#endif // _SQ64
 
 bool CodegenVisitor::CheckMemberUniqueness(ArenaVector<Expr *> &vec, Expr *obj) {
 
@@ -137,12 +142,12 @@ bool CodegenVisitor::CheckMemberUniqueness(ArenaVector<Expr *> &vec, Expr *obj) 
             LiteralExpr *b = (LiteralExpr*)obj;
             if (compareLiterals(a, b)) {
                 if (a->kind() == LK_STRING) {
-                  reportDiagnostic(obj, DiagnosticsId::DI_DUPLICATE_KEY, a->s());
+                    reportDiagnostic(obj, DiagnosticsId::DI_DUPLICATE_KEY, a->s());
                 }
                 else {
-                  char b[32] = { 0 };
-                  snprintf(b, sizeof b, "%llu", a->raw());
-                  reportDiagnostic(obj, DiagnosticsId::DI_DUPLICATE_KEY, b);
+                    char b[32] = { 0 };
+                    snprintf(b, sizeof b, "%" SQ_UINT_FMT, a->raw());
+                    reportDiagnostic(obj, DiagnosticsId::DI_DUPLICATE_KEY, b);
                 }
                 return false;
             }
@@ -835,7 +840,6 @@ void CodegenVisitor::visitFunctionDecl(FunctionDecl *funcDecl) {
 
     _childFs->SetStackSize(0);
     _childFs->_hoistLevel = funcDecl->hoistingLevel();
-
     SQFunctionProto *funcProto = _childFs->BuildProto();
 
     _fs->_functions.push_back(funcProto);
@@ -927,6 +931,7 @@ Expr *CodegenVisitor::deparen(Expr *e) const {
   }
   return e;
 }
+
 
 void CodegenVisitor::visitCallExpr(CallExpr *call) {
 
@@ -1113,7 +1118,7 @@ void CodegenVisitor::emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lval
         Id *id = lvalue->asId();
 
         if (!id->isAssignable()) {
-          reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_BINDING, id->id());
+            reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_BINDING, id->id());
         }
 
         if (id->isOuter()) {

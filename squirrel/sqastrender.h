@@ -33,10 +33,10 @@ class RenderVisitor : public Visitor {
         case TO_DIV: return " / ";
         case TO_MOD: return " % ";
         case TO_ADD: return " + ";
-        case TO_SUB: return " - ";
+        case TO_SUB: return " - "; //-V1037
         case TO_NOT: return " ! ";
         case TO_BNOT: return " ~ ";
-        case TO_NEG: return " - ";
+        case TO_NEG: return " - "; //-V1037
         case TO_TYPEOF: return "TYPEOF ";
         case TO_RESUME: return "RESUME ";
         case TO_CLONE: return "CLONE ";
@@ -58,7 +58,7 @@ class RenderVisitor : public Visitor {
 
     void writeInteger(uint64_t v) {
       char buf[128] = { 0 };
-      snprintf(buf, sizeof buf, "%llu", v);
+      snprintf(buf, sizeof buf, "%llu", (long long unsigned int)v);
       _out->writeString(buf);
     }
 

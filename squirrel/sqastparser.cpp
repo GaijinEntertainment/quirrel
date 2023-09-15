@@ -46,14 +46,16 @@ SQParser::SQParser(SQVM *v, const char *sourceText, size_t sourceTextSize, const
     _token = 0;
 }
 
-void SQParser::reportDiagnostic(enum DiagnosticsId id, ...) {
-  va_list vargs;
-  va_start(vargs, id);
 
-  _ctx.vreportDiagnostic(id, line(), column(), width(), vargs);
+void SQParser::reportDiagnostic(int32_t id, ...) {
+    va_list vargs;
+    va_start(vargs, id);
 
-  va_end(vargs);
+    _ctx.vreportDiagnostic((enum DiagnosticsId)id, line(), column(), width(), vargs);
+
+    va_end(vargs);
 }
+
 
 bool SQParser::ProcessPosDirective()
 {
@@ -139,18 +141,18 @@ void SQParser::Lex()
     {
         bool endOfLine = (_lex._prevtoken == _SC('\n'));
         if (ProcessPosDirective()) {
-        _token = _lex.Lex();
-        if (endOfLine)
-            _lex._prevtoken = _SC('\n');
+            _token = _lex.Lex();
+            if (endOfLine)
+                _lex._prevtoken = _SC('\n');
         } else
             break;
     }
 }
 
 static const char *tok2Str(SQInteger tok) {
-  static char s[3];
-  snprintf(s, sizeof s, "%c", tok);
-  return s;
+    static char s[3];
+    snprintf(s, sizeof s, "%c", (SQChar)tok);
+    return s;
 }
 
 Expr* SQParser::Expect(SQInteger tok)
@@ -257,7 +259,7 @@ Statement* SQParser::parseStatement(bool closeframe)
     SQInteger l = line(), c = column();
 
     switch(_token) {
-        case _SC(';'):  result = newNode<EmptyStatement>(); Lex(); break;
+    case _SC(';'):  result = newNode<EmptyStatement>(); Lex(); break;
     case TK_DIRECTIVE:  result = parseDirectiveStatement();    break;
     case TK_IF:     result = parseIfStatement();          break;
     case TK_WHILE:  result = parseWhileStatement();       break;
@@ -289,11 +291,11 @@ Statement* SQParser::parseStatement(bool closeframe)
 
         result = op == _OP_RETURN ? static_cast<TerminateStatement *>(newNode<ReturnStatement>(arg)) : newNode<YieldStatement>(arg);
         if (arg) {
-          copyCoordinates(arg, result);
+            copyCoordinates(arg, result);
         }
         else {
-          result->setLineEndPos(le);
-          result->setColumnEndPos(ce);
+            result->setLineEndPos(le);
+            result->setColumnEndPos(ce);
         }
 
         result->setLineStartPos(l);
@@ -302,13 +304,13 @@ Statement* SQParser::parseStatement(bool closeframe)
         return result;
     }
     case TK_BREAK:
-        result = newNode<BreakStatement>(nullptr);
+        result = setCoordinates(newNode<BreakStatement>(nullptr), l, c);
         Lex();
-        break;
+        return result;
     case TK_CONTINUE:
-        result = newNode<ContinueStatement>(nullptr);
+        result = setCoordinates(newNode<ContinueStatement>(nullptr), l, c);
         Lex();
-        break;
+        return result;
     case TK_FUNCTION:
         result = parseLocalFunctionDeclStmt(false);
         break;
@@ -331,11 +333,11 @@ Statement* SQParser::parseStatement(bool closeframe)
         result = parseTryCatchStatement();
         break;
     case TK_THROW: {
-      Lex();
-      Expr *e = Expression(SQE_RVALUE);
-      result = copyCoordinates(e, newNode<ThrowStatement>(e));
-      result->setLineStartPos(l); result->setColumnStartPos(c);
-      return result;
+        Lex();
+        Expr *e = Expression(SQE_RVALUE);
+        result = copyCoordinates(e, newNode<ThrowStatement>(e));
+        result->setLineStartPos(l); result->setColumnStartPos(c);
+        return result;
     }
     case TK_CONST:
         result = parseConstStatement(false);
@@ -996,6 +998,7 @@ void SQParser::ParseTableOrClass(TableDecl *decl, SQInteger separator, SQInteger
         break;
         case _SC('['): {
             Lex();
+
             Expr *key = Expression(SQE_RVALUE); //-V522
             assert(key);
             Expect(_SC(']'));
@@ -1046,24 +1049,25 @@ Decl *SQParser::parseLocalFunctionDeclStmt(bool assignable)
     Id *varname = (Id *)Expect(TK_IDENTIFIER);
     Expect(_SC('('));
     FunctionDecl *f = CreateFunction(varname, false);
-    f->setContext(DC_LOCAL);
     f->setLineStartPos(l); f->setColumnStartPos(c);
-    VarDecl *d = newNode<VarDecl>(varname->id(), newNode<DeclExpr>(f), assignable); //-V522
+    f->setContext(DC_LOCAL);
+    VarDecl *d = newNode<VarDecl>(varname->id(), copyCoordinates(f, newNode<DeclExpr>(f)), assignable); //-V522
     setCoordinates(d, l, c);
     return d;
 }
 
 Decl *SQParser::parseLocalClassDeclStmt(bool assignable)
 {
-    SQInteger l = _lex._currentline, c = _lex._currentcolumn;
+    SQInteger l = line(), c = column();
 
     assert(_token == TK_CLASS);
     Lex();
 
     Id *varname = (Id *)Expect(TK_IDENTIFIER);
     ClassDecl *cls = ClassExp(NULL);
+    cls->setLineStartPos(l); cls->setColumnStartPos(c);
     cls->setContext(DC_LOCAL);
-    VarDecl *d = newNode<VarDecl>(varname->id(), newNode<DeclExpr>(cls), assignable); //-V522
+    VarDecl *d = newNode<VarDecl>(varname->id(), copyCoordinates(cls, newNode<DeclExpr>(cls)), assignable); //-V522
     setCoordinates(d, l, c);
     return d;
 }
@@ -1104,11 +1108,11 @@ Decl* SQParser::parseLocalDeclStatement()
         if(_token == _SC('=')) {
             Lex();
             Expr *expr = Expression(SQE_REGULAR);
-            cur = newNode<VarDecl>(varname->id(), expr, assignable, destructurer != 0);
+            cur = newNode<VarDecl>(varname->id(), expr, assignable, destructurer != 0); //-V522
         }
         else {
             if (!assignable && !destructurer)
-                _ctx.reportDiagnostic(DiagnosticsId::DI_UNINITIALIZED_BINDING, varname->lineStart(), varname->columnStart(), varname->textWidth(), varname->id());  //-V522
+                _ctx.reportDiagnostic(DiagnosticsId::DI_UNINITIALIZED_BINDING, varname->lineStart(), varname->columnStart(), varname->textWidth(), varname->id()); //-V522
             cur = newNode<VarDecl>(varname->id(), nullptr, assignable, destructurer != 0);
         }
 
@@ -1310,7 +1314,6 @@ ForeachStatement* SQParser::parseForEachStatement()
     return setCoordinates(newNode<ForeachStatement>(idxDecl, valDecl, contnr, body), l, c);
 }
 
-
 SwitchStatement* SQParser::parseSwitchStatement()
 {
     NestingChecker nc(this);
@@ -1354,7 +1357,7 @@ LiteralExpr* SQParser::ExpectScalar()
 {
     NestingChecker nc(this);
     LiteralExpr *ret = NULL;
-    SQInteger l = line(), c = column(), w = width();
+    SQInteger l = line(), c = column();
 
     switch(_token) {
         case TK_INTEGER:
@@ -1404,7 +1407,7 @@ ConstDecl* SQParser::parseConstStatement(bool global)
 
     Expect('=');
     LiteralExpr *valExpr = ExpectScalar();
-    ConstDecl *d = setCoordinates(newNode<ConstDecl>(id->id(), valExpr, global), l, c);
+    ConstDecl *d = setCoordinates(newNode<ConstDecl>(id->id(), valExpr, global), l, c); //-V522
 
     OptionalSemicolon();
 
@@ -1419,7 +1422,7 @@ EnumDecl* SQParser::parseEnumStatement(bool global)
     Lex();
     Id *id = (Id *)Expect(TK_IDENTIFIER);
 
-    EnumDecl *decl = newNode<EnumDecl>(arena(), id->id(), global);
+    EnumDecl *decl = newNode<EnumDecl>(arena(), id->id(), global); //-V522
 
     Expect(_SC('{'));
 
@@ -1437,7 +1440,7 @@ EnumDecl* SQParser::parseEnumStatement(bool global)
             valExpr = newNode<LiteralExpr>(nval++);
         }
 
-        decl->addConst(key->id(), valExpr);
+        decl->addConst(key->id(), valExpr); //-V522
 
         if(_token == ',') Lex();
     }
@@ -1503,8 +1506,8 @@ DeclExpr* SQParser::FunctionExp(bool lambda)
 ClassDecl* SQParser::ClassExp(Expr *key)
 {
     NestingChecker nc(this);
-    Expr *baseExpr = NULL;
     SQInteger l = line(), c = column();
+    Expr *baseExpr = NULL;
     if(_token == TK_EXTENDS) {
         Lex();
         baseExpr = Expression(SQE_RVALUE);
@@ -1558,7 +1561,7 @@ FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
                 reportDiagnostic(DiagnosticsId::DI_VARARG_WITH_DEFAULT_ARG);
             f->addParameter(_SC("vargv"));
             f->setVararg(true);
-            f->parameters().back()->setVararg();
+            params.back()->setVararg();
             Lex();
             if(_token != _SC(')'))
                 reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, ")");
@@ -1577,7 +1580,7 @@ FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
                     reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "=");
             }
 
-            f->addParameter(paramname->id(), defVal);
+            f->addParameter(paramname->id(), defVal); //-V522
             ParamDecl *p = params.back();
             p->setLineStartPos(l); p->setColumnStartPos(c);
             p->setLineEndPos(_lex._currentline); p->setColumnEndPos(_lex._currentcolumn - 1);
@@ -1599,8 +1602,8 @@ FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
         SQInteger line = _lex._prevtoken == _SC('\n') ? _lex._lasttokenline : _lex._currentline;
         Expr *expr = Expression(SQE_REGULAR);
         ReturnStatement *retStmt = newNode<ReturnStatement>(expr);
-        retStmt->setIsLambda();
         copyCoordinates(expr, retStmt);
+        retStmt->setIsLambda();
         body = newNode<Block>(arena());
         body->addStatement(retStmt);
         copyCoordinates(retStmt, body);

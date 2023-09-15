@@ -261,7 +261,6 @@ public:
       _size += 1;
     }
 
-
     typedef T* iterator;
     typedef const T* const_iterator;
 

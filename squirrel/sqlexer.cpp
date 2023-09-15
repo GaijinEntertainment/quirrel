@@ -139,7 +139,8 @@ void SQLexer::LexBlockComment()
             case _SC('*'): { NEXT(); if(CUR_CHAR == _SC('/')) { done = true; NEXT(); }}; continue;
             case _SC('\n'): _currentline++; NEXT(); continue;
             case SQUIRREL_EOB:
-                _ctx.reportDiagnostic(DiagnosticsId::DI_TRAILING_BLOCK_COMMENT, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+              _ctx.reportDiagnostic(DiagnosticsId::DI_TRAILING_BLOCK_COMMENT, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+              return;
             default: NEXT();
         }
     }
@@ -438,11 +439,11 @@ SQInteger SQLexer::LexSingleToken()
         case _SC('@'): {
             SQInteger stype;
             NEXT();
-            if(CUR_CHAR != _SC('"')) {
-                RETURN_TOKEN('@');
+            if (CUR_CHAR != _SC('"')) {
+              RETURN_TOKEN('@');
             }
-            if((stype=ReadString('"',true))!=-1) {
-                RETURN_TOKEN(stype);
+            if ((stype = ReadString('"', true)) != -1) {
+              RETURN_TOKEN(stype);
             }
             _ctx.reportDiagnostic(DiagnosticsId::DI_LEX_ERROR_PARSE, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "the string");
             break;
@@ -472,7 +473,7 @@ SQInteger SQLexer::LexSingleToken()
             if (CUR_CHAR != _SC('.')){ RETURN_TOKEN('.') }
             NEXT();
             if (CUR_CHAR != _SC('.')){
-                _ctx.reportDiagnostic(DiagnosticsId::DI_INVALID_TOKEN, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "..");
+              _ctx.reportDiagnostic(DiagnosticsId::DI_INVALID_TOKEN, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "..");
             }
             NEXT();
             RETURN_TOKEN(TK_VARPARAMS);
