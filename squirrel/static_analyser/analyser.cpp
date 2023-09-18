@@ -3606,6 +3606,7 @@ void CheckerVisitor::checkUnutilizedResult(const ExprStatement *s) {
     const Expr *callee = c->callee();
     bool isCtor = false;
     const FunctionInfo *info = findFunctionInfo(callee, isCtor);
+    // check only for functions because instances could have overrided () operator
     if (info) {
       const FunctionDecl *f = info->declaration;
       assert(f);
@@ -3621,18 +3622,6 @@ void CheckerVisitor::checkUnutilizedResult(const ExprStatement *s) {
       report(e, DiagnosticsId::DI_NAME_LIKE_SHOULD_RETURN, "<constructor>");
     }
 
-    const SQChar *calleeName = nullptr;
-
-    if (callee->op() == TO_ID) {
-      calleeName = callee->asId()->id();
-    }
-    else if (callee->op() == TO_GETFIELD) {
-      calleeName = callee->asGetField()->fieldName();
-    }
-
-    if (isCallResultShouldBeUtilized(calleeName, c)) {
-      report(e, DiagnosticsId::DI_NAME_LIKE_SHOULD_RETURN, calleeName);
-    }
     return;
   }
 
