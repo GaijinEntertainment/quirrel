@@ -1110,7 +1110,7 @@ static bool isBlockTerminatorStatement(enum TreeOp op) {
 }
 
 static bool isBooleanResultOperator(enum TreeOp op) {
-  return op == TO_OROR || op == TO_ANDAND || op == TO_NE || op == TO_EQ || (TO_GE <= op && op <= TO_IN) || op == TO_NOT;
+  return op == TO_NE || op == TO_EQ || (TO_GE <= op && op <= TO_IN) || op == TO_NOT;
 }
 
 static bool isArithOperator(enum TreeOp op) {
@@ -1158,15 +1158,16 @@ bool isHigherShiftPriority(enum TreeOp op) {
 }
 
 bool looksLikeBooleanExpr(const Expr *e) {
-  if (isBooleanResultOperator(e->op())) // -V522
+  enum TreeOp op = e->op(); // -V522
+  if (isBooleanResultOperator(op))
     return true;
 
-  if (e->op() == TO_LITERAL) { // -V522
+  if (op == TO_LITERAL) {
     return e->asLiteral()->kind() == LK_BOOL; // -V522
   }
 
-  if (e->op() == TO_NULLC) {
-    // check for `x?.y ?? false`
+  if (op == TO_NULLC || op == TO_ANDAND || op == TO_OROR) {
+    // check for `x?.y {??, ||, &&} false`
     return looksLikeBooleanExpr(e->asBinExpr()->rhs());
   }
 
@@ -2551,9 +2552,18 @@ void CheckerVisitor::checkRelativeCompareWithBool(const BinExpr *expr) {
   const Expr *el = maybeEval(dl);
   const Expr *er = maybeEval(dr);
 
-  if (looksLikeBooleanExpr(l) || looksLikeBooleanExpr(r) ||
-    looksLikeBooleanExpr(dl) || looksLikeBooleanExpr(dr) || // -V522
-    looksLikeBooleanExpr(el) || looksLikeBooleanExpr(er)) { // -V522
+  bool l_b = looksLikeBooleanExpr(l);
+  bool dl_b = looksLikeBooleanExpr(dl);
+  bool el_b = looksLikeBooleanExpr(el);
+
+  bool r_b = looksLikeBooleanExpr(r);
+  bool dr_b = looksLikeBooleanExpr(dr);
+  bool er_b = looksLikeBooleanExpr(er);
+
+  bool left_cb = l_b || dl_b || el_b;
+  bool right_cb = r_b || dr_b || er_b;
+
+  if (left_cb != right_cb) { // -V522
     report(expr, DiagnosticsId::DI_RELATIVE_CMP_BOOL);
   }
 }
