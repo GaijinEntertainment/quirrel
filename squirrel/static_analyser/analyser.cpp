@@ -4032,10 +4032,10 @@ bool CheckerVisitor::detectNullCPattern(enum TreeOp op, const Expr *cond, const 
   // (o?.f ?? D) == V -- assume else-branch implies `o` non-null
   // (o?.f ?? D) > V -- then-b implies `o` non-null
   // (o?.f ?? D) < V -- then-b implies `o` non-null
-  // (o?.f ?? D) >= V -- nothing could be said
-  // (o?.f ?? D) <= V -- nothing
+  // (o?.f ?? D) >= V -- else-branch implies `o` non-null
+  // (o?.f ?? D) <= V -- else-branch implies `o` non-null
 
-  if (op != TO_LT && op != TO_GT && op != TO_EQ && op != TO_NE) {
+  if (op != TO_LT && op != TO_GT && op != TO_EQ && op != TO_NE && op != TO_LE && op != TO_GE) {
     return false;
   }
 
@@ -4113,7 +4113,12 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
     // (o?.f ?? D) > V -- then-b implies `o` non-null
     // (o?.f ?? D) < V -- then-b implies `o` non-null
 
-    if (op == TO_EQ) {
+    if (op == TO_LE || op == TO_GE) {
+      if (elseScope) {
+        currentScope = elseScope;
+        setValueFlags(nullcCheckee, 0, RT_NULL);
+      }
+    } else if (op == TO_EQ) {
       if (elseScope) {
         currentScope = elseScope;
         setValueFlags(nullcCheckee, 0, RT_NULL);
@@ -4128,6 +4133,72 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
     }
 
     currentScope = thisScope; // -V519
+    return;
+  }
+
+  if (op == TO_NULLC) {
+    // o?.f ?? false
+    // o?.f ?? true
+    const BinExpr *bin = cond->asBinExpr();
+    const Expr *lhs = deparen(bin->lhs());
+    const Expr *rhs = deparen(bin->rhs());
+
+    if (rhs->op() != TO_LITERAL) {
+      return;
+    }
+
+    const LiteralExpr *lit = rhs->asLiteral();
+    bool nullCond;
+    switch (lit->kind())
+    {
+    case LK_BOOL:
+      nullCond = rhs->asLiteral()->b();
+      break;
+    case LK_NULL:
+      nullCond = false;
+      break;
+    case LK_INT:
+      nullCond = lit->i() != 0;
+      break;
+    case LK_FLOAT:
+      nullCond = lit->f() != 0.0f;
+      break;
+    case LK_STRING:
+      nullCond = true;
+      break;
+    default:
+      assert(0 && "unknown literal kind");
+      break;
+    }
+
+    unsigned pf, nf;
+
+    if (nullCond) {
+      pf = RT_NULL;
+      nf = 0;
+    }
+    else {
+      pf = 0;
+      nf = RT_NULL;
+    }
+
+    const Expr *receiver = extractReceiver(lhs);
+
+    if (!receiver)
+      return;
+
+    if (thenScope && !nullCond) {
+      currentScope = thenScope;
+      setValueFlags(receiver, pf, nf);
+    }
+
+    if (elseScope && nullCond) {
+      currentScope = elseScope;
+      setValueFlags(receiver, nf, pf);
+    }
+
+    currentScope = thisScope;
+
     return;
   }
 
@@ -4152,7 +4223,12 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
   }
 
   if (op == TO_ID) {
-    if (thenScope && evalId < 0) {
+    int32_t evalIndex = -1;
+    const Expr *eval = maybeEval(cond, evalIndex);
+
+    bool notOverriden = evalId == -1 || evalIndex < evalId;
+
+    if (thenScope && notOverriden) {
       // set iff it was explicit check like `if (o) { .. }`
       // otherwise there could be complexities, see intersected_assignment.nut
       currentScope = thenScope;
@@ -4160,15 +4236,12 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
       currentScope = thisScope;
     }
 
-    if (elseScope && evalId < 0 && (flags & NULL_CHECK_F)) {
+    if (elseScope && notOverriden && (flags & NULL_CHECK_F)) {
       // set NULL iff it was explicit null check `if (o == null) { ... }` otherwise it could not be null, see w233_inc_in_for.nut
       currentScope = elseScope;
       setValueFlags(cond, RT_NULL, 0);
       currentScope = thisScope;
     }
-
-    int32_t evalIndex = -1;
-    const Expr *eval = maybeEval(cond, evalIndex);
 
     if (eval != cond) {
       // let cond = x != null
@@ -4215,10 +4288,22 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
     const LiteralExpr *lit = lhs_lit ? lhs_lit : rhs_lit;
     const Expr *testee = lit == lhs ? rhs : lhs;
 
-    if (lit && lit->kind() == LK_NULL) { // -V522
+    if (!lit)
+      return;
+
+    if (lit->kind() == LK_NULL) {
       speculateIfConditionHeuristics(testee, elseScope, thenScope, visited, evalId, flags | NULL_CHECK_F, false);
       return;
     }
+
+    const Expr *receiver = extractReceiver(testee);
+
+    if (receiver && thenScope) {
+      currentScope = thenScope;
+      setValueFlags(receiver, 0, RT_NULL);
+      currentScope = thisScope;
+    }
+
   }
 
   if (isRelationOperator(op)) {
