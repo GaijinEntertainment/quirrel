@@ -1223,6 +1223,16 @@ static bool hasAnyPrefix(const SQChar *str, const std::vector<std::string> &pref
   return false;
 }
 
+static bool hasAnyEqual(const SQChar *str, const std::vector<std::string> &candidates) {
+  for (auto &candidate : candidates) {
+    if (strcmp(str, candidate.c_str()) == 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 static bool nameLooksLikeResultMustBeBoolean(const SQChar *funcName) {
   if (!funcName)
     return false;
@@ -1245,19 +1255,19 @@ static bool nameLooksLikeFunctionMustReturnResult(const SQChar *funcName) {
 }
 
 static bool nameLooksLikeResultMustBeUtilised(const SQChar *name) {
-  return hasAnyPrefix(name, SQCompilationContext::function_result_must_be_utilized);
+  return hasAnyEqual(name, SQCompilationContext::function_result_must_be_utilized);
 }
 
 static bool nameLooksLikeResultMustBeString(const SQChar *name) {
-  return hasAnyPrefix(name, SQCompilationContext::function_can_return_string);
+  return hasAnyEqual(name, SQCompilationContext::function_can_return_string);
 }
 
 static bool nameLooksLikeCallsLambdaInPlace(const SQChar *name) {
-  return hasAnyPrefix(name, SQCompilationContext::function_calls_lambda_inplace);
+  return hasAnyEqual(name, SQCompilationContext::function_calls_lambda_inplace);
 }
 
 static bool canFunctionReturnNull(const SQChar *n) {
-  return hasAnyPrefix(n, SQCompilationContext::function_can_return_null);
+  return hasAnyEqual(n, SQCompilationContext::function_can_return_null);
 }
 
 static const SQChar rootName[] = "::";
