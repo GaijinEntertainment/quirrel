@@ -5158,6 +5158,9 @@ const SQChar *CheckerVisitor::findFieldName(const Expr *e) {
   if (e->op() == TO_GETFIELD)
     return e->asGetField()->fieldName();
 
+  if (e->op() == TO_CALL)
+    return findFieldName(e->asCallExpr()->callee());
+
   const ValueRef *v = findValueForExpr(e);
 
   if (v && v->expression && v->expression->op() == TO_DECL_EXPR) {
