@@ -843,7 +843,7 @@ Expr* SQParser::Factor(SQInteger &pos)
         r = setCoordinates(newNode<Id>(_SC("constructor")), l, c);
         Lex();
         break;
-    case TK_THIS: r = newNode<Id>(_SC("this")); Lex(); break;
+    case TK_THIS: r = setCoordinates(newNode<Id>(_SC("this")), l, c); Lex(); break;
     case TK_DOUBLE_COLON:  // "::"
         if (_lang_features & LF_FORBID_ROOT_TABLE)
             reportDiagnostic(DiagnosticsId::DI_ROOT_TABLE_FORBIDDEN);
