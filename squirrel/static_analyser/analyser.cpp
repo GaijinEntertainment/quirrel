@@ -1038,7 +1038,9 @@ public:
   }
 
   bool hasUnconditionalTerminator() const {
-    return (hasUnconditionalTerm && !hasCondContinue) || hasUnconditionalContinue;
+    if (hasCondContinue)
+      return false;
+    return hasUnconditionalTerm;
   }
 };
 
