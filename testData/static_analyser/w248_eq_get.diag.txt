@@ -1,11 +1,3 @@
-WARNING: w227 (ident-hides-ident) parameter 'u' hides let with the same name.
-testData/static_analyser/w248_eq_get.nut:5:28
-
-let u = o.value.findvalue(@(u) u.l == "999")
-                            ^
-let _x = u?.t != "a" || foo(u) ? null
-
-
 
 AN ERROR HAS OCCURRED [the index 'value' does not exist]
 
