@@ -4143,7 +4143,7 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
     const Expr *lhs = deparen(bin->lhs());
     const Expr *rhs = deparen(bin->rhs());
 
-    if (rhs->op() != TO_LITERAL) {
+    if (rhs->op() != TO_LITERAL) { // -V522
       return;
     }
 
@@ -4194,10 +4194,10 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
 
     if (elseScope && nullCond) {
       currentScope = elseScope;
-      setValueFlags(receiver, nf, pf);
+      setValueFlags(receiver, nf, pf); // -V764
     }
 
-    currentScope = thisScope;
+    currentScope = thisScope; // -V519
 
     return;
   }
@@ -5606,7 +5606,6 @@ const Node *NameShadowingChecker::extractPointedNode(const SymbolInfo *info) {
 
 void NameShadowingChecker::declareSymbol(const SQChar *name, SymbolInfo *info) {
   const SymbolInfo *existedInfo = scope->findSymbol(name);
-  bool addSymbol = true;
   if (existedInfo) {
     bool warn = name[0] != '_';
     if (strcmp(name, "this") == 0) {
@@ -5614,15 +5613,13 @@ void NameShadowingChecker::declareSymbol(const SQChar *name, SymbolInfo *info) {
     }
 
     if (existedInfo->ownerScope == info->ownerScope) { // something like `let foo = expr<function foo() { .. }>`
-      if ((existedInfo->kind == SK_BINDING || existedInfo->kind == SK_VAR) && info->kind == SK_FUNCTION) {
-        if (nodeStack.size() > 2) {
-          const Node *ln = nodeStack[nodeStack.size() - 1];
-          const Node *lln = nodeStack[nodeStack.size() - 2];
-          if (ln->op() == TO_DECL_EXPR && static_cast<const DeclExpr *>(ln)->declaration() == info->declaration.f) {
-            warn = false;
-            // if it `let foo = function foo() {}` or `let function foo() {}` or `function foo() {}`
-            addSymbol = existedInfo->declaration.v == lln;
-          }
+      if ((info->kind == SK_BINDING || info->kind == SK_VAR) && existedInfo->kind == SK_FUNCTION) {
+        const VarDecl *vardecl = info->declaration.v;
+        const FunctionDecl *funcdecl = existedInfo->declaration.f;
+        const Expr *varinit = vardecl->initializer();
+
+        if (varinit && varinit->op() == TO_DECL_EXPR && varinit->asDeclExpr()->declaration() == funcdecl) {
+          warn = false;
         }
       }
     }
@@ -5651,8 +5648,7 @@ void NameShadowingChecker::declareSymbol(const SQChar *name, SymbolInfo *info) {
     }
   }
 
-  if (addSymbol)
-    scope->symbols[name] = info;
+  scope->symbols[name] = info;
 }
 
 NameShadowingChecker::SymbolInfo *NameShadowingChecker::Scope::findSymbol(const SQChar *name) const {
@@ -5671,27 +5667,45 @@ void NameShadowingChecker::visitNode(Node *n) {
 }
 
 void NameShadowingChecker::declareVar(enum SymbolKind k, const VarDecl *var) {
+  const FunctionDecl *f = nullptr;
+  if (k == SK_BINDING) {
+    const Expr *init = var->initializer();
+    if (init && init->op() == TO_DECL_EXPR) {
+      const Decl *d = init->asDeclExpr()->declaration();
+      if (d->op() == TO_FUNCTION) {
+        k = SK_FUNCTION;
+        f = static_cast<const FunctionDecl *>(d);
+      }
+    }
+  }
+
+
   SymbolInfo *info = newSymbolInfo(k);
-  info->declaration.v = var;
+  if (f) {
+    info->declaration.f = f;
+  }
+  else {
+    info->declaration.v = var;
+  }
   info->ownerScope = scope;
   info->name = var->name();
   declareSymbol(var->name(), info);
 }
 
 void NameShadowingChecker::visitVarDecl(VarDecl *var) {
-  declareVar(var->isAssignable() ? SK_VAR : SK_BINDING, var);
-
   Visitor::visitVarDecl(var);
+
+  declareVar(var->isAssignable() ? SK_VAR : SK_BINDING, var);
 }
 
 void NameShadowingChecker::visitParamDecl(ParamDecl *p) {
+  Visitor::visitParamDecl(p);
+
   SymbolInfo *info = newSymbolInfo(SK_PARAM);
   info->declaration.p = p;
   info->ownerScope = scope;
   info->name = p->name();
   declareSymbol(p->name(), info);
-
-  Visitor::visitParamDecl(p);
 }
 
 void NameShadowingChecker::visitConstDecl(ConstDecl *c) {
@@ -5726,17 +5740,18 @@ void NameShadowingChecker::visitEnumDecl(EnumDecl *e) {
 void NameShadowingChecker::visitFunctionDecl(FunctionDecl *f) {
   Scope *p = scope;
 
+  Scope funcScope(this, f);
+
   bool tableScope = p->owner && (p->owner->op() == TO_CLASS || p->owner->op() == TO_TABLE);
 
   if (!tableScope) {
-    SymbolInfo *info = newSymbolInfo(SK_FUNCTION);
+    SymbolInfo * info = newSymbolInfo(SK_FUNCTION);
     info->declaration.f = f;
     info->ownerScope = p;
     info->name = f->name();
     declareSymbol(f->name(), info);
   }
 
-  Scope funcScope(this, f);
   Visitor::visitFunctionDecl(f);
 }
 
