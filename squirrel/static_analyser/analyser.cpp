@@ -2505,7 +2505,18 @@ void CheckerVisitor::checkPotentiallyNullableOperands(const BinExpr *bin) {
 
   const char *opType = isRelOp ? "Comparison operation" : "Arithmetic operation";
 
-  if (isPotentiallyNullable(lhs)) {
+
+  bool lhsNullable = isPotentiallyNullable(lhs);
+  bool rhsNullable = isPotentiallyNullable(rhs);
+
+  if (!lhsNullable && !rhsNullable)
+    return;
+
+  // string concat with nullable is OK
+  if (couldBeString(lhs) || couldBeString(rhs))
+    return;
+
+  if (lhsNullable) {
     if (isAssign) {
       if (lhs->op() != TO_ID) { // -V522
         report(bin->lhs(), DiagnosticsId::DI_NULLABLE_ASSIGNMENT);
@@ -2516,7 +2527,7 @@ void CheckerVisitor::checkPotentiallyNullableOperands(const BinExpr *bin) {
     }
   }
 
-  if (isPotentiallyNullable(rhs) && !isAssign) {
+  if (rhsNullable && !isAssign) {
     report(bin->rhs(), DiagnosticsId::DI_NULLABLE_OPERANDS, opType);
   }
 }
@@ -5093,6 +5104,8 @@ bool CheckerVisitor::couldBeString(const Expr *e) {
   if (!e)
     return false;
 
+  e = deparen(e);
+
   if (e->op() == TO_LITERAL) {
     return e->asLiteral()->kind() == LK_STRING;
   }
@@ -5115,6 +5128,12 @@ bool CheckerVisitor::couldBeString(const Expr *e) {
     if (name) {
       return nameLooksLikeResultMustBeString(name) || strcmp(name, "loc") == 0;
     }
+  }
+
+  if (e->op() == TO_ADD) {
+    // check for string concat
+    const BinExpr *b = e->asBinExpr();
+    return couldBeString(b->lhs()) || couldBeString(b->rhs());
   }
 
   return false;
