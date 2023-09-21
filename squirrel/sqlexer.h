@@ -52,6 +52,11 @@ enum SQLexerMode {
   LM_AST
 };
 
+enum SQTokenFlags {
+  TF_PREP_EOL = 1 << 0,             // end of line after this token
+  TF_PREP_SPACE = 1 << 1,           // space after this token
+};
+
 struct SQLexer
 {
     SQLexer(SQSharedState *ss, SQCompilationContext &ctx, enum SQLexerMode mode);
@@ -92,6 +97,8 @@ public:
     SQInteger _tokencolumn;
     SQInteger _tokenline;
     SQInteger _expectedToken;
+    unsigned _prevflags;
+    unsigned _flags;
     enum SQLexerState _state;
     enum SQLexerMode _mode;
     const SQChar *_svalue;
