@@ -872,10 +872,27 @@ Expr* SQParser::Factor(SQInteger &pos)
     case _SC('['): {
             Lex();
             ArrayExpr *arr = newNode<ArrayExpr>(arena());
+            bool commaSeparated = false;
+            bool spaceSeparated = false;
+            bool reported = false;
             while(_token != _SC(']')) {
                 Expr *v = Expression(SQE_RVALUE);
                 arr->addValue(v);
-                if(_token == _SC(',')) Lex();
+                if (_token == _SC(',')) {
+                    commaSeparated = true;
+                }
+                else if (_token != _SC(']')) {
+                    spaceSeparated = true;
+                }
+
+                if (commaSeparated && spaceSeparated && !reported) {
+                    reported = true; // do not spam in output, a single diag seems to be enough
+                    reportDiagnostic(DiagnosticsId::DI_MIXED_SEPARATORS, "elements of array");
+                }
+
+                if (_token == _SC(',')) {
+                    Lex();
+                }
             }
             setCoordinates(arr, l, c);
             Lex();
