@@ -11,7 +11,7 @@
 #include "sqlexer.h"
 
 #define CUR_CHAR (_currdata)
-#define RETURN_TOKEN(t) { _prevtoken = _curtoken; _curtoken = t; return t;}
+#define RETURN_TOKEN(t) { _prevtoken = _curtoken; _prevflags = _flags; _flags = 0; _curtoken = t; return t;}
 #define IS_EOB() (CUR_CHAR <= SQUIRREL_EOB)
 #define NEXT() {Next();_currentcolumn++;}
 #define INIT_TEMP_STRING() { _longstr.resize(0);}
@@ -28,6 +28,8 @@ SQLexer::SQLexer(SQSharedState *ss, SQCompilationContext &ctx, enum SQLexerMode 
     , _expectedToken(-1)
     , _state(LS_REGULAR)
     , _mode(mode)
+    , _flags(0)
+    , _prevflags(0)
 {
 }
 
@@ -365,10 +367,11 @@ SQInteger SQLexer::LexSingleToken()
         _tokenline = _currentline;
         _tokencolumn = _currentcolumn;
         switch(CUR_CHAR){
-        case _SC('\t'): case _SC('\r'): case _SC(' '): NEXT(); continue;
+        case _SC('\t'): case _SC('\r'): case _SC(' '): _flags |= TF_PREP_SPACE; NEXT(); continue;
         case _SC('\n'):
             _currentline++;
             _prevtoken=_curtoken;
+            _flags |= TF_PREP_EOL;
             _curtoken=_SC('\n');
             NEXT();
             _currentcolumn=0;
