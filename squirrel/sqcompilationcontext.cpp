@@ -361,7 +361,6 @@ bool SQCompilationContext::isDisabled(enum DiagnosticsId id, int line, int pos) 
   int ft = snprintf(suppressFileTextBuf, sizeof(suppressFileTextBuf), "//-file:%s", descriptor.textId);
 
   if (strstr(_code, suppressFileIntBuf) || strstr(_code, suppressFileTextBuf)) {
-    descriptor.disabled = true;
     return true;
   }
 
