@@ -71,6 +71,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(INVALID_CLASS_NAME, ERROR, SEMA, -1, "", "invalid class name or context"), \
   DEF_DIAGNOSTIC(INC_DEC_NOT_ASSIGNABLE, ERROR, SEMA, -1, "", "argument of inc/dec operation is not assignable"), \
   DEF_DIAGNOSTIC(TOO_MANY_SYMBOLS, ERROR, SEMA, -1, "", "internal compiler error: too many %s"), \
+  DEF_DIAGNOSTIC(PAREN_IS_FUNC_CALL, WARNING, SYNTAX, 190, "paren-is-function-call", "'(' on a new line parsed as function call."), \
   DEF_DIAGNOSTIC(AND_OR_PAREN, WARNING, SEMA, 202, "and-or-paren", "Priority of the '&&' operator is higher than that of the '||' operator. Perhaps parentheses are missing?"), \
   DEF_DIAGNOSTIC(BITWISE_BOOL_PAREN, WARNING, SEMA, 203, "bitwise-bool-paren", "Result of bitwise operation used in boolean expression. Perhaps parentheses are missing?"), \
   DEF_DIAGNOSTIC(DUPLICATE_IF_EXPR, WARNING, SEMA, 212, "duplicate-if-expression", "Detected pattern 'if (A) {...} else if (A) {...}'. Branch unreachable."), \

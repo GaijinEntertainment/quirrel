@@ -707,6 +707,9 @@ Expr* SQParser::PrefixedExpr()
             return e;
         case _SC('('):
         case TK_NULLCALL: {
+            if (_lex._prevflags & TF_PREP_EOL && _token == _SC('(')) {
+                reportDiagnostic(DiagnosticsId::DI_PAREN_IS_FUNC_CALL);
+            }
             SQInteger nullcall = (_token==TK_NULLCALL || nextIsNullable);
             nextIsNullable = !!nullcall;
             SQInteger l = e->lineStart(), c = e->columnStart();
