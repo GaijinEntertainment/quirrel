@@ -1681,14 +1681,16 @@ SQRESULT sq_compilebuffer(HSQUIRRELVM v,const SQChar *s,SQInteger size,const SQC
 }
 
 SQRESULT sq_compilewithast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, SQBool debugInfo, const HSQOBJECT *bindings) {
-    Arena astArena(_ss(v)->_alloc_ctx, "AST Arena");
+    SQCompilation::SqASTData *astData = sq_parsetoast(v, s, size, sourcename, raiseerror);
 
-    Node *ast = sq_parsetoast(v, s, size, sourcename, raiseerror, &astArena);
-
-    if (!ast)
+    if (!astData)
         return SQ_ERROR;
 
-    return sq_translateasttobytecode(v, ast, bindings, sourcename, s, size, raiseerror, debugInfo);
+    SQRESULT r = sq_translateasttobytecode(v, astData, bindings, s, size, raiseerror, debugInfo);
+
+    sq_releaseASTData(v, astData);
+
+    return r;
 }
 
 SQRESULT sq_translatebinaryasttobytecode(HSQUIRRELVM v, const uint8_t *buffer, size_t size, const HSQOBJECT *bindings, SQBool raiseerror) {
@@ -1704,15 +1706,15 @@ SQRESULT sq_parsetobinaryast(HSQUIRRELVM v, const SQChar *s, SQInteger size, con
     return ParseAndSaveBinaryAST(v, s, size, sourcename, ostream, raiseerror) ? SQ_OK : SQ_ERROR;
 }
 
-SqAstNode *sq_parsetoast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, Arena *arena)
+SQCompilation::SqASTData *sq_parsetoast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror)
 {
-    return (Node *)ParseToAST(arena, v, s, size, sourcename, raiseerror);
+    return ParseToAST(v, s, size, sourcename, raiseerror);
 }
 
-void sq_dumpast(HSQUIRRELVM v, SqAstNode *ast, OutputStream *s)
+void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, OutputStream *s)
 {
     RenderVisitor rv(s);
-    rv.render(ast);
+    rv.render(astData->root);
 }
 
 void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, OutputStream *s)
@@ -1729,10 +1731,10 @@ void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, OutputStream *s)
     }
 }
 
-SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SqAstNode *ast, const HSQOBJECT *bindings, const SQChar *sourcename, const SQChar *s, SQInteger size, SQBool raiseerror, SQBool debugInfo)
+SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size, SQBool raiseerror, SQBool debugInfo)
 {
     SQObjectPtr o;
-    if (TranslateASTToBytecode(v, ast, bindings, sourcename, s, size, o, raiseerror, debugInfo))
+    if (TranslateASTToBytecode(v, astData, bindings, s, size, o, raiseerror, debugInfo))
     {
         v->Push(SQClosure::Create(_ss(v), _funcproto(o)));
         return SQ_OK;
@@ -1740,21 +1742,17 @@ SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SqAstNode *ast, const HSQOBJEC
     return SQ_ERROR;
 }
 
-void sq_analyseast(HSQUIRRELVM v, SqAstNode *ast, const HSQOBJECT *bindings, const SQChar *sourcename, const SQChar *s, SQInteger size)
+void sq_analyseast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size)
 {
-    AnalyseCode(v, ast, bindings, sourcename, s, size);
+    AnalyseCode(v, astData, bindings, s, size);
 }
 
-Arena *sq_createarena(HSQUIRRELVM v, const SQChar *name)
+void sq_releaseASTData(HSQUIRRELVM v, SQCompilation::SqASTData *astData)
 {
-    void *ptr = sq_malloc(_ss(v)->_alloc_ctx, sizeof(Arena));
-    return new(ptr) Arena(_ss(v)->_alloc_ctx, name);
-}
-
-void sq_destroyarena(HSQUIRRELVM v, Arena *arena)
-{
-    arena->~Arena();
-    sq_free(_ss(v)->_alloc_ctx, arena, sizeof(Arena));
+  Arena *arena = astData->astArena;
+  arena->~Arena();
+  sq_vm_free(_ss(v)->_alloc_ctx, arena, sizeof(Arena));
+  sq_vm_free(_ss(v)->_alloc_ctx, astData, sizeof(SQCompilation::SqASTData));
 }
 
 void sq_move(HSQUIRRELVM dest,HSQUIRRELVM src,SQInteger idx)
@@ -1835,7 +1833,6 @@ SQRESULT sq_limitthreadaccess(HSQUIRRELVM vm, int64_t tid)
     vm->check_thread_access = tid;
     return SQ_OK;
 }
-
 
 void sq_resetanalyserconfig() {
   SQCompilationContext::resetConfig();
