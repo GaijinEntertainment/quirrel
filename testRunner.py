@@ -92,7 +92,7 @@ def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs,
     if path.exists(actualResultFilePath):
         os.remove(actualResultFilePath)
 
-    compilationCommand = [compiler, "-ast", "-optCH"]
+    compilationCommand = [compiler, "-optCH"]
     compilationCommand += extraargs
 
     if verbose:

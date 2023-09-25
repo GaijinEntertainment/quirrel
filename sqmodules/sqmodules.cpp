@@ -178,36 +178,26 @@ struct ArenaGuard
 
 bool SqModules::compileScriptImpl(const std::vector<char> &buf, const char *sourcename, const HSQOBJECT *bindings)
 {
-  if (compilationOptions.useAST)
+  ArenaGuard ag(sqvm, "AST");
+  auto *ast = sq_parsetoast(sqvm, &buf[0], buf.size() - 1, sourcename, compilationOptions.raiseError, ag.arena);
+  if (!ast)
   {
-    ArenaGuard ag(sqvm, "AST");
-    auto *ast = sq_parsetoast(sqvm, &buf[0], buf.size() - 1, sourcename, compilationOptions.raiseError, ag.arena);
-    if (!ast)
-    {
-      return true;
-    }
-    else
-    {
-      if (onAST_cb)
-        onAST_cb(sqvm, ast, up_data);
-    }
-
-    if (SQ_FAILED(sq_translateasttobytecode(sqvm, ast, bindings, sourcename, &buf[0], buf.size(), compilationOptions.raiseError, compilationOptions.debugInfo)))
-    {
-      return true;
-    }
-
-    if (compilationOptions.doStaticAnalysis)
-    {
-      sq_analyseast(sqvm, ast, bindings, sourcename, &buf[0], buf.size());
-    }
+    return true;
   }
   else
   {
-    if (SQ_FAILED(sq_compileonepass(sqvm, &buf[0], buf.size() - 1, sourcename, compilationOptions.raiseError, compilationOptions.debugInfo, bindings)))
-    {
-      return true;
-    }
+    if (onAST_cb)
+      onAST_cb(sqvm, ast, up_data);
+  }
+
+  if (SQ_FAILED(sq_translateasttobytecode(sqvm, ast, bindings, sourcename, &buf[0], buf.size(), compilationOptions.raiseError, compilationOptions.debugInfo)))
+  {
+    return true;
+  }
+
+  if (compilationOptions.doStaticAnalysis)
+  {
+    sq_analyseast(sqvm, ast, bindings, sourcename, &buf[0], buf.size());
   }
 
   if (onBytecode_cb) {
