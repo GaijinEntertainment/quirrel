@@ -101,7 +101,7 @@ public:
   } compilationOptions;
 
   void *up_data;
-  void (*onAST_cb)(HSQUIRRELVM, SqAstNode *, void *);
+  void (*onAST_cb)(HSQUIRRELVM, SQCompilation::SqASTData *, void *);
   void (*onBytecode_cb)(HSQUIRRELVM, HSQOBJECT, void *);
 
 private:

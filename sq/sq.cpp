@@ -91,7 +91,7 @@ struct DumpOptions {
   const char *bytecodeDumpFileName;
 };
 
-static void dumpAst_callback(HSQUIRRELVM vm, SqAstNode *ast, void *opts)
+static void dumpAst_callback(HSQUIRRELVM vm, SQCompilation::SqASTData *astData, void *opts)
 {
     if (opts == NULL)
       return;
@@ -103,7 +103,7 @@ static void dumpAst_callback(HSQUIRRELVM vm, SqAstNode *ast, void *opts)
             FileOutputStream fos(dumpOpt->astDumpFileName);
             if (fos.valid())
             {
-                sq_dumpast(vm, ast, &fos);
+                sq_dumpast(vm, astData, &fos);
             }
             else
             {
@@ -113,7 +113,7 @@ static void dumpAst_callback(HSQUIRRELVM vm, SqAstNode *ast, void *opts)
         else
         {
             FileOutputStream fos(stdout);
-            sq_dumpast(vm, ast, &fos);
+            sq_dumpast(vm, astData, &fos);
         }
     }
 }
