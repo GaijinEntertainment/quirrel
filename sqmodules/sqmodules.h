@@ -32,7 +32,6 @@ public:
   SqModules(HSQUIRRELVM vm)
     : sqvm(vm), onAST_cb(nullptr), onBytecode_cb(nullptr), up_data(nullptr)
   {
-    compilationOptions.useAST = false;
     compilationOptions.raiseError = true;
     compilationOptions.debugInfo = false;
     compilationOptions.doStaticAnalysis = false;
@@ -95,7 +94,6 @@ public:
   static const char *__main__, *__fn__;
 
   struct {
-    bool useAST;
     bool raiseError;
     bool debugInfo;
     bool doStaticAnalysis;

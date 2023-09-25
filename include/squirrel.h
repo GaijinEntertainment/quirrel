@@ -219,7 +219,6 @@ typedef struct tagSQFunctionInfo {
 #define BIT(n) (1ULL << (n))
 
 enum CompilationOptions : SQUnsignedInteger {
-  CO_USE_AST_COMPILER = BIT(0),
   CO_CLOSURE_HOISTING_OPT = BIT(1)
 };
 

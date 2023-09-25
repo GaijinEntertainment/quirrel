@@ -67,7 +67,6 @@ void PrintUsage()
         _SC("Available options are:\n")
         _SC("   -c               compiles the file to bytecode(default output 'out.cnut')\n")
         _SC("   -o               specifies output file for the -c option\n")
-        _SC("   -ast             use AST compiler\n")
         _SC("   -ast-dump [file] dump AST into console or file if specified\n")
         _SC("   -absolute-path   use absolute path when print diangostics\n")
         _SC("   -bytecode-dump [file] dump SQ bytecode into console or file if specified\n")
@@ -229,11 +228,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 switch(argv[arg][1])
                 {
                 case 'a':
-                    if (strcmp("-ast", argv[arg]) == 0) {
-                        module_mgr->compilationOptions.useAST = true;
-                        //sq_setcompilationoption(v, CompilationOptions::CO_USE_AST_COMPILER, true);
-                    }
-                    else if (strcmp("-ast-dump", argv[arg]) == 0)
+                    if (strcmp("-ast-dump", argv[arg]) == 0)
                     {
                         dumpOpt.astDump = true;
                         if (((arg + 1) < argc) && argv[arg + 1][0] != '-')

@@ -166,8 +166,7 @@ SQRESULT sq_compile(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar
 {
     SQObjectPtr o;
 #ifndef NO_COMPILER
-    bool useAst = _ss(v)->checkCompilationOption(CompilationOptions::CO_USE_AST_COMPILER);
-    if(Compile(v, s, size, bindings, sourcename, o, raiseerror?true:false, _ss(v)->_debuginfo, useAst)) {
+    if(Compile(v, s, size, bindings, sourcename, o, raiseerror?true:false, _ss(v)->_debuginfo)) {
         v->Push(SQClosure::Create(_ss(v), _funcproto(o)));
         return SQ_OK;
     }
@@ -1690,22 +1689,6 @@ SQRESULT sq_compilewithast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const
         return SQ_ERROR;
 
     return sq_translateasttobytecode(v, ast, bindings, sourcename, s, size, raiseerror, debugInfo);
-}
-
-SQRESULT sq_compileonepass(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, SQBool debugInfo, const HSQOBJECT *bindings)
-{
-    BufState buf;
-    buf.buf = s;
-    buf.size = size;
-    buf.ptr = 0;
-
-    SQObjectPtr o;
-    if (CompileOnePass(v, s, size, bindings, sourcename, o, raiseerror, debugInfo)) {
-        v->Push(SQClosure::Create(_ss(v), _funcproto(o)));
-        return SQ_OK;
-    }
-
-    return SQ_ERROR;
 }
 
 SQRESULT sq_translatebinaryasttobytecode(HSQUIRRELVM v, const uint8_t *buffer, size_t size, const HSQOBJECT *bindings, SQBool raiseerror) {
