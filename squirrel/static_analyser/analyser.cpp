@@ -2493,9 +2493,11 @@ void CheckerVisitor::checkPotentiallyNullableOperands(const BinExpr *bin) {
   if (effectsOnly)
     return;
 
-  bool isRelOp = isRelationOperator(bin->op());
-  bool isArithOp = isPureArithOperator(bin->op());
-  bool isAssign = bin->op() == TO_ASSIGN || bin->op() == TO_INEXPR_ASSIGN || bin->op() == TO_NEWSLOT;
+  enum TreeOp op = bin->op();
+
+  bool isRelOp = isBoolRelationOperator(op);
+  bool isArithOp = isPureArithOperator(op);
+  bool isAssign = op == TO_ASSIGN || op == TO_INEXPR_ASSIGN || op == TO_NEWSLOT;
 
   if (!isRelOp && !isArithOp && !isAssign)
     return;
