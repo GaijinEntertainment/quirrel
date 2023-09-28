@@ -110,6 +110,7 @@ public:
             _size = newsize;
         }
     }
+    void clear() { resize(0); }
     void shrinktofit() { if(_size > 4) { _realloc(_size); } }
     T& top() const { return _vals[_size - 1]; }
     inline SQUnsignedInteger size() const { return _size; }
