@@ -32,8 +32,8 @@ struct NestingChecker {
     }
 };
 
-SQParser::SQParser(SQVM *v, const char *sourceText, size_t sourceTextSize, const SQChar* sourcename, Arena *astArena, SQCompilationContext &ctx)
-    : _lex(_ss(v), ctx)
+SQParser::SQParser(SQVM *v, const char *sourceText, size_t sourceTextSize, const SQChar* sourcename, Arena *astArena, SQCompilationContext &ctx, Comments *comments)
+    : _lex(_ss(v), ctx, comments)
     , _ctx(ctx)
     , _astArena(astArena)
 {
