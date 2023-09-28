@@ -21,13 +21,11 @@
 
 using namespace SQCompilation;
 
-SQLexer::SQLexer(SQSharedState *ss, SQCompilationContext &ctx, enum SQLexerMode mode)
+SQLexer::SQLexer(SQSharedState *ss, SQCompilationContext &ctx)
     : _longstr(ss->_alloc_ctx)
-    , macroState(ss->_alloc_ctx)
     , _ctx(ctx)
     , _expectedToken(-1)
     , _state(LS_REGULAR)
-    , _mode(mode)
     , _flags(0)
     , _prevflags(0)
 {
@@ -84,7 +82,6 @@ void SQLexer::Init(SQSharedState *ss, const char *sourceText, size_t sourceTextS
     ADD_KEYWORD(let, TK_LET);
 
 
-    macroState.reset();
     _sourceText = sourceText;
     _sourceTextSize = sourceTextSize;
     _sourceTextPtr = 0;
@@ -147,209 +144,16 @@ void SQLexer::LexBlockComment()
         }
     }
 }
+
 void SQLexer::LexLineComment()
 {
     do { NEXT(); } while (CUR_CHAR != _SC('\n') && (!IS_EOB()));
 }
 
-
-static void append_string_to_vec(sqvector<SQChar> & vec, const SQChar * str)
-{
-    while (*str)
-    {
-        vec.push_back(*str);
-        str++;
-    }
-}
-
-
-void SQLexer::AppendPosDirective(sqvector<SQChar> & vec)
-{
-    append_string_to_vec(vec, _SC("#pos:"));
-    SQChar buf[16] = { 0 };
-    scsprintf(buf, sizeof(buf)/sizeof(buf[0]), _SC("%d"), int(_currentline));
-    append_string_to_vec(vec, buf);
-    vec.push_back(_SC(':'));
-    scsprintf(buf, sizeof(buf)/sizeof(buf[0]), _SC("%d"), int(_currentcolumn - 1));
-    append_string_to_vec(vec, buf);
-    vec.push_back(_SC(' '));
-}
-
-
-bool SQLexer::ProcessReaderMacro()
-{
-    if (macroState.prevReadF) {
-        _ctx.reportDiagnostic(DiagnosticsId::DI_MACRO_RECURSION, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
-        return false;
-    }
-
-    if (CUR_CHAR != _SC('"')) {
-        _ctx.reportDiagnostic(DiagnosticsId::DI_EXPECTED_LEX, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "string");
-        return false;
-    }
-
-    macroState.insideStringInterpolation = true;
-    SQChar prevChar = CUR_CHAR;
-
-    macroState.macroParams.resize(0);
-    macroState.macroStr.resize(0);
-    macroState.macroStr.push_back(_SC('"'));
-
-    int depth = 0;
-    int braceCount = 0;
-    int paramCount = 0;
-    bool insideStr1 = false;
-    bool insideStr2 = false;
-
-    while (CUR_CHAR != SQUIRREL_EOB)
-    {
-        if (CUR_CHAR == _SC('\\') && prevChar == _SC('\\'))
-          prevChar = 0;
-        else
-          prevChar = CUR_CHAR;
-
-        NEXT();
-
-        if (prevChar != _SC('\\'))
-        {
-            if (!insideStr1 && !insideStr2)
-            {
-                if (depth > 0 && (prevChar == _SC('/') && (CUR_CHAR == _SC('/') || CUR_CHAR == _SC('*')))) {
-                    _ctx.reportDiagnostic(DiagnosticsId::DI_COMMENT_IN_STRING_TEMPLATE, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
-                    return false;
-                }
-
-                if (CUR_CHAR == _SC('{'))
-                {
-                    if (!depth)
-                    {
-                        if (macroState.macroParams.size())
-                            macroState.macroParams.push_back(_SC(','));
-
-                        macroState.macroParams.push_back(_SC('('));
-                        AppendPosDirective(macroState.macroParams);
-                        depth++;
-                        continue;
-                    }
-                    depth++;
-                }
-                else if (CUR_CHAR == _SC('}'))
-                {
-                    depth--;
-
-                    if ((braceCount != 0 && depth == 0) || depth < 0) {
-                        _ctx.reportDiagnostic(DiagnosticsId::DI_BRACE_ORDER, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
-                        break;
-                    }
-
-                    if (!depth)  {
-                        macroState.macroParams.push_back(_SC(')'));
-                        macroState.macroStr.push_back('{');
-                        SQChar buf[16] = { 0 };
-                        scsprintf(buf, sizeof(buf)/sizeof(buf[0]), _SC("%d"), paramCount);
-                        append_string_to_vec(macroState.macroStr, buf);
-                        paramCount++;
-                    }
-                }
-
-                if (depth > 0) {
-                    if (CUR_CHAR == _SC('(') || CUR_CHAR == _SC('['))
-                        braceCount++;
-                    else if (CUR_CHAR == _SC(')') || CUR_CHAR == _SC(']'))
-                        braceCount--;
-                }
-            }
-
-            if (depth > 0)
-            {
-                if (CUR_CHAR == _SC('"') && !insideStr1)
-                    insideStr2 = !insideStr2;
-
-                if (CUR_CHAR == _SC('\'') && !insideStr2)
-                    insideStr1 = !insideStr1;
-            }
-
-        }
-        else //  prevChar == '\'
-        {
-            if (CUR_CHAR == _SC('{') || CUR_CHAR == _SC('}')) {
-                if (depth == 0)
-                    macroState.macroStr.pop_back();
-                else
-                    macroState.macroParams.pop_back();
-            }
-        }
-
-        if (depth == 0)
-            macroState.macroStr.push_back(CUR_CHAR);
-        else
-            macroState.macroParams.push_back(CUR_CHAR);
-
-        if (depth <= 0 && CUR_CHAR == _SC('"') && prevChar != _SC('\\') && !insideStr1 && !insideStr2)
-            break;
-    }
-
-    if (macroState.macroParams.size() != 0) {
-        append_string_to_vec(macroState.macroStr, _SC(".subst("));
-
-        for (SQUnsignedInteger i = 0; i < macroState.macroParams.size(); i++)
-            macroState.macroStr.push_back(macroState.macroParams[i]);
-
-        macroState.macroStr.push_back(_SC(')'));
-    }
-    else if (paramCount) {
-        _ctx.reportDiagnostic(DiagnosticsId::DI_NO_PARAMS_IN_STRING_TEMPLATE, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
-        return false;
-    }
-
-    AppendPosDirective(macroState.macroStr);
-    macroState.macroStr.push_back(0);
-
-    macroState.prevReadF = _readf;
-    macroState.prevUserPointer = _up;
-    macroState.prevCurrdata = _currdata;
-    macroState.macroStrPos = 0;
-    _up = (void *)&macroState;
-    _readf = SQLexerMacroState::macroReadF;
-    return true;
-}
-
-
-void SQLexer::ExitReaderMacro()
-{
-    _readf = macroState.prevReadF;
-    _up = macroState.prevUserPointer;
-    _currdata = macroState.prevCurrdata;
-    macroState.prevUserPointer = nullptr;
-    macroState.prevReadF = nullptr;
-    macroState.insideStringInterpolation = false;
-}
-
-
 SQInteger SQLexer::Lex()
 {
-    SQInteger tk = LexSingleToken();
-
-    if (_mode == LM_LEGACY) {
-        if (tk == TK_READERMACRO) {
-            if (!ProcessReaderMacro())
-                return 0;
-
-            NEXT();
-            tk = LexSingleToken();
-        }
-
-
-        if (!tk && macroState.insideStringInterpolation) {
-            ExitReaderMacro();
-            NEXT();
-            tk = LexSingleToken();
-        }
-    }
-
-    return tk;
+    return LexSingleToken();
 }
-
 
 SQInteger SQLexer::LexSingleToken()
 {
@@ -437,7 +241,7 @@ SQInteger SQLexer::LexSingleToken()
             }
         case _SC('$'): {
             NEXT();
-            RETURN_TOKEN(_mode == LM_AST ? '$' : TK_READERMACRO);
+            RETURN_TOKEN('$');
             }
         case _SC('@'): {
             SQInteger stype;
