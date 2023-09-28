@@ -27,11 +27,12 @@ static DiagnosticDescriptor diagnosticDescriptors[] = {
 #undef DEF_DIAGNOSTIC
 };
 
-SQCompilationContext::SQCompilationContext(SQVM *vm, Arena *arena, const SQChar *sn, const char *code, size_t csize, bool raiseError)
+SQCompilationContext::SQCompilationContext(SQVM *vm, Arena *arena, const SQChar *sn, const char *code, size_t csize, const Comments *comments, bool raiseError)
   : _vm(vm)
   , _arena(arena)
   , _sourceName(sn)
   , _linemap(_ss(vm)->_alloc_ctx)
+  , _comments(comments)
   , _code(code)
   , _codeSize(csize)
   , _raiseError(raiseError)
@@ -44,6 +45,22 @@ SQCompilationContext::SQCompilationContext(SQVM *vm, Arena *arena, const SQChar 
 
 SQCompilationContext::~SQCompilationContext()
 {
+}
+
+Comments::~Comments() {
+  SQAllocContext ctx = _commentsList._alloc_ctx;
+
+  for (auto &lc : _commentsList) {
+    for (auto &c : lc) {
+      sq_vm_free(ctx, (void *)c.text, c.size + 1);
+    }
+  }
+}
+
+const Comments::LineCommentsList &Comments::lineComment(int line) const {
+  line -= 1;
+  assert(0 <= line && line < _commentsList.size());
+  return _commentsList[line];
 }
 
 std::vector<std::string> SQCompilationContext::function_forbidden;
@@ -339,29 +356,37 @@ bool SQCompilationContext::isDisabled(enum DiagnosticsId id, int line, int pos) 
 
   if (descriptor.disabled) return true;
 
-  const char *codeLine = findLine(line);
-
-  if (!codeLine)
+  if (!_comments)
     return false;
+
+  const Comments::LineCommentsList &lineCmts = _comments->lineComment(line);
 
   char suppressLineIntBuf[64] = { 0 };
   char suppressLineTextBuf[128] = { 0 };
   snprintf(suppressLineIntBuf, sizeof(suppressLineIntBuf), "-%c%d", severityPrefixes[descriptor.severity], descriptor.id);
-  int lt = snprintf(suppressLineTextBuf, sizeof(suppressLineTextBuf), "-%s", descriptor.textId);
+  snprintf(suppressLineTextBuf, sizeof(suppressLineTextBuf), "-%s", descriptor.textId);
 
-  const char *commentPart = strstr_nl(codeLine, "//");
+  for (auto &comment : lineCmts) {
+    if (strstr(comment.text, suppressLineIntBuf))
+      return true;
 
-  if (commentPart && (strstr_nl(commentPart, suppressLineIntBuf) || strstr_nl(commentPart, suppressLineTextBuf))) {
-    return true;
+    if (strstr(comment.text, suppressLineTextBuf))
+      return true;
   }
 
   char suppressFileIntBuf[64] = { 0 };
   char suppressFileTextBuf[128] = { 0 };
-  int fi = snprintf(suppressFileIntBuf, sizeof(suppressFileIntBuf), "//-file:%c%d", severityPrefixes[descriptor.severity], descriptor.id);
-  int ft = snprintf(suppressFileTextBuf, sizeof(suppressFileTextBuf), "//-file:%s", descriptor.textId);
+  int fi = snprintf(suppressFileIntBuf, sizeof(suppressFileIntBuf), "-file:%c%d", severityPrefixes[descriptor.severity], descriptor.id);
+  int ft = snprintf(suppressFileTextBuf, sizeof(suppressFileTextBuf), "-file:%s", descriptor.textId);
 
-  if (strstr(_code, suppressFileIntBuf) || strstr(_code, suppressFileTextBuf)) {
-    return true;
+  for (auto &lineComments : _comments->commentsList()) {
+    for (auto &comment : lineComments) {
+      if (strstr(comment.text, suppressFileIntBuf))
+        return true;
+
+      if (strstr(comment.text, suppressFileTextBuf))
+        return true;
+    }
   }
 
   return false;

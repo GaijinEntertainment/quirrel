@@ -146,10 +146,52 @@ enum DiagnosticSeverity {
   DS_ERROR
 };
 
+enum CommentKind {
+  CK_NONE,
+  CK_LINE,    // | // foo bar
+  CK_BLOCK,   // | /* foo bar */
+  CK_ML_BLOCK // | /* foo \n bar */
+};
+
+struct CommentData {
+
+  CommentData() : kind(CK_NONE), size(0), text(nullptr), commentLine(-1), begin(-1), end(-1) {}
+  CommentData(enum CommentKind k, size_t s, const SQChar *t, SQInteger n, SQInteger b, SQInteger e) : kind(k), size(s), text(t), commentLine(n), begin(b), end(e) {}
+
+  const enum CommentKind kind;
+  const size_t size;
+  const SQChar *text;
+
+  const SQInteger commentLine; // stand for line number in multiline block comment, or 0 otherwise
+  const SQInteger begin, end;
+
+  bool isLineComment() const { return kind == CK_LINE; }
+  bool isBlockComment() const { return kind == CK_BLOCK; }
+  bool isMultiLineComment() const { return kind == CK_ML_BLOCK; }
+};
+
+class Comments {
+public:
+  using LineCommentsList = sqvector<CommentData>;
+
+  Comments(SQAllocContext ctx) : _commentsList(ctx) {}
+  ~Comments();
+
+  const LineCommentsList &lineComment(int line) const;
+
+  sqvector<LineCommentsList> &commentsList() { return _commentsList; }
+  const sqvector<LineCommentsList> &commentsList() const { return _commentsList; }
+
+  void pushNewLine() { _commentsList.push_back(LineCommentsList(_commentsList._alloc_ctx)); }
+
+private:
+  sqvector<LineCommentsList> _commentsList;
+};
+
 class SQCompilationContext
 {
 public:
-  SQCompilationContext(SQVM *vm, Arena *a, const SQChar *sn, const char *code, size_t csize, bool raiseError);
+  SQCompilationContext(SQVM *vm, Arena *a, const SQChar *sn, const char *code, size_t csize, const Comments *comments, bool raiseError);
   ~SQCompilationContext();
 
   jmp_buf &errorJump() { return _errorjmp; }
@@ -205,6 +247,7 @@ private:
   bool _raiseError;
 
   sqvector<const char *> _linemap;
+  const Comments *_comments;
 };
 
 } // namespace SQCompilation

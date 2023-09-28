@@ -251,7 +251,7 @@ SQUIRREL_API SQRESULT sq_compilebuffer(HSQUIRRELVM v,const SQChar *s,SQInteger s
 SQUIRREL_API SQRESULT sq_parsetobinaryast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, OutputStream *ostream, SQBool raiseerror);
 SQUIRREL_API SQRESULT sq_translatebinaryasttobytecode(HSQUIRRELVM v, const uint8_t *buffer, size_t size, const HSQOBJECT *bindings, SQBool raiseerror);
 
-SQUIRREL_API SQCompilation::SqASTData *sq_parsetoast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror);
+SQUIRREL_API SQCompilation::SqASTData *sq_parsetoast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool preserveComments, SQBool raiseerror);
 SQUIRREL_API SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size, SQBool raiseerror, SQBool debugInfo);
 SQUIRREL_API void sq_analyseast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size);
 

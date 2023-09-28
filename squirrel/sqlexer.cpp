@@ -21,13 +21,15 @@
 
 using namespace SQCompilation;
 
-SQLexer::SQLexer(SQSharedState *ss, SQCompilationContext &ctx)
+SQLexer::SQLexer(SQSharedState *ss, SQCompilationContext &ctx, Comments *comments)
     : _longstr(ss->_alloc_ctx)
     , _ctx(ctx)
     , _expectedToken(-1)
     , _state(LS_REGULAR)
     , _flags(0)
     , _prevflags(0)
+    , _comments(comments)
+    , _currentComment(ss->_alloc_ctx)
 {
 }
 
@@ -35,6 +37,8 @@ SQLexer::~SQLexer()
 {
     _keywords->Release();
 }
+
+using CommentVec = sqvector<CommentData>;
 
 void SQLexer::Init(SQSharedState *ss, const char *sourceText, size_t sourceTextSize)
 {
@@ -93,6 +97,8 @@ void SQLexer::Init(SQSharedState *ss, const char *sourceText, size_t sourceTextS
     _tokencolumn = 0;
     _tokenline = 1;
     _reached_eof = SQFalse;
+    if (_comments)
+      _comments->pushNewLine();
     Next();
 }
 
@@ -130,29 +136,66 @@ const SQChar *SQLexer::Tok2Str(SQInteger tok)
     return NULL;
 }
 
+void SQLexer::AddComment(enum CommentKind kind, SQInteger line, SQInteger start, SQInteger end) {
+  if (!_comments)
+    return;
+  size_t size = _currentComment.size();
+  SQChar *data = (SQChar *)sq_vm_malloc(_sharedstate->_alloc_ctx, (size + 1) * sizeof(SQChar));
+  memcpy(data, &_currentComment[0], size);
+  data[size] = '\0';
+
+  CurLineComments().push_back({ kind, size, data, line, start, end });
+
+  _currentComment.clear();
+}
+
 void SQLexer::LexBlockComment()
 {
+    enum CommentKind k = CK_BLOCK;
+    SQInteger line = 1;
+    SQInteger start = _currentcolumn;
     bool done = false;
     while(!done) {
+        _currentComment.push_back(CUR_CHAR);
         switch(CUR_CHAR) {
             case _SC('*'): { NEXT(); if(CUR_CHAR == _SC('/')) { done = true; NEXT(); }}; continue;
-            case _SC('\n'): _currentline++; NEXT(); continue;
+            case _SC('\n'):
+              k = CK_ML_BLOCK;
+              AddComment(k, line, start, _currentcolumn);
+              ++line;
+              nextLine();
+              NEXT();
+              start = _currentcolumn;
+              continue;
             case SQUIRREL_EOB:
               _ctx.reportDiagnostic(DiagnosticsId::DI_TRAILING_BLOCK_COMMENT, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
               return;
             default: NEXT();
         }
     }
+
+    AddComment(k, k == CK_ML_BLOCK ? line : 0, start, _currentcolumn);
 }
 
 void SQLexer::LexLineComment()
 {
-    do { NEXT(); } while (CUR_CHAR != _SC('\n') && (!IS_EOB()));
+    SQInteger start = _currentcolumn;
+    do {
+        NEXT();
+        _currentComment.push_back(CUR_CHAR);
+    } while (CUR_CHAR != _SC('\n') && (!IS_EOB()));
+    AddComment(CK_LINE, 0, start, _currentcolumn);
 }
 
 SQInteger SQLexer::Lex()
 {
     return LexSingleToken();
+}
+
+void SQLexer::nextLine() {
+  ++_currentline;
+  if (_comments)
+    _comments->pushNewLine();
 }
 
 SQInteger SQLexer::LexSingleToken()
@@ -173,7 +216,7 @@ SQInteger SQLexer::LexSingleToken()
         switch(CUR_CHAR){
         case _SC('\t'): case _SC('\r'): case _SC(' '): _flags |= TF_PREP_SPACE; NEXT(); continue;
         case _SC('\n'):
-            _currentline++;
+            nextLine();
             _prevtoken=_curtoken;
             _flags |= TF_PREP_EOL;
             _curtoken=_SC('\n');
@@ -412,7 +455,7 @@ SQInteger SQLexer::ReadString(SQInteger ndelim,bool verbatim, bool advance)
                 if(!verbatim)
                     _ctx.reportDiagnostic(DiagnosticsId::DI_NEWLINE_IN_CONST, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
                 APPEND_CHAR(CUR_CHAR); NEXT();
-                _currentline++;
+                nextLine();
                 break;
             case _SC('\\'):
                 if(verbatim) {

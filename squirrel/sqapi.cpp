@@ -1681,7 +1681,7 @@ SQRESULT sq_compilebuffer(HSQUIRRELVM v,const SQChar *s,SQInteger size,const SQC
 }
 
 SQRESULT sq_compilewithast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, SQBool debugInfo, const HSQOBJECT *bindings) {
-    SQCompilation::SqASTData *astData = sq_parsetoast(v, s, size, sourcename, raiseerror);
+    SQCompilation::SqASTData *astData = sq_parsetoast(v, s, size, sourcename, false, raiseerror);
 
     if (!astData)
         return SQ_ERROR;
@@ -1706,9 +1706,9 @@ SQRESULT sq_parsetobinaryast(HSQUIRRELVM v, const SQChar *s, SQInteger size, con
     return ParseAndSaveBinaryAST(v, s, size, sourcename, ostream, raiseerror) ? SQ_OK : SQ_ERROR;
 }
 
-SQCompilation::SqASTData *sq_parsetoast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror)
+SQCompilation::SqASTData *sq_parsetoast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool preserveComments, SQBool raiseerror)
 {
-    return ParseToAST(v, s, size, sourcename, raiseerror);
+    return ParseToAST(v, s, size, sourcename, preserveComments, raiseerror);
 }
 
 void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, OutputStream *s)
@@ -1749,6 +1749,13 @@ void sq_analyseast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOB
 
 void sq_releaseASTData(HSQUIRRELVM v, SQCompilation::SqASTData *astData)
 {
+  Comments *comments = astData->comments;
+  if (comments)
+  {
+    comments->~Comments();
+    sq_vm_free(_ss(v)->_alloc_ctx, comments, sizeof(Comments));
+  }
+
   Arena *arena = astData->astArena;
   arena->~Arena();
   sq_vm_free(_ss(v)->_alloc_ctx, arena, sizeof(Arena));

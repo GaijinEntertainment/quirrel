@@ -175,7 +175,7 @@ struct ASTDataGuard
 
 bool SqModules::compileScriptImpl(const std::vector<char> &buf, const char *sourcename, const HSQOBJECT *bindings)
 {
-  auto *ast = sq_parsetoast(sqvm, &buf[0], buf.size() - 1, sourcename, compilationOptions.raiseError);
+  auto *ast = sq_parsetoast(sqvm, &buf[0], buf.size() - 1, sourcename, compilationOptions.doStaticAnalysis, compilationOptions.raiseError);
   if (!ast)
   {
     return true;
