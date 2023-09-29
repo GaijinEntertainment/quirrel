@@ -584,11 +584,14 @@ enum ReturnTypeBits
   RT_CLASS = 1 << 11,
 };
 
+class CheckerVisitor;
+
 class FunctionReturnTypeEvaluator {
 
   void checkLiteral(const LiteralExpr *l);
   void checkDeclaration(const DeclExpr *de);
   void checkAddExpr(const BinExpr *expr);
+  void checkExpr(const Expr *expr);
 
   bool checkNode(const Statement *node);
 
@@ -610,7 +613,13 @@ class FunctionReturnTypeEvaluator {
     return stmt;
   }
 
+  CheckerVisitor *checker;
+
+  bool checkString(const Expr *e);
+
 public:
+
+  FunctionReturnTypeEvaluator(CheckerVisitor *c) : checker(c), flags(0U) {}
 
   unsigned flags;
 
@@ -651,6 +660,84 @@ void FunctionReturnTypeEvaluator::checkLiteral(const LiteralExpr *lit) {
   }
 }
 
+void FunctionReturnTypeEvaluator::checkExpr(const Expr *expr) {
+
+  switch (expr->op())
+  {
+  case TO_LITERAL:
+    checkLiteral(static_cast<const LiteralExpr *>(expr));
+    break;
+  case TO_OROR:
+  case TO_ANDAND:
+  case TO_NULLC:
+    checkExpr(static_cast<const BinExpr *>(expr)->rhs());
+    break;
+  case TO_NE:
+  case TO_EQ:
+  case TO_GE:
+  case TO_GT:
+  case TO_LE:
+  case TO_LT:
+  case TO_INSTANCEOF:
+  case TO_IN:
+  case TO_NOT:
+    flags |= RT_BOOL;
+    break;
+  case TO_ADD:
+    checkAddExpr(static_cast<const BinExpr *>(expr));
+    break;
+  case TO_MOD: {
+    const BinExpr *b = static_cast<const BinExpr *>(expr);
+    if (checkString(b->rhs())) { // this special pattern 'o % "something"'
+      flags |= RT_UNRECOGNIZED;
+      break;
+    }
+  } // -V796
+  case TO_SUB:
+  case TO_MUL:
+  case TO_DIV:
+  case TO_NEG:
+  case TO_BNOT:
+  case TO_3CMP:
+  case TO_AND:
+  case TO_OR:
+  case TO_XOR:
+  case TO_SHL:
+  case TO_SHR:
+  case TO_USHR:
+  case TO_INC:
+    flags |= RT_NUMBER;
+    break;
+  case TO_CALL:
+    if (checkString(expr))
+      flags |= RT_STRING;
+    else
+      flags |= RT_FUNCTION_CALL;
+    break;
+  case TO_DECL_EXPR:
+    checkDeclaration(static_cast<const DeclExpr *>(expr));
+    break;
+  case TO_ARRAYEXPR:
+    flags |= RT_ARRAY;
+    break;
+  case TO_PAREN:
+    checkExpr(static_cast<const UnExpr *>(expr)->argument());
+    break;
+  case TO_TERNARY: {
+      const TerExpr *ter = static_cast<const TerExpr *>(expr);
+      checkExpr(ter->b());
+      checkExpr(ter->c());
+      break;
+  }
+  default:
+    if (checkString(expr))
+      flags |= RT_STRING;
+    else
+      flags |= RT_UNRECOGNIZED;
+    break;
+  }
+}
+
 void FunctionReturnTypeEvaluator::checkAddExpr(const BinExpr *expr) {
   assert(expr->op() == TO_ADD);
 
@@ -658,24 +745,8 @@ void FunctionReturnTypeEvaluator::checkAddExpr(const BinExpr *expr) {
 
   flags = 0;
 
-  const Expr *lhs = deparen(expr->lhs());
-  const Expr *rhs = deparen(expr->rhs());
-
-  if (lhs->op() == TO_ADD) { // -V522
-    checkAddExpr(lhs->asBinExpr());
-  }
-
-  if (rhs->op() == TO_ADD) { // -V522
-    checkAddExpr(rhs->asBinExpr());
-  }
-
-  if (lhs->op() == TO_LITERAL) { // -V522
-    checkLiteral(lhs->asLiteral());
-  }
-
-  if (rhs->op() == TO_LITERAL) { // -V522
-    checkLiteral(rhs->asLiteral());
-  }
+  checkExpr(expr->lhs());
+  checkExpr(expr->rhs());
 
   if (flags & RT_STRING) {
     // concat with string is casted to string
@@ -703,63 +774,14 @@ void FunctionReturnTypeEvaluator::checkDeclaration(const DeclExpr *de) {
 
 bool FunctionReturnTypeEvaluator::checkReturn(const ReturnStatement *ret) {
 
-  const Expr *arg = deparen(ret->argument());
+  const Expr *arg = ret->argument();
 
   if (arg == nullptr) {
     flags |= RT_NOTHING;
     return true;
   }
 
-  switch (arg->op())
-  {
-  case TO_LITERAL:
-    checkLiteral(static_cast<const LiteralExpr *>(arg));
-    break;
-  case TO_OROR:
-  case TO_ANDAND:
-  case TO_NE:
-  case TO_EQ:
-  case TO_GE:
-  case TO_GT:
-  case TO_LE:
-  case TO_LT:
-  case TO_INSTANCEOF:
-  case TO_IN:
-  case TO_NOT:
-    flags |= RT_BOOL;
-    break;
-  case TO_ADD:
-    checkAddExpr(arg->asBinExpr());
-    break;
-  case TO_SUB:
-  case TO_MUL:
-  case TO_DIV:
-  case TO_MOD:
-  case TO_NEG:
-  case TO_BNOT:
-  case TO_3CMP:
-  case TO_AND:
-  case TO_OR:
-  case TO_XOR:
-  case TO_SHL:
-  case TO_SHR:
-  case TO_USHR:
-  case TO_INC:
-    flags |= RT_NUMBER;
-    break;
-  case TO_CALL:
-    flags |= RT_FUNCTION_CALL;
-    break;
-  case TO_DECL_EXPR:
-    checkDeclaration(static_cast<const DeclExpr *>(arg));
-    break;
-  case TO_ARRAYEXPR:
-    flags |= RT_ARRAY;
-    break;
-  default:
-    flags |= RT_UNRECOGNIZED;
-    break;
-  }
+  checkExpr(arg);
 
   return true;
 }
@@ -1768,6 +1790,7 @@ struct BreakableScope {
 class CheckerVisitor : public Visitor {
   friend struct VarScope;
   friend struct BreakableScope;
+  friend class FunctionReturnTypeEvaluator;
 
   SQCompilationContext &_ctx;
 
@@ -2045,6 +2068,8 @@ void VarScope::checkUnusedSymbols(CheckerVisitor *checker) {
     }
   }
 }
+
+bool FunctionReturnTypeEvaluator::checkString(const Expr *e) { return checker->couldBeString(e); }
 
 BreakableScope::BreakableScope(CheckerVisitor *v, const SwitchStatement *swtch) : visitor(v), kind(BSK_SWITCH), loopScope(nullptr), exitScope(nullptr), parent(v->breakScope) {
   node.swtch = swtch;
@@ -3344,7 +3369,7 @@ void CheckerVisitor::checkMissedBreak(const SwitchStatement *swtch) {
 
   auto &cases = swtch->cases();
 
-  FunctionReturnTypeEvaluator rtEvaluator;
+  FunctionReturnTypeEvaluator rtEvaluator(this);
 
   const Statement *last = nullptr;
   for (auto &c : cases) {
@@ -4651,7 +4676,7 @@ void CheckerVisitor::checkFunctionReturns(FunctionDecl *func) {
   }
 
   bool dummy;
-  unsigned returnFlags = FunctionReturnTypeEvaluator().compute(func->body(), dummy);
+  unsigned returnFlags = FunctionReturnTypeEvaluator(this).compute(func->body(), dummy);
 
   bool reported = false;
 
@@ -5108,17 +5133,17 @@ bool CheckerVisitor::couldBeString(const Expr *e) {
 
   e = deparen(e);
 
-  if (e->op() == TO_LITERAL) {
+  if (e->op() == TO_LITERAL) { // -V522
     return e->asLiteral()->kind() == LK_STRING;
   }
 
   if (e->op() == TO_NULLC) {
     const BinExpr *b = static_cast<const BinExpr *>(e);
-    if (b->rhs()->op() == TO_LITERAL && b->rhs()->asLiteral()->kind() == LK_STRING)
+    if (b->rhs()->op() == TO_LITERAL && b->rhs()->asLiteral()->kind() == LK_STRING) // -V522
       return couldBeString(b->lhs());
   }
 
-  if (e->op() == TO_CALL) {
+  if (e->op() == TO_CALL) { // -V522
     const SQChar *name = nullptr;
     const Expr *callee = static_cast<const CallExpr *>(e)->callee();
 
@@ -5132,11 +5157,16 @@ bool CheckerVisitor::couldBeString(const Expr *e) {
     }
   }
 
-  if (e->op() == TO_ADD) {
+  if (e->op() == TO_ADD) { // -V522
     // check for string concat
     const BinExpr *b = e->asBinExpr();
     return couldBeString(b->lhs()) || couldBeString(b->rhs());
   }
+
+  const Expr *evaled = maybeEval(e);
+
+  if (evaled != e && evaled->op() == TO_LITERAL) // do not go too deep
+    return couldBeString(evaled);
 
   return false;
 }
