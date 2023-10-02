@@ -1,4 +1,8 @@
-#define __STDC_FORMAT_MACROS // Linux/Adnroid won't define PRId* macros without this
+#ifndef _SQ64
+#define _SQ64 // always use 64 bit Integers (even on 32 bit platform)
+#endif
+
+#define __STDC_FORMAT_MACROS // Linux/Adnroid won't define PRId* macroses without this
 #include <stdint.h>
 #include <inttypes.h>
 
