@@ -207,18 +207,20 @@ bool SqModules::compileScriptImpl(const std::vector<char> &buf, const char *sour
   return false;
 }
 
-static const char *computeAbsolutePath(const char *resolved_fn) {
-  char *r = nullptr;
 #ifdef _WIN32
-  char *full = (char *)malloc(_MAX_PATH);
-  r = _fullpath(full, resolved_fn, _MAX_PATH);
-#else // _WIN32
-  // unix
-  r = realpath(resolved_fn, nullptr);
-#endif // _WIN32
-  assert(r);
-  return r;
+#define MAX_PATH_LENGTH _MAX_PATH
+static const char *computeAbsolutePath(const char *resolved_fn, char *buffer, size_t size)
+{
+  return _fullpath(buffer, resolved_fn, size);
 }
+#else // _WIN32
+#define MAX_PATH_LENGTH PATH_MAX
+static const char *computeAbsolutePath(const char *resolved_fn, char *buffer, size_t size)
+{
+  (void)size;
+  return realpath(resolved_fn, buffer);
+}
+#endif // _WIN32
 
 SqModules::CompileScriptResult SqModules::compileScript(const char *resolved_fn, const char *requested_fn,
                                                         const HSQOBJECT *bindings,
@@ -234,28 +236,24 @@ SqModules::CompileScriptResult SqModules::compileScript(const char *resolved_fn,
   }
 
   const char *filePath = resolved_fn;
+  char buffer[MAX_PATH_LENGTH] = {0};
 
   if (compilationOptions.useAbsolutePath) {
-    filePath = computeAbsolutePath(resolved_fn);
+    const char *r = computeAbsolutePath(resolved_fn, buffer, MAX_PATH_LENGTH);
+    if (r)
+      filePath = r;
   }
-
-  auto compileResult = CompileScriptResult::Ok;
 
   if (compileScriptImpl(buf, filePath, bindings))
   {
-    out_err_msg = string("Failed to compile file: ") + requested_fn +" / " + resolved_fn;
-    compileResult = CompileScriptResult::CompilationFailed;
-  }
-  else {
-    script_closure.attachToStack(sqvm, -1);
-    sq_pop(sqvm, 1);
+    out_err_msg = string("Failed to compile file: ") + requested_fn + " / " + resolved_fn;
+    return CompileScriptResult::CompilationFailed;
   }
 
-  if (filePath != resolved_fn) {
-    free(const_cast<char *>(filePath));
-  }
+  script_closure.attachToStack(sqvm, -1);
+  sq_pop(sqvm, 1);
 
-  return compileResult;
+  return CompileScriptResult::Ok;
 }
 
 
@@ -502,7 +500,7 @@ template<bool must_exist> SQInteger SqModules::sqRequire(HSQUIRRELVM vm)
   SQInteger fileNameLen = -1;
   sq_getstringandsize(vm, 2, &fileName, &fileNameLen);
 
-  if (strcmp(fileName, "squirrel.native_modules")==0)
+  if (strcmp(fileName, "quirrel.native_modules")==0)
   {
     sq_newarray(vm, self->nativeModules.size());
     SQInteger idx = 0;
