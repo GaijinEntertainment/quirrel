@@ -81,6 +81,8 @@ public:
     bool ProcessPosDirective();
     void Lex();
 
+    void checkBraceIdentationStyle();
+
     void Consume(SQInteger tok) {
         assert(tok == _token);
         Lex();
