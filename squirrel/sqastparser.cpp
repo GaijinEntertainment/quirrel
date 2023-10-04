@@ -1179,7 +1179,7 @@ Decl* SQParser::parseLocalDeclStatement()
     }
 }
 
-Statement* SQParser::IfBlock()
+Statement* SQParser::IfLikeBlock()
 {
     NestingChecker nc(this);
     Statement *stmt = NULL;
@@ -1214,11 +1214,17 @@ IfStatement* SQParser::parseIfStatement()
     Expr *cond = Expression(SQE_IF);
     Expect(_SC(')'));
 
-    Statement *thenB = IfBlock();
+    Statement *thenB = IfLikeBlock();
     Statement *elseB = NULL;
-    if(_token == TK_ELSE){
+    if (_token == TK_ELSE) {
         Lex();
-        elseB = IfBlock();
+        elseB = IfLikeBlock();
+        if (!IsEndOfStatement()) {
+          reportDiagnostic(DiagnosticsId::DI_STMT_SAME_LINE, "else");
+        }
+    }
+    else if (!IsEndOfStatement()) {
+      reportDiagnostic(DiagnosticsId::DI_STMT_SAME_LINE, "then");
     }
 
     return setCoordinates(newNode<IfStatement>(cond, thenB, elseB), l, c);
@@ -1236,7 +1242,11 @@ WhileStatement* SQParser::parseWhileStatement()
     Expr *cond = Expression(SQE_LOOP_CONDITION);
     Expect(_SC(')'));
 
-    Statement *body = parseStatement();
+    Statement *body = IfLikeBlock();
+
+    if (!IsEndOfStatement()) {
+      reportDiagnostic(DiagnosticsId::DI_STMT_SAME_LINE, "while loop body");
+    }
 
     return setCoordinates(newNode<WhileStatement>(cond, body), l, c);
 }
@@ -1249,7 +1259,7 @@ DoWhileStatement* SQParser::parseDoWhileStatement()
 
     Consume(TK_DO); // DO
 
-    Statement *body = parseStatement();
+    Statement *body = IfLikeBlock();
 
     Expect(TK_WHILE);
 
@@ -1290,7 +1300,11 @@ ForStatement* SQParser::parseForStatement()
     }
     Expect(_SC(')'));
 
-    Statement *body = parseStatement();
+    Statement *body = IfLikeBlock();
+
+    if (!IsEndOfStatement()) {
+      reportDiagnostic(DiagnosticsId::DI_STMT_SAME_LINE, "for loop body");
+    }
 
     return setCoordinates(newNode<ForStatement>(init, cond, mod, body), l, c);
 }
@@ -1326,7 +1340,11 @@ ForeachStatement* SQParser::parseForEachStatement()
     Expr *contnr = Expression(SQE_RVALUE);
     Expect(_SC(')'));
 
-    Statement *body = parseStatement();
+    Statement *body = IfLikeBlock();
+
+    if (!IsEndOfStatement()) {
+      reportDiagnostic(DiagnosticsId::DI_STMT_SAME_LINE, "foreach loop body");
+    }
 
     VarDecl *idxDecl = idxname ? newNode<VarDecl>(idxname->id(), nullptr, false) : NULL;
     VarDecl *valDecl = valname ? newNode<VarDecl>(valname->id(), nullptr, false) : NULL;
