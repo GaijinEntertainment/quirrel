@@ -1184,18 +1184,20 @@ Decl* SQParser::parseLocalDeclStatement()
     }
 }
 
-Statement* SQParser::IfLikeBlock()
+Statement* SQParser::IfLikeBlock(bool &wrapped)
 {
     NestingChecker nc(this);
     Statement *stmt = NULL;
     SQInteger l = line(), c = column();
     if (_token == _SC('{'))
     {
+        wrapped = false;
         Lex();
         stmt = setCoordinates(parseStatements(), l, c);
         Expect(_SC('}'));
     }
     else {
+        wrapped = true;
         stmt = parseStatement();
         Block *block = newNode<Block>(arena());
         block->addStatement(stmt);
@@ -1213,6 +1215,8 @@ IfStatement* SQParser::parseIfStatement()
 
     SQInteger l = line(), c = column();
 
+    SQInteger prevTok = _lex._prevtoken;
+
     Consume(TK_IF);
 
     Expect(_SC('('));
@@ -1220,18 +1224,34 @@ IfStatement* SQParser::parseIfStatement()
     Expect(_SC(')'));
 
     checkBraceIdentationStyle();
-    Statement *thenB = IfLikeBlock();
+
+    bool wrapped = false;
+
+    Statement *thenB = IfLikeBlock(wrapped);
     Statement *elseB = NULL;
     if (_token == TK_ELSE) {
+        SQInteger el = line(), ec = column(), ew = width();
+        SQInteger prevTok2 = _lex._prevtoken;
         Lex();
+        if (_token != _SC('{') && prevTok != TK_ELSE && wrapped && l != el && c != ec) {
+          _ctx.reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT, el, ec, ew);
+        }
         checkBraceIdentationStyle();
-        elseB = IfLikeBlock();
+        elseB = IfLikeBlock(wrapped);
         if (!IsEndOfStatement()) {
           reportDiagnostic(DiagnosticsId::DI_STMT_SAME_LINE, "else");
         }
     }
     else if (!IsEndOfStatement()) {
       reportDiagnostic(DiagnosticsId::DI_STMT_SAME_LINE, "then");
+    }
+
+
+    if (_token != SQUIRREL_EOB && _token != _SC('}') && _token != _SC(']') && _token != _SC(')') && _token != _SC(',')) {
+      SQInteger lastLine = elseB ? elseB->lineEnd() : thenB->lineEnd();
+      if (line() != lastLine && column() > c) {
+        reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT);
+      }
     }
 
     return setCoordinates(newNode<IfStatement>(cond, thenB, elseB), l, c);
@@ -1249,11 +1269,18 @@ WhileStatement* SQParser::parseWhileStatement()
     Expr *cond = Expression(SQE_LOOP_CONDITION);
     Expect(_SC(')'));
 
+    bool wrapped = false;
     checkBraceIdentationStyle();
-    Statement *body = IfLikeBlock();
+    Statement *body = IfLikeBlock(wrapped);
 
     if (!IsEndOfStatement()) {
       reportDiagnostic(DiagnosticsId::DI_STMT_SAME_LINE, "while loop body");
+    }
+
+    if (_token != SQUIRREL_EOB && _token != _SC('}')) {
+      if (line() != body->lineEnd() && column() > c) {
+        reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT);
+      }
     }
 
     return setCoordinates(newNode<WhileStatement>(cond, body), l, c);
@@ -1267,8 +1294,9 @@ DoWhileStatement* SQParser::parseDoWhileStatement()
 
     Consume(TK_DO); // DO
 
+    bool wrapped = false;
     checkBraceIdentationStyle();
-    Statement *body = IfLikeBlock();
+    Statement *body = IfLikeBlock(wrapped);
 
     Expect(TK_WHILE);
 
@@ -1309,11 +1337,18 @@ ForStatement* SQParser::parseForStatement()
     }
     Expect(_SC(')'));
 
+    bool wrapped = false;
     checkBraceIdentationStyle();
-    Statement *body = IfLikeBlock();
+    Statement *body = IfLikeBlock(wrapped);
 
     if (!IsEndOfStatement()) {
       reportDiagnostic(DiagnosticsId::DI_STMT_SAME_LINE, "for loop body");
+    }
+
+    if (_token != SQUIRREL_EOB && _token != _SC('}')) {
+      if (line() != body->lineEnd() && column() > c) {
+        reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT);
+      }
     }
 
     return setCoordinates(newNode<ForStatement>(init, cond, mod, body), l, c);
@@ -1350,11 +1385,18 @@ ForeachStatement* SQParser::parseForEachStatement()
     Expr *contnr = Expression(SQE_RVALUE);
     Expect(_SC(')'));
 
+    bool wrapped = false;
     checkBraceIdentationStyle();
-    Statement *body = IfLikeBlock();
+    Statement *body = IfLikeBlock(wrapped);
 
     if (!IsEndOfStatement()) {
       reportDiagnostic(DiagnosticsId::DI_STMT_SAME_LINE, "foreach loop body");
+    }
+
+    if (_token != SQUIRREL_EOB && _token != _SC('}')) {
+      if (line() != body->lineEnd() && column() > c) {
+        reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT);
+      }
     }
 
     VarDecl *idxDecl = idxname ? newNode<VarDecl>(idxname->id(), nullptr, false) : NULL;

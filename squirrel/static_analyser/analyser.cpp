@@ -1859,6 +1859,7 @@ class CheckerVisitor : public Visitor {
   void checkDuplicateSwitchCases(SwitchStatement *swtch);
   void checkDuplicateIfBranches(IfStatement *ifStmt);
   void checkDuplicateIfConditions(IfStatement *ifStmt);
+  void checkSuspiciousFormating(const Statement *body, const Statement *stmt);
 
   bool onlyEmptyStatements(int32_t start, const ArenaVector<Statement *> &statements) {
     for (int32_t i = start; i < statements.size(); ++i) {
@@ -3447,6 +3448,48 @@ void CheckerVisitor::checkDuplicateIfConditions(IfStatement *ifStmt) {
   }
 }
 
+bool wrappedBody(const Statement *stmt) {
+  if (stmt->op() != TO_BLOCK)
+    return false;
+
+  const Block *b = stmt->asBlock();
+
+  if (b->statements().size() != 1)
+    return false;
+
+  const Statement *wp = b->statements().back();
+
+  return stmt->lineStart() == wp->lineStart()
+    && stmt->lineEnd() == wp->lineEnd()
+    && stmt->columnStart() == wp->columnStart()
+    && stmt->columnEnd() == wp->columnEnd();
+}
+
+void CheckerVisitor::checkSuspiciousFormating(const Statement *body, const Statement *stmt) {
+  if (wrappedBody(body)) {
+    if (stmt->lineStart() != body->lineStart() && stmt->columnStart() >= body->columnStart()) {
+
+      // check if it is not `else if (...) ... ` pattern
+      const IfStatement *elif = nullptr;
+      const size_t nssize = nodeStack.size();
+      if (nssize >= 2) {
+        for (int i = 1; i <= 2; ++i) {
+          auto &ss = nodeStack[nssize - i];
+          if (ss.sst == SST_NODE && ss.n->op() == TO_IF) {
+            elif = static_cast<const IfStatement *>(ss.n);
+            break;
+          }
+        }
+      }
+
+      if (elif)
+        return;
+
+      report(body, DiagnosticsId::DI_SUSPICIOUS_FMT);
+    }
+  }
+}
+
 void CheckerVisitor::checkVariableMismatchForLoop(ForStatement *loop) {
 
   if (effectsOnly)
@@ -3758,6 +3801,7 @@ void CheckerVisitor::visitBlock(Block *b) {
 void CheckerVisitor::visitForStatement(ForStatement *loop) {
   checkUnterminatedLoop(loop);
   checkVariableMismatchForLoop(loop);
+  checkSuspiciousFormating(loop->body(), loop);
 
   VarScope *trunkScope = currentScope;
 
@@ -3829,6 +3873,7 @@ void CheckerVisitor::checkNullableContainer(const ForeachStatement *loop) {
 void CheckerVisitor::visitForeachStatement(ForeachStatement *loop) {
   checkUnterminatedLoop(loop);
   checkNullableContainer(loop);
+  checkSuspiciousFormating(loop->body(), loop);
 
 
   VarScope *trunkScope = currentScope;
@@ -3900,6 +3945,7 @@ void CheckerVisitor::visitForeachStatement(ForeachStatement *loop) {
 void CheckerVisitor::visitWhileStatement(WhileStatement *loop) {
   checkUnterminatedLoop(loop);
   checkEmptyWhileBody(loop);
+  checkSuspiciousFormating(loop->body(), loop);
 
   loop->condition()->visit(this);
 
@@ -4493,6 +4539,7 @@ void CheckerVisitor::visitIfStatement(IfStatement *ifstmt) {
   checkDuplicateIfConditions(ifstmt);
   checkDuplicateIfBranches(ifstmt);
   checkAlwaysTrueOrFalse(ifstmt->condition());
+  checkSuspiciousFormating(ifstmt->thenBranch(), ifstmt);
 
   VarScope *trunkScope = currentScope;
   VarScope *thenScope = trunkScope->copy(arena);
