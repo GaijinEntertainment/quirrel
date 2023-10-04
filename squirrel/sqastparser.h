@@ -122,7 +122,7 @@ public:
     Decl *parseLocalFunctionDeclStmt(bool assignable);
     Decl *parseLocalClassDeclStmt(bool assignable);
 
-    Statement* IfBlock();
+    Statement* IfLikeBlock();
     IfStatement* parseIfStatement();
     WhileStatement* parseWhileStatement();
     DoWhileStatement* parseDoWhileStatement();
