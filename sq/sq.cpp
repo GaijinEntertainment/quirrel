@@ -200,20 +200,44 @@ bool search_sqconfig(const char * initial_file_name, char *buffer, size_t buffer
   return false;
 }
 
+bool checkOption(char *argv[], int argc, const char *option, const char *&optArg) {
+  optArg = nullptr;
+  for (int i = 1; i< argc; ++i) {
+    const char *arg = argv[i];
+
+    if (arg[0] == '-' && strcmp(arg + 1, option) == 0) {
+      if ((i + 1) < argc) {
+        const char *arg2 = argv[i + 1];
+        if (arg2[0] != '-') { // not next option
+          optArg = arg2;
+        }
+      }
+      return true;
+    }
+  }
+
+  return false;
+}
+
 #define _INTERACTIVE 0
 #define _DONE 2
 #define _ERROR 3
 //<<FIXME>> this func is a mess
 int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 {
+    assert(module_mgr != nullptr && "Module manager has to be existed");
+    int i;
+    const char *optArg = nullptr;
     DumpOptions dumpOpt = { 0 };
     FILE *diagFile = nullptr;
     int compiles_only = 0;
-    bool static_analysis = false;
+    bool static_analysis = checkOption(argv, argc, "sa", optArg); // TODO: refact ugly loop below using this function
     bool flip_warnigns = false;
-#ifdef SQUNICODE
-    static SQChar temp[500];
-#endif
+
+    if (static_analysis) {
+      sq_enablesyntaxwarnings();
+    }
+
     char * output = NULL;
     *retval = 0;
     if(argc>1)
@@ -316,7 +340,8 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 case 'w':
                 case 'W':
                     if (isdigit(argv[arg][2])) {
-                      if (!sq_switchdiagnosticstate_i(atoi(&argv[arg][2]), false)) {
+                      int id = atoi(&argv[arg][2]);
+                      if (!sq_switchdiagnosticstate_i(id, false)) {
                         printf("Unknown warning ID %s\n", &argv[arg][2]);
                       }
                     }
@@ -356,7 +381,6 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
           sq_invertwarningsstate();
 
         module_mgr->compilationOptions.doStaticAnalysis = static_analysis;
-
 
         if (diagFile)
         {

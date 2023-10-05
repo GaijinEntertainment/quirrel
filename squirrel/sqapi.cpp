@@ -1868,3 +1868,11 @@ void sq_invertwarningsstate() {
 void sq_printwarningslist(FILE *ostream) {
   SQCompilationContext::printAllWarnings(ostream);
 }
+
+void sq_disablesyntaxwarnings() {
+  SQCompilationContext::switchSyntaxWarningsState(false);
+}
+
+void sq_enablesyntaxwarnings() {
+  SQCompilationContext::switchSyntaxWarningsState(true);
+}
