@@ -432,6 +432,9 @@ SQUIRREL_API bool sq_switchdiagnosticstate_t(const char *diagId, bool state);
 SQUIRREL_API bool sq_switchdiagnosticstate_i(int32_t id, bool state);
 SQUIRREL_API void sq_invertwarningsstate();
 SQUIRREL_API void sq_printwarningslist(FILE *ostream);
+SQUIRREL_API void sq_disablesyntaxwarnings();
+SQUIRREL_API void sq_enablesyntaxwarnings();
+
 
 /*UTILITY MACRO*/
 #define sq_isnumeric(o) ((o)._type&SQOBJECT_NUMERIC)

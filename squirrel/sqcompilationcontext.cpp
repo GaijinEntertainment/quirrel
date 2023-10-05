@@ -8,9 +8,17 @@
 
 namespace SQCompilation {
 
+
+enum DiagnosticSubsystem {
+  DSS_LEX,
+  DSS_SYNTAX,
+  DSS_SEMA
+};
+
 struct DiagnosticDescriptor {
   const char *format;
-  enum DiagnosticSeverity severity;
+  const enum DiagnosticSeverity severity;
+  const enum DiagnosticSubsystem subsystem;
   const int32_t id;
   const char *textId;
   bool disabled;
@@ -22,7 +30,7 @@ static const char *severityNames[] = {
 };
 
 static DiagnosticDescriptor diagnosticDescriptors[] = {
-#define DEF_DIAGNOSTIC(_, severity, ___, num_id, text_id, fmt) { _SC(fmt), DS_##severity, num_id, _SC(text_id), false }
+#define DEF_DIAGNOSTIC(_, severity, subsytem, num_id, text_id, fmt) { _SC(fmt), DS_##severity, DSS_##subsytem, num_id, _SC(text_id), false }
   DIAGNOSTICS
 #undef DEF_DIAGNOSTIC
 };
@@ -348,6 +356,14 @@ bool SQCompilationContext::switchDiagnosticState(int32_t id, bool state) {
     }
   }
   return false;
+}
+
+void SQCompilationContext::switchSyntaxWarningsState(bool state) {
+  for (auto &diag : diagnosticDescriptors) {
+    if (diag.severity == DS_WARNING && diag.subsystem == DSS_SYNTAX) {
+      diag.disabled = !state;
+    }
+  }
 }
 
 bool SQCompilationContext::isDisabled(enum DiagnosticsId id, int line, int pos) {
