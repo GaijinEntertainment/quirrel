@@ -1834,6 +1834,7 @@ class CheckerVisitor : public Visitor {
   void checkExtendToAppend(const CallExpr *callExpr);
   void checkAlreadyRequired(const CallExpr *callExpr);
   void checkCallNullable(const CallExpr *callExpr);
+  void checkPersistCall(const CallExpr *callExpr);
   void checkArguments(const CallExpr *callExpr);
   void checkBoolIndex(const GetTableExpr *expr);
   void checkNullableIndex(const GetTableExpr *expr);
@@ -1939,6 +1940,7 @@ class CheckerVisitor : public Visitor {
   std::unordered_map<const FunctionDecl *, FunctionInfo *> functionInfoMap;
 
   std::unordered_set<const SQChar *, StringHasher, StringEqualer> requiredModules;
+  std::unordered_set<const SQChar *, StringHasher, StringEqualer> persistedKeys;
 
   Arena *arena;
 
@@ -3008,6 +3010,67 @@ void CheckerVisitor::checkCallNullable(const CallExpr *call) {
   }
 }
 
+void CheckerVisitor::checkPersistCall(const CallExpr *call) {
+  if (effectsOnly)
+    return;
+
+  const Expr *c = maybeEval(call->callee());
+  const auto &arguments = call->arguments();
+
+  const SQChar *calleeName = nullptr;
+  if (c->op() == TO_ID)
+    calleeName = c->asId()->id();
+  else if (c->op() == TO_DECL_EXPR) {
+    const Decl *decl = c->asDeclExpr()->declaration();
+    if (decl->op() != TO_FUNCTION)
+      return;
+
+    calleeName = static_cast<const FunctionDecl *>(decl)->name();
+  }
+
+  if (!calleeName)
+    return;
+
+  const Expr *keyExpr = nullptr;
+
+  if (strcmp("persist", calleeName) == 0) {
+    if (arguments.size() < 2)
+      return;
+    keyExpr = arguments[0];
+  }
+  else if (strcmp("mkWatched", calleeName) == 0) {
+    if (arguments.size() < 2)
+      return;
+
+    const Expr *persistsFunc = maybeEval(arguments[0]);
+    if (persistsFunc->op() != TO_ID || strcmp("persist", persistsFunc->asId()->id()) != 0)
+      return;
+
+    keyExpr = arguments[1];
+  }
+
+  if (!keyExpr)
+    return;
+
+  const Expr *evalKeyExpr = maybeEval(keyExpr);
+
+  if (evalKeyExpr->op() != TO_LITERAL)
+    return;
+
+  const LiteralExpr *l = evalKeyExpr->asLiteral();
+
+  if (l->kind() != LK_STRING)
+    return;
+
+  const SQChar *key = l->s();
+
+  auto r = persistedKeys.emplace(key);
+
+  if (!r.second) {
+    report(keyExpr, DiagnosticsId::DI_DUPLICATE_PERSIST_ID, key);
+  }
+}
+
 int32_t CheckerVisitor::normalizeParamNameLength(const SQChar *name) {
   int32_t r = 0;
 
@@ -3296,6 +3359,7 @@ void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkExtendToAppend(expr);
   checkAlreadyRequired(expr);
   checkCallNullable(expr);
+  checkPersistCall(expr);
 
   applyCallToScope(expr);
 
