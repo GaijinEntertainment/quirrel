@@ -5219,6 +5219,11 @@ bool CheckerVisitor::isPotentiallyNullable(const Expr *e, std::unordered_set<con
     return isPotentiallyNullable(static_cast<const BinExpr *>(e)->rhs(), visited);
   }
 
+  if (e->op() == TO_TERNARY) {
+    const TerExpr *t = static_cast<const TerExpr *>(e);
+    return isPotentiallyNullable(t->b(), visited) || isPotentiallyNullable(t->c(), visited);
+  }
+
   v = findValueForExpr(e);
 
   if (v) {
