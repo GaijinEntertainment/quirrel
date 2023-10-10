@@ -435,17 +435,16 @@ static bool isBlankLine(const char *l) {
   return true;
 }
 
-void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t line, int32_t pos, int32_t width, va_list vargs) {
-  assert(diagId < DI_NUM_OF_DIAGNOSTICS);
+void SQCompilationContext::renderDiagnosticHeader(enum DiagnosticsId diag, std::string *msg, ...) {
+  va_list vargs;
+  va_start(vargs, msg);
+  vrenderDiagnosticHeader(diag, *msg, vargs);
+  va_end(vargs);
+}
 
-  if (isDisabled(diagId, line, pos)) {
-    return;
-  }
-
-  auto &desc = diagnosticDescriptors[diagId];
-  bool isError = desc.severity >= DS_ERROR;
+void SQCompilationContext::vrenderDiagnosticHeader(enum DiagnosticsId diag, std::string &message, va_list vargs) {
+  auto &desc = diagnosticDescriptors[diag];
   char tempBuffer[2048] = { 0 };
-  std::string message;
 
   int32_t i = snprintf(tempBuffer, sizeof tempBuffer, "%s: ", severityNames[desc.severity]);
 
@@ -459,6 +458,20 @@ void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t 
   int len = vsnprintf(tempBuffer, sizeof tempBuffer, desc.format, vargs);
 
   message.append(tempBuffer);
+}
+
+void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t line, int32_t pos, int32_t width, va_list vargs) {
+  assert(diagId < DI_NUM_OF_DIAGNOSTICS);
+
+  if (isDisabled(diagId, line, pos)) {
+    return;
+  }
+
+  auto &desc = diagnosticDescriptors[diagId];
+  bool isError = desc.severity >= DS_ERROR;
+  std::string message;
+
+  vrenderDiagnosticHeader(diagId, message, vargs);
 
   std::string extraInfo;
 
