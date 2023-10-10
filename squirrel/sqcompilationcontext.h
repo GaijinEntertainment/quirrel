@@ -202,6 +202,8 @@ public:
 
   SQAllocContext allocContext() const { return _ss(_vm)->_alloc_ctx; }
 
+  static void vrenderDiagnosticHeader(enum DiagnosticsId diag, std::string &msg, va_list args);
+  static void renderDiagnosticHeader(enum DiagnosticsId diag, std::string *msg, ...);
   void vreportDiagnostic(enum DiagnosticsId diag, int32_t line, int32_t pos, int32_t width, va_list args);
   void reportDiagnostic(enum DiagnosticsId diag, int32_t line, int32_t pos, int32_t width, ...);
   bool isDisabled(enum DiagnosticsId id, int line, int pos);
