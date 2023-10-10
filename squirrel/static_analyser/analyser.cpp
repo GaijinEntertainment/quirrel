@@ -1304,6 +1304,10 @@ static bool nameLooksLikeMustBeCalledFromRoot(const SQChar *n) {
   return hasAnyEqual(n, SQCompilationContext::function_must_be_called_from_root);
 }
 
+static bool nameLooksLikeForbiddenParentDir(const SQChar *n) {
+  return hasAnyEqual(n, SQCompilationContext::function_forbidden_parent_dir);
+}
+
 static const SQChar rootName[] = "::";
 static const SQChar baseName[] = "base";
 static const SQChar thisName[] = "this";
@@ -1858,6 +1862,7 @@ class CheckerVisitor : public Visitor {
   void checkPersistCall(const CallExpr *callExpr);
   void checkForbiddenCall(const CallExpr *callExpr);
   void checkCallFromRoot(const CallExpr *callExpr);
+  void checkForbidenParentDir(const CallExpr *callExpr);
   void checkArguments(const CallExpr *callExpr);
   void checkBoolIndex(const GetTableExpr *expr);
   void checkNullableIndex(const GetTableExpr *expr);
@@ -3197,6 +3202,37 @@ void CheckerVisitor::checkCallFromRoot(const CallExpr *call) {
   }
 }
 
+void CheckerVisitor::checkForbidenParentDir(const CallExpr *call) {
+  if (effectsOnly)
+    return;
+
+  const SQChar *fn = extractFunctionName(call);
+
+  if (!fn)
+    return;
+
+  if (!nameLooksLikeForbiddenParentDir(fn)) {
+    return;
+  }
+
+  const auto &arguments = call->arguments();
+
+  if (arguments.size() < 1)
+    return;
+
+  const Expr *arg = maybeEval(arguments[0]);
+
+  if (arg->op() != TO_LITERAL || arg->asLiteral()->kind() != LK_STRING)
+    return;
+
+  const SQChar *path = arg->asLiteral()->s();
+
+  const char * p = strstr(path, "..");
+  if (p && (p[2] == '/' || p[2] == '\\')) {
+    report(call, DiagnosticsId::DI_FORBIDEN_PARENT_DIR);
+  }
+}
+
 int32_t CheckerVisitor::normalizeParamNameLength(const SQChar *name) {
   int32_t r = 0;
 
@@ -3512,6 +3548,7 @@ void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkPersistCall(expr);
   checkForbiddenCall(expr);
   checkCallFromRoot(expr);
+  checkForbidenParentDir(expr);
 
   applyCallToScope(expr);
 
