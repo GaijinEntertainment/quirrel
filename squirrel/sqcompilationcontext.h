@@ -204,6 +204,7 @@ public:
 
   void vreportDiagnostic(enum DiagnosticsId diag, int32_t line, int32_t pos, int32_t width, va_list args);
   void reportDiagnostic(enum DiagnosticsId diag, int32_t line, int32_t pos, int32_t width, ...);
+  bool isDisabled(enum DiagnosticsId id, int line, int pos);
 
   static void printAllWarnings(FILE *ostream);
   static void flipWarningsState();
@@ -233,7 +234,6 @@ public:
 
 private:
 
-  bool isDisabled(enum DiagnosticsId id, int line, int pos);
 
   void buildLineMap();
 
