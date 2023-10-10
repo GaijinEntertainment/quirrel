@@ -1523,7 +1523,8 @@ EnumDecl* SQParser::parseEnumStatement(bool global)
 
     SQInteger nval = 0;
     while(_token != _SC('}')) {
-        Id *key = (Id *)Expect(TK_IDENTIFIER);
+        SQInteger cl = line(), cc = column();
+        Id *key = (Id *)setCoordinates(Expect(TK_IDENTIFIER), cl, cc);
         LiteralExpr *valExpr = NULL;
         if(_token == _SC('=')) {
             // TODO1: should it behave like C does?
@@ -1533,6 +1534,7 @@ EnumDecl* SQParser::parseEnumStatement(bool global)
         }
         else {
             valExpr = newNode<LiteralExpr>(nval++);
+            copyCoordinates(key, valExpr);
         }
 
         decl->addConst(key->id(), valExpr); //-V522
