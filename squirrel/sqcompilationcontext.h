@@ -198,6 +198,7 @@ public:
   ~SQCompilationContext();
 
   jmp_buf &errorJump() { return _errorjmp; }
+  const SQChar *sourceName() const { return _sourceName; }
 
   SQAllocContext allocContext() const { return _ss(_vm)->_alloc_ctx; }
 
