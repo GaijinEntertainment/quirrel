@@ -1300,6 +1300,10 @@ static bool isForbiddenFunctionName(const SQChar *n) {
   return hasAnyEqual(n, SQCompilationContext::function_forbidden);
 }
 
+static bool nameLooksLikeMustBeCalledFromRoot(const SQChar *n) {
+  return hasAnyEqual(n, SQCompilationContext::function_must_be_called_from_root);
+}
+
 static const SQChar rootName[] = "::";
 static const SQChar baseName[] = "base";
 static const SQChar thisName[] = "this";
@@ -1853,6 +1857,7 @@ class CheckerVisitor : public Visitor {
   void checkCallNullable(const CallExpr *callExpr);
   void checkPersistCall(const CallExpr *callExpr);
   void checkForbiddenCall(const CallExpr *callExpr);
+  void checkCallFromRoot(const CallExpr *callExpr);
   void checkArguments(const CallExpr *callExpr);
   void checkBoolIndex(const GetTableExpr *expr);
   void checkNullableIndex(const GetTableExpr *expr);
@@ -3160,6 +3165,38 @@ void CheckerVisitor::checkForbiddenCall(const CallExpr *call) {
   }
 }
 
+void CheckerVisitor::checkCallFromRoot(const CallExpr *call) {
+  if (effectsOnly)
+    return;
+
+  const SQChar *fn = extractFunctionName(call);
+
+  if (!fn)
+    return;
+
+  if (!nameLooksLikeMustBeCalledFromRoot(fn)) {
+    return;
+  }
+
+  bool do_report = false;
+
+  for (auto it = nodeStack.rbegin(); it != nodeStack.rend(); ++it) {
+    if (it->sst == SST_TABLE_MEMBER)
+      continue;
+
+    enum TreeOp op = it->n->op();
+
+    if (op == TO_FUNCTION || op == TO_CLASS || op == TO_CONSTRUCTOR) {
+      do_report = true;
+      break;
+    }
+  }
+
+  if (do_report) {
+    report(call, DiagnosticsId::DI_CALL_FROM_ROOT, fn);
+  }
+}
+
 int32_t CheckerVisitor::normalizeParamNameLength(const SQChar *name) {
   int32_t r = 0;
 
@@ -3474,6 +3511,7 @@ void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkCallNullable(expr);
   checkPersistCall(expr);
   checkForbiddenCall(expr);
+  checkCallFromRoot(expr);
 
   applyCallToScope(expr);
 
