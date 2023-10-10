@@ -14,7 +14,9 @@ public:
 
   StaticAnalyser(SQCompilationContext &ctx);
 
-  void runAnalysis(RootBlock *r);
+  void runAnalysis(RootBlock *r, const HSQOBJECT *bindings);
+
+  static void reportGlobalNameDiagnostics(HSQUIRRELVM vm);
 };
 
 }

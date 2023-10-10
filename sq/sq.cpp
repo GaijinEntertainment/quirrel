@@ -419,16 +419,24 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             else {
                 Sqrat::Object exports;
                 std::string errMsg;
+                int retCode = _DONE;
                 if (!module_mgr->requireModule(filename, true, "__main__", exports, errMsg)) {
-                    fprintf(stderr, _SC("Error [%s]\n"), errMsg.c_str());
-                    return _ERROR;
+                    retCode = _ERROR;
                 }
 
-                if (sq_isinteger(exports.o)) {
+                if (retCode == _DONE && sq_isinteger(exports.o)) {
                     *retval = exports.o._unVal.nInteger;
                 }
 
-                return _DONE;
+                if (static_analysis) {
+                  sq_checkglobalnames(v);
+                }
+
+                if (retCode != _DONE) {
+                  fprintf(stderr, _SC("Error [%s]\n"), errMsg.c_str());
+                }
+
+                return retCode;
             }
 
             //if this point is reached an error occurred

@@ -10,3 +10,5 @@ foreach (u in us) {
       continue
     d[es] <- ::q(u)
   }
+
+//-file:undefined-global

@@ -434,6 +434,7 @@ SQUIRREL_API void sq_invertwarningsstate();
 SQUIRREL_API void sq_printwarningslist(FILE *ostream);
 SQUIRREL_API void sq_disablesyntaxwarnings();
 SQUIRREL_API void sq_enablesyntaxwarnings();
+SQUIRREL_API void sq_checkglobalnames(HSQUIRRELVM v);
 
 
 /*UTILITY MACRO*/
