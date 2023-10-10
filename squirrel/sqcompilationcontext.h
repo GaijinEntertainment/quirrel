@@ -124,6 +124,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(PLUS_STRING, WARNING, SEMA, 264, "plus-string", "Usage of '+' for string concatenation."), \
   DEF_DIAGNOSTIC(ITER_IN_CLOSURE, WARNING, SEMA, 274, "iterator-in-lambda", "Iterator '%s' is trying to be captured in closure."), \
   DEF_DIAGNOSTIC(MISSED_BREAK, WARNING, SEMA, 275, "missed-break", "A 'break' statement is probably missing in a 'switch' statement."), \
+  DEF_DIAGNOSTIC(FORBIDEN_FUNC, WARNING, SEMA, 278, "forbidden-function", "It is forbidden to call '%s' function."), \
   DEF_DIAGNOSTIC(DECLARED_NEVER_USED, WARNING, SEMA, 228, "declared-never-used", "%s '%s' was declared but never used."), \
   DEF_DIAGNOSTIC(REASSIGN_WITH_NO_USAGE, WARNING, SEMA, 301, "re-assign-no-use", "Re-assign variable without usage of previous assign."), \
   DEF_DIAGNOSTIC(POSSIBLE_GARBAGE, WARNING, SEMA, 302, "possible-garbage", "Not all paths initialize variable %s, it could potentially contain garbage."), \

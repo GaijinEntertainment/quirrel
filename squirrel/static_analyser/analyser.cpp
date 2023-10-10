@@ -1296,6 +1296,10 @@ static bool canFunctionReturnNull(const SQChar *n) {
   return hasAnyEqual(n, SQCompilationContext::function_can_return_null);
 }
 
+static bool isForbiddenFunctionName(const SQChar *n) {
+  return hasAnyEqual(n, SQCompilationContext::function_forbidden);
+}
+
 static const SQChar rootName[] = "::";
 static const SQChar baseName[] = "base";
 static const SQChar thisName[] = "this";
@@ -1848,6 +1852,7 @@ class CheckerVisitor : public Visitor {
   void checkAlreadyRequired(const CallExpr *callExpr);
   void checkCallNullable(const CallExpr *callExpr);
   void checkPersistCall(const CallExpr *callExpr);
+  void checkForbiddenCall(const CallExpr *callExpr);
   void checkArguments(const CallExpr *callExpr);
   void checkBoolIndex(const GetTableExpr *expr);
   void checkNullableIndex(const GetTableExpr *expr);
@@ -2001,6 +2006,7 @@ class CheckerVisitor : public Visitor {
   bool detectNullCPattern(enum TreeOp op, const Expr *expr, const Expr *&checkee);
 
   void checkAssertCall(const CallExpr *call);
+  const SQChar *extractFunctionName(const CallExpr *call);
 
   LiteralExpr trueValue, falseValue, nullValue;
 
@@ -3093,23 +3099,12 @@ void CheckerVisitor::checkPersistCall(const CallExpr *call) {
   if (effectsOnly)
     return;
 
-  const Expr *c = maybeEval(call->callee());
-  const auto &arguments = call->arguments();
-
-  const SQChar *calleeName = nullptr;
-  if (c->op() == TO_ID)
-    calleeName = c->asId()->id();
-  else if (c->op() == TO_DECL_EXPR) {
-    const Decl *decl = c->asDeclExpr()->declaration();
-    if (decl->op() != TO_FUNCTION)
-      return;
-
-    calleeName = static_cast<const FunctionDecl *>(decl)->name();
-  }
+  const SQChar *calleeName = extractFunctionName(call);
 
   if (!calleeName)
     return;
 
+  const auto &arguments = call->arguments();
   const Expr *keyExpr = nullptr;
 
   if (strcmp("persist", calleeName) == 0) {
@@ -3147,6 +3142,21 @@ void CheckerVisitor::checkPersistCall(const CallExpr *call) {
 
   if (!r.second) {
     report(keyExpr, DiagnosticsId::DI_DUPLICATE_PERSIST_ID, key);
+  }
+}
+
+void CheckerVisitor::checkForbiddenCall(const CallExpr *call) {
+
+  if (effectsOnly)
+    return;
+
+  const SQChar *fn = extractFunctionName(call);
+
+  if (!fn)
+    return;
+
+  if (isForbiddenFunctionName(fn)) {
+    report(call, DiagnosticsId::DI_FORBIDEN_FUNC, fn);
   }
 }
 
@@ -3265,6 +3275,23 @@ void CheckerVisitor::checkAssertCall(const CallExpr *call) {
   const Expr *cond = call->arguments()[0];
 
   speculateIfConditionHeuristics(cond, currentScope, nullptr);
+}
+
+const SQChar *CheckerVisitor::extractFunctionName(const CallExpr *call) {
+  const Expr *c = maybeEval(call->callee());
+
+  const SQChar *calleeName = nullptr;
+  if (c->op() == TO_ID)
+    calleeName = c->asId()->id();
+  else if (c->op() == TO_DECL_EXPR) {
+    const Decl *decl = c->asDeclExpr()->declaration();
+    if (decl->op() != TO_FUNCTION)
+      return nullptr;
+
+    calleeName = static_cast<const FunctionDecl *>(decl)->name();
+  }
+
+  return calleeName;
 }
 
 BinExpr *CheckerVisitor::wrapConditionIntoNC(Expr *e) {
@@ -3446,6 +3473,7 @@ void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkAlreadyRequired(expr);
   checkCallNullable(expr);
   checkPersistCall(expr);
+  checkForbiddenCall(expr);
 
   applyCallToScope(expr);
 
