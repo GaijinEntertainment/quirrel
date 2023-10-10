@@ -15,6 +15,7 @@
 #include "arena.h"
 #include "sqast.h"
 #include "sqastrender.h"
+#include "static_analyser/analyser.h"
 
 SQUIRREL_API SQBool sq_tracevar(HSQUIRRELVM v, const HSQOBJECT *container, const HSQOBJECT * key, SQChar * buf, int buf_size)
 {
@@ -1875,4 +1876,8 @@ void sq_disablesyntaxwarnings() {
 
 void sq_enablesyntaxwarnings() {
   SQCompilationContext::switchSyntaxWarningsState(true);
+}
+
+void sq_checkglobalnames(HSQUIRRELVM v) {
+  StaticAnalyser::reportGlobalNameDiagnostics(v);
 }

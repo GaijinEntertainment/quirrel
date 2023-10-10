@@ -119,7 +119,7 @@ void AnalyseCode(SQVM *vm, SqASTData *astData, const HSQOBJECT *bindings, const 
     RootBlock *ast = astData->root;
     StaticAnalyser sa(ctx);
 
-    sa.runAnalysis(ast);
+    sa.runAnalysis(ast, bindings);
 }
 
 bool TranslateBinaryASTToBytecode(SQVM *vm, const uint8_t *buffer, size_t size, const HSQOBJECT *bindings, SQObjectPtr &out, bool raiseerror, bool lineinfo)

@@ -1960,6 +1960,8 @@ class CheckerVisitor : public Visitor {
 
   FunctionInfo *currentInfo;
 
+  const HSQOBJECT *bindings;
+
   void declareSymbol(const SQChar *name, ValueRef *v);
   void pushFunctionScope(VarScope *functionScope, const FunctionDecl *decl);
 
@@ -5760,6 +5762,7 @@ void CheckerVisitor::visitEnumDecl(EnumDecl *enm) {
     const SQChar *fqn = enumFqn(arena, enm->name(), c.id);
     declareSymbol(fqn, cv);
 
+
     c.val->visit(this);
   }
 }
@@ -6138,7 +6141,7 @@ void StaticAnalyser::reportGlobalNameDiagnostics(HSQUIRRELVM vm) {
   if (!errorFunc)
     return;
 
-  // 1. Check multiple declarations
+  // 1. report multiple declarations
 
   std::string message;
 
@@ -6156,11 +6159,9 @@ void StaticAnalyser::reportGlobalNameDiagnostics(HSQUIRRELVM vm) {
 
       message.clear();
       SQCompilationContext::renderDiagnosticHeader(DiagnosticsId::DI_GLOBAL_NAME_REDEF, &message, name);
-      errorFunc(vm, message.c_str(), loc.filename, loc.line, loc.column, "\n");
+      errorFunc(vm, message.c_str(), loc.filename, loc.line, loc.column, nullptr);
     }
   }
-
-  // 2. Check undefined usages
 
   for (auto it = usedGlobals.begin(); it != usedGlobals.end(); ++it) {
     const std::string &id = it->first;
@@ -6180,7 +6181,7 @@ void StaticAnalyser::reportGlobalNameDiagnostics(HSQUIRRELVM vm) {
 
       message.clear();
       SQCompilationContext::renderDiagnosticHeader(DiagnosticsId::DI_UNDEFINED_GLOBAL, &message, id.c_str());
-      errorFunc(vm, message.c_str(), loc.filename, loc.line, loc.column, "\n");
+      errorFunc(vm, message.c_str(), loc.filename, loc.line, loc.column, nullptr);
     }
   }
 }
