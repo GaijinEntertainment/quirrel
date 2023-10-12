@@ -2188,6 +2188,16 @@ static bool hasAnyEqual(const SQChar *str, const std::vector<std::string> &candi
   return false;
 }
 
+static bool hasAnySubstring(const SQChar *str, const std::vector<std::string> &candidates) {
+  for (auto &candidate : candidates) {
+    if (strstr(str, candidate.c_str())) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 static bool nameLooksLikeResultMustBeBoolean(const SQChar *funcName) {
   if (!funcName)
     return false;
@@ -2235,6 +2245,13 @@ static bool nameLooksLikeMustBeCalledFromRoot(const SQChar *n) {
 
 static bool nameLooksLikeForbiddenParentDir(const SQChar *n) {
   return hasAnyEqual(n, SQCompilationContext::function_forbidden_parent_dir);
+}
+
+static bool nameLooksLikeFormatFunction(const SQChar *n) {
+  std::string transformed(n);
+  std::transform(transformed.begin(), transformed.end(), transformed.begin(), ::tolower);
+
+  return hasAnySubstring(transformed.c_str(), SQCompilationContext::format_function_name);
 }
 
 static const SQChar rootName[] = "::";
@@ -2796,6 +2813,7 @@ class CheckerVisitor : public Visitor {
   void checkForbiddenCall(const CallExpr *callExpr);
   void checkCallFromRoot(const CallExpr *callExpr);
   void checkForbidenParentDir(const CallExpr *callExpr);
+  void checkFormatArguments(const CallExpr *callExpr);
   void checkArguments(const CallExpr *callExpr);
   void checkBoolIndex(const GetTableExpr *expr);
   void checkNullableIndex(const GetTableExpr *expr);
@@ -4169,6 +4187,42 @@ void CheckerVisitor::checkForbidenParentDir(const CallExpr *call) {
   }
 }
 
+void CheckerVisitor::checkFormatArguments(const CallExpr *call) {
+  if (effectsOnly)
+    return;
+
+  const auto &arguments = call->arguments();
+
+  for (int32_t i = 0; i < arguments.size(); ++i) {
+    const Expr *arg = deparen(arguments[i]);
+    if (arg->op() == TO_LITERAL && arg->asLiteral()->kind() == LK_STRING) { // -V522
+      int32_t formatsCount = 0;
+      for (const SQChar *s = arg->asLiteral()->s(); *s; ++s) {
+        if (*s == '%') {
+          if (*(s + 1) == '%') {
+            s++;
+          }
+          else {
+            formatsCount++;
+          }
+        }
+      }
+
+      if (formatsCount && formatsCount != (arguments.size() - i - 1)) {
+        const SQChar *name = extractFunctionName(call);
+        if (!name)
+          return;
+
+        if (nameLooksLikeFormatFunction(name)) {
+          report(arguments[i], DiagnosticsId::DI_FORMAT_ARGUMENTS_COUNT);
+        }
+      }
+
+      return;
+    }
+  }
+}
+
 int32_t CheckerVisitor::normalizeParamNameLength(const SQChar *name) {
   int32_t r = 0;
 
@@ -4299,6 +4353,8 @@ const SQChar *CheckerVisitor::extractFunctionName(const CallExpr *call) {
 
     calleeName = static_cast<const FunctionDecl *>(decl)->name();
   }
+  else if (c->op() == TO_GETFIELD)
+    calleeName = c->asGetField()->fieldName();
 
   return calleeName;
 }
@@ -4485,6 +4541,7 @@ void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkForbiddenCall(expr);
   checkCallFromRoot(expr);
   checkForbidenParentDir(expr);
+  checkFormatArguments(expr);
 
   applyCallToScope(expr);
 
