@@ -2803,6 +2803,7 @@ class CheckerVisitor : public Visitor {
   void checkNewSlotNameMatch(const BinExpr *expr);
   void checkPlusString(const BinExpr *expr);
   void checkNewGlobalSlot(const BinExpr *);
+  void checkUselessNullC(const BinExpr *);
   void checkAlwaysTrueOrFalse(const TerExpr *expr);
   void checkTernaryPriority(const TerExpr *expr);
   void checkSameValues(const TerExpr *expr);
@@ -3990,6 +3991,19 @@ void CheckerVisitor::checkNewGlobalSlot(const BinExpr *bin) {
   reportGlobalDeclaration(gf->fieldName(), bin);
 }
 
+void CheckerVisitor::checkUselessNullC(const BinExpr *bin) {
+  if (effectsOnly)
+    return;
+
+  if (bin->op() != TO_NULLC)
+    return;
+
+  const Expr *rhs = maybeEval(bin->rhs());
+
+  if (rhs->op() == TO_LITERAL && rhs->asLiteral()->kind() == LK_NULL)
+    report(bin, DiagnosticsId::DI_USELESS_NULLC);
+}
+
 void CheckerVisitor::checkAlreadyRequired(const CallExpr *call) {
   if (effectsOnly)
     return;
@@ -4437,6 +4451,7 @@ void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   checkNewSlotNameMatch(expr);
   checkPlusString(expr);
   checkNewGlobalSlot(expr);
+  checkUselessNullC(expr);
 
   Expr *lhs = expr->lhs();
   Expr *rhs = expr->rhs();
