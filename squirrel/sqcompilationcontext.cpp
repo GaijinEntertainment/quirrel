@@ -72,6 +72,7 @@ const Comments::LineCommentsList &Comments::lineComment(int line) const {
 }
 
 std::vector<std::string> SQCompilationContext::function_forbidden;
+std::vector<std::string> SQCompilationContext::format_function_name;
 std::vector<std::string> SQCompilationContext::function_can_return_string;
 std::vector<std::string> SQCompilationContext::function_should_return_bool_prefix;
 std::vector<std::string> SQCompilationContext::function_should_return_something_prefix;
@@ -89,6 +90,16 @@ void SQCompilationContext::resetConfig() {
 
   function_forbidden = {
 
+  };
+
+  format_function_name = {
+    "prn",
+    "print",
+    "form",
+    "fmt",
+    "log",
+    "dbg",
+    "assert",
   };
 
   function_can_return_string = {

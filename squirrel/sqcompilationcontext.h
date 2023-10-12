@@ -99,6 +99,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(ID_HIDES_ID, WARNING, SEMA, 227, "ident-hides-ident", "%s '%s' hides %s with the same name."), \
   DEF_DIAGNOSTIC(DECLARED_NEVER_USED, WARNING, SEMA, 228, "declared-never-used", "%s '%s' was declared but never used."), \
   DEF_DIAGNOSTIC(COPY_OF_EXPR, WARNING, SEMA, 229, "copy-of-expression", "Duplicate expression found inside the sequence of operations."), \
+  DEF_DIAGNOSTIC(FORMAT_ARGUMENTS_COUNT, WARNING, SEMA, 231, "format-arguments-count", "Format string: arguments count mismatch."), \
   DEF_DIAGNOSTIC(ALWAYS_T_OR_F, WARNING, SEMA, 232, "always-true-or-false", "Expression is always '%s'."), \
   DEF_DIAGNOSTIC(CONST_IN_BOOL_EXPR, WARNING, SEMA, 233, "const-in-bool-expr", "Constant in a boolean expression."), \
   DEF_DIAGNOSTIC(DIV_BY_ZERO, WARNING, SEMA, 234, "div-by-zero", "Integer division by zero."), \
@@ -236,6 +237,7 @@ public:
   static std::vector<std::string> function_result_must_be_utilized;
   static std::vector<std::string> function_can_return_null;
   static std::vector<std::string> function_calls_lambda_inplace;
+  static std::vector<std::string> format_function_name;
   static std::vector<std::string> function_forbidden;
   static std::vector<std::string> function_forbidden_parent_dir;
   static std::vector<std::string> function_modifies_object;
