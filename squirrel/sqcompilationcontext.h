@@ -135,6 +135,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(DECL_IN_EXPR, WARNING, SEMA, 286, "decl-in-expression", "Declaration used in arith expression as operand."), \
   DEF_DIAGNOSTIC(PARAM_COUNT_MISMATCH, WARNING, SEMA, 288, "param-count", "Function '%s' is called with the wrong number of parameters."),\
   DEF_DIAGNOSTIC(PARAM_POSITION_MISMATCH, WARNING, SEMA, 289, "param-pos", "The function parameter '%s' seems to be in the wrong position."), \
+  DEF_DIAGNOSTIC(MODIFIED_CONTAINER, WARNING, SEMA, 292, "modified-container", "The container was modified within the loop."), \
   DEF_DIAGNOSTIC(DUPLICATE_PERSIST_ID, WARNING, SEMA, 293, "duplicate-persist-id", "Duplicate id '%s' passed to 'persist'."), \
   DEF_DIAGNOSTIC(UNDEFINED_GLOBAL, WARNING, SEMA, 295, "undefined-global", "Undefined global identifier '%s'."), \
   DEF_DIAGNOSTIC(CALL_FROM_ROOT, WARNING, SEMA, 297, "call-from-root", "Function '%s' must be called from the root scope."), \
