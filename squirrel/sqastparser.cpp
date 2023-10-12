@@ -1127,7 +1127,7 @@ Decl* SQParser::parseLocalDeclStatement()
     do {
         SQInteger l = line();
         SQInteger c = column();
-        Id *varname = (Id *)Expect(TK_IDENTIFIER);
+        Id *varname = (Id *)setCoordinates(Expect(TK_IDENTIFIER), l, c);
         assert(varname);
         VarDecl *cur = NULL;
         if(_token == _SC('=')) {
@@ -1363,14 +1363,18 @@ ForeachStatement* SQParser::parseForEachStatement()
     Consume(TK_FOREACH);
 
     Expect(_SC('('));
-    Id *valname = (Id *)Expect(TK_IDENTIFIER);
+    SQInteger idL = line(), idC = column();
+
+    Id *valname = (Id *)setCoordinates(Expect(TK_IDENTIFIER), idL, idC);
     assert(valname);
 
     Id *idxname = NULL;
     if(_token == _SC(',')) {
         idxname = valname;
         Lex();
-        valname = (Id *)Expect(TK_IDENTIFIER);
+        idL = line();
+        idC = column();
+        valname = (Id *)setCoordinates(Expect(TK_IDENTIFIER), idL, idC);
         assert(valname);
 
         if (strcmp(idxname->id(), valname->id()) == 0) //-V522
@@ -1399,8 +1403,8 @@ ForeachStatement* SQParser::parseForEachStatement()
       }
     }
 
-    VarDecl *idxDecl = idxname ? newNode<VarDecl>(idxname->id(), nullptr, false) : NULL;
-    VarDecl *valDecl = valname ? newNode<VarDecl>(valname->id(), nullptr, false) : NULL;
+    VarDecl *idxDecl = idxname ? copyCoordinates(idxname, newNode<VarDecl>(idxname->id(), nullptr, false)) : NULL;
+    VarDecl *valDecl = valname ? copyCoordinates(valname, newNode<VarDecl>(valname->id(), nullptr, false)) : NULL;
 
     return setCoordinates(newNode<ForeachStatement>(idxDecl, valDecl, contnr, body), l, c);
 }
