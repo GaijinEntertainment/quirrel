@@ -2254,6 +2254,10 @@ static bool nameLooksLikeFormatFunction(const SQChar *n) {
   return hasAnySubstring(transformed.c_str(), SQCompilationContext::format_function_name);
 }
 
+static bool nameLooksLikeModifiesObject(const SQChar *n) {
+  return hasAnyEqual(n, SQCompilationContext::function_modifies_object);
+}
+
 static const SQChar rootName[] = "::";
 static const SQChar baseName[] = "base";
 static const SQChar thisName[] = "this";
@@ -2781,6 +2785,8 @@ class CheckerVisitor : public Visitor {
   void checkForeachIteratorInClosure(const Id *id, const ValueRef *v);
   void checkIdUsed(const Id *id, const Node *p, ValueRef *v);
 
+  void reportModifyIfContainer(const Expr *e, const Expr *mod);
+  void checkContainerModification(const UnExpr *expr);
   void checkAndOrPriority(const BinExpr *expr);
   void checkBitwiseParenBool(const BinExpr *expr);
   void checkCoalescingPriority(const BinExpr *expr);
@@ -2816,6 +2822,7 @@ class CheckerVisitor : public Visitor {
   void checkForbidenParentDir(const CallExpr *callExpr);
   void checkFormatArguments(const CallExpr *callExpr);
   void checkArguments(const CallExpr *callExpr);
+  void checkContainerModification(const CallExpr *expr);
   void checkBoolIndex(const GetTableExpr *expr);
   void checkNullableIndex(const GetTableExpr *expr);
   void checkGlobalAccess(const GetFieldExpr *expr);
@@ -2999,6 +3006,7 @@ public:
   void visitNode(Node *n);
 
   void visitId(Id *id);
+  void visitUnExpr(UnExpr *expr);
   void visitBinExpr(BinExpr *expr);
   void visitTerExpr(TerExpr *expr);
   void visitIncExpr(IncExpr *expr);
@@ -3282,6 +3290,45 @@ void CheckerVisitor::checkIdUsed(const Id *id, const Node *p, ValueRef *v) {
   else if (v->state == VRS_UNDEFINED) {
     report(id, DiagnosticsId::DI_UNINITIALIZED_VAR);
   }
+}
+
+void CheckerVisitor::reportModifyIfContainer(const Expr *e, const Expr *mod) {
+  bool found = false;
+  for (auto it = nodeStack.rbegin(); it != nodeStack.rend(); ++it) {
+    if (it->sst != SST_NODE)
+      continue;
+
+    const Node *n = it->n;
+    if (n->op() == TO_FOREACH) {
+      const ForeachStatement *f = static_cast<const ForeachStatement *>(n);
+
+      if (_equalChecker.check(f->container(), e)) {
+        found = true;
+        break;
+      }
+    }
+  }
+
+  if (found) {
+    report(mod, DiagnosticsId::DI_MODIFIED_CONTAINER);
+  }
+}
+
+void CheckerVisitor::checkContainerModification(const UnExpr *u) {
+  if (effectsOnly)
+    return;
+
+  if (u->op() != TO_DELETE)
+    return;
+
+  const Expr *arg = u->argument();
+
+  if (!arg->isAccessExpr())
+    return;
+
+  const Expr *receiver = arg->asAccessExpr()->receiver();
+
+  reportModifyIfContainer(receiver, u);
 }
 
 void CheckerVisitor::checkAndOrPriority(const BinExpr *expr) {
@@ -4331,6 +4378,26 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
   }
 }
 
+void CheckerVisitor::checkContainerModification(const CallExpr *call) {
+  if (effectsOnly)
+    return;
+
+  const SQChar *name = extractFunctionName(call);
+
+  if (!name)
+    return;
+
+  if (!nameLooksLikeModifiesObject(name))
+    return;
+
+  const Expr *callee = call->callee();
+
+  if (!callee->isAccessExpr())
+    return;
+
+  reportModifyIfContainer(callee->asAccessExpr()->receiver(), call);
+}
+
 void CheckerVisitor::checkAssertCall(const CallExpr *call) {
 
   // assert(x != null) or assert(x != null, "X should not be null")
@@ -4426,6 +4493,12 @@ void CheckerVisitor::visitId(Id *id) {
 
   checkForeachIteratorInClosure(id, v);
   checkIdUsed(id, parentNode, v);
+}
+
+void CheckerVisitor::visitUnExpr(UnExpr *expr) {
+  checkContainerModification(expr);
+
+  Visitor::visitUnExpr(expr);
 }
 
 void CheckerVisitor::visitBinExpr(BinExpr *expr) {
@@ -4557,6 +4630,7 @@ void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkCallFromRoot(expr);
   checkForbidenParentDir(expr);
   checkFormatArguments(expr);
+  checkContainerModification(expr);
 
   applyCallToScope(expr);
 
