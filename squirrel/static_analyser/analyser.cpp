@@ -3053,17 +3053,19 @@ void VarScope::checkUnusedSymbols(CheckerVisitor *checker) {
     if (strcmp(n, thisName) == 0) // skip 'this'
       continue;
 
-    if (n[0] == '_')
-      continue;
 
     SymbolInfo *info = v->info;
 
     if (info->kind == SK_ENUM_CONST)
       continue;
 
-    if (!info->used) {
+    if (!info->used && n[0] != '_') {
       checker->report(info->extractPointedNode(), DiagnosticsId::DI_DECLARED_NEVER_USED, info->contextName(), n);
       // TODO: add hint for param/exception name about silencing it with '_' prefix
+    }
+    else if (info->used && n[0] == '_') {
+      if (info->kind == SK_PARAM || info->kind == SK_FOREACH)
+        checker->report(info->extractPointedNode(), DiagnosticsId::DI_INVALID_UNDERSCORE, info->contextName(), n);
     }
   }
 }
