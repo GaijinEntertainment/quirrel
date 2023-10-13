@@ -2785,6 +2785,7 @@ class CheckerVisitor : public Visitor {
   void checkForeachIteratorInClosure(const Id *id, const ValueRef *v);
   void checkIdUsed(const Id *id, const Node *p, ValueRef *v);
 
+  void reportIfCannotBeNull(const Expr *checkee, const Expr *n, const char *loc);
   void reportModifyIfContainer(const Expr *e, const Expr *mod);
   void checkContainerModification(const UnExpr *expr);
   void checkAndOrPriority(const BinExpr *expr);
@@ -2810,6 +2811,7 @@ class CheckerVisitor : public Visitor {
   void checkPlusString(const BinExpr *expr);
   void checkNewGlobalSlot(const BinExpr *);
   void checkUselessNullC(const BinExpr *);
+  void checkCannotBeNull(const BinExpr *);
   void checkAlwaysTrueOrFalse(const TerExpr *expr);
   void checkTernaryPriority(const TerExpr *expr);
   void checkSameValues(const TerExpr *expr);
@@ -2824,6 +2826,7 @@ class CheckerVisitor : public Visitor {
   void checkArguments(const CallExpr *callExpr);
   void checkContainerModification(const CallExpr *expr);
   void checkUnwantedModification(const CallExpr *expr);
+  void checkCannotBeNull(const CallExpr *expr);
   void checkBoolIndex(const GetTableExpr *expr);
   void checkNullableIndex(const GetTableExpr *expr);
   void checkGlobalAccess(const GetFieldExpr *expr);
@@ -3293,6 +3296,50 @@ void CheckerVisitor::checkIdUsed(const Id *id, const Node *p, ValueRef *v) {
   else if (v->state == VRS_UNDEFINED) {
     report(id, DiagnosticsId::DI_UNINITIALIZED_VAR);
   }
+}
+
+static bool cannotBeNull(const Expr *e) {
+  switch (e->op())
+  {
+  case TO_INC:
+  case TO_NEG: case TO_NOT: case TO_BNOT:
+  case TO_3CMP:
+  case TO_XOR: case TO_OR: case TO_AND:
+  case TO_EQ: case TO_NE: case TO_LE: case TO_LT: case TO_GE: case TO_GT:
+  case TO_IN: case TO_INSTANCEOF:
+  case TO_USHR: case TO_SHL: case TO_SHR:
+  case TO_ADD: case TO_SUB:  case TO_MUL: case TO_DIV: /*case TO_MOD:*/
+  case TO_TYPEOF: case TO_RESUME:
+  case TO_BASE: case TO_ROOT:
+  case TO_ARRAYEXPR: case TO_DECL_EXPR:
+    return true;
+  case TO_LITERAL:
+    return e->asLiteral()->kind() != LK_NULL;
+  default:
+    return false;
+  }
+}
+
+void CheckerVisitor::reportIfCannotBeNull(const Expr *checkee, const Expr *n, const char *loc) {
+  assert(n);
+
+  if (checkee->op() == TO_NULLC) {
+    checkee = maybeEval(static_cast<const BinExpr *>(checkee)->rhs());
+  }
+
+  if (checkee->op() == TO_TERNARY) {
+    const TerExpr *ter = static_cast<const TerExpr *>(checkee);
+    const Expr *ifTrue = maybeEval(ter->b());
+    const Expr *ifFalse = maybeEval(ter->c());
+
+    if (cannotBeNull(ifTrue) && cannotBeNull(ifFalse)) {
+      report(n, DiagnosticsId::DI_EXPR_NOT_NULL, loc);
+    }
+    return;
+  }
+
+  if (cannotBeNull(checkee))
+    report(n, DiagnosticsId::DI_EXPR_NOT_NULL, loc);
 }
 
 void CheckerVisitor::reportModifyIfContainer(const Expr *e, const Expr *mod) {
@@ -4054,6 +4101,38 @@ void CheckerVisitor::checkUselessNullC(const BinExpr *bin) {
     report(bin, DiagnosticsId::DI_USELESS_NULLC);
 }
 
+void CheckerVisitor::checkCannotBeNull(const BinExpr *bin) {
+  if (effectsOnly)
+    return;
+
+  const char *loc = nullptr;
+  const Expr *reportee = nullptr;
+  const Expr *checkee = nullptr;
+  if (bin->op() == TO_NULLC) {
+    reportee = bin->lhs();
+    checkee = maybeEval(reportee);
+    loc = "null coalescing";
+  }
+  else if (bin->op() == TO_NE || bin->op() == TO_EQ) {
+    const Expr *le = maybeEval(bin->lhs());
+    const Expr *re = maybeEval(bin->rhs());
+
+    loc = "equal check";
+
+    if (le->op() == TO_LITERAL && le->asLiteral()->kind() == LK_NULL) {
+      checkee = re;
+      reportee = bin->rhs();
+    }
+    else if (re->op() == TO_LITERAL && re->asLiteral()->kind() == LK_NULL) {
+      checkee = le;
+      reportee = bin->lhs();
+    }
+  }
+
+  if (checkee)
+    reportIfCannotBeNull(checkee, reportee, loc);
+}
+
 void CheckerVisitor::checkAlreadyRequired(const CallExpr *call) {
   if (effectsOnly)
     return;
@@ -4447,6 +4526,18 @@ void CheckerVisitor::checkUnwantedModification(const CallExpr *call) {
     report(call, DiagnosticsId::DI_UNWANTED_MODIFICATION, name);
 }
 
+void CheckerVisitor::checkCannotBeNull(const CallExpr *call) {
+  if (effectsOnly)
+    return;
+
+  if (!call->isNullable())
+    return;
+
+  const Expr *callee = call->callee();
+
+  reportIfCannotBeNull(maybeEval(callee), callee, "call");
+}
+
 void CheckerVisitor::checkAssertCall(const CallExpr *call) {
 
   // assert(x != null) or assert(x != null, "X should not be null")
@@ -4574,6 +4665,7 @@ void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   checkPlusString(expr);
   checkNewGlobalSlot(expr);
   checkUselessNullC(expr);
+  checkCannotBeNull(expr);
 
   Expr *lhs = expr->lhs();
   Expr *rhs = expr->rhs();
@@ -4581,7 +4673,6 @@ void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   switch (expr->op())
   {
   case TO_NULLC:
-    lhs = wrapConditionIntoNC(lhs); // -V796
   case TO_OROR:
     nodeStack.push_back({ SST_NODE, expr });
     visitBinaryBranches(lhs, rhs, true);
@@ -4681,6 +4772,7 @@ void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkFormatArguments(expr);
   checkContainerModification(expr);
   checkUnwantedModification(expr);
+  checkCannotBeNull(expr);
 
   applyCallToScope(expr);
 

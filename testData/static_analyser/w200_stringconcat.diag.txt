@@ -23,6 +23,6 @@ WARNING: w228 (declared-never-used) let 'ss' was declared but never used.
 testData/static_analyser/w200_stringconcat.nut:9:0
 
 let ss = "a" + o + s
-^-------------------
+^
 
 
