@@ -2822,6 +2822,7 @@ class CheckerVisitor : public Visitor {
   void checkCannotBeNull(const BinExpr *);
   void checkCanBeSimplified(const BinExpr *expr);
   void checkInExprAssignPriority(const BinExpr *expr);
+  void checkRangeCheck(const BinExpr *expr);
   void checkAlwaysTrueOrFalse(const TerExpr *expr);
   void checkTernaryPriority(const TerExpr *expr);
   void checkSameValues(const TerExpr *expr);
@@ -4266,6 +4267,94 @@ void CheckerVisitor::checkInExprAssignPriority(const BinExpr *expr) {
   }
 }
 
+static bool looksLikeElementCount(const Expr *e) {
+  const SQChar *checkee = nullptr;
+
+  if (e->op() == TO_ID)
+    checkee = e->asId()->id();
+  else if (e->op() == TO_GETFIELD) {
+    checkee = e->asGetField()->fieldName();
+  }
+  else if (e->op() == TO_GETTABLE) {
+    return looksLikeElementCount(deparen(e->asGetTable()->key()));
+  }
+  else if (e->op() == TO_CALL) {
+    return looksLikeElementCount(deparen(e->asCallExpr()->callee()));
+  }
+
+  if (!checkee)
+    return false;
+
+  static const char * markers[] = { "len", "Len", "length", "Length", "count", "Count", "cnt", "Cnt", "size", "Size", "Num", "Number" };
+
+  for (const char *m : markers) {
+    const char *p = strstr(checkee, m);
+    if (!p)
+      continue;
+
+    if (p == checkee || p[-1] == '_' || (islower(p[-1]) && isupper(p[0]))) {
+      char next = p[strlen(m)];
+      if (!next || next == '_' || isupper(next))
+        return true;
+    }
+  }
+
+  return false;
+}
+
+void CheckerVisitor::checkRangeCheck(const BinExpr *expr) {
+  if (effectsOnly)
+    return;
+
+  if (expr->op() != TO_OROR && expr->op() != TO_ANDAND)
+    return;
+
+  const Expr *lhs = maybeEval(expr->lhs());
+  const Expr *rhs = maybeEval(expr->rhs());
+
+  if (isRelationOperator(lhs->op()) && isRelationOperator(rhs->op())) {
+    const Expr *cmpZero = nullptr, *cmpCount = nullptr;
+    int cmpDir = 1;
+
+    const BinExpr *l = static_cast<const BinExpr *>(lhs);
+    const BinExpr *r = static_cast<const BinExpr *>(rhs);
+
+    if (_equalChecker.check(l->lhs(), r->lhs())) {
+      cmpDir = 1;
+      cmpZero = l->rhs();
+      cmpCount = r->rhs();
+    }
+    else if (_equalChecker.check(l->rhs(), r->lhs())) {
+      cmpDir = -1;
+      cmpZero = l->lhs();
+      cmpCount = r->rhs();
+    }
+    else if (_equalChecker.check(l->lhs(), r->rhs())) {
+      cmpDir = 1;
+      cmpZero = l->rhs();
+      cmpCount = r->lhs();
+    }
+
+    if (!cmpZero)
+      return;
+
+    assert(cmpCount);
+
+    if (cmpZero->op() != TO_LITERAL || cmpZero->asLiteral()->kind() != LK_INT || cmpZero->asLiteral()->i() != 0)
+      return;
+
+    if (looksLikeElementCount(maybeEval(cmpCount))) {
+      int leftCmp = (l->op() == TO_GE) || (l->op() == TO_GT) ? 1 : -1;
+      int rightCmp = (r->op() == TO_GE) || (r->op() == TO_GT) ? 1 : -1;
+      bool leftEq = (l->op() == TO_GE) || (l->op() == TO_LE);
+      bool rightEq = (r->op() == TO_GE) || (r->op() == TO_LE);
+
+      if (leftCmp * cmpDir != rightCmp && leftEq == rightEq)
+        report(expr, DiagnosticsId::DI_RANGE_CHECK);
+    }
+  }
+}
+
 void CheckerVisitor::checkAlreadyRequired(const CallExpr *call) {
   if (effectsOnly)
     return;
@@ -4801,6 +4890,7 @@ void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   checkCannotBeNull(expr);
   checkCanBeSimplified(expr);
   checkInExprAssignPriority(expr);
+  checkRangeCheck(expr);
 
   Expr *lhs = expr->lhs();
   Expr *rhs = expr->rhs();
