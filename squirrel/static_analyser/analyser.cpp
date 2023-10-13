@@ -2832,6 +2832,7 @@ class CheckerVisitor : public Visitor {
   void checkBoolIndex(const GetTableExpr *expr);
   void checkNullableIndex(const GetTableExpr *expr);
   void checkGlobalAccess(const GetFieldExpr *expr);
+  void checkAccessFromStatic(const GetFieldExpr *expr);
 
   bool findIfWithTheSameCondition(const Expr * condition, const IfStatement * elseNode, const Expr *&duplicated) {
     if (_equalChecker.check(condition, elseNode->condition())) {
@@ -3298,6 +3299,51 @@ void CheckerVisitor::checkIdUsed(const Id *id, const Node *p, ValueRef *v) {
   else if (v->state == VRS_UNDEFINED) {
     report(id, DiagnosticsId::DI_UNINITIALIZED_VAR);
   }
+}
+
+void CheckerVisitor::checkAccessFromStatic(const GetFieldExpr *acc) {
+  if (effectsOnly)
+    return;
+
+  const Expr *r = acc->receiver();
+
+  if (r->op() != TO_ID || strcmp(r->asId()->id(), thisName) != 0)
+    return;
+
+  const TableMember *m = nullptr;
+  const ClassDecl *klass = nullptr;
+
+  for (auto it = nodeStack.rbegin(); it != nodeStack.rend(); ++it) {
+    if (it->sst == SST_TABLE_MEMBER) {
+      m = it->member;
+      ++it;
+
+      if (it != nodeStack.rend() && it->sst == SST_NODE && it->n->op() == TO_CLASS) {
+        klass = static_cast<const ClassDecl *>(it->n);
+      }
+
+      break;
+    }
+  }
+
+  if (!m || !m->isStatic() || !klass)
+    return;
+
+  const auto &members = klass->members();
+  const SQChar *memberName = acc->fieldName();
+
+  for (const auto &m : members) {
+    if (m.key->op() == TO_LITERAL && m.key->asLiteral()->kind() == LK_STRING) {
+      const SQChar *klassMemberName = m.key->asLiteral()->s();
+      if (strcmp(memberName, klassMemberName) == 0) {
+        if (!m.isStatic())
+          report(acc, DiagnosticsId::DI_USED_FROM_STATIC, memberName, "static member");
+        return;
+      }
+    }
+  }
+
+  report(acc, DiagnosticsId::DI_USED_FROM_STATIC, memberName, "static member");
 }
 
 static bool cannotBeNull(const Expr *e) {
@@ -4906,6 +4952,7 @@ void CheckerVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
   checkAccessNullable(expr);
   checkEnumConstUsage(expr);
   checkGlobalAccess(expr);
+  checkAccessFromStatic(expr);
 
   Visitor::visitGetFieldExpr(expr);
 }

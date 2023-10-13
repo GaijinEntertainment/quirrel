@@ -109,6 +109,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(NAME_RET_BOOL, WARNING, SEMA, 239, "named-like-return-bool", "Function name '%s' implies a return boolean type but not all control paths returns boolean."), \
   DEF_DIAGNOSTIC(NULL_COALESCING_PRIOR, WARNING, SEMA, 240, "null-coalescing-priority", "The '??""' operator has a lower priority than the '%s' operator (a??b > c == a??""(b > c)). Perhaps the '??""' operator works in a different way than it was expected."), \
   DEF_DIAGNOSTIC(ALREADY_REQUIRED, WARNING, SEMA, 241, "already-required", "Module '%s' has been required already."), \
+  DEF_DIAGNOSTIC(USED_FROM_STATIC, WARNING, SEMA, 244, "used-from-static", "Access 'this.%s' from %s function."), \
   DEF_DIAGNOSTIC(FUNC_CAN_RET_NULL, WARNING, SEMA, 247, "func-can-return-null", "Function '%s' can return null, but its result is used here."), \
   DEF_DIAGNOSTIC(ACCESS_POT_NULLABLE, WARNING, SEMA, 248, "access-potentially-nulled", "'%s' can be null, but is used as a %s without checking."), \
   DEF_DIAGNOSTIC(CMP_WITH_CONTAINER, WARNING, SEMA, 250, "cmp-with-container", "Comparison with a %s."), \
