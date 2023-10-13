@@ -2823,6 +2823,7 @@ class CheckerVisitor : public Visitor {
   void checkFormatArguments(const CallExpr *callExpr);
   void checkArguments(const CallExpr *callExpr);
   void checkContainerModification(const CallExpr *expr);
+  void checkUnwantedModification(const CallExpr *expr);
   void checkBoolIndex(const GetTableExpr *expr);
   void checkNullableIndex(const GetTableExpr *expr);
   void checkGlobalAccess(const GetFieldExpr *expr);
@@ -4400,6 +4401,52 @@ void CheckerVisitor::checkContainerModification(const CallExpr *call) {
   reportModifyIfContainer(callee->asAccessExpr()->receiver(), call);
 }
 
+static bool isUnderemnitaed(const Expr *e) {
+  e = deparen(e);
+
+  if (e->op() == TO_NULLC) {
+    const Expr *rhs = static_cast<const BinExpr *>(e)->rhs();
+    return rhs->op() == TO_ARRAYEXPR || rhs->op() == TO_DECL_EXPR;
+  }
+
+  if (e->op() == TO_TERNARY) {
+    const TerExpr *ter = static_cast<const TerExpr *>(e);
+    const Expr *thenE = ter->b();
+    const Expr *elseE = ter->c();
+
+    return (thenE->op() == TO_ARRAYEXPR || thenE->op() == TO_DECL_EXPR) || (elseE->op() == TO_ARRAYEXPR || elseE->op() == TO_DECL_EXPR);
+  }
+
+  return false;
+}
+
+void CheckerVisitor::checkUnwantedModification(const CallExpr *call) {
+  if (effectsOnly)
+    return;
+
+  const SQChar *name = extractFunctionName(call);
+
+  if (!name)
+    return;
+
+  if (!nameLooksLikeModifiesObject(name))
+    return;
+
+  const Expr *callee = call->callee();
+
+  if (!callee->isAccessExpr())
+    return;
+
+  if (nodeStack.back().sst == SST_NODE) {
+    const Node *p = nodeStack.back().n;
+    if (p->op() == TO_NEWSLOT)
+      return;
+  }
+
+  if (isUnderemnitaed(callee->asAccessExpr()->receiver()))
+    report(call, DiagnosticsId::DI_UNWANTED_MODIFICATION, name);
+}
+
 void CheckerVisitor::checkAssertCall(const CallExpr *call) {
 
   // assert(x != null) or assert(x != null, "X should not be null")
@@ -4633,6 +4680,7 @@ void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkForbidenParentDir(expr);
   checkFormatArguments(expr);
   checkContainerModification(expr);
+  checkUnwantedModification(expr);
 
   applyCallToScope(expr);
 

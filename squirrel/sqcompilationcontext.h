@@ -131,6 +131,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(FORBIDEN_FUNC, WARNING, SEMA, 278, "forbidden-function", "It is forbidden to call '%s' function."), \
   DEF_DIAGNOSTIC(MISMATCH_LOOP_VAR, WARNING, SEMA, 279, "mismatch-loop-variable", "The variable used in for-loop does not match the initialized one."), \
   DEF_DIAGNOSTIC(FORBIDEN_PARENT_DIR, WARNING, SEMA, 280, "forbidden-parent-dir", "Access to the parent directory is forbidden in this function."), \
+  DEF_DIAGNOSTIC(UNWANTED_MODIFICATION, WARNING, SEMA, 281, "unwanted-modification", "Function '%s' modifies object. You probably didn't want to modify the object here."), \
   DEF_DIAGNOSTIC(USELESS_NULLC, WARNING, SEMA, 283, "useless-null-coalescing", "The expression to the right of the '??""' is null."), \
   DEF_DIAGNOSTIC(DECL_IN_EXPR, WARNING, SEMA, 286, "decl-in-expression", "Declaration used in arith expression as operand."), \
   DEF_DIAGNOSTIC(PARAM_COUNT_MISMATCH, WARNING, SEMA, 288, "param-count", "Function '%s' is called with the wrong number of parameters."),\
