@@ -189,6 +189,7 @@ void SQCompilationContext::resetConfig() {
     "resize",
     "rawdelete",
     "rawset",
+    "remove"
   };
 
   function_must_be_called_from_root = {
