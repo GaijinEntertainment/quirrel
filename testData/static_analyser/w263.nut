@@ -9,7 +9,7 @@ function _foo(_p) // EXPECTED
 }
 
 
-function _bar() { // FP
+function bar() { // FP
     return false
 }
 
@@ -45,7 +45,7 @@ try // EXPECTED
     print(9)
 }
 
-local t = _bar()
+local t = bar()
 
 if (t) {    // FP
     print(10)
