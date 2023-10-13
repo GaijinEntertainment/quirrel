@@ -2063,8 +2063,16 @@ static bool isBlockTerminatorStatement(enum TreeOp op) {
   return op == TO_RETURN || op == TO_THROW || op == TO_BREAK || op == TO_CONTINUE;
 }
 
+static bool isBooleanBinaryResultOperator(enum TreeOp op) {
+  return op == TO_NE || op == TO_EQ || (TO_GE <= op && op <= TO_IN);
+}
+
+static bool isBooleanBinaryOrLogicalOpeartor(enum TreeOp op) {
+  return isBooleanBinaryResultOperator(op) || op == TO_OROR || op == TO_ANDAND;
+}
+
 static bool isBooleanResultOperator(enum TreeOp op) {
-  return op == TO_NE || op == TO_EQ || (TO_GE <= op && op <= TO_IN) || op == TO_NOT;
+  return isBooleanBinaryResultOperator(op) || op == TO_NOT;
 }
 
 static bool isArithOperator(enum TreeOp op) {
@@ -2813,6 +2821,7 @@ class CheckerVisitor : public Visitor {
   void checkUselessNullC(const BinExpr *);
   void checkCannotBeNull(const BinExpr *);
   void checkCanBeSimplified(const BinExpr *expr);
+  void checkInExprAssignPriority(const BinExpr *expr);
   void checkAlwaysTrueOrFalse(const TerExpr *expr);
   void checkTernaryPriority(const TerExpr *expr);
   void checkSameValues(const TerExpr *expr);
@@ -4245,6 +4254,18 @@ void CheckerVisitor::checkCanBeSimplified(const BinExpr *bin) {
   }
 }
 
+void CheckerVisitor::checkInExprAssignPriority(const BinExpr *expr) {
+  if (effectsOnly)
+    return;
+
+  if (expr->op() != TO_INEXPR_ASSIGN)
+    return;
+
+  if (isBooleanBinaryOrLogicalOpeartor(expr->rhs()->op())) {
+    report(expr, DiagnosticsId::DI_INEXPR_PRIORITY);
+  }
+}
+
 void CheckerVisitor::checkAlreadyRequired(const CallExpr *call) {
   if (effectsOnly)
     return;
@@ -4779,6 +4800,7 @@ void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   checkUselessNullC(expr);
   checkCannotBeNull(expr);
   checkCanBeSimplified(expr);
+  checkInExprAssignPriority(expr);
 
   Expr *lhs = expr->lhs();
   Expr *rhs = expr->rhs();
