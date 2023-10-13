@@ -2812,9 +2812,11 @@ class CheckerVisitor : public Visitor {
   void checkNewGlobalSlot(const BinExpr *);
   void checkUselessNullC(const BinExpr *);
   void checkCannotBeNull(const BinExpr *);
+  void checkCanBeSimplified(const BinExpr *expr);
   void checkAlwaysTrueOrFalse(const TerExpr *expr);
   void checkTernaryPriority(const TerExpr *expr);
   void checkSameValues(const TerExpr *expr);
+  void checkCanBeSimplified(const TerExpr *expr);
   void checkExtendToAppend(const CallExpr *callExpr);
   void checkAlreadyRequired(const CallExpr *callExpr);
   void checkCallNullable(const CallExpr *callExpr);
@@ -3533,6 +3535,37 @@ void CheckerVisitor::checkSameValues(const TerExpr *expr) {
   }
 }
 
+void CheckerVisitor::checkCanBeSimplified(const TerExpr *expr) {
+  if (effectsOnly)
+    return;
+
+  const Expr *cond = expr->a();
+  const Expr *checkee = nullptr;
+
+
+  if (cond->op() == TO_NE) {
+    const BinExpr *b = static_cast<const BinExpr *>(cond);
+
+    if (b->lhs()->op() == TO_LITERAL && b->lhs()->asLiteral()->kind() == LK_NULL)
+      checkee = b->rhs();
+    else if (b->rhs()->op() == TO_LITERAL && b->rhs()->asLiteral()->kind() == LK_NULL)
+      checkee = b->lhs();
+  }
+
+  if (!checkee)
+    return;
+
+  if (expr->c()->op() != TO_LITERAL || expr->c()->asLiteral()->kind() != LK_NULL)
+    return;
+
+  checkee = maybeEval(checkee);
+  const Expr *t = maybeEval(expr->b());
+
+  if (_equalChecker.check(checkee, t)) {
+    report(expr, DiagnosticsId::DI_CAN_BE_SIMPLIFIED);
+  }
+}
+
 void CheckerVisitor::checkAlwaysTrueOrFalse(const BinExpr *bin) {
 
   if (effectsOnly)
@@ -4133,6 +4166,39 @@ void CheckerVisitor::checkCannotBeNull(const BinExpr *bin) {
     reportIfCannotBeNull(checkee, reportee, loc);
 }
 
+void CheckerVisitor::checkCanBeSimplified(const BinExpr *bin) {
+  if (effectsOnly)
+    return;
+
+  if (bin->op() != TO_ANDAND && bin->op() != TO_OROR)
+    return;
+
+  const Expr *lhs = maybeEval(bin->lhs());
+  const Expr *rhs = maybeEval(bin->rhs());
+
+  if (isBoolRelationOperator(lhs->op()) && isBoolRelationOperator(rhs->op())) {
+    const BinExpr *binL = static_cast<const BinExpr *>(lhs);
+    const BinExpr *binR = static_cast<const BinExpr *>(rhs);
+
+    if (_equalChecker.check(binL->lhs(), binR->lhs())) {
+      int leftCmp = (binL->op() == TO_GE) || (binL->op() == TO_GT) ? 1 : -1;
+      int rightCmp = (binR->op() == TO_GE) || (binR->op() == TO_GT) ? 1 : -1;
+
+      if (leftCmp == rightCmp) {
+        const Expr *l = maybeEval(binL->rhs());
+        const Expr *r = maybeEval(binR->rhs());
+
+        bool lConst = l->op() == TO_LITERAL || isUpperCaseIdentifier(l);
+        bool rConst = r->op() == TO_LITERAL || isUpperCaseIdentifier(r);
+
+        if (lConst && rConst) {
+          report(bin, DiagnosticsId::DI_CAN_BE_SIMPLIFIED);
+        }
+      }
+    }
+  }
+}
+
 void CheckerVisitor::checkAlreadyRequired(const CallExpr *call) {
   if (effectsOnly)
     return;
@@ -4666,6 +4732,7 @@ void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   checkNewGlobalSlot(expr);
   checkUselessNullC(expr);
   checkCannotBeNull(expr);
+  checkCanBeSimplified(expr);
 
   Expr *lhs = expr->lhs();
   Expr *rhs = expr->rhs();
@@ -4708,6 +4775,7 @@ void CheckerVisitor::visitTerExpr(TerExpr *expr) {
   checkTernaryPriority(expr);
   checkSameValues(expr);
   checkAlwaysTrueOrFalse(expr);
+  checkCanBeSimplified(expr);
 
   nodeStack.push_back({ SST_NODE, expr });
 
@@ -4719,7 +4787,6 @@ void CheckerVisitor::visitTerExpr(TerExpr *expr) {
   VarScope *ifFalseScope = trunkScope->copy(arena);
 
   speculateIfConditionHeuristics(expr->a(), ifTrueScope, ifFalseScope);
-
 
   currentScope = ifTrueScope;
   expr->b()->visit(this);
