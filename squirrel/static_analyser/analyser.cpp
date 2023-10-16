@@ -3402,13 +3402,14 @@ void CheckerVisitor::reportIfCannotBeNull(const Expr *checkee, const Expr *n, co
 
 void CheckerVisitor::reportModifyIfContainer(const Expr *e, const Expr *mod) {
   bool found = false;
+  const ForeachStatement *f = nullptr;
   for (auto it = nodeStack.rbegin(); it != nodeStack.rend(); ++it) {
     if (it->sst != SST_NODE)
       continue;
 
     const Node *n = it->n;
     if (n->op() == TO_FOREACH) {
-      const ForeachStatement *f = static_cast<const ForeachStatement *>(n);
+      f = static_cast<const ForeachStatement *>(n);
 
       if (_equalChecker.check(f->container(), e)) {
         found = true;
@@ -3417,9 +3418,28 @@ void CheckerVisitor::reportModifyIfContainer(const Expr *e, const Expr *mod) {
     }
   }
 
-  if (found) {
-    report(mod, DiagnosticsId::DI_MODIFIED_CONTAINER);
+  if (!found)
+    return;
+
+  for (auto it = nodeStack.rbegin(); it != nodeStack.rend(); ++it) {
+    if (it->sst != SST_NODE)
+      continue;
+
+    if (it->n == f)
+      break;
+
+    const Node *n = it->n;
+
+    if (n->op() == TO_BLOCK) {
+      const auto &stmts = static_cast<const Block *>(n)->statements();
+      assert(stmts.size() > 0);
+      const Statement *stmt = stmts.back();
+      if (stmt->op() == TO_RETURN || stmt->op() == TO_THROW || stmt->op() == TO_BREAK)
+        return;
+    }
   }
+
+  report(mod, DiagnosticsId::DI_MODIFIED_CONTAINER);
 }
 
 void CheckerVisitor::checkContainerModification(const UnExpr *u) {
@@ -4320,7 +4340,6 @@ void CheckerVisitor::checkRangeCheck(const BinExpr *expr) {
     const BinExpr *r = static_cast<const BinExpr *>(rhs);
 
     if (_equalChecker.check(l->lhs(), r->lhs())) {
-      cmpDir = 1;
       cmpZero = l->rhs();
       cmpCount = r->rhs();
     }
@@ -4330,7 +4349,6 @@ void CheckerVisitor::checkRangeCheck(const BinExpr *expr) {
       cmpCount = r->rhs();
     }
     else if (_equalChecker.check(l->lhs(), r->rhs())) {
-      cmpDir = 1;
       cmpZero = l->rhs();
       cmpCount = r->lhs();
     }
@@ -4705,15 +4723,15 @@ void CheckerVisitor::checkContainerModification(const CallExpr *call) {
 static bool isUnderemnitaed(const Expr *e) {
   e = deparen(e);
 
-  if (e->op() == TO_NULLC) {
-    const Expr *rhs = static_cast<const BinExpr *>(e)->rhs();
+  if (e->op() == TO_NULLC) { // -V522
+    const Expr *rhs = static_cast<const BinExpr *>(e)->rhs(); // -V522
     return rhs->op() == TO_ARRAYEXPR || rhs->op() == TO_DECL_EXPR;
   }
 
-  if (e->op() == TO_TERNARY) {
+  if (e->op() == TO_TERNARY) {  // -V522
     const TerExpr *ter = static_cast<const TerExpr *>(e);
-    const Expr *thenE = ter->b();
-    const Expr *elseE = ter->c();
+    const Expr *thenE = ter->b(); // -V522
+    const Expr *elseE = ter->c(); // -V522
 
     return (thenE->op() == TO_ARRAYEXPR || thenE->op() == TO_DECL_EXPR) || (elseE->op() == TO_ARRAYEXPR || elseE->op() == TO_DECL_EXPR);
   }
