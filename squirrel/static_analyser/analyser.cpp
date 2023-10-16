@@ -2795,6 +2795,7 @@ class CheckerVisitor : public Visitor {
 
   void reportIfCannotBeNull(const Expr *checkee, const Expr *n, const char *loc);
   void reportModifyIfContainer(const Expr *e, const Expr *mod);
+  void checkForgotSubst(const LiteralExpr *l);
   void checkContainerModification(const UnExpr *expr);
   void checkAndOrPriority(const BinExpr *expr);
   void checkBitwiseParenBool(const BinExpr *expr);
@@ -3022,6 +3023,7 @@ public:
 
   void visitNode(Node *n);
 
+  void visitLiteralExpr(LiteralExpr *l);
   void visitId(Id *id);
   void visitUnExpr(UnExpr *expr);
   void visitBinExpr(BinExpr *expr);
@@ -3440,6 +3442,69 @@ void CheckerVisitor::reportModifyIfContainer(const Expr *e, const Expr *mod) {
   }
 
   report(mod, DiagnosticsId::DI_MODIFIED_CONTAINER);
+}
+
+static bool stringLooksLikePattern(const SQChar *s) {
+
+  const SQChar *bracePtr = strchr(s, '{');
+  if (bracePtr && (isalpha(bracePtr[1]) || bracePtr[1] == '_'))
+  {
+    bool isBlk = (strstr(s, ":i=") || strstr(s, ":r=") || strstr(s, ":t=") || strstr(s, ":p2=") || strstr(s, ":p3=") || strstr(s, ":tm="));
+    return !isBlk && bracePtr[1] && strchr(bracePtr + 2, '}');
+  }
+
+  return false;
+}
+
+void CheckerVisitor::checkForgotSubst(const LiteralExpr *l) {
+  if (effectsOnly)
+    return;
+
+  if (l->kind() != LK_STRING)
+    return;
+
+  const CallExpr *candidate = nullptr;
+
+  for (auto it = nodeStack.rbegin(); it != nodeStack.rend(); ++it) {
+    if (it->sst != SST_NODE)
+      continue;
+
+    const Node *n = it->n;
+
+    if (n->op() == TO_CALL) {
+      candidate = static_cast<const CallExpr *>(n);
+      break;
+    }
+  }
+
+  const SQChar *s = l->s();
+  if (!stringLooksLikePattern(s)) {
+    return;
+  }
+
+  bool ok = false;
+
+  if (candidate) {
+    const Expr *callee = deparen(candidate->callee());
+    const auto &arguments = candidate->arguments();
+    if (callee->op() == TO_GETFIELD) { // -V522
+      const GetFieldExpr *f = callee->asGetField();
+      const SQChar *funcName = f->fieldName();
+      if (deparen(f->receiver()) == l) {
+        ok = strcmp(funcName, "subst") == 0;
+      } else if (strcmp(funcName, "split") == 0) {
+        ok = arguments.size() >= 1 && deparen(arguments[0]) == l;;
+      }
+    }
+    else if (callee->op() == TO_ID) { // -V522
+      if (strcmp("loc", callee->asId()->id()) == 0) {
+        ok = arguments.size() >= 2 && deparen(arguments[1]) == l;
+      }
+    }
+  }
+
+  if (!ok)
+    report(l, DiagnosticsId::DI_FORGOT_SUBST);
 }
 
 void CheckerVisitor::checkContainerModification(const UnExpr *u) {
@@ -4857,6 +4922,10 @@ void CheckerVisitor::visitBinaryBranches(Expr *lhs, Expr *rhs, bool inv) {
   trunkScope->merge(branchScope);
 
   currentScope = trunkScope;
+}
+
+void CheckerVisitor::visitLiteralExpr(LiteralExpr *l) {
+  checkForgotSubst(l);
 }
 
 void CheckerVisitor::visitId(Id *id) {
