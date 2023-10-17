@@ -69,6 +69,7 @@ class SQParser
     SQInteger column() const { return _lex._tokencolumn; }
     SQInteger width() const { return _lex._currentcolumn - _lex._tokencolumn; }
 
+    void checkSuspicciousUnaryOp(SQInteger prevTok, SQInteger tok, unsigned prevFlags);
 public:
     SQCompilationContext &_ctx;
 
