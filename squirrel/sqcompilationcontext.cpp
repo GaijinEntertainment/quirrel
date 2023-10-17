@@ -372,7 +372,7 @@ bool SQCompilationContext::switchDiagnosticState(int32_t id, bool state) {
 
 void SQCompilationContext::switchSyntaxWarningsState(bool state) {
   for (auto &diag : diagnosticDescriptors) {
-    if (diag.severity == DS_WARNING && diag.subsystem == DSS_SYNTAX) {
+    if (diag.severity == DS_WARNING && (diag.subsystem == DSS_SYNTAX || diag.subsystem == DSS_LEX)) {
       diag.disabled = !state;
     }
   }
