@@ -120,6 +120,7 @@ enum SQExpressionContext
   SQE_LOOP_CONDITION,
   SQE_FUNCTION_ARG,
   SQE_RVALUE,
+  SQE_ARRAY_ELEM,
 };
 
 

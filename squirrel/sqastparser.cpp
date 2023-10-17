@@ -434,6 +434,9 @@ Expr* SQParser::Expression(SQExpressionContext expression_context)
                 case SQE_RVALUE:
                     reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "expression");
                     break;
+                case SQE_ARRAY_ELEM:
+                    reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "array element");
+                    break;
                 case SQE_REGULAR:
                     break;
                 }
@@ -468,11 +471,20 @@ Expr* SQParser::Expression(SQExpressionContext expression_context)
 
 template<typename T> Expr* SQParser::BIN_EXP(T f, enum TreeOp top, Expr *lhs)
 {
-    _expression_context = SQE_RVALUE;
+
+    SQInteger prevTok = _lex._prevtoken, tok = _token;
+    unsigned prevFlags = _lex._prevflags;
 
     Lex();
 
+    checkSuspicciousUnaryOp(prevTok, tok, prevFlags);
+
+    SQExpressionContext old = _expression_context;
+    _expression_context = SQE_RVALUE;
+
     Expr *rhs = (this->*f)();
+
+    _expression_context = old;
 
     return newNode<BinExpr>(top, lhs, rhs);
 }
@@ -627,6 +639,16 @@ Expr* SQParser::ShiftExp()
     }
 }
 
+void SQParser::checkSuspicciousUnaryOp(SQInteger pprevTok, SQInteger tok, unsigned pprevFlags) {
+  if (tok == _SC('+') || tok == _SC('-')) {
+    if (_expression_context == SQE_ARRAY_ELEM || _expression_context == SQE_FUNCTION_ARG) {
+      if ((pprevFlags & (TF_PREP_EOL | TF_PREP_SPACE)) && (pprevTok != _SC(',')) && ((_lex._prevflags & TF_PREP_SPACE) == 0)) {
+        reportDiagnostic(DiagnosticsId::DI_NOT_UNARY_OP, tok == _SC('+') ? "+" : "-");
+      }
+    }
+  }
+}
+
 Expr* SQParser::PlusExp()
 {
     NestingChecker nc(this);
@@ -724,6 +746,9 @@ Expr* SQParser::PrefixedExpr()
                 call->addArgument(Expression(SQE_FUNCTION_ARG));
                 if (_token == _SC(',')) {
                     Lex();
+                }
+                else {
+
                 }
             }
 
@@ -881,7 +906,7 @@ Expr* SQParser::Factor(SQInteger &pos)
             bool spaceSeparated = false;
             bool reported = false;
             while(_token != _SC(']')) {
-                Expr *v = Expression(SQE_RVALUE);
+                Expr *v = Expression(SQE_ARRAY_ELEM);
                 arr->addValue(v);
                 if (_token == _SC(',')) {
                     commaSeparated = true;
