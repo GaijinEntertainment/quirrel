@@ -124,6 +124,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(EGYPT_BRACES, WARNING, SYNTAX, 263, "egyptian-braces", "Identation style: 'egyptian braces' required."), \
   DEF_DIAGNOSTIC(PLUS_STRING, WARNING, SEMA, 264, "plus-string", "Usage of '+' for string concatenation."), \
   DEF_DIAGNOSTIC(FORGOTTEN_DO, WARNING, SEMA, 266, "forgotten-do", "'while' after the statement list (forgot 'do' ?)"), \
+  DEF_DIAGNOSTIC(SUSPICIOUS_BRAKET, WARNING, SYNTAX, 267, "suspicious-braket", "'%s' will be parsed as '%s' (forgot ',' ?)"), \
   DEF_DIAGNOSTIC(MIXED_SEPARATORS, WARNING, SYNTAX, 269, "mixed-separators", "Mixed spaces and commas to separate %s."), \
   DEF_DIAGNOSTIC(EXTEND_TO_APPEND, HINT, SEMA, 270, "extent-to-append", "It is better to use 'append(A, B, ...)' instead of 'extend([A, B, ...])'."), \
   DEF_DIAGNOSTIC(FORGOT_SUBST, WARNING, SEMA, 271, "forgot-subst", "'{}' found inside string (forgot 'subst' or '$' ?)."), \

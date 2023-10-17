@@ -680,6 +680,18 @@ Expr* SQParser::MultExp()
     }
 }
 
+void SQParser::checkSuspicciousBraket() {
+  assert(_token == _SC('(') || _token == _SC('['));
+  if (_expression_context == SQE_ARRAY_ELEM || _expression_context == SQE_FUNCTION_ARG) {
+    if (_lex._prevtoken != _SC(',')) {
+      if (_lex._prevflags & (TF_PREP_EOL | TF_PREP_SPACE)) {
+        char op[] = { (char)_token, '\0' };
+        reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_BRAKET, op, _token == _SC('(') ? "function call" : "access to member");
+      }
+    }
+  }
+}
+
 Expr* SQParser::PrefixedExpr()
 {
     NestingChecker nc(this);
@@ -715,6 +727,9 @@ Expr* SQParser::PrefixedExpr()
             }
             if(_lex._prevtoken == _SC('\n'))
                 reportDiagnostic(DiagnosticsId::DI_BROKEN_SLOT_DECLARATION);
+            if (_token == _SC('['))
+              checkSuspicciousBraket();
+
             Lex();
             Expr *receiver = e;
             Expr *key = Expression(SQE_RVALUE);
@@ -741,14 +756,15 @@ Expr* SQParser::PrefixedExpr()
             nextIsNullable = !!nullcall;
             SQInteger l = e->lineStart(), c = e->columnStart();
             CallExpr *call = newNode<CallExpr>(arena(), e, nullcall);
+
+            if (_token == _SC('('))
+              checkSuspicciousBraket();
+
             Lex();
             while (_token != _SC(')')) {
                 call->addArgument(Expression(SQE_FUNCTION_ARG));
                 if (_token == _SC(',')) {
                     Lex();
-                }
-                else {
-
                 }
             }
 
