@@ -499,7 +499,7 @@ void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t 
     }
   }
 
-  if (!isBlankLine(l2)) {
+  if (l2 != nullptr) {
     extraInfo.push_back('\n');
     int32_t j = 0;
     while (l2[j] && l2[j] != '\n' && l2[j] != '\r') { //-V522
