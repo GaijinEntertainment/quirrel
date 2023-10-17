@@ -82,6 +82,10 @@ def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs,
     global verbose
     global have_errors
     testFilePath = computePath(dirname, name + '.nut')
+
+    if (not path.exists(testFilePath)):
+        testFilePath = computePath(dirname, name + '.nut.txt')
+
     expectedResultFilePath = computePath(dirname, name + suffix)
     outputDir = computePath(workingDir, dirname)
 
@@ -167,10 +171,10 @@ def runTestForData(filePath, compiler, workingDir, testMode):
     basename = os.path.basename(filePath)
     dirname = os.path.dirname(filePath)
     index_of_dot = basename.index('.')
-    suffix = Path(basename).suffix
-    # print(f"dirname: {dirname}, baseName: {basename}, suffix: {suffix}")
     name = basename[:index_of_dot]
-    if suffix == ".nut":
+    suffix = basename[index_of_dot:]
+    # print(f"dirname: {dirname}, baseName: {basename}, name: {name}, suffix: {suffix}")
+    if suffix == ".nut" or suffix == ".nut.txt":
         if testMode == 'ast':
             runASTTest(compiler, workingDir, dirname, name)
         elif testMode == 'diag':

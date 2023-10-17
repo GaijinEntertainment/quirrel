@@ -17,6 +17,8 @@ public:
   void runAnalysis(RootBlock *r, const HSQOBJECT *bindings);
 
   static void reportGlobalNameDiagnostics(HSQUIRRELVM vm);
+
+  static void checkTrailingWhitespaces(HSQUIRRELVM vm, const SQChar *sn, const SQChar *code, size_t codeSize);
 };
 
 }

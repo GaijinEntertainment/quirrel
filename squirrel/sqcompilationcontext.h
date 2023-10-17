@@ -130,6 +130,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(GLOBAL_VAR_CREATE, WARNING, SEMA, 273, "global-var-creation", "Creation of the global variable requires '::' before the name of the variable."), \
   DEF_DIAGNOSTIC(ITER_IN_CLOSURE, WARNING, SEMA, 274, "iterator-in-lambda", "Iterator '%s' is trying to be captured in closure."), \
   DEF_DIAGNOSTIC(MISSED_BREAK, WARNING, SEMA, 275, "missed-break", "A 'break' statement is probably missing in a 'switch' statement."), \
+  DEF_DIAGNOSTIC(SPACE_AT_EOL, WARNING, LEX, 277, "space-at-eol", "Whitespace at the end of line."), \
   DEF_DIAGNOSTIC(FORBIDEN_FUNC, WARNING, SEMA, 278, "forbidden-function", "It is forbidden to call '%s' function."), \
   DEF_DIAGNOSTIC(MISMATCH_LOOP_VAR, WARNING, SEMA, 279, "mismatch-loop-variable", "The variable used in for-loop does not match the initialized one."), \
   DEF_DIAGNOSTIC(FORBIDEN_PARENT_DIR, WARNING, SEMA, 280, "forbidden-parent-dir", "Access to the parent directory is forbidden in this function."), \

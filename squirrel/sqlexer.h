@@ -36,7 +36,6 @@ private:
     SQInteger ReadID();
     SQInteger ReadDirective();
     void Next();
-    static SQInteger readf(void *);
     SQInteger AddUTF8(SQUnsignedInteger ch);
     SQInteger ProcessStringHexEscape(SQChar *dest, SQInteger maxdigits);
     Comments::LineCommentsList &CurLineComments() { assert(_comments);  return _comments->commentsList().back(); }
@@ -67,8 +66,6 @@ public:
     const SQChar *_svalue;
     SQInteger _nvalue;
     SQFloat _fvalue;
-    SQLEXREADFUNC _readf;
-    SQUserPointer _up;
     LexChar _currdata;
     SQSharedState *_sharedstate;
     sqvector<SQChar> _longstr;

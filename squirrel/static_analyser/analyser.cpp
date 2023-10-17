@@ -7974,6 +7974,29 @@ void StaticAnalyser::reportGlobalNameDiagnostics(HSQUIRRELVM vm) {
   }
 }
 
+static bool isSpaceOrTab(SQChar c) { return c == '\t' || c == ' '; }
+
+void StaticAnalyser::checkTrailingWhitespaces(HSQUIRRELVM vm, const SQChar *sourceName, const SQChar *code, size_t codeSize) {
+  Arena arena(_ss(vm)->_alloc_ctx, "tmp");
+  SQCompilationContext ctx(vm, &arena, sourceName, code, codeSize, nullptr, true);
+
+  int32_t line = 1;
+  int32_t column = 1;
+
+  for (int32_t idx = 0; idx < codeSize - 1; ++idx, ++column) {
+    if (isSpaceOrTab(code[idx])) {
+      int next = code[idx + 1];
+      if (!next || next == '\n' || next == '\r') {
+        ctx.reportDiagnostic(DiagnosticsId::DI_SPACE_AT_EOL, line, column - 1, 1);
+      }
+    }
+    else if (code[idx] == '\n') {
+      column = 0;
+      line++;
+    }
+  }
+}
+
 static void mergeKnownBindings(const HSQOBJECT *bindings) {
   if (bindings && sq_istable(*bindings)) {
     SQTable *table = _table(*bindings);
