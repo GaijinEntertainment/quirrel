@@ -1,4 +1,4 @@
-
+//-file:suspicious-braket
 
 function foo(_p) { return "X" }
 
