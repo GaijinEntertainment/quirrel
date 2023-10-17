@@ -89,8 +89,6 @@ void SQLexer::Init(SQSharedState *ss, const char *sourceText, size_t sourceTextS
     _sourceText = sourceText;
     _sourceTextSize = sourceTextSize;
     _sourceTextPtr = 0;
-    _readf = &readf;
-    _up = this;
     _lasttokenline = _currentline = 1;
     _lasttokencolumn = _currentcolumn = 0;
     _prevtoken = -1;
@@ -102,26 +100,15 @@ void SQLexer::Init(SQSharedState *ss, const char *sourceText, size_t sourceTextS
     Next();
 }
 
-SQInteger SQLexer::readf(void *up) {
-  SQLexer *l = (SQLexer *)up;
-  if (l->_sourceTextPtr >= l->_sourceTextSize) {
-    return SQUIRREL_EOB;
-  }
-
-  return l->_sourceText[l->_sourceTextPtr++];
-}
-
 void SQLexer::Next()
 {
-    SQInteger t = _readf(_up);
-    if(t > SQ_MAX_CHAR)
-        _ctx.reportDiagnostic(DiagnosticsId::DI_INVALID_CHAR, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
-    if(t != 0) {
-        _currdata = (LexChar)t;
-        return;
-    }
-    _currdata = SQUIRREL_EOB;
-    _reached_eof = SQTrue;
+  if (_sourceTextPtr >= _sourceTextSize) {
+      _reached_eof = SQTrue;
+      _currdata = SQUIRREL_EOB;
+  }
+  else {
+      _currdata = _sourceText[_sourceTextPtr++];
+  }
 }
 
 const SQChar *SQLexer::Tok2Str(SQInteger tok)

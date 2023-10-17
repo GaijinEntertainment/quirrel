@@ -1748,6 +1748,11 @@ void sq_analyseast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOB
     AnalyseCode(v, astData, bindings, s, size);
 }
 
+void sq_checktrailingspaces(HSQUIRRELVM v, const SQChar *sourceName, const SQChar *s, SQInteger size)
+{
+    StaticAnalyser::checkTrailingWhitespaces(v, sourceName, s, size);
+}
+
 void sq_releaseASTData(HSQUIRRELVM v, SQCompilation::SqASTData *astData)
 {
   Comments *comments = astData->comments;

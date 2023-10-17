@@ -175,6 +175,11 @@ struct ASTDataGuard
 
 bool SqModules::compileScriptImpl(const std::vector<char> &buf, const char *sourcename, const HSQOBJECT *bindings)
 {
+  if (compilationOptions.doStaticAnalysis)
+  {
+    sq_checktrailingspaces(sqvm, sourcename, &buf[0], buf.size());
+  }
+
   auto *ast = sq_parsetoast(sqvm, &buf[0], buf.size() - 1, sourcename, compilationOptions.doStaticAnalysis, compilationOptions.raiseError);
   if (!ast)
   {
