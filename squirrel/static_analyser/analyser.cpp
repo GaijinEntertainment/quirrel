@@ -1522,6 +1522,10 @@ class FunctionReturnTypeEvaluator {
   void checkDeclaration(const DeclExpr *de);
   void checkAddExpr(const BinExpr *expr);
   void checkExpr(const Expr *expr);
+  void checkCall(const CallExpr *expr);
+  void checkId(const Id *id);
+  void checkGetField(const GetFieldExpr *gf);
+  void checkCompoundBin(const BinExpr *expr);
 
   bool checkNode(const Statement *node);
 
@@ -1600,7 +1604,7 @@ void FunctionReturnTypeEvaluator::checkExpr(const Expr *expr) {
   case TO_OROR:
   case TO_ANDAND:
   case TO_NULLC:
-    checkExpr(static_cast<const BinExpr *>(expr)->rhs());
+    checkCompoundBin(static_cast<const BinExpr *>(expr));
     break;
   case TO_NE:
   case TO_EQ:
@@ -1639,10 +1643,7 @@ void FunctionReturnTypeEvaluator::checkExpr(const Expr *expr) {
     flags |= RT_NUMBER;
     break;
   case TO_CALL:
-    if (checkString(expr))
-      flags |= RT_STRING;
-    else
-      flags |= RT_FUNCTION_CALL;
+    checkCall(expr->asCallExpr());
     break;
   case TO_DECL_EXPR:
     checkDeclaration(static_cast<const DeclExpr *>(expr));
@@ -1659,6 +1660,20 @@ void FunctionReturnTypeEvaluator::checkExpr(const Expr *expr) {
       checkExpr(ter->c());
       break;
   }
+  case TO_ID:
+      checkId(expr->asId());
+      break;
+  case TO_GETFIELD:
+      checkGetField(expr->asGetField());
+      // Fall Through
+  case TO_GETTABLE:
+      if (expr->asAccessExpr()->isNullable())
+        flags |= RT_NULL;
+      break;
+  case TO_ASSIGN:
+  case TO_INEXPR_ASSIGN:
+      flags |= RT_NOTHING;
+      break;
   default:
     if (checkString(expr))
       flags |= RT_STRING;
@@ -1676,17 +1691,26 @@ void FunctionReturnTypeEvaluator::checkAddExpr(const BinExpr *expr) {
   flags = 0;
 
   checkExpr(expr->lhs());
-  checkExpr(expr->rhs());
 
-  if (flags & RT_STRING) {
+  volatile unsigned lhsFlags = flags; // No idea WTF but in VC++ in dev build this code works incorrect
+  flags = 0;
+
+  checkExpr(expr->rhs());
+  unsigned rhsFlags = flags;
+
+  flags = saved;
+
+  if ((lhsFlags & RT_STRING) || (rhsFlags & RT_STRING)) {
     // concat with string is casted to string
     flags &= ~(RT_NUMBER | RT_BOOL | RT_NULL);
+    flags |= RT_STRING;
   }
-  else {
+  else if ((lhsFlags | rhsFlags) & RT_NUMBER) {
     flags |= RT_NUMBER;
   }
-
-  flags |= saved;
+  else {
+    flags |= (lhsFlags | rhsFlags);
+  }
 }
 
 void FunctionReturnTypeEvaluator::checkDeclaration(const DeclExpr *de) {
@@ -1723,10 +1747,13 @@ bool FunctionReturnTypeEvaluator::checkThrow(const ThrowStatement *thrw) {
 
 bool FunctionReturnTypeEvaluator::checkIf(const IfStatement *ifStmt) {
   bool retThen = checkNode(ifStmt->thenBranch());
+  unsigned thenFlags = flags;
+  flags = 0;
   bool retElse = false;
   if (ifStmt->elseBranch()) {
     retElse = checkNode(ifStmt->elseBranch());
   }
+  flags |= thenFlags;
 
   return retThen && retElse;
 }
@@ -2264,6 +2291,10 @@ static bool nameLooksLikeFormatFunction(const SQChar *n) {
 
 static bool nameLooksLikeModifiesObject(const SQChar *n) {
   return hasAnyEqual(n, SQCompilationContext::function_modifies_object);
+}
+
+static bool nameLooksLikeFunctionTakeBooleanLambda(const SQChar *n) {
+  return hasAnyEqual(n, SQCompilationContext::function_takes_boolean_lambda);
 }
 
 static const SQChar rootName[] = "::";
@@ -2840,6 +2871,7 @@ class CheckerVisitor : public Visitor {
   void checkContainerModification(const CallExpr *expr);
   void checkUnwantedModification(const CallExpr *expr);
   void checkCannotBeNull(const CallExpr *expr);
+  void checkBooleanLambda(const CallExpr *expr);
   void checkBoolIndex(const GetTableExpr *expr);
   void checkNullableIndex(const GetTableExpr *expr);
   void checkGlobalAccess(const GetFieldExpr *expr);
@@ -3089,6 +3121,75 @@ void VarScope::checkUnusedSymbols(CheckerVisitor *checker) {
   }
 }
 
+void FunctionReturnTypeEvaluator::checkCompoundBin(const BinExpr *expr) {
+  enum TreeOp op = expr->op();
+
+  assert(op == TO_ANDAND || op == TO_OROR || op == TO_NULLC);
+
+  unsigned old = flags;
+  flags = 0;
+
+  checkExpr(expr->lhs());
+
+  unsigned lhsFlags = flags;
+  flags = 0;
+
+  checkExpr(expr->rhs());
+
+  unsigned rhsFlags = flags;
+  flags = old;
+
+  lhsFlags &= ~RT_UNRECOGNIZED;
+  rhsFlags &= ~RT_UNRECOGNIZED;
+
+  bool hasFuncCall = (lhsFlags | rhsFlags) & RT_FUNCTION_CALL;
+
+  lhsFlags &= ~RT_FUNCTION_CALL;
+  rhsFlags &= ~RT_FUNCTION_CALL;
+
+  if (op != TO_NULLC && (((lhsFlags & RT_BOOL) && (rhsFlags & RT_NUMBER)) || ((rhsFlags & RT_BOOL) && (lhsFlags & RT_NUMBER))))
+    flags |= RT_BOOL;
+  else if (rhsFlags & RT_NULL)
+    flags |= RT_NULL;
+  else if ((lhsFlags | rhsFlags) & RT_STRING)
+    flags |= RT_STRING;
+  else
+    flags |= rhsFlags;
+
+  if (hasFuncCall)
+    flags |= RT_FUNCTION_CALL;
+}
+
+void FunctionReturnTypeEvaluator::checkId(const Id *id) {
+  if (nameLooksLikeResultMustBeBoolean(id->id()))
+    flags |= RT_BOOL;
+  else
+    flags |= RT_UNRECOGNIZED;
+}
+
+void FunctionReturnTypeEvaluator::checkGetField(const GetFieldExpr *gf) {
+  if (nameLooksLikeResultMustBeBoolean(gf->fieldName()))
+    flags |= RT_BOOL;
+  else
+    flags |= RT_UNRECOGNIZED;
+}
+
+void FunctionReturnTypeEvaluator::checkCall(const CallExpr *call) {
+  if (checkString(call)) {
+    flags |= RT_STRING;
+  }
+
+  const SQChar *fn = checker->extractFunctionName(call);
+
+  if (nameLooksLikeResultMustBeBoolean(fn)) {
+    flags |= RT_BOOL;
+  }
+
+  if (call->isNullable())
+    flags |= RT_NULL;
+
+  flags |= RT_FUNCTION_CALL;
+}
 
 void CheckerVisitor::putIntoGlobalNamesMap(std::map<std::string, std::vector<IdLocation>> &map, enum DiagnosticsId diag, const SQChar *name, const Node *d) {
 
@@ -4843,6 +4944,45 @@ void CheckerVisitor::checkCannotBeNull(const CallExpr *call) {
   reportIfCannotBeNull(maybeEval(callee), callee, "call");
 }
 
+void CheckerVisitor::checkBooleanLambda(const CallExpr *call) {
+  if (effectsOnly)
+    return;
+
+  const SQChar *fn = extractFunctionName(call);
+
+  if (!fn)
+    return;
+
+  if (!nameLooksLikeFunctionTakeBooleanLambda(fn))
+    return;
+
+  if (call->arguments().size() < 1)
+    return;
+
+  const Expr *arg = deparen(call->arguments()[0]);
+
+  if (arg->op() != TO_DECL_EXPR) // -V522
+    return;
+
+  const Decl *decl = arg->asDeclExpr()->declaration();
+
+  if (decl->op() != TO_FUNCTION)
+    return;
+
+  const FunctionDecl *f = static_cast<const FunctionDecl *>(decl);
+
+  FunctionReturnTypeEvaluator rte(this);
+
+  bool r = false;
+  unsigned typesMask = rte.compute(f->body(), r);
+
+  typesMask &= ~(RT_UNRECOGNIZED | RT_FUNCTION_CALL | RT_BOOL | RT_NUMBER | RT_NULL);
+
+  if (typesMask != 0) {
+    report(arg, DiagnosticsId::DI_BOOL_LAMBDA_REQUIRED, fn);
+  }
+}
+
 void CheckerVisitor::checkAssertCall(const CallExpr *call) {
 
   // assert(x != null) or assert(x != null, "X should not be null")
@@ -5085,6 +5225,7 @@ void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkContainerModification(expr);
   checkUnwantedModification(expr);
   checkCannotBeNull(expr);
+  checkBooleanLambda(expr);
 
   applyCallToScope(expr);
 
@@ -6653,7 +6794,7 @@ void CheckerVisitor::checkFunctionReturns(FunctionDecl *func) {
 
   bool reported = false;
 
-  if (returnFlags & ~(RT_BOOL | RT_UNRECOGNIZED | RT_FUNCTION_CALL)) {
+  if (returnFlags & ~(RT_BOOL | RT_UNRECOGNIZED | RT_FUNCTION_CALL | RT_NULL)) { // Null is castable to boolean
     if (nameLooksLikeResultMustBeBoolean(name)) {
       report(func, DiagnosticsId::DI_NAME_RET_BOOL, name);
       reported = true;

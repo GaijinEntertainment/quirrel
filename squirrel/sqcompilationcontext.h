@@ -156,7 +156,8 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(INTEGER_OVERFLOW, WARNING, SEMA, 304, "integer-overflow", "Integer Overflow."), \
   DEF_DIAGNOSTIC(RELATIVE_CMP_BOOL, WARNING, SEMA, 305, "relative-bool-cmp", "Relative comparison non-boolean with boolean. It is potential runtime error"), \
   DEF_DIAGNOSTIC(EQ_PAREN_MISSED, WARNING, SEMA, 306, "eq-paren-miss", "Suspicious expression, probably parens are missed."), \
-  DEF_DIAGNOSTIC(GLOBAL_NAME_REDEF, WARNING, SEMA, 307, "global-id-redef", "Redefinition of existed global name '%s'.")
+  DEF_DIAGNOSTIC(GLOBAL_NAME_REDEF, WARNING, SEMA, 307, "global-id-redef", "Redefinition of existed global name '%s'."), \
+  DEF_DIAGNOSTIC(BOOL_LAMBDA_REQUIRED, WARNING, SEMA, 308, "bool-lambda-required", "Function '%s' reuires lambda which returns boolean.")
 
 namespace SQCompilation {
 
@@ -250,6 +251,7 @@ public:
   static std::vector<std::string> function_result_must_be_utilized;
   static std::vector<std::string> function_can_return_null;
   static std::vector<std::string> function_calls_lambda_inplace;
+  static std::vector<std::string> function_takes_boolean_lambda;
   static std::vector<std::string> format_function_name;
   static std::vector<std::string> function_forbidden;
   static std::vector<std::string> function_forbidden_parent_dir;
