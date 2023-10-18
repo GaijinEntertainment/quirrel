@@ -79,6 +79,7 @@ std::vector<std::string> SQCompilationContext::function_should_return_something_
 std::vector<std::string> SQCompilationContext::function_result_must_be_utilized;
 std::vector<std::string> SQCompilationContext::function_can_return_null;
 std::vector<std::string> SQCompilationContext::function_calls_lambda_inplace;
+std::vector<std::string> SQCompilationContext::function_takes_boolean_lambda;
 std::vector<std::string> SQCompilationContext::function_forbidden_parent_dir;
 std::vector<std::string> SQCompilationContext::function_modifies_object;
 std::vector<std::string> SQCompilationContext::function_must_be_called_from_root;
@@ -129,7 +130,11 @@ void SQCompilationContext::resetConfig() {
     "was",
     "Was",
     "will",
-    "Will"
+    "Will",
+    "contains",
+    "match",
+    "startswith",
+    "endswith"
   };
 
   function_should_return_something_prefix = {
@@ -156,6 +161,12 @@ void SQCompilationContext::resetConfig() {
     "indexof",
     "findindex",
     "findvalue"
+  };
+
+  function_takes_boolean_lambda = {
+    "findvalue",
+    "findindex",
+    "filter"
   };
 
   function_calls_lambda_inplace = {
