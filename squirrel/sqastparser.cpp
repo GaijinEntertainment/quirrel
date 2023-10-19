@@ -111,6 +111,10 @@ Statement* SQParser::parseDirectiveStatement()
         setFlags = LF_DISABLE_OPTIMIZER;
     else if (strcmp(sval, _SC("enable-optimizer")) == 0)
         clearFlags = LF_DISABLE_OPTIMIZER;
+    else if (strcmp(sval, _SC("allow-extends-keyword")) == 0)
+      clearFlags = LF_FORBID_EXTENDS;
+    else if (strcmp(sval, _SC("forbid-extends-keyword")) == 0)
+      setFlags = LF_FORBID_EXTENDS;
     else
         reportDiagnostic(DiagnosticsId::DI_UNSUPPORTED_DIRECTIVE, sval);
 
@@ -1653,6 +1657,9 @@ ClassDecl* SQParser::ClassExp(Expr *key)
     SQInteger l = line(), c = column();
     Expr *baseExpr = NULL;
     if(_token == TK_EXTENDS) {
+        if (_lang_features & LF_FORBID_EXTENDS) {
+          reportDiagnostic(DiagnosticsId::DI_OLD_STYLE_EXTEND_FORBIDDEN);
+        }
         Lex();
         baseExpr = Expression(SQE_RVALUE);
     }
