@@ -1656,6 +1656,11 @@ ClassDecl* SQParser::ClassExp(Expr *key)
         Lex();
         baseExpr = Expression(SQE_RVALUE);
     }
+    else if (_token == _SC('(')) {
+      Lex();
+      baseExpr = Expression(SQE_RVALUE);
+      Expect(_SC(')'));
+    }
     checkBraceIdentationStyle();
     Expect(_SC('{'));
     ClassDecl *d = newNode<ClassDecl>(arena(), key, baseExpr);
