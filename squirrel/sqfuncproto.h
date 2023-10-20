@@ -15,6 +15,7 @@ enum SQLangFeature {
     // parsing stage
     LF_FORBID_ROOT_TABLE = BIT(0),
     LF_FORBID_EXTENDS = BIT(1),
+    LF_FORBID_DELETE_OP = BIT(2),
 
     // code generation stage
     LF_TOOLS_COMPILE_CHECK = BIT(4),

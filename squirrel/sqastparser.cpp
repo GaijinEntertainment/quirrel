@@ -96,7 +96,9 @@ static const SQPragmaDescriptor pragmaDescriptors[] = {
   { "disable-optimizer", LF_DISABLE_OPTIMIZER, 0 },
   { "enable-optimizer", 0, LF_DISABLE_OPTIMIZER },
   { "forbid-extends-keyword", LF_FORBID_EXTENDS, 0 },
-  { "allow-extends-keyword", 0, LF_FORBID_EXTENDS }
+  { "allow-extends-keyword", 0, LF_FORBID_EXTENDS },
+  { "forbid-delete-operator", LF_FORBID_DELETE_OP, 0 },
+  { "allow-delete-operator", 0, LF_FORBID_DELETE_OP }
 };
 
 Statement* SQParser::parseDirectiveStatement()
@@ -1013,7 +1015,12 @@ Expr* SQParser::Factor(SQInteger &pos)
     case TK_PLUSPLUS :
         r = setCoordinates(PrefixIncDec(_token), l, c);
         break;
-    case TK_DELETE : r = DeleteExpr(); break;
+    case TK_DELETE :
+        if (_lang_features & LF_FORBID_DELETE_OP) {
+            reportDiagnostic(DiagnosticsId::DI_DELETE_OP_FORBIDDEN);
+        }
+        r = DeleteExpr();
+        break;
     case _SC('('):
         Lex();
         r = setCoordinates(newNode<UnExpr>(TO_PAREN, Expression(_expression_context)), l, c);
