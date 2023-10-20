@@ -79,44 +79,51 @@ bool SQParser::ProcessPosDirective()
     return true;
 }
 
+struct SQPragmaDescriptor {
+  const SQChar *id;
+  SQInteger setFlags, clearFlags;
+};
+
+static const SQPragmaDescriptor pragmaDescriptors[] = {
+  { "strict", LF_STRICT, 0 },
+  { "relaxed", 0, LF_STRICT },
+  { "strict-bool", LF_STRICT_BOOL, 0 },
+  { "relaxed-bool", 0, LF_STRICT_BOOL },
+  { "no-plus-concat", LF_NO_PLUS_CONCAT, 0 },
+  { "allow-plus-concat", 0, LF_NO_PLUS_CONCAT },
+  { "forbid-root-table", LF_FORBID_ROOT_TABLE, 0 },
+  { "allow-root-table", 0, LF_FORBID_ROOT_TABLE },
+  { "disable-optimizer", LF_DISABLE_OPTIMIZER, 0 },
+  { "enable-optimizer", 0, LF_DISABLE_OPTIMIZER },
+  { "forbid-extends-keyword", LF_FORBID_EXTENDS, 0 },
+  { "allow-extends-keyword", 0, LF_FORBID_EXTENDS }
+};
 
 Statement* SQParser::parseDirectiveStatement()
 {
     const SQChar *sval = _lex._svalue;
 
-    SQInteger setFlags = 0, clearFlags = 0;
     bool applyToDefault = false;
     if (strncmp(sval, _SC("default:"), 8) == 0) {
         applyToDefault = true;
         sval += 8;
     }
 
-    if (strcmp(sval, _SC("strict")) == 0)
-        setFlags = LF_STRICT;
-    else if (strcmp(sval, _SC("relaxed")) == 0)
-        clearFlags = LF_STRICT;
-    else if (strcmp(sval, _SC("strict-bool")) == 0)
-        setFlags = LF_STRICT_BOOL;
-    else if (strcmp(sval, _SC("relaxed-bool")) == 0)
-        clearFlags = LF_STRICT_BOOL;
-    else if (strcmp(sval, _SC("no-plus-concat")) == 0)
-        setFlags = LF_NO_PLUS_CONCAT;
-    else if (strcmp(sval, _SC("allow-plus-concat")) == 0)
-        clearFlags = LF_NO_PLUS_CONCAT;
-    else if (strcmp(sval, _SC("forbid-root-table")) == 0)
-        setFlags = LF_FORBID_ROOT_TABLE;
-    else if (strcmp(sval, _SC("allow-root-table")) == 0)
-        clearFlags = LF_FORBID_ROOT_TABLE;
-    else if (strcmp(sval, _SC("disable-optimizer")) == 0)
-        setFlags = LF_DISABLE_OPTIMIZER;
-    else if (strcmp(sval, _SC("enable-optimizer")) == 0)
-        clearFlags = LF_DISABLE_OPTIMIZER;
-    else if (strcmp(sval, _SC("allow-extends-keyword")) == 0)
-      clearFlags = LF_FORBID_EXTENDS;
-    else if (strcmp(sval, _SC("forbid-extends-keyword")) == 0)
-      setFlags = LF_FORBID_EXTENDS;
-    else
-        reportDiagnostic(DiagnosticsId::DI_UNSUPPORTED_DIRECTIVE, sval);
+    const SQPragmaDescriptor *pragmaDesc = nullptr;
+
+    for (const auto &desc : pragmaDescriptors) {
+      if (strcmp(sval, desc.id) == 0) {
+        pragmaDesc = &desc;
+        break;
+      }
+    }
+
+    if (pragmaDesc == nullptr) {
+      reportDiagnostic(DiagnosticsId::DI_UNSUPPORTED_DIRECTIVE, sval);
+      return nullptr;
+    }
+
+    SQInteger setFlags = pragmaDesc->setFlags, clearFlags = pragmaDesc->clearFlags;
 
     DirectiveStmt *d = newNode<DirectiveStmt>();
     d->setLineStartPos(_lex._tokenline);
