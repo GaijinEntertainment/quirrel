@@ -98,7 +98,9 @@ static const SQPragmaDescriptor pragmaDescriptors[] = {
   { "forbid-extends-keyword", LF_FORBID_EXTENDS, 0 },
   { "allow-extends-keyword", 0, LF_FORBID_EXTENDS },
   { "forbid-delete-operator", LF_FORBID_DELETE_OP, 0 },
-  { "allow-delete-operator", 0, LF_FORBID_DELETE_OP }
+  { "allow-delete-operator", 0, LF_FORBID_DELETE_OP },
+  { "forbid-clone-operator", LF_FORBID_CLONE_OP, 0 },
+  { "allow-clone-operator", 0, LF_FORBID_CLONE_OP }
 };
 
 Statement* SQParser::parseDirectiveStatement()
@@ -164,6 +166,11 @@ void SQParser::Lex()
                 _lex._prevtoken = _SC('\n');
         } else
             break;
+    }
+
+    if (_token == TK_CLONE && (_lang_features & LF_FORBID_CLONE_OP)) {
+      _token = TK_IDENTIFIER;
+      _lex.SetStringValue();
     }
 }
 

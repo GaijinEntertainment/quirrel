@@ -123,6 +123,10 @@ const SQChar *SQLexer::Tok2Str(SQInteger tok)
     return NULL;
 }
 
+void SQLexer::SetStringValue() {
+  _svalue = &_longstr[0];
+}
+
 void SQLexer::AddComment(enum CommentKind kind, SQInteger line, SQInteger start, SQInteger end) {
   if (!_comments)
     return;
@@ -531,7 +535,7 @@ loop_exit:
         _nvalue = _longstr[0];
         return TK_INTEGER;
     }
-    _svalue = &_longstr[0];
+    SetStringValue();
     return t;
 }
 
@@ -673,7 +677,7 @@ SQInteger SQLexer::ReadID()
     TERMINATE_BUFFER();
     res = GetIDType(&_longstr[0],_longstr.size() - 1);
     if(res == TK_IDENTIFIER || res == TK_CONSTRUCTOR) {
-        _svalue = &_longstr[0];
+        SetStringValue();
     }
     return res;
 }
@@ -688,6 +692,6 @@ SQInteger SQLexer::ReadDirective()
     TERMINATE_BUFFER();
     if (!_longstr[0])
         return -1;
-    _svalue = &_longstr[0];
+    SetStringValue();
     return TK_DIRECTIVE;
 }
