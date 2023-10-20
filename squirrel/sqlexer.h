@@ -25,6 +25,7 @@ struct SQLexer
     void Init(SQSharedState *ss, const char *code, size_t codeSize);
     SQInteger Lex();
     const SQChar *Tok2Str(SQInteger tok);
+    void SetStringValue();
 private:
     void nextLine();
     SQInteger LexSingleToken();
