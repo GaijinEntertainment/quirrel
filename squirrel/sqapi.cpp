@@ -1886,3 +1886,7 @@ void sq_enablesyntaxwarnings() {
 void sq_checkglobalnames(HSQUIRRELVM v) {
   StaticAnalyser::reportGlobalNameDiagnostics(v);
 }
+
+void sq_mergeglobalnames(const HSQOBJECT *bindings) {
+  StaticAnalyser::mergeKnownBindings(bindings);
+}

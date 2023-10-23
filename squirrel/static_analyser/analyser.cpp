@@ -8138,7 +8138,7 @@ void StaticAnalyser::checkTrailingWhitespaces(HSQUIRRELVM vm, const SQChar *sour
   }
 }
 
-static void mergeKnownBindings(const HSQOBJECT *bindings) {
+void StaticAnalyser::mergeKnownBindings(const HSQOBJECT *bindings) {
   if (bindings && sq_istable(*bindings)) {
     SQTable *table = _table(*bindings);
 
