@@ -436,6 +436,7 @@ SQUIRREL_API void sq_printwarningslist(FILE *ostream);
 SQUIRREL_API void sq_disablesyntaxwarnings();
 SQUIRREL_API void sq_enablesyntaxwarnings();
 SQUIRREL_API void sq_checkglobalnames(HSQUIRRELVM v);
+SQUIRREL_API void sq_mergeglobalnames(const HSQOBJECT *bindings);
 
 
 /*UTILITY MACRO*/
