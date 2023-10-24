@@ -277,6 +277,147 @@ static SQInteger base_freeze(HSQUIRRELVM v)
     return SQ_SUCCEEDED(sq_freeze(v, 2)) ? 1 : SQ_ERROR;
 }
 
+static SQInteger base_call_method_impl(HSQUIRRELVM v, bool safe)
+{
+    SQChar message[1024] = {0};
+    SQInteger nArgs = sq_gettop(v);
+
+    if (nArgs < 3)
+    {
+        if (safe)
+        {
+            v->Pop(nArgs);
+            v->PushNull();
+            return 1;
+        }
+        snprintf(message, sizeof message, _SC("'__call_method(...)' recieves at least 2 arguments (%d), object to method on and method's name"), nArgs);
+        return sq_throwerror(v, message);
+    }
+
+    SQObject obj = stack_get(v, 2);
+    SQObject name = stack_get(v, 3);
+
+    if (!sq_isstring(name))
+    {
+        if (safe)
+        {
+            v->Pop(nArgs);
+            v->PushNull();
+            return 1;
+        }
+        snprintf(message, sizeof message, _SC("'__call_method(...)' expects 2nd argument to be string, actual '%s'"), IdType2Name(sq_type(name)));
+        return sq_throwerror(v, message);
+    }
+
+    SQObject delegates;
+    SQObjectType type = sq_type(obj);
+    switch (type)
+    {
+    case OT_INTEGER:
+    case OT_FLOAT:
+    case OT_BOOL:
+        delegates = _ss(v)->_number_default_delegate;
+        break;
+    case OT_STRING:
+        delegates = _ss(v)->_string_default_delegate;
+        break;
+    case OT_TABLE:
+        delegates = _ss(v)->_table_default_delegate;
+        break;
+    case OT_ARRAY:
+        delegates = _ss(v)->_array_default_delegate;
+        break;
+    case OT_USERDATA:
+        delegates = _ss(v)->_userdata_default_delegate;
+        break;
+    case OT_CLOSURE:
+    case OT_NATIVECLOSURE:
+        delegates = _ss(v)->_closure_default_delegate;
+        break;
+    case OT_GENERATOR:
+        delegates = _ss(v)->_generator_default_delegate;
+        break;
+    case OT_THREAD:
+        delegates = _ss(v)->_thread_default_delegate;
+        break;
+    case OT_CLASS:
+        delegates = _ss(v)->_class_default_delegate;
+        break;
+    case OT_INSTANCE:
+        delegates = _ss(v)->_instance_default_delegate;
+        break;
+    case OT_WEAKREF:
+        delegates = _ss(v)->_weakref_default_delegate;
+        break;
+    default:
+        if (safe)
+        {
+            v->Pop(nArgs);
+            v->PushNull();
+            return 1;
+        }
+        snprintf(message, sizeof message, _SC("unsupported object type '%s' as receiver in '__call_method(...)' function"), IdType2Name(type));
+        return sq_throwerror(v, message);
+    }
+
+    assert(sq_istable(delegates));
+
+    SQObjectPtr callee;
+    if (!_table(delegates)->Get(name, callee))
+    {
+        if (safe)
+        {
+            v->Pop(nArgs);
+            v->PushNull();
+            return 1;
+        }
+        else
+        {
+            snprintf(message, sizeof message, _SC("function '%s' not found in '%s' delegates"), _stringval(name), IdType2Name(type));
+            return sq_throwerror(v, message);
+        }
+    }
+
+    assert(sq_isnativeclosure(callee));
+
+    sqvector<SQObjectPtr> args(_ss(v)->_alloc_ctx);
+
+    args.reserve(nArgs - 2);
+    args.push_back(obj);
+
+    for (int32_t i = 4; i <= nArgs; ++i) // skip reciever + name
+    {
+        SQObject arg = stack_get(v, i);
+        args.push_back(arg);
+    }
+
+    for (int32_t i = 0; i < args.size(); ++i)
+    {
+        v->Push(args[i]);
+    }
+
+    bool s, t;
+    SQObjectPtr ret;
+    if (!v->CallNative(_nativeclosure(callee), nArgs - 2, v->_stackbase + nArgs, ret, -1, s, t))
+    {
+        return SQ_ERROR;
+    }
+
+    v->Pop(nArgs);
+    v->Push(ret);
+    return 1;
+}
+
+static SQInteger base_call_method(HSQUIRRELVM v)
+{
+    return base_call_method_impl(v, false);
+}
+
+static SQInteger base_call_method_safe(HSQUIRRELVM v)
+{
+  return base_call_method_impl(v, true);
+}
+
 static const SQRegFunction base_funcs[]={
     //generic
     {_SC("getroottable"),base_getroottable,1, NULL},
@@ -291,6 +432,8 @@ static const SQRegFunction base_funcs[]={
     {_SC("type"),base_type,2, NULL},
     {_SC("callee"),base_callee,0,NULL},
     {_SC("freeze"),base_freeze,2,NULL},
+    {_SC("call_type_method"),base_call_method,-1,NULL},
+    {_SC("call_type_method_safe"),base_call_method_safe,-1,NULL},
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
