@@ -948,6 +948,15 @@ static SQInteger obj_clone(HSQUIRRELVM vm) {
     return 1;
 }
 
+static SQInteger obj_is_frozen(HSQUIRRELVM vm) {
+  SQObjectPtr self = vm->PopGet();
+  SQObjectPtr target;
+
+  sq_pushbool(vm, (self._flags & SQOBJ_FLAG_IMMUTABLE) != 0);
+
+  return 1;
+}
+
 const SQRegFunction SQSharedState::_table_default_delegate_funcz[]={
     {_SC("len"),default_delegate_len,1, _SC("t")},
     {_SC("rawget"),container_rawget,2, _SC("t")},
@@ -970,6 +979,7 @@ const SQRegFunction SQSharedState::_table_default_delegate_funcz[]={
     {_SC("__merge"),container_merge, -2, _SC("t|yt|y|x") },
     {_SC("topairs"),table_to_pairs, 1, _SC("t") },
     {_SC("clone"),obj_clone, 1, _SC(".") },
+    {_SC("is_frozen"),obj_is_frozen, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -1437,6 +1447,7 @@ const SQRegFunction SQSharedState::_array_default_delegate_funcz[]={
     {_SC("totable"),pairs_to_table,1, _SC("a") },
     {_SC("replace"),array_replace,2, _SC("aa")},
     {_SC("clone"),obj_clone, 1, _SC(".") },
+    {_SC("is_frozen"),obj_is_frozen, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2273,6 +2284,7 @@ const SQRegFunction SQSharedState::_class_default_delegate_funcz[] = {
     {_SC("__merge"),container_merge, -2, _SC("t|yt|y|x") },
     {_SC("getmetamethod"),get_class_metamethod, 2, _SC("ys")},
     {_SC("clone"),obj_clone, 1, _SC(".") },
+    {_SC("is_frozen"),obj_is_frozen, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2294,6 +2306,7 @@ const SQRegFunction SQSharedState::_instance_default_delegate_funcz[] = {
     {_SC("getfuncinfos"),delegable_getfuncinfos,1, _SC("x")},
     {_SC("getmetamethod"),get_class_metamethod, 2, _SC("xs")},
     {_SC("clone"),obj_clone, 1, _SC(".") },
+    {_SC("is_frozen"),obj_is_frozen, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2315,5 +2328,6 @@ const SQRegFunction SQSharedState::_weakref_default_delegate_funcz[] = {
 const SQRegFunction SQSharedState::_userdata_default_delegate_funcz[] = {
     {_SC("getfuncinfos"),delegable_getfuncinfos,1, _SC("u")},
     {_SC("clone"),obj_clone, 1, _SC(".") },
+    {_SC("is_frozen"),obj_is_frozen, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
