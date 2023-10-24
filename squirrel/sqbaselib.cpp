@@ -77,20 +77,6 @@ static SQInteger get_allowed_args_count(SQObject &closure, SQInteger num_support
     return -1;
 }
 
-
-#ifndef NO_GARBAGE_COLLECTOR
-static SQInteger base_collectgarbage(HSQUIRRELVM v)
-{
-    sq_pushinteger(v, sq_collectgarbage(v));
-    return 1;
-}
-static SQInteger base_resurrectunreachable(HSQUIRRELVM v)
-{
-    sq_resurrectunreachable(v);
-    return 1;
-}
-#endif
-
 static SQInteger base_getroottable(HSQUIRRELVM v)
 {
     v->Push(v->_roottable);
@@ -103,20 +89,7 @@ static SQInteger base_getconsttable(HSQUIRRELVM v)
     return 1;
 }
 
-
-static SQInteger base_seterrorhandler(HSQUIRRELVM v)
-{
-    sq_seterrorhandler(v);
-    return 0;
-}
-
-static SQInteger base_setdebughook(HSQUIRRELVM v)
-{
-    sq_setdebughook(v);
-    return 0;
-}
-
-static SQInteger __getcallstackinfos(HSQUIRRELVM v,SQInteger level)
+SQInteger __getcallstackinfos(HSQUIRRELVM v,SQInteger level)
 {
     SQStackInfos si;
     SQInteger seq = 0;
@@ -153,12 +126,6 @@ static SQInteger __getcallstackinfos(HSQUIRRELVM v,SQInteger level)
     }
 
     return 0;
-}
-static SQInteger base_getstackinfos(HSQUIRRELVM v)
-{
-    SQInteger level;
-    sq_getinteger(v, -1, &level);
-    return __getcallstackinfos(v,level);
 }
 
 static SQInteger base_assert(HSQUIRRELVM v)
@@ -211,7 +178,7 @@ static SQInteger get_slice_params(HSQUIRRELVM v,SQInteger &sidx,SQInteger &eidx,
     return 1;
 }
 
-static SQInteger base_print(HSQUIRRELVM v, SQPRINTFUNCTION pf, bool newline)
+SQInteger base_print(HSQUIRRELVM v, SQPRINTFUNCTION pf, bool newline)
 {
     if(SQ_SUCCEEDED(sq_tostring(v,2)))
     {
@@ -233,16 +200,6 @@ static SQInteger base_print_newline(HSQUIRRELVM v)
 static SQInteger base_print_(HSQUIRRELVM v)
 {
     return base_print(v, _ss(v)->_printfunc, false);
-}
-
-static SQInteger base_error_newline(HSQUIRRELVM v)
-{
-    return base_print(v, _ss(v)->_errorfunc, true);
-}
-
-static SQInteger base_error_(HSQUIRRELVM v)
-{
-    return base_print(v, _ss(v)->_errorfunc, false);
 }
 
 static SQInteger base_compilestring(HSQUIRRELVM v)
@@ -320,56 +277,20 @@ static SQInteger base_freeze(HSQUIRRELVM v)
     return SQ_SUCCEEDED(sq_freeze(v, 2)) ? 1 : SQ_ERROR;
 }
 
-static SQInteger base_getobjflags(HSQUIRRELVM v)
-{
-    sq_pushinteger(v, sq_objflags(stack_get(v, 2)));
-    return 1;
-}
-
-static SQInteger base_getbuildinfo(HSQUIRRELVM v)
-{
-    sq_newtable(v);
-    sq_pushstring(v,_SC("version"),-1);
-    sq_pushstring(v,SQUIRREL_VERSION,-1);
-    sq_newslot(v,-3, SQFalse);
-    sq_pushstring(v,_SC("charsize"),-1);
-    sq_pushinteger(v,sizeof(SQChar));
-    sq_newslot(v,-3, SQFalse);
-    sq_pushstring(v,_SC("intsize"),-1);
-    sq_pushinteger(v,sizeof(SQInteger));
-    sq_newslot(v,-3, SQFalse);
-    sq_pushstring(v,_SC("floatsize"),-1);
-    sq_pushinteger(v,sizeof(SQFloat));
-    sq_newslot(v,-3, SQFalse);
-    return 1;
-}
-
-
 static const SQRegFunction base_funcs[]={
     //generic
-    {_SC("seterrorhandler"),base_seterrorhandler,2, NULL},
-    {_SC("setdebughook"),base_setdebughook,2, NULL},
-    {_SC("getstackinfos"),base_getstackinfos,2, _SC(".n")},
     {_SC("getroottable"),base_getroottable,1, NULL},
     {_SC("getconsttable"),base_getconsttable,1, NULL},
     {_SC("assert"),base_assert, -2, NULL},
     {_SC("print"),base_print_, 2, NULL},
     {_SC("println"),base_print_newline, 2, NULL},
-    {_SC("error"),base_error_, 2, NULL},
-    {_SC("errorln"),base_error_newline, 2, NULL},
     {_SC("compilestring"),base_compilestring,-2, _SC(".sst|o")},
     {_SC("newthread"),base_newthread,2, _SC(".c")},
     {_SC("suspend"),base_suspend,-1, NULL},
     {_SC("array"),base_array,-2, _SC(".n")},
     {_SC("type"),base_type,2, NULL},
     {_SC("callee"),base_callee,0,NULL},
-#ifndef NO_GARBAGE_COLLECTOR
-    {_SC("collectgarbage"),base_collectgarbage,0, NULL},
-    {_SC("resurrectunreachable"),base_resurrectunreachable,0, NULL},
-#endif
     {_SC("freeze"),base_freeze,2,NULL},
-    {_SC("getobjflags"), base_getobjflags,2,NULL},
-    {_SC("getbuildinfo"), base_getbuildinfo,1,NULL},
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
