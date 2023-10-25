@@ -309,13 +309,26 @@ SQInteger SQLexer::LexSingleToken()
             NEXT(); RETURN_TOKEN(ret); }
         case _SC('?'):
             {NEXT();
-            if (CUR_CHAR == _SC('.')) { NEXT(); RETURN_TOKEN(TK_NULLGETSTR); }
+            if (CUR_CHAR == _SC('.')) {
+                NEXT();
+                if (CUR_CHAR == _SC('$')) {
+                    NEXT();
+                    RETURN_TOKEN(TK_NULLABLE_BUILT_IN_GETSTR);
+                }
+                else {
+                    RETURN_TOKEN(TK_NULLGETSTR);
+                }
+            }
             if (CUR_CHAR == _SC('[')) { NEXT(); RETURN_TOKEN(TK_NULLGETOBJ); }
             if (CUR_CHAR == _SC('(')) { NEXT(); RETURN_TOKEN(TK_NULLCALL); }
             if (CUR_CHAR == _SC('?')) { NEXT(); RETURN_TOKEN(TK_NULLCOALESCE); }
             RETURN_TOKEN('?'); }
         case _SC('.'):
             NEXT();
+            if (CUR_CHAR == _SC('$')) {
+                NEXT();
+                RETURN_TOKEN(TK_BUILT_IN_GETSTR);
+            }
             if (CUR_CHAR != _SC('.')){ RETURN_TOKEN('.') }
             NEXT();
             if (CUR_CHAR != _SC('.')){
