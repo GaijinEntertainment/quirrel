@@ -275,7 +275,12 @@ SQInteger SQLexer::LexSingleToken()
             }
         case _SC('$'): {
             NEXT();
-            RETURN_TOKEN('$');
+            if (CUR_CHAR == _SC('"')) {
+                RETURN_TOKEN(TK_TEMPLATE_OP);
+            }
+            else {
+                RETURN_TOKEN('$');
+            }
             }
         case _SC('@'): {
             SQInteger stype;

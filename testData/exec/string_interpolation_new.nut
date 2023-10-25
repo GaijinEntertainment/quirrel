@@ -20,7 +20,3 @@ println($"   foo bar ")
 
 print("#5: ")
 println($"{foo()}}}}}}")
-
-print("#6: ")
-println($//"x")
-"{foo()}")

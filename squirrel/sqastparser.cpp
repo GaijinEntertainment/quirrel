@@ -896,7 +896,7 @@ Expr* SQParser::Factor(SQInteger &pos)
         r->setLineStartPos(l); r->setColumnStartPos(c);
         Lex();
         break;
-    case _SC('$'):
+    case TK_TEMPLATE_OP:
         r = parseStringTemplate();
         break;
     case TK_BASE:
