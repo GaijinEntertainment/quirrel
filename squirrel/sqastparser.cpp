@@ -100,7 +100,9 @@ static const SQPragmaDescriptor pragmaDescriptors[] = {
   { "forbid-delete-operator", LF_FORBID_DELETE_OP, 0 },
   { "allow-delete-operator", 0, LF_FORBID_DELETE_OP },
   { "forbid-clone-operator", LF_FORBID_CLONE_OP, 0 },
-  { "allow-clone-operator", 0, LF_FORBID_CLONE_OP }
+  { "allow-clone-operator", 0, LF_FORBID_CLONE_OP },
+  { "forbid-implicit-default-delegates", LF_FORBID_IMPLICIT_DEF_DELEGATE, 0 },
+  { "allow-implicit-default-delegates", 0, LF_FORBID_IMPLICIT_DEF_DELEGATE }
 };
 
 Statement* SQParser::parseDirectiveStatement()
@@ -723,18 +725,23 @@ Expr* SQParser::PrefixedExpr()
         nc.inc();
         switch(_token) {
         case _SC('.'):
-        case TK_NULLGETSTR: {
-            if (_token == TK_NULLGETSTR || nextIsNullable)
+        case TK_NULLGETSTR:
+        case TK_BUILT_IN_GETSTR:
+        case TK_NULLABLE_BUILT_IN_GETSTR: {
+            if (_token == TK_NULLGETSTR || _token == TK_NULLABLE_BUILT_IN_GETSTR || nextIsNullable)
             {
                 nextIsNullable = true;
             }
+
+            bool isBuintInGet = _token == TK_BUILT_IN_GETSTR || _token == TK_NULLABLE_BUILT_IN_GETSTR;
+
             Lex();
 
             SQInteger l = _lex._currentline, c = _lex._currentcolumn;
             Expr *receiver = e;
             Id *id = (Id *)Expect(TK_IDENTIFIER);
             assert(id);
-            e = newNode<GetFieldExpr>(receiver, id->id(), nextIsNullable); //-V522
+            e = newNode<GetFieldExpr>(receiver, id->id(), nextIsNullable, isBuintInGet); //-V522
             e->setLineStartPos(receiver->lineStart()); e->setColumnStartPos(receiver->columnStart());
             e->setLineEndPos(l); e->setColumnEndPos(c);
             break;
@@ -866,7 +873,7 @@ Expr *SQParser::parseStringTemplate() {
       result = fmt;
     }
     else {
-      Expr *callee = setCoordinates(newNode<GetFieldExpr>(fmt, "subst", false), l, c);
+      Expr *callee = setCoordinates(newNode<GetFieldExpr>(fmt, "subst", false, /* force built-in member */ true), l, c);
       CallExpr *call = setCoordinates(newNode<CallExpr>(arena(), callee, false), l, c);
 
       for (Expr *arg : args)
