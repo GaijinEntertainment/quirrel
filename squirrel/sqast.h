@@ -700,6 +700,7 @@ public:
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
 
+    void setName(const SQChar *newName) { _name = newName; }
     const SQChar *name() const { return _name; }
     bool isVararg() const { return _vararg; }
     Block *body() const { return _body; }
@@ -781,7 +782,11 @@ protected:
 public:
     DeclGroup(Arena *arena) : Decl(TO_DECL_GROUP), _decls(arena) {}
 
-    void addDeclaration(VarDecl *d) { _decls.push_back(d); }
+    void addDeclaration(VarDecl *d) {
+      _decls.push_back(d);
+      setLineEndPos(d->lineEnd());
+      setColumnEndPos(d->columnEnd());
+    }
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -805,7 +810,11 @@ public:
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
 
-    void setExpression(Expr *expr) { _expr = expr; }
+    void setExpression(Expr *expr) {
+      _expr = expr;
+      setLineEndPos(expr->lineEnd());
+      setColumnEndPos(expr->columnEnd());
+    }
     Expr *initiExpression() const { return _expr; }
 
     void setType(enum DestructuringType t) { _dt_type = t; }
