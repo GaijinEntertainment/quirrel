@@ -1175,6 +1175,7 @@ Decl* SQParser::parseLocalDeclStatement()
     NestingChecker nc(this);
 
     assert(_token == TK_LET || _token == TK_LOCAL);
+    SQInteger gl = line(), gc = column();
     bool assignable = _token == TK_LOCAL;
     Lex();
 
@@ -1183,6 +1184,7 @@ Decl* SQParser::parseLocalDeclStatement()
     } else if (_token == TK_CLASS) {
         return parseLocalClassDeclStmt(assignable);
     }
+
 
     DeclGroup *decls = NULL;
     DestructuringDecl  *dd = NULL;
@@ -1219,7 +1221,7 @@ Decl* SQParser::parseLocalDeclStatement()
         if (decls) {
             decls->addDeclaration(cur);
         } else if (decl) {
-            decls = newNode<DeclGroup>(arena());
+            decls = setCoordinates(newNode<DeclGroup>(arena()), gl, gc);
             decls->addDeclaration(static_cast<VarDecl *>(decl));
             decls->addDeclaration(cur);
             decl = decls;
