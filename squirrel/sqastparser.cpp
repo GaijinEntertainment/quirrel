@@ -1207,6 +1207,12 @@ Decl* SQParser::parseLocalDeclStatement()
         if(_token == _SC('=')) {
             Lex();
             Expr *expr = Expression(SQE_REGULAR);
+            if (!assignable && expr->op() == TO_DECL_EXPR && expr->asDeclExpr()->declaration()->op() == TO_FUNCTION) {
+              FunctionDecl *f = static_cast<FunctionDecl *>(expr->asDeclExpr()->declaration());
+              if (!f->name() || f->name()[0] == _SC('(')) {
+                f->setName(varname->id());
+              }
+            }
             cur = newNode<VarDecl>(varname->id(), expr, assignable, destructurer != 0); //-V522
         }
         else {
