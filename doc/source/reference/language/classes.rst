@@ -21,13 +21,13 @@ Class Declaration
     pair: declaration; Class
     single: Class Declaration
 
-A class object is created through the keyword 'class' . The class object follows
+A class object is created through the keyword ``class`` . The class object follows
 the same declaration syntax of a table(see :ref:`Tables <tables>`) with the only difference
-of using ';' as optional separator rather than ','.
+of using ``;`` as optional separator rather than ``,``.
 
 For instance: ::
 
-    let class Foo {
+    class Foo {
         //constructor
         constructor(a) {
             testy = ["stuff",1,2,3,a]
@@ -42,44 +42,9 @@ For instance: ::
         testy = null
     }
 
-the previous code example is a syntactic sugar for: ::
-
-    Foo <- class {
-        //constructor
-        constructor(a) {
-            testy = ["stuff",1,2,3,a]
-        }
-        //member function
-        function PrintTesty() {
-            foreach(i,val in testy) {
-                println("idx = "+i+" = "+val)
-            }
-        }
-        //property
-        testy = null
-    }
-
-in order to emulate namespaces, it is also possible to declare something like this::
-
-    //just 2 regular nested tables
-    FakeNamespace <- {
-        Utils = {}
-    }
-
-    class FakeNamespace.Utils.SuperClass {
-        constructor() {
-            println("FakeNamespace.Utils.SuperClass")
-        }
-        function DoSomething() {
-            println("DoSomething()")
-        }
-    }
-
-    let testy = FakeNamespace.Utils.SuperClass()
-    testy.DoSomething()
 
 After its declaration, methods or properties can be added or modified by following
-the same rules that apply to a table(operator ``<-``).::
+the same rules that apply to a table (operator ``<-``).::
 
     //adds a new property
     Foo.stuff <- 10
@@ -105,9 +70,8 @@ with the keyword ``static``; the declaration must be in the class body.
 
 ::
 
-    let class Foo {
-        constructor()
-        {
+    class Foo {
+        constructor() {
             //..stuff
         }
         name = "normal variable"
@@ -139,40 +103,42 @@ class declaration. The values are copied verbatim, *no cloning is performed* eve
 
 .. note:: FOR C# and Java programmers:
 
-            Quirrel doesn't clone member's default values nor executes the member declaration for each instance(as C# or java).
+    Quirrel doesn't clone member's default values nor executes the member declaration for each instance(as C# or java).
 
-            So consider this example: ::
+    So consider this example: ::
 
-                let class Foo {
-                  myarray = [1,2,3]
-                  mytable = {}
-                }
+        class Foo {
+            myarray = [1,2,3]
+            mytable = {}
+        }
 
-                let a = Foo()
-                let b = Foo()
+        let a = Foo()
+        let b = Foo()
 
-            In the snippet above both instances will refer to the same array and same table.To achieve what a C# or Java programmer would
-            expect, the following approach should be taken. ::
+    In the snippet above both instances will refer to the same array and same table.
+    To achieve what a C# or Java programmer would expect, the following approach should be taken. ::
 
-                let class Foo {
-                  myarray = null
-                  mytable = null
-                  constructor() {
-                    myarray = [1,2,3]
-                    mytable = {}
-                  }
-                }
+        class Foo {
+            myarray = null
+            mytable = null
+            constructor() {
+                myarray = [1,2,3]
+                mytable = {}
+            }
+        }
 
-                let a = Foo()
-                let b = Foo()
+        let a = Foo()
+        let b = Foo()
 
 When a class defines a method called 'constructor', the class instantiation operation will
 automatically invoke it for the newly created instance.
 The constructor method can have parameters, this will impact on the number of parameters
 that the *instantiation operation* will require.
-Constructors, as normal functions, can have variable number of parameters (using the parameter ``...``).::
+Constructors, as normal functions, can have variable number of parameters (using the parameter ``...``).
 
-    let class Rect {
+::
+
+    class Rect {
         constructor(w,h) {
             width = w
             height = h
@@ -195,9 +161,11 @@ Instance members cannot be removed.
 The class object that created a certain instance can be retrieved through the built-in function
 ``instance.getclass()`` (see :ref:`built-in functions <builtin_functions>`)
 
-The operator ``instanceof`` tests if a class instance is an instance of a certain class.::
+The operator ``instanceof`` tests if a class instance is an instance of a certain class.
 
-    let rc = Rect(100,100);
+::
+
+    let rc = Rect(100, 100)
     if (rc instanceof Rect) {
         println("It's a rect")
     }
@@ -219,7 +187,7 @@ Quirrel's classes support single inheritance by adding the keyword ``extends``, 
 by an expression, in the class declaration.
 The syntax for a derived class is the following: ::
 
-    let class SuperFoo extends Foo {
+    class SuperFoo extends Foo {
         function DoSomething() {
             println("I'm doing something")
         }
@@ -235,13 +203,13 @@ through the 'base' keyword.
 
 Here an example: ::
 
-    let class Foo {
+    class Foo {
         function DoSomething() {
             println("I'm the base")
         }
     };
 
-    let class SuperFoo extends Foo {
+    class SuperFoo extends Foo {
         //overridden method
         function DoSomething() {
             //calls the base method
@@ -254,7 +222,7 @@ Same rule apply to the constructor. The constructor is a regular function (apart
 
     class BaseClass {
         constructor() {
-            println("Base constructor");
+            println("Base constructor")
         }
     }
 
@@ -265,11 +233,11 @@ Same rule apply to the constructor. The constructor is a regular function (apart
         }
     }
 
-    let test = ChildClass();
+    let test = ChildClass()
 
 The base class of a derived class can be retrieved through the built-in method ``getbase()``.::
 
-    let thebaseclass = SuperFoo.getbase();
+    let thebaseclass = SuperFoo.getbase()
 
 Note that because methods do not have special protection policies when calling methods of the same
 objects, a method of a base class that calls a method of the same class can end up calling a overridden method of the derived class.
@@ -301,6 +269,14 @@ A method of a base class can be explicitly invoked by a method of a derived clas
     //prints "I'm the derived"
     inst.DoIt()
 
+An alternative way to inheret class it to use Python-style syntax. It works the same way as described above.
+
+    class SuperFoo (Foo) {
+        function DoSomething() {
+            println("I'm doing something")
+        }
+    }
+
 ----------------------
 Metamethods
 ----------------------
@@ -315,7 +291,9 @@ For C++ programmers: "metamethods behave roughly like overloaded operators".
 The metamethods supported by classes are ``_add, _sub, _mul, _div, _unm, _modulo,
 _set, _get, _typeof, _nexti, _cmp, _call, _delslot, _tostring``
 
-the following example show how to create a class that implements the metamethod ``_add``.::
+the following example show how to create a class that implements the metamethod ``_add``.
+
+::
 
     class Vector3 {
         constructor(...) {
