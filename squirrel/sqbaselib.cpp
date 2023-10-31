@@ -178,7 +178,7 @@ static SQInteger get_slice_params(HSQUIRRELVM v,SQInteger &sidx,SQInteger &eidx,
     return 1;
 }
 
-SQInteger base_print(HSQUIRRELVM v, SQPRINTFUNCTION pf, bool newline)
+static SQInteger base_print(HSQUIRRELVM v, SQPRINTFUNCTION pf, bool newline)
 {
     if(SQ_SUCCEEDED(sq_tostring(v,2)))
     {
@@ -200,6 +200,16 @@ static SQInteger base_print_newline(HSQUIRRELVM v)
 static SQInteger base_print_(HSQUIRRELVM v)
 {
     return base_print(v, _ss(v)->_printfunc, false);
+}
+
+static SQInteger base_error_newline(HSQUIRRELVM v)
+{
+    return base_print(v, _ss(v)->_errorfunc, true);
+}
+
+static SQInteger base_error_(HSQUIRRELVM v)
+{
+    return base_print(v, _ss(v)->_errorfunc, false);
 }
 
 static SQInteger base_compilestring(HSQUIRRELVM v)
@@ -277,10 +287,16 @@ static SQInteger base_freeze(HSQUIRRELVM v)
     return SQ_SUCCEEDED(sq_freeze(v, 2)) ? 1 : SQ_ERROR;
 }
 
+static SQInteger base_getobjflags(HSQUIRRELVM v)
+{
+    sq_pushinteger(v, sq_objflags(stack_get(v, 2)));
+    return 1;
+}
+
 static SQInteger base_call_method_impl(HSQUIRRELVM v, bool safe)
 {
     SQChar message[1024] = {0};
-    SQInteger nArgs = sq_gettop(v);
+    int32_t nArgs = sq_gettop(v);
 
     if (nArgs < 3)
     {
@@ -425,6 +441,8 @@ static const SQRegFunction base_funcs[]={
     {_SC("assert"),base_assert, -2, NULL},
     {_SC("print"),base_print_, 2, NULL},
     {_SC("println"),base_print_newline, 2, NULL},
+    {_SC("error"),base_error_, 2, NULL},
+    {_SC("errorln"),base_error_newline, 2, NULL},
     {_SC("compilestring"),base_compilestring,-2, _SC(".sst|o")},
     {_SC("newthread"),base_newthread,2, _SC(".c")},
     {_SC("suspend"),base_suspend,-1, NULL},
@@ -432,6 +450,7 @@ static const SQRegFunction base_funcs[]={
     {_SC("type"),base_type,2, NULL},
     {_SC("callee"),base_callee,0,NULL},
     {_SC("freeze"),base_freeze,2,NULL},
+    {_SC("getobjflags"), base_getobjflags,2,NULL},
     {_SC("call_type_method"),base_call_method,-1,NULL},
     {_SC("call_type_method_safe"),base_call_method_safe,-1,NULL},
     {NULL,(SQFUNCTION)0,0,NULL}
