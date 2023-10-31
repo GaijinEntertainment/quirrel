@@ -75,6 +75,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(SUSPICIOUS_SYNTAX_RANGE_LOOP, ERROR, SEMA, -1, "", "Very suspicious range-loop syntax construction"), \
   DEF_DIAGNOSTIC(ID_RANGE_LOOP, ERROR, SEMA, -1, "", "iterator name (identifier) is expected in 'for ([variable:] [from,] to[, step])', got 'expression'"), \
   DEF_DIAGNOSTIC(COMMA_RANGE_LOOP, ERROR, SEMA, -1, "", "too many expressions separated by comma in '%s' - loop"), \
+  DEF_DIAGNOSTIC(SPACE_SEP_FIELD_NAME, ERROR, SEMA, -1, "", "Separate access operator '%s' with it's following name is forbidden"), \
   DEF_DIAGNOSTIC(TOO_MANY_SYMBOLS, ERROR, SEMA, -1, "", "internal compiler error: too many %s"), \
   DEF_DIAGNOSTIC(PAREN_IS_FUNC_CALL, WARNING, SYNTAX, 190, "paren-is-function-call", "'(' on a new line parsed as function call."), \
   DEF_DIAGNOSTIC(STMT_SAME_LINE, WARNING, SYNTAX, 192, "statement-on-same-line", "Next statement on the same line after '%s' statement."), \
