@@ -14,23 +14,27 @@ Assignment
 
 .. index::
     single: assignment(=)
-    single: new slot(<-)
 
 ::
 
     exp := derefexp '=' exp
+
+::
+
+    a = 10
+
+For adding new fields to tables there is the "new slot" operator. (see :ref:`Tables <tables>`)
+
+::
+
     exp:= derefexp '<-' exp
 
-quirrel implements 2 kind of assignment: the normal assignment(=)::
+::
 
-    a = 10;
+    tbl.a <- 10
+    tbl["b"] <- 20
 
-and the "new slot" assignment.::
-
-    a <- 10;
-
-The new slot expression allows to add a new slot into a table(see :ref:`Tables <tables>`). If the slot
-already exists in the table it behaves like a normal assignment.
+If the slot already exists in the table this behaves like a normal assignment.
 
 ----------------
 Operators
@@ -60,11 +64,11 @@ conditionally evaluate an expression depending on the result of an expression.
     pair: ?? Operator; Operators
 
 ::
-    
+
     exp := exp1 '??' exp2
 
 
-Conditionally evaluate an expression2 depending on the result of an expression1. 
+Conditionally evaluate an expression2 depending on the result of an expression1.
 Given code is equivalent to:
 
 ::
@@ -72,16 +76,16 @@ Given code is equivalent to:
     exp := (exp1 '!=' null) '?' exp1 ':' exp2
 
 
-C#-like ?? syntax was chosen over Elvis operator ?: which is
+C#-like ``??`` syntax was chosen over Elvis operator ``?:`` which is
 common in other languages because it is not equivalent to
-visually similar ternary ? : operator (which checks for falsiness,
+visually similar ternary ``? :`` operator (which checks for falsiness,
 not null).
 
 It evaluates expressions until the first non-null value
-(just like || operators for the first 'true' one).
+(just like ``||`` operators for the first ``true`` one).
 
-Operator precendence is also follows C# design, so that ?? has
-lower priority than ||
+Operator precendence is also follows C# design, so that ``??`` has
+lower priority than ``||``
 
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -106,7 +110,7 @@ If key exists, return result of 'get' operations, else return null.
 ::
 
     let tbl = {bar=123}
-    
+
     tbl.bar // returns 123
     tbl.baz // throws an error
     tbl?.bar // returns 123
@@ -140,6 +144,28 @@ One would have to type ?. everywhere, writing it as
 
 Instead it is done by compiler - once a null-operator is met, it is also assumed for the subsequent ., [] and () operators in an expression.
 
+Note: 'key' should not be separated with space[s] or new line from '?.' or '.'
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.$ and ?.$ - Delegate loading operator
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. index::
+    pair: .$ and ?.$ Operators; Operators
+
+::
+
+    exp := value '.$' key
+
+
+::
+
+    exp := value '?.$' key
+
+
+If 'key' exists in value's type built-in methods (default delegates) returns method's closure, else returns null in case of '?.$' or throws an error if '.$'
+
+Note: 'key' should not be separated with space[s] or new line from '.$' and '?.$'
 
 ^^^^^^^^^^^^^
 Arithmetic
@@ -165,8 +191,8 @@ increment and decrement operators(++ and --);::
 
 All operators work normally with integers and floats; if one operand is an integer and one
 is a float the result of the expression will be float.
-The + operator has a special behavior with strings; if one of the operands is a string the
-operator + will try to convert the other operand to string as well and concatenate both
+The ``+`` operator has a special behavior with strings; if one of the operands is a string the
+operator ``+`` will try to convert the other operand to string as well and concatenate both
 together. For instances and tables, ``_tostring`` is invoked.
 
 ^^^^^^^^^^^^^
@@ -182,8 +208,8 @@ Relational
 
 Relational operators in Quirrel are : ``==, <, <=, <, <=, !=``
 
-These operators return true if the expression is false and a value different than true if the
-expression is true. Internally the VM uses the integer 1 as true but this could change in
+These operators return ``true`` if the expression is ``false`` and a value different than ``true`` if the
+expression is ``true``. Internally the VM uses the integer ``1`` as ``true`` but this could change in
 the future.
 
 ^^^^^^^^^^^^^^
@@ -439,6 +465,8 @@ recursion).
 After the new object is ready the "_cloned" meta method is called (see :ref:`Metamethods <metamethods>`).
 
 When a class instance is cloned the constructor is not invoked(initializations must rely on ```_cloned``` instead
+
+Note: Usage of this operator could be prohibited with ``#forbid-clone-operator``.
 
 -----------------
 Array contructor
