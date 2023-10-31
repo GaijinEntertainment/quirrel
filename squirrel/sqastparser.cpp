@@ -713,6 +713,17 @@ void SQParser::checkSuspicciousBraket() {
   }
 }
 
+static const char *opname(SQInteger op) {
+  switch (op)
+  {
+    case _SC('.'): return ".";
+    case TK_NULLGETSTR: return "?.";
+    case TK_BUILT_IN_GETSTR: return ".$";
+    case TK_NULLABLE_BUILT_IN_GETSTR: return "?.$";
+    default: return "<unknown>";
+  }
+}
+
 Expr* SQParser::PrefixedExpr()
 {
     NestingChecker nc(this);
@@ -734,7 +745,13 @@ Expr* SQParser::PrefixedExpr()
 
             bool isBuintInGet = _token == TK_BUILT_IN_GETSTR || _token == TK_NULLABLE_BUILT_IN_GETSTR;
 
+            SQInteger tok = _token;
+
             Lex();
+
+            if ((_lex._prevflags & (TF_PREP_SPACE | TF_PREP_EOL)) != 0) {
+              reportDiagnostic(DiagnosticsId::DI_SPACE_SEP_FIELD_NAME, opname(tok));
+            }
 
             SQInteger l = _lex._currentline, c = _lex._currentcolumn;
             Expr *receiver = e;
