@@ -15,6 +15,18 @@ Squirrel API
 Global Symbols
 +++++++++++++++
 
+.. sq:function:: min(x, y, [z], [w], ...)
+
+returns minimal value of all arguments
+
+.. sq:function:: max(x, y, [z], [w], ...)
+
+returns maximal value of all arguments
+
+.. sq:function:: clamp(x, min_val, max_val)
+
+returns value limited by provided min-max range
+
 .. sq:function:: abs(x)
 
     returns the absolute value of `x` as an integer

@@ -18,26 +18,9 @@ Global Symbols
 
 creates and returns array of a specified size. If the optional parameter fill is specified its value will be used to fill the new array's slots. If the fill parameter is omitted, null is used instead.
 
-.. sq:function:: seterrorhandler(func)
-
-
-sets the runtime error handler
-
 .. sq:function:: callee()
 
-
 returns the currently running closure
-
-.. sq:function:: setdebughook(hook_func)
-
-sets the debug hook
-
-hook_func should have follow signature
-  hook_func(hook_type:integer, source_file:string, line_num:integer, func_name:string)
-
-hook_type can be 'l' - line, 'r' - return, 'c' - call or 'x' for VM shutdown
-
-call of debughook for each line performed only when debuginfo is enabled
 
 .. sq:function:: getroottable()
 
@@ -83,54 +66,13 @@ or providing compile-time bindings::
     let compiledscript=compilestring("foo()", "bindings_test", api)
     compiledscript()
 
-.. sq:function:: collectgarbage()
-
-    Runs the garbage collector and returns the number of reference cycles found (and deleted). This function only works on garbage collector builds.
-
-.. sq:function:: resurrectunreachable()
-
-Runs the garbage collector and returns an array containing all unreachable object found. If no unreachable object is found, null is returned instead. This function is meant to help debugging reference cycles. This function only works on garbage collector builds.
-
 .. sq:function:: type(obj)
 
 return the 'raw' type of an object without invoking the metamethod '_typeof'.
 
-.. sq:function:: getstackinfos(level)
-
-returns the stack informations of a given call stack level. returns a table formatted as follow: ::
-
-    {
-        func="DoStuff", //function name
-
-        src="test.nut", //source file
-
-        line=10,        //line number
-
-        locals = {      //a table containing the local variables
-
-            a=10,
-
-            testy="I'm a string"
-        }
-    }
-
-level = 0 is getstackinfos() itself! level = 1 is the current function, level = 2 is the caller of the current function, and so on. If the stack level doesn't exist the function returns null.
-
 .. sq:function:: newthread(threadfunc)
 
 creates a new cooperative thread object(coroutine) and returns it
-
-.. sq:function:: min(x, y, [z], [w], ...)
-
-returns minimal value of all arguments
-
-.. sq:function:: max(x, y, [z], [w], ...)
-
-returns maximal value of all arguments
-
-.. sq:function:: clamp(x, min_val, max_val)
-
-returns value limited by provided min-max range
 
 creates a new cooperative thread object(coroutine) and returns it
 
@@ -146,14 +88,17 @@ Given object handle, return its flags that may be:
   * 0 - no special flags
   * SQOBJ_FLAG_IMMUTABLE - bit set if the object handle is immutable
 
-.. sq:function:: getbuildinfo(x)
+.. sq:function:: call_type_method(obj, methodname, [args...])
 
-returns table containing information on VM build parameters.
+Given object handle, name and arguments (optional). Invoke type's built-in method 'methodname' (aka "default delegate") with given arguments.
 
-  * **version** - string values describing the version of VM and compiler.
-  * **charsize** - size in bytes of the internal VM representation for characters(1 for ASCII builds 2 for UNICODE builds).
-  * **intsize** - size in bytes of the internal VM representation for integers(4 for 32bits builds 8 for 64bits builds).
-  * **floatsize** - size in bytes of the internal VM representation for floats(4 for single precision builds 8 for double precision builds).
+If success returns result of invoked method otherwise throws an error
+
+.. sq:function:: call_type_method_safe(obj, methodname, [args...])
+
+Given object handle, name and arguments (optional). Invoke type's built-in method 'methodname' (aka "default delegate") with given arguments.
+
+If success returns result of invoked method otherwise returns null
 
 .. _default_delegates:
 
