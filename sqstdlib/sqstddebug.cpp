@@ -15,7 +15,6 @@ static SQInteger debug_setdebughook(HSQUIRRELVM v)
 }
 
 SQInteger __getcallstackinfos(HSQUIRRELVM v, SQInteger level);
-SQInteger base_print(HSQUIRRELVM v, SQPRINTFUNCTION pf, bool newline);
 
 static SQInteger debug_getstackinfos(HSQUIRRELVM v)
 {
@@ -24,27 +23,18 @@ static SQInteger debug_getstackinfos(HSQUIRRELVM v)
   return __getcallstackinfos(v, level);
 }
 
-
 #ifndef NO_GARBAGE_COLLECTOR
 static SQInteger debug_collectgarbage(HSQUIRRELVM v)
 {
-  sq_pushinteger(v, sq_collectgarbage(v));
-  return 1;
+    sq_pushinteger(v, sq_collectgarbage(v));
+    return 1;
 }
 static SQInteger debug_resurrectunreachable(HSQUIRRELVM v)
 {
-  sq_resurrectunreachable(v);
-  return 1;
+    sq_resurrectunreachable(v);
+    return 1;
 }
 #endif
-
-static SQInteger debug_getobjflags(HSQUIRRELVM v)
-{
-  SQObject obj;
-  sq_getstackobj(v, 2, &obj);
-  sq_pushinteger(v, sq_objflags(obj));
-  return 1;
-}
 
 static SQInteger debug_getbuildinfo(HSQUIRRELVM v)
 {
@@ -72,27 +62,14 @@ static SQInteger debug_getbuildinfo(HSQUIRRELVM v)
 }
 
 
-static SQInteger debug_error_newline(HSQUIRRELVM v)
-{
-    return base_print(v, sq_geterrorfunc(v), true);
-}
-
-static SQInteger debug_error_(HSQUIRRELVM v)
-{
-    return base_print(v, sq_geterrorfunc(v), false);
-}
-
 static const SQRegFunction debuglib_funcs[] = {
     {_SC("seterrorhandler"),debug_seterrorhandler,2, NULL},
     {_SC("setdebughook"),debug_setdebughook,2, NULL},
     {_SC("getstackinfos"),debug_getstackinfos,2, _SC(".n")},
-    {_SC("error"),debug_error_, 2, NULL},
-    {_SC("errorln"),debug_error_newline, 2, NULL},
 #ifndef NO_GARBAGE_COLLECTOR
     {_SC("collectgarbage"),debug_collectgarbage,0, NULL},
     {_SC("resurrectunreachable"),debug_resurrectunreachable,0, NULL},
 #endif
-    {_SC("getobjflags"), debug_getobjflags,2,NULL},
     {_SC("getbuildinfo"), debug_getbuildinfo,1,NULL},
     {NULL,(SQFUNCTION)0,0,NULL}
 };

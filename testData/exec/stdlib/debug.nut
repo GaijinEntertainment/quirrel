@@ -6,8 +6,8 @@ println($"Version: {info.version}")
 println($"seterrorhandler: {type(dbg.seterrorhandler)}")
 println($"setdebughook: {type(dbg.setdebughook)}")
 println($"getstackinfos: {type(dbg.getstackinfos)}")
-println($"error: {type(dbg.error)}")
-println($"errorln: {type(dbg.errorln)}")
+println($"error: {type(error)}")
+println($"errorln: {type(errorln)}")
 
 if (info.gc == "enabled") {
     if (type(dbg.collectgarbage) == "function") {
@@ -33,5 +33,5 @@ if (info.gc == "enabled") {
     }
 }
 
-println($"getobjflags: {type(dbg.getobjflags)}")
+println($"getobjflags: {type(getobjflags)}")
 println($"getbuildinfo: {type(dbg.getbuildinfo)}")
