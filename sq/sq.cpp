@@ -383,6 +383,10 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 
         module_mgr->compilationOptions.doStaticAnalysis = static_analysis;
 
+        if (static_analysis) {
+          sq_setcompilationoption(v, CompilationOptions::CO_CLOSURE_HOISTING_OPT, false);
+        }
+
         if (diagFile)
         {
             errorStream = diagFile;
