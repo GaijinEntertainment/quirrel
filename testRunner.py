@@ -97,7 +97,7 @@ def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs,
     if path.exists(actualResultFilePath):
         os.remove(actualResultFilePath)
 
-    compilationCommand = [compiler, "-optCH"]
+    compilationCommand = [compiler]
     compilationCommand += extraargs
 
     if stdoutFile:
@@ -147,21 +147,21 @@ def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs,
         updateExpectedFromActualIfNeed(kind, actualResultFilePath, expectedResultFilePath)
 
 
-def runDiagTest(compiler, workingDir, dirname, name):
-    runTestGeneric(compiler, workingDir, dirname, name, "Diagnostics", '.diag.txt', ["-diag-file"], False)
+def runDiagTest(compiler, workingDir, dirname, name, extraOptions):
+    runTestGeneric(compiler, workingDir, dirname, name, "Diagnostics", '.diag.txt', extraOptions, False)
 
-def runSATest(compiler, workingDir, dirname, name):
-    runTestGeneric(compiler, workingDir, dirname, name, "Static Analyser", '.diag.txt', ["-sa", "-diag-file"], False)
+def runSATest(compiler, workingDir, dirname, name, extraOptions):
+    runTestGeneric(compiler, workingDir, dirname, name, "Static Analyser", '.diag.txt', extraOptions, False)
 
-def runExecuteTest(compiler, workingDir, dirname, name):
-    runTestGeneric(compiler, workingDir, dirname, name, "Exec", '.out', [], True)
-
-
-def runASTTest(compiler, workingDir, dirname, name):
-    runTestGeneric(compiler, workingDir, dirname, name, "AST", '.opt.txt', ["-ast-dump"], False)
+def runExecuteTest(compiler, workingDir, dirname, name, extraOptions):
+    runTestGeneric(compiler, workingDir, dirname, name, "Exec", '.out', extraOptions, True)
 
 
-def runTestForData(filePath, compiler, workingDir, testMode):
+def runASTTest(compiler, workingDir, dirname, name, extraOptions):
+    runTestGeneric(compiler, workingDir, dirname, name, "AST", '.opt.txt', extraOptions, False)
+
+
+def runTestForData(filePath, compiler, workingDir, testMode, extraOptions):
     global numOfFailedTests
     global numOfTests
 
@@ -176,13 +176,13 @@ def runTestForData(filePath, compiler, workingDir, testMode):
     # print(f"dirname: {dirname}, baseName: {basename}, name: {name}, suffix: {suffix}")
     if suffix == ".nut" or suffix == ".nut.txt":
         if testMode == 'ast':
-            runASTTest(compiler, workingDir, dirname, name)
+            runASTTest(compiler, workingDir, dirname, name, extraOptions)
         elif testMode == 'diag':
-            runDiagTest(compiler, workingDir, dirname, name)
+            runDiagTest(compiler, workingDir, dirname, name, extraOptions)
         elif testMode == 'exec':
-            runExecuteTest(compiler, workingDir, dirname, name)
+            runExecuteTest(compiler, workingDir, dirname, name, extraOptions)
         elif testMode == 'sa':
-            runSATest(compiler, workingDir, dirname, name)
+            runSATest(compiler, workingDir, dirname, name, extraOptions)
         else:
             xprint(f"Unknown test mode {testMode}")
 
@@ -227,10 +227,11 @@ def main():
 
     checkCompiler(compiler)
 
-    walkDirectory(Path(computePath('testData', 'exec')), 0, lambda a: runTestForData(a, compiler, workingDir, 'exec'))
-    walkDirectory(Path(computePath('testData', 'diagnostics')), 0, lambda a: runTestForData(a, compiler, workingDir, 'diag'))
-    walkDirectory(Path(computePath('testData', 'ast')), 0, lambda a: runTestForData(a, compiler, workingDir, 'ast'))
-    walkDirectory(Path(computePath('testData', 'static_analyser')), 0, lambda a: runTestForData(a, compiler, workingDir, 'sa'))
+    walkDirectory(Path(computePath('testData', 'exec')), 0, lambda a: runTestForData(a, compiler, workingDir, 'exec', []))
+    walkDirectory(Path(computePath('testData', 'diagnostics')), 0, lambda a: runTestForData(a, compiler, workingDir, 'diag', ["-diag-file"]))
+    walkDirectory(Path(computePath('testData', 'ast', 'optimizations', 'closureHoisting')), 0, lambda a: runTestForData(a, compiler, workingDir, 'ast', ["-optCH", "-ast-dump"]))
+    walkDirectory(Path(computePath('testData', 'ast', 'optimizations', 'constantFolding')), 0, lambda a: runTestForData(a, compiler, workingDir, 'ast', ["-optCEF", "-ast-dump"]))
+    walkDirectory(Path(computePath('testData', 'static_analyser')), 0, lambda a: runTestForData(a, compiler, workingDir, 'sa', ["-sa", "-diag-file"]))
 
     if numOfFailedTests:
         xprint(f"Failed tests: {numOfFailedTests}", CBOLD + CRED)

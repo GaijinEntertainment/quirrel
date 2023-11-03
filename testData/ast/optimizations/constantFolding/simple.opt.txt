@@ -1,0 +1,9 @@
+{
+  ENUM EXC
+    F = 12
+    GG = 10111
+  END_ENUM
+  let x = 10
+  let y = 9
+  println("first = {0}, second = {1}. third = {2}, forth = {3}".$subst(18446744073709551614, 18446744073709551451, 3, 4))
+}
