@@ -404,11 +404,11 @@ public:
 };
 
 enum LiteralKind {
-    LK_STRING,
-    LK_INT,
-    LK_FLOAT,
-    LK_BOOL,
-    LK_NULL
+    LK_STRING = 0x1,
+    LK_INT = 0x2,
+    LK_FLOAT = 0x4,
+    LK_BOOL = 0x8,
+    LK_NULL = 0x10
 };
 
 class LiteralExpr : public Expr {

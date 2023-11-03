@@ -79,6 +79,7 @@ void PrintUsage()
         _SC("   -W<num>          disable diagnostic by numeric id")
         _SC("   -<diagnostic_name> disable diagnostic by text id")
         _SC("   -optCH           enable Closure Hoisting Optimization\n")
+        _SC("   -optCEF          enable Constant Expression Folding Optimization\n")
         _SC("   -d               generates debug infos\n")
         _SC("   -v               displays version infos\n")
         _SC("   -h               prints help\n"));
@@ -320,6 +321,9 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                     if (strcmp("-optCH", argv[arg]) == 0) {
                         sq_setcompilationoption(v, CompilationOptions::CO_CLOSURE_HOISTING_OPT, true);
                         break;
+                    } else if(strcmp("-optCEF", argv[arg]) == 0) {
+                        sq_setcompilationoption(v, CompilationOptions::CO_CONSTANT_FOLDING_OPT, true);
+                        break;
                     } else if(arg < argc) {
                         arg++;
                         output = argv[arg];
@@ -385,6 +389,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 
         if (static_analysis) {
           sq_setcompilationoption(v, CompilationOptions::CO_CLOSURE_HOISTING_OPT, false);
+          sq_setcompilationoption(v, CompilationOptions::CO_CONSTANT_FOLDING_OPT, false);
         }
 
         if (diagFile)

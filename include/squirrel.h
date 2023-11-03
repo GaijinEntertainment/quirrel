@@ -217,8 +217,11 @@ typedef struct tagSQFunctionInfo {
 #define BIT(n) (1ULL << (n))
 
 enum CompilationOptions : SQUnsignedInteger {
-  CO_CLOSURE_HOISTING_OPT = BIT(1)
+  CO_CLOSURE_HOISTING_OPT = BIT(1),
+  CO_CONSTANT_FOLDING_OPT = BIT(2)
 };
+
+#undef BIT
 
 /*vm*/
 SQUIRREL_API HSQUIRRELVM sq_open(SQInteger initialstacksize);

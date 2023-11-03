@@ -21,6 +21,7 @@
 #include "sqastrender.h"
 #include "sqastcodegen.h"
 #include "optimizations/closureHoisting.h"
+#include "optimizations/sqastevaluator.h"
 #include "sqbinaryast.h"
 #include "sqcompilationcontext.h"
 #include "static_analyser/analyser.h"
@@ -35,6 +36,9 @@ static RootBlock *parseASTImpl(Arena *astArena, SQVM *vm, const char *sourceText
   RootBlock *r = p.parse();
 
   if (r) {
+    ConstantFoldingOpt foldOpt(_ss(vm), astArena);
+    foldOpt.run(r);
+
     ClosureHoistingOpt opt(_ss(vm), astArena);
     opt.run(r, sourcename);
   }

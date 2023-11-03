@@ -18,6 +18,7 @@ set(SQUIRREL_SRC sqapi.cpp
                  sqstate.cpp
                  sqtable.cpp
                  sqvm.cpp
+                 optimizations/sqastevaluator.cpp
                  optimizations/closureHoisting.cpp
                  static_analyser/analyser.cpp)
 
