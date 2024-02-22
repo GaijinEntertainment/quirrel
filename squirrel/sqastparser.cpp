@@ -176,11 +176,6 @@ void SQParser::Lex()
     }
 }
 
-static const char *tok2Str(SQInteger tok) {
-    static char s[3];
-    snprintf(s, sizeof s, "%c", (SQChar)tok);
-    return s;
-}
 
 Expr* SQParser::Expect(SQInteger tok)
 {
@@ -189,8 +184,8 @@ Expr* SQParser::Expect(SQInteger tok)
             //do nothing
         }
         else {
-            const SQChar *etypename;
             if(tok > 255) {
+                const SQChar *etypename;
                 switch(tok)
                 {
                 case TK_IDENTIFIER:
@@ -210,7 +205,10 @@ Expr* SQParser::Expect(SQInteger tok)
                 }
                 reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, etypename);
             }
-            reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, tok2Str(tok));
+            else {
+                char s[2] = {(char)tok, 0};
+                reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, s);
+            }
         }
     }
     Expr *ret = NULL;
