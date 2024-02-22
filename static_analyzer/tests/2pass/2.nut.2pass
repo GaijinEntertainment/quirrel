@@ -1,3 +1,0 @@
-let function fn2() { //-declared-never-used
-  fn1()
-}
