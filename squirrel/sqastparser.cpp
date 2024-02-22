@@ -706,7 +706,7 @@ void SQParser::checkSuspicciousBraket() {
     if (_lex._prevtoken != _SC(',')) {
       if (_lex._prevflags & (TF_PREP_EOL | TF_PREP_SPACE)) {
         char op[] = { (char)_token, '\0' };
-        reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_BRAKET, op, _token == _SC('(') ? "function call" : "access to member");
+        reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_BRACKET, op, _token == _SC('(') ? "function call" : "access to member");
       }
     }
   }
