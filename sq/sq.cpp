@@ -73,7 +73,7 @@ void PrintUsage()
         _SC("   -bytecode-dump [file] dump SQ bytecode into console or file if specified\n")
         _SC("   -c               compiles only\n")
         _SC("   -diag-file file  write diagnostics into specified file")
-        _SC("   -sa              enable static analyser")
+        _SC("   -sa              enable static analyzer")
         _SC("   --inverse-warnings flip diagnostic state")
         _SC("   --warnings-list  print all warnings and exit")
         _SC("   -W<num>          disable diagnostic by numeric id")
@@ -395,10 +395,10 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             filename=argv[arg];
 
             if (static_analysis) {
-              sq_resetanalyserconfig();
+              sq_resetanalyzerconfig();
               char buffer[1024];
               if (search_sqconfig(filename, buffer, sizeof buffer)) {
-                if (!sq_loadanalyserconfig(buffer)) {
+                if (!sq_loadanalyzerconfig(buffer)) {
                   fprintf(errorStream, "Cannot load .sqconfig file %s\n", buffer);
                   return _ERROR;
                 }
