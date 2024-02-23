@@ -2834,7 +2834,6 @@ class CheckerVisitor : public Visitor {
   void checkBitwiseParenBool(const BinExpr *expr);
   void checkNullCoalescingPriority(const BinExpr *expr);
   void checkAssignmentToItself(const BinExpr *expr);
-  void checkGlobalVarCreation(const BinExpr *expr);
   void checkSameOperands(const BinExpr *expr);
   void checkAlwaysTrueOrFalse(const BinExpr *expr);
   void checkDeclarationInArith(const BinExpr *expr);
@@ -3691,18 +3690,6 @@ void CheckerVisitor::checkAssignmentToItself(const BinExpr *expr) {
   }
 }
 
-void CheckerVisitor::checkGlobalVarCreation(const BinExpr *expr) {
-  if (effectsOnly)
-    return;
-
-  const Expr *l = expr->lhs();
-
-  if (expr->op() == TO_NEWSLOT) {
-    if (l->op() == TO_ID) {
-      report(expr, DiagnosticsId::DI_GLOBAL_VAR_CREATE);
-    }
-  }
-}
 
 void CheckerVisitor::checkSameOperands(const BinExpr *expr) {
 
@@ -5096,7 +5083,6 @@ void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   checkBitwiseParenBool(expr);
   checkNullCoalescingPriority(expr);
   checkAssignmentToItself(expr);
-  //checkGlobalVarCreation(expr); // seems this check is no longer has any sense
   checkSameOperands(expr);
   checkAlwaysTrueOrFalse(expr);
   checkDeclarationInArith(expr);
