@@ -1,7 +1,7 @@
 //-file:declared-never-used
 
 
-let function fn(x) {
+function fn(x) {
     return ::y.cc ?? x ?? null
 }
 

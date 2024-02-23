@@ -1,4 +1,4 @@
-let function fn(x) {
+function fn(x) {
     return ::y(x)
   }
 

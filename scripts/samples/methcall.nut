@@ -3,7 +3,7 @@
 
 let datetime = require("datetime")
 
-let class Toggle {
+class Toggle {
     bool=null
 
     function constructor(startstate) {
@@ -21,7 +21,7 @@ let class Toggle {
 }
 
 
-let class NthToggle extends Toggle {
+class NthToggle extends Toggle {
     count_max=null
     count=0
 

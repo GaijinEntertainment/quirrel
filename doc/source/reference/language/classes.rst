@@ -27,7 +27,7 @@ of using ';' as optional separator rather than ','.
 
 For instance: ::
 
-    let class Foo {
+    class Foo {
         //constructor
         constructor(a) {
             testy = ["stuff",1,2,3,a]
@@ -105,7 +105,7 @@ with the keyword ``static``; the declaration must be in the class body.
 
 ::
 
-    let class Foo {
+    class Foo {
         constructor()
         {
             //..stuff
@@ -143,7 +143,7 @@ class declaration. The values are copied verbatim, *no cloning is performed* eve
 
             So consider this example: ::
 
-                let class Foo {
+                class Foo {
                   myarray = [1,2,3]
                   mytable = {}
                 }
@@ -154,7 +154,7 @@ class declaration. The values are copied verbatim, *no cloning is performed* eve
             In the snippet above both instances will refer to the same array and same table.To achieve what a C# or Java programmer would
             expect, the following approach should be taken. ::
 
-                let class Foo {
+                class Foo {
                   myarray = null
                   mytable = null
                   constructor() {
@@ -172,7 +172,7 @@ The constructor method can have parameters, this will impact on the number of pa
 that the *instantiation operation* will require.
 Constructors, as normal functions, can have variable number of parameters (using the parameter ``...``).::
 
-    let class Rect {
+    class Rect {
         constructor(w,h) {
             width = w
             height = h
@@ -219,7 +219,7 @@ Quirrel's classes support single inheritance by adding the keyword ``extends``, 
 by an expression, in the class declaration.
 The syntax for a derived class is the following: ::
 
-    let class SuperFoo extends Foo {
+    class SuperFoo extends Foo {
         function DoSomething() {
             println("I'm doing something")
         }
@@ -235,13 +235,13 @@ through the 'base' keyword.
 
 Here an example: ::
 
-    let class Foo {
+    class Foo {
         function DoSomething() {
             println("I'm the base")
         }
     };
 
-    let class SuperFoo extends Foo {
+    class SuperFoo extends Foo {
         //overridden method
         function DoSomething() {
             //calls the base method

@@ -4247,7 +4247,7 @@ static bool isValidId(const SQChar *id) {
 void CheckerVisitor::checkKeyNameMismatch(const Expr *key, const Expr *e) {
 
   /*
-    let function bar() {}
+    function bar() {}
     let tt = {
       "1foo" : function bar1() { .. }, // OK, not id
       "foo2" : function bar2() { .. }, // WARN

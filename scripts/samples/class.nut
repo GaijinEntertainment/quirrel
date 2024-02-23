@@ -1,4 +1,4 @@
-let class BaseVector {
+class BaseVector {
     constructor(...)     {
         if (vargv.len() >= 3) {
             this.x = vargv[0]
@@ -12,7 +12,7 @@ let class BaseVector {
     z = 0
 }
 
-let class Vector3 extends BaseVector {
+class Vector3 extends BaseVector {
     function _add(other) {
         local cls = this.getclass()
         if (other instanceof cls)

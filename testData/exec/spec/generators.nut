@@ -1,4 +1,4 @@
-let function geny(n) {
+function geny(n) {
     for (local i=1; i<=n; ++i)
         yield i
     return null

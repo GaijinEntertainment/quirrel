@@ -1,14 +1,14 @@
 /*translation of the list test from The Great Computer Language Shootout
 */
 
-let function compare_arr(a1,a2) {
+function compare_arr(a1,a2) {
     foreach(i,val in a1)
         if(val!=a2[i])
           return null
     return 1
 }
 
-let function test() {
+function test() {
     let size=10000
     let l1 = array(size)
     for (local i=0; i<size; ++i)

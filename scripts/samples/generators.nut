@@ -3,7 +3,7 @@
 *converted to a generator func
 */
 
-let function gen_random(max) {
+function gen_random(max) {
     local last=42
     local IM = 139968
     local IA = 3877
@@ -23,7 +23,7 @@ for (local i=0;i<10;i+=1)
 
 println("FIBONACCI")
 
-let function fiboz(n) {
+function fiboz(n) {
     local prev=0
     local curr=1
     yield 1

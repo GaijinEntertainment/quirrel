@@ -1,9 +1,9 @@
 
-let function comp(...) {}
+function comp(...) {}
 
-let function foo(_x, _y = 10, _z = 20) {}
+function foo(_x, _y = 10, _z = 20) {}
 
-let function bar(_x, _y, ...) {}
+function bar(_x, _y, ...) {}
 
 let FlowH = 30
 let hflow = @(...) comp(FlowH, vargv)

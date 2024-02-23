@@ -1,4 +1,4 @@
-let function foo() {
+function foo() {
   return "<call from module>"
 }
 

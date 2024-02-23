@@ -30,7 +30,7 @@ Examples:
 
     let a = 23+34
     let b = [1, 2, 3]
-    let function foo() { return "some_value" }
+    function foo() { return "some_value" }
 
 .. _variables:
 

@@ -3,7 +3,7 @@ function bar(_a, _b, _c) {}
 
 let requestedCratesContent = {}
 
-let function requestCratesContent(armyId, crates) {
+function requestCratesContent(armyId, crates) {
     if ((armyId ?? "") == "")
       return
     let requested = foo()

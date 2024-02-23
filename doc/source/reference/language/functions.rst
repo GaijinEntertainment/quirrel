@@ -22,7 +22,7 @@ Function declaration
 
 A local function can be declared with this function expression::
 
-    let function tuna(a,b,c) {
+    function tuna(a,b,c) {
         return a+b-c;
     }
 
@@ -194,7 +194,7 @@ In the following example the variables 'testy', 'x' and 'y' are bound to the fun
     local y = 20
     let testy = "I'm testy"
 
-    let function foo(a,b) {
+    function foo(a,b) {
         print(testy)
         return a+b+x+y
     }

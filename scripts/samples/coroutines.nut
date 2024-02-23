@@ -1,4 +1,4 @@
-let function coroutine_test(a,b) {
+function coroutine_test(a,b) {
     println($"{a} {b}")
     local ret = suspend("suspend 1")
     println($"the coroutine says {ret}")

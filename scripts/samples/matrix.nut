@@ -5,7 +5,7 @@
 */
 const SIZE=30
 
-let function mkmatrix(rows, cols) {
+function mkmatrix(rows, cols) {
   local count = 1
   let m = array(rows)
   for (local i = 0; i < rows; ++i) {
@@ -18,7 +18,7 @@ let function mkmatrix(rows, cols) {
   return m
 }
 
-let function mmult(rows, cols, m1, m2, m3) {
+function mmult(rows, cols, m1, m2, m3) {
   for (local i = 0; i < rows; ++i) {
     for (local j = 0; j < cols; ++j) {
       local val = 0

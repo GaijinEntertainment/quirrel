@@ -17,7 +17,7 @@ Example
 
    #default:strict
 
-   let function foo() {
+   function foo() {
      #relaxed-bool
      if (123)
        print("bar")

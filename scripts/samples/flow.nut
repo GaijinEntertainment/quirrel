@@ -5,7 +5,7 @@ else
 
 print("\n")
 
-let function typy(obj) {
+function typy(obj) {
     switch(typeof obj) {
         case "integer":
         case "float":
