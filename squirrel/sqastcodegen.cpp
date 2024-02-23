@@ -606,7 +606,7 @@ void CodegenVisitor::visitExprStatement(ExprStatement *stmt) {
 
 void CodegenVisitor::generateTableDecl(TableDecl *tableDecl) {
     bool isKlass = tableDecl->op() == TO_CLASS;
-    const auto members = tableDecl->members();
+    const auto &members = tableDecl->members();
 
     ArenaVector<Expr *> memberConstantKeys(_arena);
 
@@ -739,7 +739,7 @@ void CodegenVisitor::visitVarDecl(VarDecl *var) {
 
 void CodegenVisitor::visitDeclGroup(DeclGroup *group) {
     addLineNumber(group);
-    const auto declarations = group->declarations();
+    const auto &declarations = group->declarations();
 
     for (Decl *d : declarations) {
         d->visit(this);
@@ -750,7 +750,7 @@ void CodegenVisitor::visitDestructuringDecl(DestructuringDecl *destruct) {
     addLineNumber(destruct);
     ArenaVector<SQInteger> targets(_arena);
 
-    const auto declarations = destruct->declarations();
+    const auto &declarations = destruct->declarations();
 
     for (auto d : declarations) {
         d->visit(this);
