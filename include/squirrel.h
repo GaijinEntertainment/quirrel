@@ -431,12 +431,11 @@ SQUIRREL_API void sq_resetanalyzerconfig();
 SQUIRREL_API bool sq_loadanalyzerconfig(const char *configFileName);
 SQUIRREL_API bool sq_loadanalyzerconfigblk(const KeyValueFile &config);
 
-SQUIRREL_API bool sq_switchdiagnosticstate_t(const char *diagId, bool state);
-SQUIRREL_API bool sq_switchdiagnosticstate_i(int32_t id, bool state);
+SQUIRREL_API bool sq_setdiagnosticstatebyname(const char *diagId, bool val);
+SQUIRREL_API bool sq_setdiagnosticstatebyid(int32_t id, bool val);
 SQUIRREL_API void sq_invertwarningsstate();
 SQUIRREL_API void sq_printwarningslist(FILE *ostream);
-SQUIRREL_API void sq_disablesyntaxwarnings();
-SQUIRREL_API void sq_enablesyntaxwarnings();
+SQUIRREL_API void sq_enablesyntaxwarnings(bool on);
 SQUIRREL_API void sq_checkglobalnames(HSQUIRRELVM v);
 SQUIRREL_API void sq_mergeglobalnames(const HSQOBJECT *bindings);
 

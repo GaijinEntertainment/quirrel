@@ -236,7 +236,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
     bool flip_warnigns = false;
 
     if (static_analysis) {
-      sq_enablesyntaxwarnings();
+      sq_enablesyntaxwarnings(true);
     }
 
     char * output = NULL;
@@ -342,7 +342,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 case 'W':
                     if (isdigit(argv[arg][2])) {
                       int id = atoi(&argv[arg][2]);
-                      if (!sq_switchdiagnosticstate_i(id, false)) {
+                      if (!sq_setdiagnosticstatebyid(id, false)) {
                         printf("Unknown warning ID %s\n", &argv[arg][2]);
                       }
                     }
@@ -360,7 +360,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                     }
                     break;
                 default:
-                    if (static_analysis && isalpha(argv[arg][1]) && sq_switchdiagnosticstate_t(argv[arg] + 1, false)) {
+                    if (static_analysis && isalpha(argv[arg][1]) && sq_setdiagnosticstatebyname(argv[arg] + 1, false)) {
                       break;
                     }
                 unknown_opt:
