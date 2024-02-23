@@ -300,8 +300,8 @@ inline void _Swap(SQObject &a,SQObject &b)
 #ifndef NO_GARBAGE_COLLECTOR
 #define MARK_FLAG 0x80000000
 struct SQCollectable : public SQRefCounted {
-    SQCollectable *_next;
-    SQCollectable *_prev;
+    SQCollectable *_gc_next;
+    SQCollectable *_gc_prev;
     SQSharedState *_sharedstate;
     virtual SQObjectType GetType()=0;
     virtual void Release()=0;
@@ -316,7 +316,7 @@ struct SQCollectable : public SQRefCounted {
 #define ADD_TO_CHAIN(chain,obj) AddToChain(chain,obj)
 #define REMOVE_FROM_CHAIN(chain,obj) {if(!(_uiRef&MARK_FLAG))RemoveFromChain(chain,obj);}
 #define CHAINABLE_OBJ SQCollectable
-#define INIT_CHAIN() {_next=NULL;_prev=NULL;_sharedstate=ss;}
+#define INIT_CHAIN() {_gc_next=NULL;_gc_prev=NULL;_sharedstate=ss;}
 #else
 
 // Need this to keep SQSharedState pointer to access alloc_ctx

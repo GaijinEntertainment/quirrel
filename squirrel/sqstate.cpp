@@ -196,7 +196,7 @@ SQSharedState::~SQSharedState()
         t->_uiRef++;
         while(t) {
             t->Finalize();
-            nx = t->_next;
+            nx = t->_gc_next;
             if(nx) nx->_uiRef++;
             if(--t->_uiRef == 0)
                 t->Release();
@@ -299,15 +299,15 @@ SQInteger SQSharedState::ResurrectUnreachable(SQVM *vm)
                 sqo._flags = 0; //< FIXME: we lose information on mutability, so it turns everyhing into mutable
                 ret->Append(sqo);
             }
-            t = t->_next;
+            t = t->_gc_next;
             n++;
         }
 
-        assert(rlast->_next == NULL);
-        rlast->_next = _gc_chain;
+        assert(rlast->_gc_next == NULL);
+        rlast->_gc_next = _gc_chain;
         if(_gc_chain)
         {
-            _gc_chain->_prev = rlast;
+            _gc_chain->_gc_prev = rlast;
         }
         _gc_chain = resurrected;
     }
@@ -315,7 +315,7 @@ SQInteger SQSharedState::ResurrectUnreachable(SQVM *vm)
     t = _gc_chain;
     while(t) {
         t->UnMark();
-        t = t->_next;
+        t = t->_gc_next;
     }
 
     if(ret) {
@@ -341,7 +341,7 @@ SQInteger SQSharedState::CollectGarbage(SQVM *vm)
         t->_uiRef++;
         while(t) {
             t->Finalize();
-            nx = t->_next;
+            nx = t->_gc_next;
             if(nx) nx->_uiRef++;
             if(--t->_uiRef == 0)
                 t->Release();
@@ -353,7 +353,7 @@ SQInteger SQSharedState::CollectGarbage(SQVM *vm)
     t = tchain;
     while(t) {
         t->UnMark();
-        t = t->_next;
+        t = t->_gc_next;
     }
     _gc_chain = tchain;
 
@@ -364,20 +364,20 @@ SQInteger SQSharedState::CollectGarbage(SQVM *vm)
 #ifndef NO_GARBAGE_COLLECTOR
 void SQCollectable::AddToChain(SQCollectable **chain,SQCollectable *c)
 {
-    c->_prev = NULL;
-    c->_next = *chain;
-    if(*chain) (*chain)->_prev = c;
+    c->_gc_prev = NULL;
+    c->_gc_next = *chain;
+    if(*chain) (*chain)->_gc_prev = c;
     *chain = c;
 }
 
 void SQCollectable::RemoveFromChain(SQCollectable **chain,SQCollectable *c)
 {
-    if(c->_prev) c->_prev->_next = c->_next;
-    else *chain = c->_next;
-    if(c->_next)
-        c->_next->_prev = c->_prev;
-    c->_next = NULL;
-    c->_prev = NULL;
+    if(c->_gc_prev) c->_gc_prev->_gc_next = c->_gc_next;
+    else *chain = c->_gc_next;
+    if(c->_gc_next)
+        c->_gc_next->_gc_prev = c->_gc_prev;
+    c->_gc_next = NULL;
+    c->_gc_prev = NULL;
 }
 #endif
 
