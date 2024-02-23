@@ -110,7 +110,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(SHIFT_PRIORITY, WARNING, SEMA, 236, "shift-priority", "Shift operator has lower priority. Perhaps parentheses are missing?"), \
   DEF_DIAGNOSTIC(NAME_LIKE_SHOULD_RETURN, WARNING, SEMA, 238, "named-like-should-return", "Function name '%s' implies a return value, but its result is never used."), \
   DEF_DIAGNOSTIC(NAME_RET_BOOL, WARNING, SEMA, 239, "named-like-return-bool", "Function name '%s' implies a return boolean type but not all control paths returns boolean."), \
-  DEF_DIAGNOSTIC(NULL_COALESCING_PRIOR, WARNING, SEMA, 240, "null-coalescing-priority", "The '??""' operator has a lower priority than the '%s' operator (a??b > c == a??""(b > c)). Perhaps the '??""' operator works in a different way than it was expected."), \
+  DEF_DIAGNOSTIC(NULL_COALESCING_PRIORITY, WARNING, SEMA, 240, "null-coalescing-priority", "The '??""' operator has a lower priority than the '%s' operator (a??b > c == a??""(b > c)). Perhaps the '??""' operator works in a different way than it was expected."), \
   DEF_DIAGNOSTIC(ALREADY_REQUIRED, WARNING, SEMA, 241, "already-required", "Module '%s' has been required already."), \
   DEF_DIAGNOSTIC(USED_FROM_STATIC, WARNING, SEMA, 244, "used-from-static", "Access 'this.%s' from %s function."), \
   DEF_DIAGNOSTIC(FUNC_CAN_RET_NULL, WARNING, SEMA, 247, "func-can-return-null", "Function '%s' can return null, but its result is used here."), \
