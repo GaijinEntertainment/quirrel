@@ -1631,6 +1631,9 @@ void CodegenVisitor::visitId(Id *id) {
         case OT_BOOL:
             _fs->AddInstruction(_OP_LOADBOOL, stkPos, _integer(constval));
             break;
+        case OT_NULL:
+            _fs->AddInstruction(_OP_LOADNULLS, stkPos, 1);
+            break;
         default:
             _fs->AddInstruction(_OP_LOAD, stkPos, _fs->GetConstant(constval));
             break;
