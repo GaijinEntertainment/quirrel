@@ -149,7 +149,7 @@ Statement* SQParser::parseDirectiveStatement()
     return d;
 }
 
-void SQParser::checkBraceIdentationStyle()
+void SQParser::checkBraceIndentationStyle()
 {
   if (_token == _SC('{') && (_lex._prevflags & TF_PREP_EOL))
     reportDiagnostic(DiagnosticsId::DI_EGYPT_BRACES);
@@ -631,7 +631,7 @@ Expr* SQParser::CompExp()
         case TK_INSTANCEOF: lhs = BIN_EXP(&SQParser::ShiftExp, TO_INSTANCEOF, lhs); break;
         case TK_NOT: {
             Lex();
-            SQInteger l = line(), c = column(), w = width();
+            SQInteger l = line(), c = column();
             if (_token == TK_IN) {
                 lhs = BIN_EXP(&SQParser::ShiftExp, TO_IN, lhs);
                 lhs = setCoordinates(newNode<UnExpr>(TO_NOT, lhs), l, c);
@@ -1319,7 +1319,7 @@ IfStatement* SQParser::parseIfStatement()
     Expr *cond = Expression(SQE_IF);
     Expect(_SC(')'));
 
-    checkBraceIdentationStyle();
+    checkBraceIndentationStyle();
 
     bool wrapped = false;
 
@@ -1327,12 +1327,11 @@ IfStatement* SQParser::parseIfStatement()
     Statement *elseB = NULL;
     if (_token == TK_ELSE) {
         SQInteger el = line(), ec = column(), ew = width();
-        SQInteger prevTok2 = _lex._prevtoken;
         Lex();
         if (_token != _SC('{') && prevTok != TK_ELSE && wrapped && l != el && c != ec) {
           _ctx.reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT, el, ec, ew);
         }
-        checkBraceIdentationStyle();
+        checkBraceIndentationStyle();
         elseB = IfLikeBlock(wrapped);
         if (!IsEndOfStatement()) {
           reportDiagnostic(DiagnosticsId::DI_STMT_SAME_LINE, "else");
@@ -1366,7 +1365,7 @@ WhileStatement* SQParser::parseWhileStatement()
     Expect(_SC(')'));
 
     bool wrapped = false;
-    checkBraceIdentationStyle();
+    checkBraceIndentationStyle();
     Statement *body = IfLikeBlock(wrapped);
 
     if (!IsEndOfStatement()) {
@@ -1391,7 +1390,7 @@ DoWhileStatement* SQParser::parseDoWhileStatement()
     Consume(TK_DO); // DO
 
     bool wrapped = false;
-    checkBraceIdentationStyle();
+    checkBraceIndentationStyle();
     Statement *body = IfLikeBlock(wrapped);
 
     Expect(TK_WHILE);
@@ -1434,7 +1433,7 @@ ForStatement* SQParser::parseForStatement()
     Expect(_SC(')'));
 
     bool wrapped = false;
-    checkBraceIdentationStyle();
+    checkBraceIndentationStyle();
     Statement *body = IfLikeBlock(wrapped);
 
     if (!IsEndOfStatement()) {
@@ -1486,7 +1485,7 @@ ForeachStatement* SQParser::parseForEachStatement()
     Expect(_SC(')'));
 
     bool wrapped = false;
-    checkBraceIdentationStyle();
+    checkBraceIndentationStyle();
     Statement *body = IfLikeBlock(wrapped);
 
     if (!IsEndOfStatement()) {
@@ -1517,7 +1516,7 @@ SwitchStatement* SQParser::parseSwitchStatement()
     Expr *switchExpr = Expression(SQE_SWITCH);
     Expect(_SC(')'));
 
-    checkBraceIdentationStyle();
+    checkBraceIndentationStyle();
     Expect(_SC('{'));
 
     SwitchStatement *switchStmt = newNode<SwitchStatement>(arena(), switchExpr);
@@ -1528,7 +1527,7 @@ SwitchStatement* SQParser::parseSwitchStatement()
         Expr *cond = Expression(SQE_RVALUE);
         Expect(_SC(':'));
 
-        checkBraceIdentationStyle();
+        checkBraceIndentationStyle();
         Statement *caseBody = parseStatements();
         switchStmt->addCases(cond, caseBody);
     }
@@ -1537,7 +1536,7 @@ SwitchStatement* SQParser::parseSwitchStatement()
         Consume(TK_DEFAULT);
         Expect(_SC(':'));
 
-        checkBraceIdentationStyle();
+        checkBraceIndentationStyle();
         switchStmt->addDefault(parseStatements());
     }
 
@@ -1618,7 +1617,7 @@ EnumDecl* SQParser::parseEnumStatement(bool global)
 
     EnumDecl *decl = newNode<EnumDecl>(arena(), id->id(), global); //-V522
 
-    checkBraceIdentationStyle();
+    checkBraceIndentationStyle();
     Expect(_SC('{'));
 
     SQInteger nval = 0;
@@ -1657,7 +1656,7 @@ TryStatement* SQParser::parseTryCatchStatement()
 
     Consume(TK_TRY);
 
-    checkBraceIdentationStyle();
+    checkBraceIndentationStyle();
     Statement *t = parseStatement();
 
     Expect(TK_CATCH);
@@ -1666,7 +1665,7 @@ TryStatement* SQParser::parseTryCatchStatement()
     Id *exid = (Id *)Expect(TK_IDENTIFIER);
     Expect(_SC(')'));
 
-    checkBraceIdentationStyle();
+    checkBraceIndentationStyle();
     Statement *cth = parseStatement();
 
     return setCoordinates(newNode<TryStatement>(t, exid, cth), l, c);
@@ -1719,7 +1718,7 @@ ClassDecl* SQParser::ClassExp(Expr *key)
       baseExpr = Expression(SQE_RVALUE);
       Expect(_SC(')'));
     }
-    checkBraceIdentationStyle();
+    checkBraceIndentationStyle();
     Expect(_SC('{'));
     ClassDecl *d = newNode<ClassDecl>(arena(), key, baseExpr);
     ParseTableOrClass(d, _SC(';'),_SC('}'));
@@ -1802,7 +1801,6 @@ FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
     Expect(_SC(')'));
 
     Block *body = NULL;
-    SQInteger startLine = _lex._currentline;
 
     SQUnsignedInteger savedLangFeatures = _lang_features;
 
@@ -1819,7 +1817,7 @@ FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
     else {
         if (_token != '{')
             reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "{");
-        checkBraceIdentationStyle();
+        checkBraceIndentationStyle();
         body = (Block *)parseStatement(false);
     }
     SQInteger line2 = _lex._prevtoken == _SC('\n') ? _lex._lasttokenline : _lex._currentline;

@@ -279,7 +279,7 @@ void CodegenVisitor::visitWhileStatement(WhileStatement *whileLoop) {
 
         visitForceGet(whileLoop->condition());
 
-        BEGIN_BREAKBLE_BLOCK();
+        BEGIN_BREAKABLE_BLOCK();
 
         _fs->AddInstruction(_OP_JZ, _fs->PopTarget());
 
@@ -294,7 +294,7 @@ void CodegenVisitor::visitWhileStatement(WhileStatement *whileLoop) {
         _fs->AddInstruction(_OP_JMP, 0, jmppos - _fs->GetCurrentPos() - 1);
         _fs->SetInstructionParam(jzpos, 1, _fs->GetCurrentPos() - jzpos);
 
-        END_BREAKBLE_BLOCK(jmppos);
+        END_BREAKABLE_BLOCK(jmppos);
     }
     END_SCOPE();
 }
@@ -305,7 +305,7 @@ void CodegenVisitor::visitDoWhileStatement(DoWhileStatement *doWhileLoop) {
     BEGIN_SCOPE();
     {
         SQInteger jmptrg = _fs->GetCurrentPos();
-        BEGIN_BREAKBLE_BLOCK();
+        BEGIN_BREAKABLE_BLOCK();
 
         BEGIN_SCOPE();
         doWhileLoop->body()->visit(this);
@@ -316,7 +316,7 @@ void CodegenVisitor::visitDoWhileStatement(DoWhileStatement *doWhileLoop) {
 
         _fs->AddInstruction(_OP_JZ, _fs->PopTarget(), 1);
         _fs->AddInstruction(_OP_JMP, 0, jmptrg - _fs->GetCurrentPos() - 1);
-        END_BREAKBLE_BLOCK(continuetrg);
+        END_BREAKABLE_BLOCK(continuetrg);
 
     }
     END_SCOPE();
@@ -366,7 +366,7 @@ void CodegenVisitor::visitForStatement(ForStatement *forLoop) {
         _fs->PopInstructions(expsize);
     }
 
-    BEGIN_BREAKBLE_BLOCK();
+    BEGIN_BREAKABLE_BLOCK();
     forLoop->body()->visit(this);
     SQInteger continuetrg = _fs->GetCurrentPos();
     if (expsize > 0) {
@@ -377,7 +377,7 @@ void CodegenVisitor::visitForStatement(ForStatement *forLoop) {
     _fs->AddInstruction(_OP_JMP, 0, jmppos - _fs->GetCurrentPos() - 1, 0);
     if (jzpos > 0) _fs->SetInstructionParam(jzpos, 1, _fs->GetCurrentPos() - jzpos);
 
-    END_BREAKBLE_BLOCK(continuetrg);
+    END_BREAKABLE_BLOCK(continuetrg);
 
     END_SCOPE();
 }
@@ -415,12 +415,12 @@ void CodegenVisitor::visitForeachStatement(ForeachStatement *foreachLoop) {
     SQInteger foreachpos = _fs->GetCurrentPos();
     _fs->AddInstruction(_OP_POSTFOREACH, container, 0, indexpos);
 
-    BEGIN_BREAKBLE_BLOCK();
+    BEGIN_BREAKABLE_BLOCK();
     foreachLoop->body()->visit(this);
     _fs->AddInstruction(_OP_JMP, 0, jmppos - _fs->GetCurrentPos() - 1);
     _fs->SetInstructionParam(foreachpos, 1, _fs->GetCurrentPos() - foreachpos);
     _fs->SetInstructionParam(foreachpos + 1, 1, _fs->GetCurrentPos() - foreachpos);
-    END_BREAKBLE_BLOCK(foreachpos - 1);
+    END_BREAKABLE_BLOCK(foreachpos - 1);
     //restore the local variable stack(remove index,val and ref idx)
     _fs->PopTarget();
     END_SCOPE();
@@ -683,7 +683,7 @@ void CodegenVisitor::visitClassDecl(ClassDecl *klass) {
     }
 }
 
-static const SQChar *varDescriptor(VarDecl *var) {
+static const SQChar *varDeclKindDescription(VarDecl *var) {
     Expr *init = var->initializer();
     if (init == NULL) {
         return var->isAssignable() ? _SC("Local variable") : _SC("Named binding");
@@ -716,7 +716,7 @@ void CodegenVisitor::visitVarDecl(VarDecl *var) {
 
     SQObject varName = _fs->CreateString(name);
 
-    CheckDuplicateLocalIdentifier(var, varName, varDescriptor(var), false);
+    CheckDuplicateLocalIdentifier(var, varName, varDeclKindDescription(var), false);
 
     if (var->initializer()) {
         visitForceGet(var->initializer());
@@ -887,7 +887,6 @@ void CodegenVisitor::visitEnumDecl(EnumDecl *enums) {
     addLineNumber(enums);
     SQObject table = _fs->CreateTable();
     table._flags = SQOBJ_FLAG_IMMUTABLE;
-    SQInteger nval = 0;
 
     SQObject id = _fs->CreateString(enums->name());
 
@@ -1097,7 +1096,7 @@ void CodegenVisitor::visitUnExpr(UnExpr *unary) {
     }
 }
 
-void CodegenVisitor::emitSimpleBin(SQOpcode op, Expr *lhs, Expr *rhs, SQInteger op3) {
+void CodegenVisitor::emitSimpleBinaryOp(SQOpcode op, Expr *lhs, Expr *rhs, SQInteger op3) {
     visitForceGet(lhs);
     visitForceGet(rhs);
     SQInteger op1 = _fs->PopTarget();
@@ -1105,7 +1104,7 @@ void CodegenVisitor::emitSimpleBin(SQOpcode op, Expr *lhs, Expr *rhs, SQInteger 
     _fs->AddInstruction(op, _fs->PushTarget(), op1, op2, op3);
 }
 
-void CodegenVisitor::emitJpmArith(SQOpcode op, Expr *lhs, Expr *rhs) {
+void CodegenVisitor::emitShortCircuitLogicalOp(SQOpcode op, Expr *lhs, Expr *rhs) {
     visitForceGet(lhs);
 
     SQInteger first_exp = _fs->PopTarget();
@@ -1428,9 +1427,9 @@ void CodegenVisitor::visitBinExpr(BinExpr *expr) {
     maybeAddInExprLine(expr);
     switch (expr->op()) {
     case TO_NEWSLOT: emitNewSlot(expr->lhs(), expr->rhs());  break;
-    case TO_NULLC: emitJpmArith(_OP_NULLCOALESCE, expr->lhs(), expr->rhs()); break;
-    case TO_OROR: emitJpmArith(_OP_OR, expr->lhs(), expr->rhs()); break;
-    case TO_ANDAND: emitJpmArith(_OP_AND, expr->lhs(), expr->rhs()); break;
+    case TO_NULLC: emitShortCircuitLogicalOp(_OP_NULLCOALESCE, expr->lhs(), expr->rhs()); break;
+    case TO_OROR: emitShortCircuitLogicalOp(_OP_OR, expr->lhs(), expr->rhs()); break;
+    case TO_ANDAND: emitShortCircuitLogicalOp(_OP_AND, expr->lhs(), expr->rhs()); break;
     case TO_INEXPR_ASSIGN: emitAssign(expr->lhs(), expr->rhs(), true); break;
     case TO_ASSIGN:  emitAssign(expr->lhs(), expr->rhs(), false); break;
     case TO_PLUSEQ:  emitCompoundArith(_OP_ADD, '+', expr->lhs(), expr->rhs()); break;
@@ -1438,26 +1437,26 @@ void CodegenVisitor::visitBinExpr(BinExpr *expr) {
     case TO_MULEQ:   emitCompoundArith(_OP_MUL, '*', expr->lhs(), expr->rhs()); break;
     case TO_DIVEQ:   emitCompoundArith(_OP_DIV, '/', expr->lhs(), expr->rhs()); break;
     case TO_MODEQ:   emitCompoundArith(_OP_MOD, '%', expr->lhs(), expr->rhs()); break;
-    case TO_ADD: emitSimpleBin(_OP_ADD, expr->lhs(), expr->rhs()); break;
-    case TO_SUB: emitSimpleBin(_OP_SUB, expr->lhs(), expr->rhs()); break;
-    case TO_MUL: emitSimpleBin(_OP_MUL, expr->lhs(), expr->rhs()); break;
-    case TO_DIV: emitSimpleBin(_OP_DIV, expr->lhs(), expr->rhs()); break;
-    case TO_MOD: emitSimpleBin(_OP_MOD, expr->lhs(), expr->rhs()); break;
-    case TO_OR:  emitSimpleBin(_OP_BITW, expr->lhs(), expr->rhs(), BW_OR); break;
-    case TO_AND: emitSimpleBin(_OP_BITW, expr->lhs(), expr->rhs(), BW_AND); break;
-    case TO_XOR: emitSimpleBin(_OP_BITW, expr->lhs(), expr->rhs(), BW_XOR); break;
-    case TO_USHR:emitSimpleBin(_OP_BITW, expr->lhs(), expr->rhs(), BW_USHIFTR); break;
-    case TO_SHR: emitSimpleBin(_OP_BITW, expr->lhs(), expr->rhs(), BW_SHIFTR); break;
-    case TO_SHL: emitSimpleBin(_OP_BITW, expr->lhs(), expr->rhs(), BW_SHIFTL); break;
-    case TO_EQ:  emitSimpleBin(_OP_EQ, expr->lhs(), expr->rhs()); break;
-    case TO_NE:  emitSimpleBin(_OP_NE, expr->lhs(), expr->rhs()); break;
-    case TO_GE:  emitSimpleBin(_OP_CMP, expr->lhs(), expr->rhs(), CMP_GE); break;
-    case TO_GT:  emitSimpleBin(_OP_CMP, expr->lhs(), expr->rhs(), CMP_G); break;
-    case TO_LE:  emitSimpleBin(_OP_CMP, expr->lhs(), expr->rhs(), CMP_LE); break;
-    case TO_LT:  emitSimpleBin(_OP_CMP, expr->lhs(), expr->rhs(), CMP_L); break;
-    case TO_3CMP: emitSimpleBin(_OP_CMP, expr->lhs(), expr->rhs(), CMP_3W); break;
-    case TO_IN:  emitSimpleBin(_OP_EXISTS, expr->lhs(), expr->rhs()); break;
-    case TO_INSTANCEOF: emitSimpleBin(_OP_INSTANCEOF, expr->lhs(), expr->rhs()); break;
+    case TO_ADD: emitSimpleBinaryOp(_OP_ADD, expr->lhs(), expr->rhs()); break;
+    case TO_SUB: emitSimpleBinaryOp(_OP_SUB, expr->lhs(), expr->rhs()); break;
+    case TO_MUL: emitSimpleBinaryOp(_OP_MUL, expr->lhs(), expr->rhs()); break;
+    case TO_DIV: emitSimpleBinaryOp(_OP_DIV, expr->lhs(), expr->rhs()); break;
+    case TO_MOD: emitSimpleBinaryOp(_OP_MOD, expr->lhs(), expr->rhs()); break;
+    case TO_OR:  emitSimpleBinaryOp(_OP_BITW, expr->lhs(), expr->rhs(), BW_OR); break;
+    case TO_AND: emitSimpleBinaryOp(_OP_BITW, expr->lhs(), expr->rhs(), BW_AND); break;
+    case TO_XOR: emitSimpleBinaryOp(_OP_BITW, expr->lhs(), expr->rhs(), BW_XOR); break;
+    case TO_USHR:emitSimpleBinaryOp(_OP_BITW, expr->lhs(), expr->rhs(), BW_USHIFTR); break;
+    case TO_SHR: emitSimpleBinaryOp(_OP_BITW, expr->lhs(), expr->rhs(), BW_SHIFTR); break;
+    case TO_SHL: emitSimpleBinaryOp(_OP_BITW, expr->lhs(), expr->rhs(), BW_SHIFTL); break;
+    case TO_EQ:  emitSimpleBinaryOp(_OP_EQ, expr->lhs(), expr->rhs()); break;
+    case TO_NE:  emitSimpleBinaryOp(_OP_NE, expr->lhs(), expr->rhs()); break;
+    case TO_GE:  emitSimpleBinaryOp(_OP_CMP, expr->lhs(), expr->rhs(), CMP_GE); break;
+    case TO_GT:  emitSimpleBinaryOp(_OP_CMP, expr->lhs(), expr->rhs(), CMP_G); break;
+    case TO_LE:  emitSimpleBinaryOp(_OP_CMP, expr->lhs(), expr->rhs(), CMP_LE); break;
+    case TO_LT:  emitSimpleBinaryOp(_OP_CMP, expr->lhs(), expr->rhs(), CMP_L); break;
+    case TO_3CMP: emitSimpleBinaryOp(_OP_CMP, expr->lhs(), expr->rhs(), CMP_3W); break;
+    case TO_IN:  emitSimpleBinaryOp(_OP_EXISTS, expr->lhs(), expr->rhs()); break;
+    case TO_INSTANCEOF: emitSimpleBinaryOp(_OP_INSTANCEOF, expr->lhs(), expr->rhs()); break;
     default:
         break;
     }
