@@ -324,16 +324,16 @@ private:
 };
 
 class GetFieldExpr : public FieldAccessExpr {
-    bool _isBuiltInGet;
+    bool _isTypeMethod;
 public:
-    GetFieldExpr(Expr *receiver, const SQChar *field, bool nullable, bool builtin)
+    GetFieldExpr(Expr *receiver, const SQChar *field, bool nullable, bool is_type_method)
       : FieldAccessExpr(TO_GETFIELD, receiver, field, nullable)
-      , _isBuiltInGet(builtin) {}
+      , _isTypeMethod(is_type_method) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
 
-    bool isBuiltInGet() const { return _isBuiltInGet; }
+    bool isTypeMethod() const { return _isTypeMethod; }
 };
 
 

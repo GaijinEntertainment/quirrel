@@ -955,8 +955,8 @@ exception_restore:
                 continue;
             case _OP_GETK:{
                 SQUnsignedInteger getFlagsByOp = (arg3 & OP_GET_FLAG_ALLOW_DEF_DELEGATE) ? 0 : GET_FLAG_NO_DEF_DELEGATE;
-                if (arg3 & OP_GET_FLAG_BUILTIN_ONLY)
-                    getFlagsByOp |= GET_FLAG_DEF_DELEGATE_ONLY;
+                if (arg3 & OP_GET_FLAG_TYPE_METHODS_ONLY)
+                    getFlagsByOp |= GET_FLAG_TYPE_METHODS_ONLY;
                 if (arg3 & OP_GET_FLAG_NO_ERROR) {
                     SQInteger fb = GetImpl(STK(arg2), ci->_literals[arg1], temp_reg, GET_FLAG_DO_NOT_RAISE_ERROR | getFlagsByOp, DONT_FALL_BACK);
                     if (fb == SLOT_RESOLVE_STATUS_OK) {
@@ -1138,8 +1138,8 @@ exception_restore:
             }
             case _OP_GET:{
                 SQUnsignedInteger getFlagsByOp = (arg3 & OP_GET_FLAG_ALLOW_DEF_DELEGATE) ? 0 : GET_FLAG_NO_DEF_DELEGATE;
-                if (arg3 & OP_GET_FLAG_BUILTIN_ONLY)
-                    getFlagsByOp |= GET_FLAG_DEF_DELEGATE_ONLY;
+                if (arg3 & OP_GET_FLAG_TYPE_METHODS_ONLY)
+                    getFlagsByOp |= GET_FLAG_TYPE_METHODS_ONLY;
                 if (arg3 & OP_GET_FLAG_NO_ERROR) {
                     SQInteger fb = GetImpl(STK(arg1), STK(arg2), temp_reg, GET_FLAG_DO_NOT_RAISE_ERROR | getFlagsByOp, DONT_FALL_BACK);
                     if (fb == SLOT_RESOLVE_STATUS_OK) {
@@ -1709,7 +1709,7 @@ bool SQVM::Get(const SQObjectPtr &self, const SQObjectPtr &key, SQObjectPtr &des
 
 SQInteger SQVM::GetImpl(const SQObjectPtr &self, const SQObjectPtr &key, SQObjectPtr &dest, SQUnsignedInteger getflags, SQInteger selfidx)
 {
-    if (getflags & GET_FLAG_DEF_DELEGATE_ONLY) {
+    if (getflags & GET_FLAG_TYPE_METHODS_ONLY) {
         if (InvokeDefaultDelegate(self, key, dest)) {
           propagate_immutable(self, dest);
           return SLOT_RESOLVE_STATUS_OK;

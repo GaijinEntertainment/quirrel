@@ -313,7 +313,7 @@ SQInteger SQLexer::LexSingleToken()
                 NEXT();
                 if (CUR_CHAR == _SC('$')) {
                     NEXT();
-                    RETURN_TOKEN(TK_NULLABLE_BUILT_IN_GETSTR);
+                    RETURN_TOKEN(TK_NULLABLE_TYPE_METHOD_GETSTR);
                 }
                 else {
                     RETURN_TOKEN(TK_NULLGETSTR);
@@ -327,7 +327,7 @@ SQInteger SQLexer::LexSingleToken()
             NEXT();
             if (CUR_CHAR == _SC('$')) {
                 NEXT();
-                RETURN_TOKEN(TK_BUILT_IN_GETSTR);
+                RETURN_TOKEN(TK_TYPE_METHOD_GETSTR);
             }
             if (CUR_CHAR != _SC('.')){ RETURN_TOKEN('.') }
             NEXT();

@@ -938,15 +938,15 @@ void CodegenVisitor::visitCallExpr(CallExpr *call) {
 
     Expr *callee = deparen(call->callee());
     bool isNullCall = call->isNullable();
-    bool isBuiltInCall = false;
+    bool isTypeMethod = false;
     if (callee->op() == TO_GETFIELD) {
-        isBuiltInCall = callee->asGetField()->isBuiltInGet();
+        isTypeMethod = callee->asGetField()->isTypeMethod();
     }
 
     visitNoGet(callee);
 
     if (isObject(callee)) {
-        if (!isNullCall && !isBuiltInCall && ((_fs->lang_features & LF_FORBID_IMPLICIT_DEF_DELEGATE) == 0)) {
+        if (!isNullCall && !isTypeMethod && ((_fs->lang_features & LF_FORBID_IMPLICIT_DEF_DELEGATE) == 0)) {
             SQInteger key = _fs->PopTarget();  /* location of the key */
             SQInteger table = _fs->PopTarget();  /* location of the object */
             SQInteger closure = _fs->PushTarget(); /* location for the closure */
@@ -959,8 +959,8 @@ void CodegenVisitor::visitCallExpr(CallExpr *call) {
             _fs->AddInstruction(_OP_MOVE, storedSelf, self);
             _fs->PopTarget();
             SQInteger flags = 0;
-            if (isBuiltInCall) {
-                flags |= OP_GET_FLAG_BUILTIN_ONLY;
+            if (isTypeMethod) {
+                flags |= OP_GET_FLAG_TYPE_METHODS_ONLY;
             } else if ((_fs->lang_features & LF_FORBID_IMPLICIT_DEF_DELEGATE) == 0) {
                 flags |= OP_GET_FLAG_ALLOW_DEF_DELEGATE;
             }
@@ -1384,8 +1384,8 @@ void CodegenVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
         flags |= OP_GET_FLAG_ALLOW_DEF_DELEGATE;
     }
 
-    if (expr->isBuiltInGet()) {
-        flags |= OP_GET_FLAG_BUILTIN_ONLY;
+    if (expr->isTypeMethod()) {
+        flags |= OP_GET_FLAG_TYPE_METHODS_ONLY;
     }
 
     if (expr->receiver()->op() == TO_BASE) {

@@ -717,8 +717,8 @@ static const char *opname(SQInteger op) {
   {
     case _SC('.'): return ".";
     case TK_NULLGETSTR: return "?.";
-    case TK_BUILT_IN_GETSTR: return ".$";
-    case TK_NULLABLE_BUILT_IN_GETSTR: return "?.$";
+    case TK_TYPE_METHOD_GETSTR: return ".$";
+    case TK_NULLABLE_TYPE_METHOD_GETSTR: return "?.$";
     default: return "<unknown>";
   }
 }
@@ -735,14 +735,13 @@ Expr* SQParser::PrefixedExpr()
         switch(_token) {
         case _SC('.'):
         case TK_NULLGETSTR:
-        case TK_BUILT_IN_GETSTR:
-        case TK_NULLABLE_BUILT_IN_GETSTR: {
-            if (_token == TK_NULLGETSTR || _token == TK_NULLABLE_BUILT_IN_GETSTR || nextIsNullable)
-            {
+        case TK_TYPE_METHOD_GETSTR:
+        case TK_NULLABLE_TYPE_METHOD_GETSTR: {
+            if (_token == TK_NULLGETSTR || _token == TK_NULLABLE_TYPE_METHOD_GETSTR || nextIsNullable) {
                 nextIsNullable = true;
             }
 
-            bool isBuintInGet = _token == TK_BUILT_IN_GETSTR || _token == TK_NULLABLE_BUILT_IN_GETSTR;
+            bool isTypeMethod = _token == TK_TYPE_METHOD_GETSTR || _token == TK_NULLABLE_TYPE_METHOD_GETSTR;
 
             SQInteger tok = _token;
 
@@ -756,7 +755,7 @@ Expr* SQParser::PrefixedExpr()
             Expr *receiver = e;
             Id *id = (Id *)Expect(TK_IDENTIFIER);
             assert(id);
-            e = newNode<GetFieldExpr>(receiver, id->id(), nextIsNullable, isBuintInGet); //-V522
+            e = newNode<GetFieldExpr>(receiver, id->id(), nextIsNullable, isTypeMethod); //-V522
             e->setLineStartPos(receiver->lineStart()); e->setColumnStartPos(receiver->columnStart());
             e->setLineEndPos(l); e->setColumnEndPos(c);
             break;
@@ -888,7 +887,7 @@ Expr *SQParser::parseStringTemplate() {
       result = fmt;
     }
     else {
-      Expr *callee = setCoordinates(newNode<GetFieldExpr>(fmt, "subst", false, /* force built-in member */ true), l, c);
+      Expr *callee = setCoordinates(newNode<GetFieldExpr>(fmt, "subst", false, /* force type method */ true), l, c);
       CallExpr *call = setCoordinates(newNode<CallExpr>(arena(), callee, false), l, c);
 
       for (Expr *arg : args)
