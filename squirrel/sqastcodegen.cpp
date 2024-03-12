@@ -1340,29 +1340,34 @@ void CodegenVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
         if (sq_type(constant) == OT_TABLE && (sq_objflags(constant) & SQOBJ_FLAG_IMMUTABLE) && !expr->isNullable()) {
             SQObjectPtr next;
             if (_table(constant)->GetStr(expr->fieldName(), strlen(expr->fieldName()), next)) {
-                SQInstruction &last = _fs->LastInstruction();
+                SQObjectType fieldType = sq_type(next);
+                bool needsCallContext = fieldType == OT_CLOSURE || fieldType == OT_NATIVECLOSURE || fieldType == OT_GENERATOR;
+                if (!needsCallContext) {
+                    SQInstruction &last = _fs->LastInstruction();
 
-                SQInteger target = -1;
+                    SQInteger target = -1;
 
-                if (last.op == _OP_DLOAD) {
-                    SQInteger t1 = last._arg0;
-                    SQInteger c1 = last._arg1;
-                    assert(last._arg2 == _fs->TopTarget());
-                    target = last._arg2;
-                    _fs->PopInstructions(1);
-                    _fs->AddInstruction(_OP_LOAD, t1, c1);
+                    if (last.op == _OP_DLOAD) {
+                        SQInteger t1 = last._arg0;
+                        SQInteger c1 = last._arg1;
+                        assert(last._arg2 == _fs->TopTarget());
+                        target = last._arg2;
+                        _fs->PopInstructions(1);
+                        _fs->AddInstruction(_OP_LOAD, t1, c1);
+                    }
+                    else {
+                        assert(last.op == _OP_LOAD);
+                        assert(last._arg0 == _fs->TopTarget());
+                        target = last._arg0;
+                        _fs->PopInstructions(1);
+                    }
+
+                    selectConstant(target, next);
+                    expr->setConst();
+                    _constVal = next;
+                    return;
                 }
-                else {
-                    assert(last.op == _OP_LOAD);
-                    assert(last._arg0 == _fs->TopTarget());
-                    target = last._arg0;
-                    _fs->PopInstructions(1);
-                }
-
-                selectConstant(target, next);
-                expr->setConst();
-                _constVal = next;
-                return;
+                // else fall through to normal get
             }
             else {
                 _constVal.Null();
