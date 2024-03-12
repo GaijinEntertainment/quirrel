@@ -67,7 +67,7 @@ public:
         //nothing to iterate anymore
         return -1;
     }
-    SQArray *Clone(){SQArray *anew=Create(_opt_ss(this),0); anew->_values.copy(_values); VT_CLONE_TO(anew); return anew; }
+    SQArray *Clone(){SQArray *anew=Create(_opt_ss(this),0); anew->_values.copy(_values); VT_CLONE_FROM_TO(this, anew); return anew; }
     SQInteger Size() const {return _values.size();}
     void Resize(SQInteger size)
     {

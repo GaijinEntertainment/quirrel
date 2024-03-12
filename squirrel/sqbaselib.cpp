@@ -1436,6 +1436,7 @@ static SQInteger array_replace(HSQUIRRELVM v)
     SQArray *src = _array(stack_get(v, 2));
     dst->_values.copy(src->_values);
     dst->ShrinkIfNeeded();
+    VT_CLONE_FROM_TO(src, dst);
     v->Pop(1);
     return 1;
 }
