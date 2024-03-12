@@ -100,7 +100,7 @@ void SQWeakRef::Release() {
 
 bool SQDelegable::GetMetaMethod(SQVM *v,SQMetaMethod mm,SQObjectPtr &res) {
     if(_delegate) {
-        return _delegate->Get((*_ss(v)->_metamethods)[mm],res);
+        return _delegate->Get((*_ss(v)->_metamethodnames)[mm],res);
     }
     return false;
 }
@@ -599,7 +599,7 @@ void SQClass::Mark(SQCollectable **chain)
         for(SQUnsignedInteger j =0; j< _methods.size(); j++) {
             SQSharedState::MarkObject(_methods[j].val, chain);
         }
-        for(SQUnsignedInteger k =0; k< MT_LAST; k++) {
+        for(SQUnsignedInteger k =0; k< MT_NUM_METHODS; k++) {
             SQSharedState::MarkObject(_metamethods[k], chain);
         }
     END_MARK()

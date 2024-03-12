@@ -88,7 +88,7 @@ public:
     SQClass *_base;
     SQClassMemberVec _defaultvalues;
     SQClassMemberVec _methods;
-    SQObjectPtr _metamethods[MT_LAST];
+    SQObjectPtr _metamethods[MT_NUM_METHODS];
     SQUserPointer _typetag;
     SQRELEASEHOOK _hook;
     SQInteger _constructoridx;

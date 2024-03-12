@@ -25,7 +25,7 @@ SQClass::SQClass(SQSharedState *ss,SQClass *base) :
         _udsize = _base->_udsize;
         _defaultvalues.copy(base->_defaultvalues);
         _methods.copy(base->_methods);
-        _COPY_VECTOR(_metamethods,base->_metamethods,MT_LAST);
+        _COPY_VECTOR(_metamethods,base->_metamethods,MT_NUM_METHODS);
         __ObjAddRef(_base);
     }
     _members = base?base->_members->Clone() : SQTable::Create(ss,0);
@@ -38,7 +38,7 @@ SQClass::SQClass(SQSharedState *ss,SQClass *base) :
 void SQClass::Finalize() {
     _NULL_SQOBJECT_VECTOR(_defaultvalues,_defaultvalues.size());
     _methods.resize(0);
-    _NULL_SQOBJECT_VECTOR(_metamethods,MT_LAST);
+    _NULL_SQOBJECT_VECTOR(_metamethods,MT_NUM_METHODS);
     __ObjRelease(_members);
     if(_base) {
         __ObjRelease(_base);

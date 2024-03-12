@@ -29,14 +29,6 @@ SQSharedState::SQSharedState(SQAllocContext allocctx) :
     compilationOptions = 0;
 }
 
-#define newsysstring(s) {   \
-    _systemstrings->push_back(SQString::Create(this,s));    \
-    }
-
-#define newmetamethod(s) {  \
-    _metamethods->push_back(SQString::Create(this,s));  \
-    _table(_metamethodsmap)->NewSlot(_metamethods->back(),(SQInteger)(_metamethods->size()-1)); \
-    }
 
 bool CompileTypemask(SQIntVec &res,const SQChar *typemask)
 {
@@ -105,10 +97,15 @@ void SQSharedState::Init()
 
     _stringtable = (SQStringTable*)SQ_MALLOC(_alloc_ctx, sizeof(SQStringTable));
     new (_stringtable) SQStringTable(this);
-    sq_new(_alloc_ctx, _metamethods, SQObjectPtrVec, _alloc_ctx);
+    sq_new(_alloc_ctx, _metamethodnames, SQObjectPtrVec, _alloc_ctx);
     sq_new(_alloc_ctx, _systemstrings, SQObjectPtrVec, _alloc_ctx);
     sq_new(_alloc_ctx, _types, SQObjectPtrVec, _alloc_ctx);
-    _metamethodsmap = SQTable::Create(this,MT_LAST-1);
+    _metamethodsmap = SQTable::Create(this,MT_NUM_METHODS);
+
+#define newsysstring(s) {   \
+    _systemstrings->push_back(SQString::Create(this,s));    \
+    }
+
     //adding type strings to avoid memory trashing
     //types names
     newsysstring(_SC("null"));
@@ -126,23 +123,17 @@ void SQSharedState::Init()
     newsysstring(_SC("class"));
     newsysstring(_SC("instance"));
     newsysstring(_SC("bool"));
+#undef newsysstring
+
     //meta methods
-    newmetamethod(MM_ADD);
-    newmetamethod(MM_SUB);
-    newmetamethod(MM_MUL);
-    newmetamethod(MM_DIV);
-    newmetamethod(MM_UNM);
-    newmetamethod(MM_MODULO);
-    newmetamethod(MM_SET);
-    newmetamethod(MM_GET);
-    newmetamethod(MM_TYPEOF);
-    newmetamethod(MM_NEXTI);
-    newmetamethod(MM_CMP);
-    newmetamethod(MM_CALL);
-    newmetamethod(MM_CLONED);
-    newmetamethod(MM_NEWSLOT);
-    newmetamethod(MM_DELSLOT);
-    newmetamethod(MM_TOSTRING);
+#define MM_IMPL(mm, name) {  \
+        _metamethodnames->push_back(SQString::Create(this,name));  \
+        _table(_metamethodsmap)->NewSlot(_metamethodnames->back(),(SQInteger)(mm)); \
+    }
+
+    METAMETHODS_LIST
+
+#undef MM_IMPL
 
     _constructorstr = SQString::Create(this,_SC("constructor"));
     _registry = SQTable::Create(this,0);
@@ -212,7 +203,7 @@ SQSharedState::~SQSharedState()
 
     sq_delete(_alloc_ctx, _types, SQObjectPtrVec);
     sq_delete(_alloc_ctx, _systemstrings, SQObjectPtrVec);
-    sq_delete(_alloc_ctx, _metamethods,SQObjectPtrVec);
+    sq_delete(_alloc_ctx, _metamethodnames, SQObjectPtrVec);
     sq_delete(_alloc_ctx, _stringtable,SQStringTable);
     if(_scratchpad)SQ_FREE(_alloc_ctx,_scratchpad,_scratchpadsize);
 }

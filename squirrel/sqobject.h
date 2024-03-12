@@ -16,42 +16,33 @@
 
 struct SQSharedState;
 
+#define METAMETHODS_LIST \
+    MM_IMPL(MT_ADD      ,"_add")\
+    MM_IMPL(MT_SUB      ,"_sub")\
+    MM_IMPL(MT_MUL      ,"_mul")\
+    MM_IMPL(MT_DIV      ,"_div")\
+    MM_IMPL(MT_UNM      ,"_unm")\
+    MM_IMPL(MT_MODULO   ,"_modulo")\
+    MM_IMPL(MT_SET      ,"_set")\
+    MM_IMPL(MT_GET      ,"_get")\
+    MM_IMPL(MT_TYPEOF   ,"_typeof")\
+    MM_IMPL(MT_NEXTI    ,"_nexti")\
+    MM_IMPL(MT_CMP      ,"_cmp")\
+    MM_IMPL(MT_CALL     ,"_call")\
+    MM_IMPL(MT_CLONED   ,"_cloned")\
+    MM_IMPL(MT_NEWSLOT  ,"_newslot")\
+    MM_IMPL(MT_DELSLOT  ,"_delslot")\
+    MM_IMPL(MT_TOSTRING ,"_tostring")\
+
+
+#define MM_IMPL(mm, name) mm,
+
 enum SQMetaMethod{
-    MT_ADD=0,
-    MT_SUB=1,
-    MT_MUL=2,
-    MT_DIV=3,
-    MT_UNM=4,
-    MT_MODULO=5,
-    MT_SET=6,
-    MT_GET=7,
-    MT_TYPEOF=8,
-    MT_NEXTI=9,
-    MT_CMP=10,
-    MT_CALL=11,
-    MT_CLONED=12,
-    MT_NEWSLOT=13,
-    MT_DELSLOT=14,
-    MT_TOSTRING=15,
-    MT_LAST = 18
+    METAMETHODS_LIST
+    MT_NUM_METHODS
 };
 
-#define MM_ADD      _SC("_add")
-#define MM_SUB      _SC("_sub")
-#define MM_MUL      _SC("_mul")
-#define MM_DIV      _SC("_div")
-#define MM_UNM      _SC("_unm")
-#define MM_MODULO   _SC("_modulo")
-#define MM_SET      _SC("_set")
-#define MM_GET      _SC("_get")
-#define MM_TYPEOF   _SC("_typeof")
-#define MM_NEXTI    _SC("_nexti")
-#define MM_CMP      _SC("_cmp")
-#define MM_CALL     _SC("_call")
-#define MM_CLONED   _SC("_cloned")
-#define MM_NEWSLOT  _SC("_newslot")
-#define MM_DELSLOT  _SC("_delslot")
-#define MM_TOSTRING _SC("_tostring")
+#undef MM_IMPL
 
 
 #define _CONSTRUCT_VECTOR(type,size,ptr) { \
