@@ -24,6 +24,7 @@ struct SQExceptionTrap{
     SQExceptionTrap() {}
     SQExceptionTrap(SQInteger ss, SQInteger stackbase,SQInstruction *ip, SQInteger ex_target){ _stacksize = ss; _stackbase = stackbase; _ip = ip; _extarget = ex_target;}
     SQExceptionTrap(const SQExceptionTrap &et) { (*this) = et;  }
+    SQExceptionTrap &operator=(const SQExceptionTrap &et) = default;
     SQInteger _stackbase;
     SQInteger _stacksize;
     SQInstruction *_ip;

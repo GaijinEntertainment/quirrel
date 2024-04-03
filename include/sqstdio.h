@@ -7,6 +7,11 @@
 #define SQSTD_STREAM_TYPE_TAG 0x80000000
 
 struct SQStream {
+    SQStream() = default;
+    SQStream(const SQStream&) = default;
+    SQStream(SQStream&&) = default;
+    SQStream& operator=(const SQStream&) = default;
+    SQStream& operator=(SQStream&&) = default;
     virtual ~SQStream() {}
     virtual SQInteger Read(void *buffer, SQInteger size) = 0;
     virtual SQInteger Write(void *buffer, SQInteger size) = 0;
