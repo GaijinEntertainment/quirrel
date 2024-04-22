@@ -10,7 +10,11 @@
 #include <string>
 #include <unordered_map>
 
+#if SQMODULES_HAVE_SQRAT
+#include <sqrat.h>
+#else
 #include "sqratLite.h"
+#endif
 
 class SqModules
 {

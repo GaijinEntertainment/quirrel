@@ -425,8 +425,8 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                     retCode = _ERROR;
                 }
 
-                if (retCode == _DONE && sq_isinteger(exports.o)) {
-                    *retval = exports.o._unVal.nInteger;
+                if (retCode == _DONE && sq_isinteger(exports.GetObject())) {
+                    *retval = exports.GetObject()._unVal.nInteger;
                 }
 
                 if (static_analysis) {
