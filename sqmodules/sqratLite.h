@@ -66,7 +66,7 @@ namespace Sqrat
   template <class T> using shared_ptr = std::shared_ptr<T>;
   template <class T> using weak_ptr = std::weak_ptr<T>;
 
-#if __cplusplus >= 201703L
+#if (__cplusplus >= 201703L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) // c++17
   using string_view = std::basic_string_view<SQChar>;
 #else
   using string_view = string;
