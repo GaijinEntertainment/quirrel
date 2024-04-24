@@ -1,5 +1,11 @@
 /*
-  This is not a production code, but a demonstration of concept of modules
+  Reference implementation of modules.
+  It provides necessary script API (`require()`, `require_optional()`, `persist()`, `keepref()`)
+  and native API for managing modules (including hot reload functionality).
+
+  Complete set of features should include:
+    * `imprort` syntax
+    * file system abstraction layer
 */
 
 
