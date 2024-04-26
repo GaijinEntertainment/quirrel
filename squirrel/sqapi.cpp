@@ -1766,6 +1766,9 @@ void sq_checktrailingspaces(HSQUIRRELVM v, const SQChar *sourceName, const SQCha
 
 void sq_releaseASTData(HSQUIRRELVM v, SQCompilation::SqASTData *astData)
 {
+  if (!astData)
+    return;
+
   Comments *comments = astData->comments;
   if (comments)
   {
