@@ -17,9 +17,7 @@ LOCALS
 [_P] CLOSURE
 [S] CLOSURE
 [_ttp] NULL
-[$ch1] CLOSURE
 [_tt] NULL
-[$ch0] CLOSURE
 [au] TABLE
 [Computed] CLOSURE
 [vargv] ARRAY
