@@ -85,15 +85,9 @@ private:
 
   void  resolveFileName(const char *fn, string &res);
   bool  checkCircularReferences(const char *resolved_fn, const char *orig_fn);
-  enum class CompileScriptResult
-  {
-    Ok,
-    FileNotFound,
-    CompilationFailed
-  };
-  CompileScriptResult compileScript(const char *resolved_fn, const char *orig_fn, const HSQOBJECT *bindings,
+  bool  compileScript(const std::vector<char> &buf, const char *resolved_fn, const char *orig_fn, const HSQOBJECT *bindings,
                                     Sqrat::Object &script_closure, string &out_err_msg);
-  bool compileScriptImpl(const std::vector<char> &buf, const char *sourcename, const HSQOBJECT *bindings);
+  bool  compileScriptImpl(const std::vector<char> &buf, const char *sourcename, const HSQOBJECT *bindings);
 
   Sqrat::Object  setupStateStorage(const char *resolved_fn);
   Module * findModule(const char * resolved_fn);

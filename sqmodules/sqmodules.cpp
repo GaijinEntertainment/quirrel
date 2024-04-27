@@ -228,18 +228,11 @@ static const char *computeAbsolutePath(const char *resolved_fn, char *buffer, si
 }
 #endif // _WIN32
 
-SqModules::CompileScriptResult SqModules::compileScript(const char *resolved_fn, const char *requested_fn,
+bool SqModules::compileScript(const std::vector<char> &buf, const char *resolved_fn, const char *requested_fn,
                                                         const HSQOBJECT *bindings,
                                                         Sqrat::Object &script_closure, string &out_err_msg)
 {
   script_closure.Release();
-  std::vector<char> buf;
-
-  auto r = readFileContent(resolved_fn, buf);
-  if (r != FAE_OK) {
-    out_err_msg = string(r == FAE_NOT_FOUND ? "Script file not found: " : "Cannot read script file: ") + requested_fn + " / " + resolved_fn;
-    return CompileScriptResult::FileNotFound;
-  }
 
   const char *filePath = resolved_fn;
   char buffer[MAX_PATH_LENGTH] = {0};
@@ -253,13 +246,13 @@ SqModules::CompileScriptResult SqModules::compileScript(const char *resolved_fn,
   if (compileScriptImpl(buf, filePath, bindings))
   {
     out_err_msg = string("Failed to compile file: ") + requested_fn + " / " + resolved_fn;
-    return CompileScriptResult::CompilationFailed;
+    return false;
   }
 
   script_closure = Sqrat::Var<Sqrat::Object>(sqvm, -1).value;
   sq_pop(sqvm, 1);
 
-  return CompileScriptResult::Ok;
+  return true;
 }
 
 
@@ -380,15 +373,18 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   SQRAT_ASSERT(sq_gettop(vm) == prevTop+1); // bindings table
   sq_poptop(vm); //bindings table
 
+  std::vector<char> sourceCode;
+  FileAccessError r = readFileContent(resolvedFn.c_str(), sourceCode);
 
-  Sqrat::Object scriptClosure;
-  CompileScriptResult res = compileScript(resolvedFn.c_str(), requested_fn, &hBindings, scriptClosure, out_err_msg);
-  if (!must_exist && res == CompileScriptResult::FileNotFound)
-  {
-    exports.Release();
+  if (r == FAE_NOT_FOUND && !must_exist)
     return true;
+
+  if (r != FAE_OK) {
+    out_err_msg = string(r == FAE_NOT_FOUND ? "Script file not found: " : "Cannot read script file: ") + requested_fn + " / " + resolvedFn;
+    return false;
   }
-  if (res != CompileScriptResult::Ok)
+  Sqrat::Object scriptClosure;
+  if (!compileScript(sourceCode, resolvedFn.c_str(), requested_fn, &hBindings, scriptClosure, out_err_msg))
     return false;
 
   if (__name__ == __fn__)
@@ -396,7 +392,6 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
 
   size_t rsIdx = runningScripts.size();
   runningScripts.emplace_back(resolvedFn.c_str());
-
 
   sq_pushobject(vm, scriptClosure.GetObject());
   sq_newtable(vm);
