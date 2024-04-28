@@ -6136,8 +6136,8 @@ bool CheckerVisitor::detectTypeOfPattern(const Expr *expr, const Expr *&res_chec
   const Expr *checkExpr = lit == lhs ? rhs : lhs;
 
   if (checkExpr->op() == TO_TYPEOF) { // -V522
-    const UnExpr *typeof = static_cast<const UnExpr *>(checkExpr);
-    res_checkee = deparen(typeof->argument()); // -V522
+    const UnExpr *typeOf = static_cast<const UnExpr *>(checkExpr);
+    res_checkee = deparen(typeOf->argument()); // -V522
     res_lit = lit;
     return true;
   }
