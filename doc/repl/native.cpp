@@ -49,9 +49,14 @@ static void script_err_print_func(HSQUIRRELVM /*v*/, const SQChar* s,...)
 
 
 static void compile_error_handler(HSQUIRRELVM /*v*/, const SQChar *desc, const SQChar *source,
-                        SQInteger line, SQInteger column)
+                        SQInteger line, SQInteger column, const SQChar *extra_info)
 {
   output += vaformat("Squirrel compile error %s (%d:%d): %s", source, int(line), int(column), desc);
+  if (extra_info)
+  {
+    output += "\n";
+    output += extra_info;
+  }
 }
 
 
