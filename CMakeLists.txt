@@ -41,39 +41,12 @@ add_subdirectory(sq)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(tgts)
-  if(NOT DISABLE_DYNAMIC)
-    list(APPEND tgts squirrel sqstdlib sqmodules sq)
-  endif()
-  if(NOT DISABLE_STATIC)
-    list(APPEND tgts squirrel_static sqstdlib_static sqmodules_static sq_static)
-  endif()
+  list(APPEND tgts squirrel sqstdlib sqmodules sq)
   foreach(t ${tgts})
     target_compile_definitions(${t} PUBLIC -D_SQ64)
   endforeach()
 endif()
 
-if(NOT DISABLE_DYNAMIC)
-  set_target_properties(squirrel sqstdlib sqmodules PROPERTIES SOVERSION 0 VERSION 0.0.0)
-endif()
-
-if(NOT SQ_DISABLE_INSTALLER AND NOT SQ_DISABLE_HEADER_INSTALLER)
-  install(FILES
-    include/sqconfig.h
-    include/squirrel.h
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    COMPONENT Development
-    )
-  install(FILES
-    include/sqstdaux.h
-    include/sqstdblob.h
-    include/sqstdio.h
-    include/sqstdmath.h
-    include/sqstdstring.h
-    include/sqstdsystem.h
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    COMPONENT Development
-    )
-endif()
 
 include(CMakePackageConfigHelpers)
 
@@ -88,24 +61,3 @@ configure_package_config_file(
   "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/cmake/squirrel/squirrel-config.cmake"
   INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/squirrel"
   )
-
-if(NOT SQ_DISABLE_INSTALLER AND NOT SQ_DISABLE_CMAKE_INSTALLER)
-  export(EXPORT squirrel
-    NAMESPACE squirrel::
-    FILE "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/cmake/squirrel/squirrel-targets.cmake"
-    )
-
-  install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/cmake/squirrel/squirrel-config-version.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/cmake/squirrel/squirrel-config.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/squirrel"
-    COMPONENT Development
-    )
-
-  install(EXPORT squirrel
-    NAMESPACE squirrel::
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/squirrel"
-    FILE "squirrel-targets.cmake"
-    COMPONENT Development
-    )
-endif()
