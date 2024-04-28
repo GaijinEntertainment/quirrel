@@ -1,3 +1,6 @@
+if (__name__ == "__analysis__")
+  return
+
 local invite_info = ::fn()
 local uid = 0
 if (uid := invite_info?.leader.id.tostring()!=null)

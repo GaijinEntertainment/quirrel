@@ -1,5 +1,5 @@
 WARNING: w288 (param-count) Function 'foo' is called with the wrong number of parameters.
-testData/static_analyzer/w288_dp_va.nut:11:0
+testData/static_analyzer/w288_dp_va.nut:14:0
 
 foo(10, 20, 30, 40)
 ^------------------
@@ -7,7 +7,7 @@ foo(10, 20, 30)
 
 
 WARNING: w288 (param-count) Function 'foo' is called with the wrong number of parameters.
-testData/static_analyzer/w288_dp_va.nut:15:0
+testData/static_analyzer/w288_dp_va.nut:18:0
 
 foo(10)
 foo()
@@ -15,7 +15,7 @@ foo()
 
 
 WARNING: w288 (param-count) Function 'bar' is called with the wrong number of parameters.
-testData/static_analyzer/w288_dp_va.nut:18:0
+testData/static_analyzer/w288_dp_va.nut:21:0
 
 bar()
 ^----
@@ -23,7 +23,7 @@ bar(10)
 
 
 WARNING: w288 (param-count) Function 'bar' is called with the wrong number of parameters.
-testData/static_analyzer/w288_dp_va.nut:19:0
+testData/static_analyzer/w288_dp_va.nut:22:0
 
 bar()
 bar(10)
@@ -32,24 +32,10 @@ bar(10, 20)
 
 
 WARNING: w228 (declared-never-used) let 'hflow' was declared but never used.
-testData/static_analyzer/w288_dp_va.nut:9:0
+testData/static_analyzer/w288_dp_va.nut:12:0
 
 let FlowH = 30
 let hflow = @(...) comp(FlowH, vargv)
 ^--
 
 
-
-AN ERROR HAS OCCURRED [wrong number of parameters passed to 'foo' testData/static_analyzer/w288_dp_va.nut:4 (5 passed, 4 required)]
-
-CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w288_dp_va.nut line [11]
-
-LOCALS
-[hflow] CLOSURE
-[FlowH] 30
-[bar] CLOSURE
-[foo] CLOSURE
-[comp] CLOSURE
-[vargv] ARRAY
-[this] TABLE

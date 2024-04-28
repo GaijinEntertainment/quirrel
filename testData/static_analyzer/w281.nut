@@ -1,3 +1,6 @@
+if (__name__ == "__analysis__")
+  return
+
 //expect:w281
 //-file:declared-never-used
 //-file:undefined-global

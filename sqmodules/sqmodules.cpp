@@ -23,6 +23,7 @@
 
 const char* SqModules::__main__ = "__main__";
 const char* SqModules::__fn__ = nullptr;
+const char* SqModules::__analysis__ = "__analysis__";
 
 
 static SQInteger persist_state(HSQUIRRELVM vm)
@@ -161,27 +162,15 @@ static enum FileAccessError readFileContent(const char *resolved_fn, std::vector
   return FAE_OK;
 }
 
-struct ASTDataGuard
+bool SqModules::compileScriptImpl(const std::vector<char> &buf, const char *sourcename, const HSQOBJECT *bindings,
+                                  SQCompilation::SqASTData **return_ast)
 {
-  SQCompilation::SqASTData *data;
-  HSQUIRRELVM vm;
+  SQCompilation::SqASTData *ast =
+    sq_parsetoast(sqvm, &buf[0], buf.size() - 1, sourcename, compilationOptions.doStaticAnalysis, compilationOptions.raiseError);
 
-  ASTDataGuard(HSQUIRRELVM vm_, SQCompilation::SqASTData *astData) : vm(vm_), data(astData) {}
+  if (return_ast)
+    *return_ast = ast;
 
-  ~ASTDataGuard()
-  {
-    sq_releaseASTData(vm, data);
-  }
-};
-
-bool SqModules::compileScriptImpl(const std::vector<char> &buf, const char *sourcename, const HSQOBJECT *bindings)
-{
-  if (compilationOptions.doStaticAnalysis)
-  {
-    sq_checktrailingspaces(sqvm, sourcename, &buf[0], buf.size());
-  }
-
-  auto *ast = sq_parsetoast(sqvm, &buf[0], buf.size() - 1, sourcename, compilationOptions.doStaticAnalysis, compilationOptions.raiseError);
   if (!ast)
   {
     return true;
@@ -192,14 +181,15 @@ bool SqModules::compileScriptImpl(const std::vector<char> &buf, const char *sour
       onAST_cb(sqvm, ast, up_data);
   }
 
-  ASTDataGuard g(sqvm, ast);
-
   if (SQ_FAILED(sq_translateasttobytecode(sqvm, ast, bindings, &buf[0], buf.size(), compilationOptions.raiseError, compilationOptions.debugInfo)))
   {
+    sq_releaseASTData(sqvm, ast);
+    if (return_ast)
+      *return_ast = nullptr;
     return true;
   }
 
-  if (compilationOptions.doStaticAnalysis)
+  if (compilationOptions.doStaticAnalysis && !return_ast)
   {
     sq_analyzeast(sqvm, ast, bindings, &buf[0], buf.size());
   }
@@ -210,6 +200,8 @@ bool SqModules::compileScriptImpl(const std::vector<char> &buf, const char *sour
     onBytecode_cb(sqvm, func, up_data);
   }
 
+  if (!return_ast)
+    sq_releaseASTData(sqvm, ast);
   return false;
 }
 
@@ -230,7 +222,8 @@ static const char *computeAbsolutePath(const char *resolved_fn, char *buffer, si
 
 bool SqModules::compileScript(const std::vector<char> &buf, const char *resolved_fn, const char *requested_fn,
                                                         const HSQOBJECT *bindings,
-                                                        Sqrat::Object &script_closure, string &out_err_msg)
+                                                        Sqrat::Object &script_closure, string &out_err_msg,
+                                                        SQCompilation::SqASTData **return_ast)
 {
   script_closure.Release();
 
@@ -243,7 +236,7 @@ bool SqModules::compileScript(const std::vector<char> &buf, const char *resolved
       filePath = r;
   }
 
-  if (compileScriptImpl(buf, filePath, bindings))
+  if (compileScriptImpl(buf, filePath, bindings, return_ast))
   {
     out_err_msg = string("Failed to compile file: ") + requested_fn + " / " + resolved_fn;
     return false;
@@ -383,9 +376,16 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
     out_err_msg = string(r == FAE_NOT_FOUND ? "Script file not found: " : "Cannot read script file: ") + requested_fn + " / " + resolvedFn;
     return false;
   }
+
+  SQCompilation::SqASTData *astData = nullptr;
+
   Sqrat::Object scriptClosure;
-  if (!compileScript(sourceCode, resolvedFn.c_str(), requested_fn, &hBindings, scriptClosure, out_err_msg))
+  if (!compileScript(sourceCode, resolvedFn.c_str(), requested_fn, &hBindings, scriptClosure, out_err_msg,
+    compilationOptions.doStaticAnalysis ? &astData : nullptr))
+  {
+    sq_releaseASTData(vm, astData);
     return false;
+  }
 
   if (__name__ == __fn__)
     __name__ = resolvedFn.c_str();
@@ -409,6 +409,7 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   {
     out_err_msg = string("Failed to run script ") + requested_fn + " / " + resolvedFn;
     sq_pop(vm, 1); // clojure, no return value on error
+    sq_releaseASTData(vm, astData);
     return false;
   }
 
@@ -430,6 +431,13 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
 
   modules.push_back(module);
 
+  if (compilationOptions.doStaticAnalysis && astData)
+  {
+    sq_checktrailingspaces(vm, resolvedFn.c_str(), sourceCode.data(), sourceCode.size());
+    sq_analyzeast(vm, astData, &hBindings, sourceCode.data(), sourceCode.size());
+  }
+
+  sq_releaseASTData(vm, astData);
   return true;
 }
 

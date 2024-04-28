@@ -1,3 +1,5 @@
+if (__name__ == "__analysis__")
+  return
 
 const MB = 3
 function foo() {}

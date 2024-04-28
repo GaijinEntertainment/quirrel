@@ -22,6 +22,11 @@
 #include "sqratLite.h"
 #endif
 
+namespace SQCompilation
+{
+struct SqASTData;
+}
+
 class SqModules
 {
 public:
@@ -86,8 +91,10 @@ private:
   void  resolveFileName(const char *fn, string &res);
   bool  checkCircularReferences(const char *resolved_fn, const char *orig_fn);
   bool  compileScript(const std::vector<char> &buf, const char *resolved_fn, const char *orig_fn, const HSQOBJECT *bindings,
-                                    Sqrat::Object &script_closure, string &out_err_msg);
-  bool  compileScriptImpl(const std::vector<char> &buf, const char *sourcename, const HSQOBJECT *bindings);
+                                    Sqrat::Object &script_closure, string &out_err_msg,
+                                    SQCompilation::SqASTData **return_ast = nullptr);
+  bool  compileScriptImpl(const std::vector<char> &buf, const char *sourcename, const HSQOBJECT *bindings,
+                         SQCompilation::SqASTData **return_ast = nullptr);
 
   Sqrat::Object  setupStateStorage(const char *resolved_fn);
   Module * findModule(const char * resolved_fn);
@@ -97,7 +104,7 @@ private:
 
 
 public:
-  static const char *__main__, *__fn__;
+  static const char *__main__, *__fn__, *__analysis__;
 
   struct {
     bool raiseError;

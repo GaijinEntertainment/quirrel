@@ -425,7 +425,9 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 Sqrat::Object exports;
                 std::string errMsg;
                 int retCode = _DONE;
-                if (!module_mgr->requireModule(filename, true, "__main__", exports, errMsg)) {
+
+                // TODO: SqModules::__analysis__  and SqModules::__main__ (not available with dynamic linking)
+                if (!module_mgr->requireModule(filename, true, static_analysis ? "__analysis__" : "__main__", exports, errMsg)) {
                     retCode = _ERROR;
                 }
 
