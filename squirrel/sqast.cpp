@@ -1,5 +1,7 @@
 #include "sqast.h"
 
+namespace SQCompilation {
+
 #define DEF_TREE_OP(arg) #arg
 
 const char* sq_tree_op_names[] = {
@@ -7,7 +9,6 @@ const char* sq_tree_op_names[] = {
 };
 #undef DEF_TREE_OP
 
-namespace SQCompilation {
 
 void Node::visitChildren(Visitor *visitor) {
     switch (op())
