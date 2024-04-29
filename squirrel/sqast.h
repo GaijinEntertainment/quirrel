@@ -150,26 +150,26 @@ public:
     GetFieldExpr *asGetField() const { assert(_op == TO_GETFIELD); return (GetFieldExpr*)this; }
     GetTableExpr *asGetTable() const { assert(_op == TO_GETTABLE); return (GetTableExpr*)this; }
 
-    SQInteger lineStart() const { return _coordinates.lineStart; }
-    void setLineStartPos(SQInteger pos) { _coordinates.lineStart = pos; }
-    SQInteger lineEnd() const { return _coordinates.lineEnd; }
-    void setLineEndPos(SQInteger pos) { _coordinates.lineEnd = pos; }
+    int lineStart() const { return _coordinates.lineStart; }
+    void setLineStartPos(int pos) { _coordinates.lineStart = pos; }
+    int lineEnd() const { return _coordinates.lineEnd; }
+    void setLineEndPos(int pos) { _coordinates.lineEnd = pos; }
 
-    SQInteger columnStart() const { return _coordinates.columnStart; }
-    void setColumnStartPos(SQInteger pos) { _coordinates.columnStart = pos; }
-    SQInteger columnEnd() const { return _coordinates.columnEnd; }
-    void setColumnEndPos(SQInteger pos) { _coordinates.columnEnd = pos; }
+    int columnStart() const { return _coordinates.columnStart; }
+    void setColumnStartPos(int pos) { _coordinates.columnStart = pos; }
+    int columnEnd() const { return _coordinates.columnEnd; }
+    void setColumnEndPos(int pos) { _coordinates.columnEnd = pos; }
 
-    SQInteger textWidth() const { return columnEnd() - columnStart(); }
+    int textWidth() const { return columnEnd() - columnStart(); }
 
 private:
 
   struct {
-    SQInteger lineStart;
-    SQInteger columnStart;
+        int lineStart;
+        int columnStart;
 
-    SQInteger lineEnd;
-    SQInteger columnEnd;
+        int lineEnd;
+        int columnEnd;
   } _coordinates;
 
     enum TreeOp _op;
@@ -199,7 +199,7 @@ private:
     bool _isConst;
 };
 
-enum IdType : SQInteger {
+enum IdType {
     ID_LOCAL = -1,
     ID_FIELD = -2
 };
@@ -213,14 +213,14 @@ public:
 
     const SQChar *id() const { return _id; }
 
-    void setOuterPos(SQInteger pos) { _outpos = pos; }
+    void setOuterPos(int pos) { _outpos = pos; }
 
     bool isOuter() const { return _outpos >= 0; }
     bool isField() const { return _outpos == ID_FIELD; }
     void setField() { _outpos = ID_FIELD; }
     bool isLocal() const { return _outpos == ID_LOCAL; }
 
-    SQInteger outerPos() const { return _outpos; }
+    int outerPos() const { return _outpos; }
     void setAssignable(bool v) { _assignable = v; }
     bool isAssignable() const { return _assignable; }
     bool isBinding() const { return (isOuter() || isLocal()) && !isAssignable(); }
@@ -228,7 +228,7 @@ public:
 
 private:
     const SQChar *_id;
-    SQInteger _outpos;
+    int _outpos;
     bool _assignable;
 };
 
@@ -388,11 +388,11 @@ public:
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
 
-    void setPos(SQInteger pos) { _pos = pos; }
-    SQInteger getPos() const { return _pos; }
+    void setPos(int pos) { _pos = pos; }
+    int getPos() const { return _pos; }
 
 private:
-    SQInteger _pos;
+    int _pos;
 };
 
 class RootExpr : public Expr {
@@ -451,18 +451,18 @@ enum IncForm {
 
 class IncExpr : public Expr {
 public:
-    IncExpr(Expr *arg, SQInteger diff, enum IncForm form) : Expr(TO_INC), _arg(arg), _diff(diff), _form(form) {}
+    IncExpr(Expr *arg, int diff, enum IncForm form) : Expr(TO_INC), _arg(arg), _diff(diff), _form(form) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
 
     enum IncForm form() const { return _form; }
-    SQInteger diff() const { return _diff; }
+    int diff() const { return _diff; }
     Expr *argument() const { return _arg; }
 
 private:
     enum IncForm _form;
-    SQInteger _diff;
+    int _diff;
     Expr *_arg;
 };
 
@@ -557,7 +557,7 @@ public:
 class DirectiveStmt : public Statement {
 public:
     DirectiveStmt() : Statement(TO_DIRECTIVE) {}
-    SQInteger setFlags = 0, clearFlags = 0;
+    uint32_t setFlags = 0, clearFlags = 0;
     bool applyToDefault = false;
 };
 

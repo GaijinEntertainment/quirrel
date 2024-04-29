@@ -126,10 +126,10 @@ public:
 void SQASTWritingVisitor::writeNodeHeader(const Node *n) {
   stream->writeInt32(n->op() + OP_DELTA);
 
-  stream->writeSQInteger(n->lineStart());
-  stream->writeSQInteger(n->columnStart());
-  stream->writeSQInteger(n->lineEnd());
-  stream->writeSQInteger(n->columnEnd());
+  stream->writeInt32(n->lineStart());
+  stream->writeInt32(n->columnStart());
+  stream->writeInt32(n->lineEnd());
+  stream->writeInt32(n->columnEnd());
 }
 
 void SQASTWritingVisitor::writeNull() {
@@ -216,7 +216,7 @@ void SQASTWritingVisitor::visitGetTableExpr(GetTableExpr *ge) {
 void SQASTWritingVisitor::visitIncExpr(IncExpr *expr) {
   writeNodeHeader(expr);
   stream->writeInt32(expr->form());
-  stream->writeSQInteger(expr->diff());
+  stream->writeInt32(expr->diff());
   expr->argument()->visit(this);
 }
 
@@ -264,8 +264,8 @@ void SQASTWritingVisitor::visitExprStatement(ExprStatement *estmt) {
 
 void SQASTWritingVisitor::visitDirectiveStatement(DirectiveStmt *stmt) {
   writeNodeHeader(stmt);
-  stream->writeSQInteger(stmt->setFlags);
-  stream->writeSQInteger(stmt->clearFlags);
+  stream->writeUInt32(stmt->setFlags);
+  stream->writeUInt32(stmt->clearFlags);
   stream->writeInt8(stmt->applyToDefault);
 }
 
@@ -699,8 +699,8 @@ VarDecl *SQASTReader::readNonNullVar() {
 
 RootBlock *SQASTReader::readRoot() {
   int32_t op = stream->readInt32();
-  SQInteger line = stream->readSQInteger();
-  SQInteger column = stream->readSQInteger();
+  int32_t line = stream->readInt32();
+  int32_t column = stream->readInt32();
 
   RootBlock *root = (RootBlock *)readBlock(true);
   assert(root->isRoot());
@@ -711,10 +711,10 @@ RootBlock *SQASTReader::readRoot() {
 Node *SQASTReader::readNullable() {
   int32_t op = stream->readInt32();
   if (op) {
-    SQInteger lineS = stream->readSQInteger();
-    SQInteger columnS = stream->readSQInteger();
-    SQInteger lineE = stream->readSQInteger();
-    SQInteger columnE = stream->readSQInteger();
+    int32_t lineS = stream->readInt32();
+    int32_t columnS = stream->readInt32();
+    int32_t lineE = stream->readInt32();
+    int32_t columnE = stream->readInt32();
 
     Node *n = readNode((enum TreeOp)(op - op_delta));
 
@@ -731,7 +731,7 @@ Node *SQASTReader::readNullable() {
 }
 
 Block *SQASTReader::readBlock(bool isRoot) {
-  SQInteger lineEnd = stream->readSQInteger();
+  int32_t lineEnd = stream->readInt32();
   size_t size = stream->readUInt64();
 
   Block *b = isRoot? newNode<RootBlock>(astArena) : newNode<Block>(astArena, false);
@@ -925,8 +925,8 @@ RootExpr *SQASTReader::readRootExpr() {
 }
 
 IncExpr *SQASTReader::readIncExpr() {
-  int form = stream->readInt32();
-  SQInteger diff = stream->readSQInteger();
+  int32_t form = stream->readInt32();
+  int32_t diff = stream->readInt32();
   Expr *arg = readExpression();
 
   return newNode<IncExpr>(arg, diff, (enum IncForm)form);
@@ -1147,8 +1147,8 @@ FunctionDecl *SQASTReader::readFunctionDecl(bool isCtor) {
 DirectiveStmt *SQASTReader::readDirectiveStmt() {
   DirectiveStmt *d = newNode<DirectiveStmt>();
 
-  d->setFlags = stream->readSQInteger();
-  d->clearFlags = stream->readSQInteger();
+  d->setFlags = stream->readUInt32();
+  d->clearFlags = stream->readUInt32();
   d->applyToDefault = stream->readInt8();
 
   return d;
