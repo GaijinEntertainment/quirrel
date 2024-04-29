@@ -525,6 +525,20 @@ void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t 
 
     const char *msg = message.c_str();
 
+    auto diagMsgFunc = _ss(_vm)->_compilerdiaghandler;
+    if (diagMsgFunc) {
+      SQCompilerMessage cm;
+      cm.intId = desc.id;
+      cm.textId = desc.textId;
+      cm.line = line;
+      cm.column = pos;
+      cm.columnsWidth = width;
+      cm.message = msg;
+      cm.fileName = _sourceName;
+      cm.isError = isError;
+      diagMsgFunc(_vm, &cm);
+    }
+
     if (_raiseError && errorFunc) {
       errorFunc(_vm, msg, _sourceName, line, pos, extra);
     }

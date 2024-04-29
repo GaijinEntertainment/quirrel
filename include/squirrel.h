@@ -220,6 +220,22 @@ enum CompilationOptions : SQUnsignedInteger {
   CO_CLOSURE_HOISTING_OPT = BIT(1)
 };
 
+#undef BIT
+
+typedef struct tagSQCompilerMessage {
+  int intId;
+  const char* textId;
+  int line;
+  int column;
+  int columnsWidth;
+  const char* message;
+  const char* fileName;
+  bool isError;
+} SQCompilerMessage;
+
+typedef void (*SQ_COMPILER_DIAG_CB)(HSQUIRRELVM v, const SQCompilerMessage *msg);
+
+
 /*vm*/
 SQUIRREL_API HSQUIRRELVM sq_open(SQInteger initialstacksize);
 SQUIRREL_API HSQUIRRELVM sq_newthread(HSQUIRRELVM friendvm, SQInteger initialstacksize);
@@ -270,6 +286,7 @@ SQUIRREL_API SQBool sq_isvartracesupported();
 SQUIRREL_API void sq_lineinfo_in_expressions(HSQUIRRELVM v, SQBool enable);
 SQUIRREL_API void sq_notifyallexceptions(HSQUIRRELVM v, SQBool enable);
 SQUIRREL_API void sq_setcompilererrorhandler(HSQUIRRELVM v,SQCOMPILERERROR f);
+SQUIRREL_API void sq_setcompilerdiaghandler(HSQUIRRELVM v, SQ_COMPILER_DIAG_CB f);
 SQUIRREL_API SQCOMPILERERROR sq_getcompilererrorhandler(HSQUIRRELVM v);
 
 /*stack operations*/

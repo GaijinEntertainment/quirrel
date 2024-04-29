@@ -1405,6 +1405,11 @@ SQCOMPILERERROR sq_getcompilererrorhandler(HSQUIRRELVM v)
     return _ss(v)->_compilererrorhandler;
 }
 
+void sq_setcompilerdiaghandler(HSQUIRRELVM v, SQ_COMPILER_DIAG_CB f)
+{
+    _ss(v)->_compilerdiaghandler = f;
+}
+
 
 SQRESULT sq_writeclosure(HSQUIRRELVM v,SQWRITEFUNC w,SQUserPointer up)
 {
