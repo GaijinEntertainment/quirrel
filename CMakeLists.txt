@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.4)
 project(squirrel VERSION 4.0 LANGUAGES C CXX)
 
-option(DISABLE_STATIC "Avoid building/installing static libraries.")
-option(LONG_OUTPUT_NAMES "Use longer names for binaries and libraries: squirrel3 (not sq).")
 option(ENABLE_VAR_TRACE "Enable variable change tracing feature.")
 
 if (NOT CMAKE_BUILD_TYPE)
