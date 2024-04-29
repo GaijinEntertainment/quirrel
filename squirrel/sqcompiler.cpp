@@ -80,7 +80,7 @@ SqASTData *ParseToAST(SQVM *vm, const char *sourceText, size_t sourceTextSize, c
   return astData;
 }
 
-bool CompileWithAst(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo)
+bool Compile(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo)
 {
     if (vm->_on_compile_file)
       vm->_on_compile_file(vm, sourcename);
@@ -97,10 +97,6 @@ bool CompileWithAst(SQVM *vm, const char *sourceText, size_t sourceTextSize, con
     CodegenVisitor codegen(&cgArena, bindings, vm, sourcename, ctx, lineinfo);
 
     return codegen.generate(r, out);
-}
-
-bool Compile(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo) {
-    return CompileWithAst(vm, sourceText, sourceTextSize, bindings, sourcename, out, raiseerror, lineinfo);
 }
 
 static bool TranslateASTToBytecodeImpl(SQVM *vm, RootBlock *ast, const HSQOBJECT *bindings, const SQChar *sourcename, const char *sourceText, size_t sourceTextSize, SQObjectPtr &out, const Comments *comments, bool raiseerror, bool lineinfo)
