@@ -78,19 +78,16 @@ the following is an interesting example of how threads and tail recursion
 can be combined.::
 
     function state1() {
-
         suspend("state1")
         return state2() //tail call
     }
 
     function state2() {
-
         suspend("state2")
         return state3() //tail call
     }
 
     function state3() {
-
         suspend("state3")
         return state1() //tail call
     }

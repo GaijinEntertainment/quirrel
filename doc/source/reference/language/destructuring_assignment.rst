@@ -1,4 +1,4 @@
-.. destructuring_assignment:
+.. _destructuring_assignment:
 
 
 =========================

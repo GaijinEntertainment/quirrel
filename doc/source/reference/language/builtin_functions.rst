@@ -391,12 +391,12 @@ Table
 
 .. sq:function:: table.len()
 
-returns the number of slots contained in a table
+Returns the number of slots contained in a table
 
 
 .. sq:function:: table.rawget(key)
 
-tries to get a value from the slot 'key' without employing delegation
+Tries to get a value from the slot 'key' without employing delegation
 
 
 .. sq:function:: table.rawset(key,val)
@@ -411,12 +411,12 @@ Deletes the slot key without employing delegation and returns its value. If the 
 
 .. sq:function:: table.rawin(key)
 
-returns true if the slot 'key' exists. the function has the same effect as the operator 'in' but does not employ delegation.
+Returns true if the slot 'key' exists. the function has the same effect as the operator 'in' but does not employ delegation.
 
 
 .. sq:function:: table.weakref()
 
-returns a weak reference to the object.
+Returns a weak reference to the object.
 
 
 .. sq:function:: table.tostring()
@@ -426,7 +426,7 @@ Tries to invoke the _tostring metamethod. If that fails, it returns "(table : po
 
 .. sq:function:: table.clear()
 
-removes all the slots from the table. Returns table itself.
+Removes all the slots from the table. Returns table itself.
 
 .. sq:function:: table.filter(func(val, [key], [table_ref]))
 
@@ -434,15 +434,19 @@ Creates a new table with all values that pass the test implemented by the provid
 
 .. sq:function:: table.keys()
 
-returns an array containing all the keys of the table slots.
+Returns an array containing all the keys of the table slots.
 
 .. sq:function:: table.values()
 
-returns an array containing all the values of the table slots.
+Returns an array containing all the values of the table slots.
 
 .. sq:function:: table.topairs()
 
-returns an array containing arrays of pairs [key, value]. Useful when you need to sort data from table.
+Returns an array containing arrays of pairs [key, value]. Useful when you need to sort data from table.
+
+.. sq:function:: table.clone()
+
+Returns a clone of table.
 
 .. sq:function:: table.map(func(slot_value, [slot_key], [table_ref]))
 
@@ -499,6 +503,11 @@ Example: ::
     let foo = {fizz=1}
     let bar = foo.__update({buzz=2})
     => foo == {fizz=1, bazz=2}; bar={fizz=1, buzz=2}
+
+
+.. sq:function:: table.is_frozen()
+
+Return true if reference to the table is frozen with 'freeze' global function.
 
 
 ^^^^^^
@@ -650,6 +659,14 @@ Returns matched value (for which callback returned non-false value) or default v
 
 Copies content of source array into given array by replacing its contents. Returns target array itself.
 
+.. sq:function:: array.is_frozen()
+
+Return true if reference to the array is frozen with 'freeze' global function.
+
+.. sq:function:: array.clone()
+
+Return clone of the array.
+
 ^^^^^^^^
 Function
 ^^^^^^^^
@@ -776,6 +793,10 @@ Arguments to merge fields from can be tables, classes and instances.
 This delegate is used to update new table with values from given ones.
 In other words it mutates table with data from provided tables.
 
+.. sq:function:: class.lock()
+
+Seals the class protecting from modifying its fields event if it was not instantinated yet.
+
 ^^^^^^^^^^^^^^
 Class Instance
 ^^^^^^^^^^^^^^
@@ -818,6 +839,10 @@ If instance has _call() metamethod, get info about it (see function.getfuncinfos
 .. sq:function:: instance.getmetamethod(name)
 
 Returns metamethod closure (e.g. foo.getmetamethod("_add")) or null if method is not implemented in class.
+
+.. sq:function:: instance.is_frozen()
+
+Return true if reference to the instance is frozen with 'freeze' global function.
 
 
 ^^^^^^^^^^^^^^

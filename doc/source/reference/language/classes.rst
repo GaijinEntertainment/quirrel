@@ -21,9 +21,9 @@ Class Declaration
     pair: declaration; Class
     single: Class Declaration
 
-A class object is created through the keyword 'class' . The class object follows
+A class object is created through the keyword ``class`` . The class object follows
 the same declaration syntax of a table(see :ref:`Tables <tables>`) with the only difference
-of using ';' as optional separator rather than ','.
+of using ``;`` as optional separator rather than ``,``.
 
 For instance: ::
 
@@ -42,41 +42,6 @@ For instance: ::
         testy = null
     }
 
-the previous code example is a syntactic sugar for: ::
-
-    Foo <- class {
-        //constructor
-        constructor(a) {
-            testy = ["stuff",1,2,3,a]
-        }
-        //member function
-        function PrintTesty() {
-            foreach(i,val in testy) {
-                println("idx = "+i+" = "+val)
-            }
-        }
-        //property
-        testy = null
-    }
-
-in order to emulate namespaces, it is also possible to declare something like this::
-
-    //just 2 regular nested tables
-    FakeNamespace <- {
-        Utils = {}
-    }
-
-    class FakeNamespace.Utils.SuperClass {
-        constructor() {
-            println("FakeNamespace.Utils.SuperClass")
-        }
-        function DoSomething() {
-            println("DoSomething()")
-        }
-    }
-
-    let testy = FakeNamespace.Utils.SuperClass()
-    testy.DoSomething()
 
 After its declaration, methods or properties can be added or modified by following
 the same rules that apply to a table(operator ``<-``).::
@@ -106,8 +71,7 @@ with the keyword ``static``; the declaration must be in the class body.
 ::
 
     class Foo {
-        constructor()
-        {
+        constructor() {
             //..stuff
         }
         name = "normal variable"
@@ -151,8 +115,8 @@ class declaration. The values are copied verbatim, *no cloning is performed* eve
                 let a = Foo()
                 let b = Foo()
 
-            In the snippet above both instances will refer to the same array and same table.To achieve what a C# or Java programmer would
-            expect, the following approach should be taken. ::
+    In the snippet above both instances will refer to the same array and same table.
+    To achieve what a C# or Java programmer would expect, the following approach should be taken. ::
 
                 class Foo {
                   myarray = null
@@ -170,7 +134,9 @@ When a class defines a method called 'constructor', the class instantiation oper
 automatically invoke it for the newly created instance.
 The constructor method can have parameters, this will impact on the number of parameters
 that the *instantiation operation* will require.
-Constructors, as normal functions, can have variable number of parameters (using the parameter ``...``).::
+Constructors, as normal functions, can have variable number of parameters (using the parameter ``...``).
+
+::
 
     class Rect {
         constructor(w,h) {
@@ -195,9 +161,11 @@ Instance members cannot be removed.
 The class object that created a certain instance can be retrieved through the built-in function
 ``instance.getclass()`` (see :ref:`built-in functions <builtin_functions>`)
 
-The operator ``instanceof`` tests if a class instance is an instance of a certain class.::
+The operator ``instanceof`` tests if a class instance is an instance of a certain class.
 
-    let rc = Rect(100,100);
+::
+
+    let rc = Rect(100, 100)
     if (rc instanceof Rect) {
         println("It's a rect")
     }
@@ -215,11 +183,10 @@ Inheritance
     pair: inheritance; Class
     single: Inheritance
 
-Quirrel's classes support single inheritance by adding the keyword ``extends``, followed
-by an expression, in the class declaration.
+Quirrel's classes support single inheritance.
 The syntax for a derived class is the following: ::
 
-    class SuperFoo extends Foo {
+    class DerivedClas(BaseClass) {
         function DoSomething() {
             println("I'm doing something")
         }
@@ -230,10 +197,12 @@ new class then proceeds with evaluating the rest of the declaration.
 
 A derived class inherit all members and properties of it's base, if the derived class
 overrides a base function the base implementation is shadowed.
-It's possible to access a overridden method of the base class by fetching the method from
+It's possible to access a overridden method of the base class by fetching the method from it
 through the 'base' keyword.
 
-Here an example: ::
+Here an example:
+
+::
 
     class Foo {
         function DoSomething() {
@@ -241,7 +210,7 @@ Here an example: ::
         }
     };
 
-    class SuperFoo extends Foo {
+    class SuperFoo(Foo) {
         //overridden method
         function DoSomething() {
             //calls the base method
@@ -250,31 +219,40 @@ Here an example: ::
         }
     }
 
-Same rule apply to the constructor. The constructor is a regular function (apart from being automatically invoked on construction).::
+
+Same rule apply to the constructor. The constructor is a regular function (apart from being automatically invoked on construction).
+
+::
 
     class BaseClass {
         constructor() {
-            println("Base constructor");
+            println("Base constructor")
         }
     }
 
-    class ChildClass extends BaseClass {
+    class ChildClass(BaseClass) {
         constructor() {
             base.constructor()
             println("Child constructor")
         }
     }
 
-    let test = ChildClass();
+    let test = ChildClass()
 
-The base class of a derived class can be retrieved through the built-in method ``getbase()``.::
 
-    let thebaseclass = SuperFoo.getbase();
+The base class of a derived class can be retrieved through the built-in method ``getbase()``.
+
+::
+
+    let thebaseclass = SuperFoo.getbase()
+
 
 Note that because methods do not have special protection policies when calling methods of the same
 objects, a method of a base class that calls a method of the same class can end up calling a overridden method of the derived class.
 
-A method of a base class can be explicitly invoked by a method of a derived class though the keyword ``base`` (as in base.MyMethod() ).::
+A method of a base class can be explicitly invoked by a method of a derived class though the keyword ``base`` (as in base.MyMethod() ).
+
+::
 
     class Foo {
         function DoSomething() {
@@ -285,7 +263,7 @@ A method of a base class can be explicitly invoked by a method of a derived clas
         }
     };
 
-    class SuperFoo extends Foo {
+    class SuperFoo(Foo) {
         //overridden method
         function DoSomething() {
             println("I'm the derived")
@@ -315,7 +293,9 @@ For C++ programmers: "metamethods behave roughly like overloaded operators".
 The metamethods supported by classes are ``_add, _sub, _mul, _div, _unm, _modulo,
 _set, _get, _typeof, _nexti, _cmp, _call, _delslot, _tostring``
 
-the following example show how to create a class that implements the metamethod ``_add``.::
+the following example show how to create a class that implements the metamethod ``_add``.
+
+::
 
     class Vector3 {
         constructor(...) {

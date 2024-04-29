@@ -3,19 +3,18 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Quirrel's documentation
+Quirrel documentation
 =========================================
-
-Project source code is available at https://github.com/GaijinEntertainment/quirrel
-
-Contents:
 
 .. toctree::
    :maxdepth: 1
 
+   introduction.rst
+   diff_from_original.rst
    reference/index.rst
    stdlib/index.rst
    modules/index.rst
+   modules/bindings.rst
    repl/index.rst
 
 Indices and tables

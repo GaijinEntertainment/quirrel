@@ -20,7 +20,6 @@ An Integer represents a 32 bit (or better) signed number.::
 
     local a = 123 //decimal
     local b = 0x0012 //hexadecimal
-    local c = 075 //octal
     local d = 'w' //char code
     local e = 123_456 // underscores may be used to visually sepearate digit groups
     local f = 0xAB_CD_01_23 // also underscores
@@ -95,10 +94,9 @@ Tables are associative containers implemented as a set of key/value pairs
 called slots.::
 
     let t={}
-    let test=
-    {
+    let test = {
         a=10
-        b=function(a) { return a+1; }
+        b = function(x) { return x+1 }
     }
 
 --------
@@ -109,7 +107,7 @@ Arrays are simple sequence of objects. Their size is dynamic and their index alw
 
     let a  = ["I'm","an","array"]
     let b = [null]
-    b[0] = a[2];
+    b[0] = a[2]
 
 --------
 Function

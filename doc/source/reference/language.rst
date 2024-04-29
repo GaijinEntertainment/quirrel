@@ -8,7 +8,6 @@ Project source code is available at https://github.com/GaijinEntertainment/quirr
 .. toctree::
    language/lexical_structure.rst
    language/datatypes.rst
-   language/execution_context.rst
    language/statements.rst
    language/expressions.rst
    language/tables.rst
@@ -24,3 +23,4 @@ Project source code is available at https://github.com/GaijinEntertainment/quirr
    language/metamethods.rst
    language/builtin_functions.rst
    language/compiler_directives.rst
+   language/limitations.rst

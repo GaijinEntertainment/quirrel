@@ -44,7 +44,7 @@ The 'key' parameter is the unique-per-module identifier of the variable.
 
 Example: ::
   
-  local counter = persist("counter", @() {value=0})
+  let counter = persist("counter", @() {value=0})
 
 
 .. sq:function:: keepref(var)
@@ -56,6 +56,18 @@ Might be useful to keep an object from deleting itself if it is not exported out
 Also module 'this' table contains field __name__ which is set to file name for module loaded
 by script require() function or parameter __name__ passed to C++ requireModule() function (defaults
 to "__main__" for entry point script).
+
+
+.. quirrel.native_modules
+
+Module that allow to list all registered native modules. 
+
+Example: ::
+
+  require("quirrel.native_modules").each(println)
+
+
+Will print all currently registered native modules.
 
 ==================
 Native API

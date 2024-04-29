@@ -18,7 +18,9 @@ When a weak references is assigned to a container (table slot,array,class or
 instance) is treated differently than other objects; When a container slot that hold a weak
 reference is fetched, it always returns the value pointed by the weak reference instead of the weak
 reference object. This allow the programmer to ignore the fact that the value handled is weak.
-When the object pointed by weak reference is destroyed, the weak reference is automatically set to null.::
+When the object pointed by weak reference is destroyed, the weak reference is automatically set to null.
+
+::
 
     let t = {}
     let a = ["first","second","third"]
@@ -27,17 +29,23 @@ When the object pointed by weak reference is destroyed, the weak reference is au
 
 The table slot 'thearray' contains a weak reference to an array.
 The following line prints "first", because tables(and all other containers) always return
-the object pointed by a weak ref::
+the object pointed by a weak ref
+
+::
 
     print(t.thearray[0])
 
 the only strong reference to the array is owned by the local variable 'a', so
-because the following line assigns a integer to 'a' the array is destroyed.::
+because the following line assigns a integer to 'a' the array is destroyed.
 
-    a = 123;
+::
+
+    a = 123
 
 When an object pointed by a weak ref is destroyed the weak ref is automatically set to null,
-so the following line will print "null".::
+so the following line will print "null".
+
+::
 
     print(typeof(t.thearray))
 
@@ -45,17 +53,23 @@ so the following line will print "null".::
 Handling weak references explicitly
 -----------------------------------
 
-If a weak reference is assigned to a local variable, then is treated as any other value.::
+If a weak reference is assigned to a local variable, then is treated as any other value.
+
+::
 
     let t = {}
     let weakobj = t.weakref()
 
-the following line prints "weakref".::
+the following line prints "weakref".
+
+::
 
     print(typeof(weakobj))
 
 the object pointed by the weakref can be obtained through the built-in method weakref.ref().
 
-The following line prints "table".::
+The following line prints "table".
+
+::
 
     print(typeof(weakobj.ref()))

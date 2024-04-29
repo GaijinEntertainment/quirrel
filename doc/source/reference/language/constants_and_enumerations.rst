@@ -35,7 +35,7 @@ To make constant global, use the ``global`` keyword.::
 
     global const baz = 123
 
-Constants will shadow any global slot with the same name( the global slot will remain visible by using the ``::`` syntax).::
+::
 
     let x = foobar * 2
 
@@ -79,7 +79,8 @@ or::
 
 An enum value is accessed in a manner that's similar to accessing a static class member.
 The name of the member must be qualified with the name of the enumeration, for example ``Stuff.second``
-Enumerations will shadow any global slot with the same name( the global slot will remain visible by using the ``::`` syntax).::
+
+::
 
     let x = Stuff.first * 2
 
