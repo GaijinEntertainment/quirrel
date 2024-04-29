@@ -660,11 +660,6 @@ void CodegenVisitor::checkClassKey(Expr *key) {
 
 void CodegenVisitor::visitClassDecl(ClassDecl *klass) {
     addLineNumber(klass);
-    if (klass->context() == DC_SLOT) {
-        assert(klass->classKey());
-        checkClassKey(klass->classKey());
-        visitNoGet(klass->classKey());
-    }
 
     Expr *baseExpr = klass->classBase();
     SQInteger baseIdx = -1;
@@ -676,11 +671,6 @@ void CodegenVisitor::visitClassDecl(ClassDecl *klass) {
     _fs->AddInstruction(_OP_NEWOBJ, _fs->PushTarget(), baseIdx, 0, NOT_CLASS);
 
     generateTableDecl(klass);
-
-    if (klass->context() == DC_SLOT) {
-        EmitDerefOp(_OP_NEWSLOT);
-        _fs->PopTarget();
-    }
 }
 
 static const SQChar *varDeclKindDescription(VarDecl *var) {

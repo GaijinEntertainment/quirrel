@@ -291,7 +291,6 @@ void SQASTWritingVisitor::visitConstDecl(ConstDecl *decl) {
 void SQASTWritingVisitor::visitFunctionDecl(FunctionDecl *f) {
   writeNodeHeader(f);
 
-  stream->writeInt32(f->context());
   writeString(f->name());
 
   stream->writeUInt64(f->parameters().size());
@@ -348,7 +347,6 @@ void SQASTWritingVisitor::visitTableDecl(TableDecl *table) {
 
 void SQASTWritingVisitor::visitClassDecl(ClassDecl *klass) {
   visitTableDecl(klass);
-  stream->writeInt32(klass->context());
 
   writeNullable(klass->classKey());
   writeNullable(klass->classBase());
@@ -1068,15 +1066,11 @@ ClassDecl *SQASTReader::readClassDecl() {
 
   readTableBody(klass);
 
-  int32_t ctx = stream->readInt32();
-
   Expr *key = readNullableExpression();
   Expr *base = readNullableExpression();
 
   klass->setClassKey(key);
   klass->setClassBase(base);
-
-  klass->setContext((enum DeclarationContext)ctx);
 
   return klass;
 }
@@ -1113,7 +1107,6 @@ DestructuringDecl *SQASTReader::readDestructuringDecl() {
 }
 
 FunctionDecl *SQASTReader::readFunctionDecl(bool isCtor) {
-  int32_t ctx = stream->readInt32();
   const SQChar *name = readString();
 
   FunctionDecl *f = isCtor ? newNode<ConstructorDecl>(astArena, name) : newNode<FunctionDecl>(astArena, name);
@@ -1143,7 +1136,6 @@ FunctionDecl *SQASTReader::readFunctionDecl(bool isCtor) {
   f->setLambda((bool)stream->readInt8());
 
   f->setSourceName(readString());
-  f->setContext((enum DeclarationContext)ctx);
 
   if (f->isVararg()) {
     f->parameters().back()->setVararg();

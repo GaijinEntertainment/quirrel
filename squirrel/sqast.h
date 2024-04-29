@@ -561,29 +561,17 @@ public:
     bool applyToDefault = false;
 };
 
-enum DeclarationContext {
-    DC_UNKNOWN,
-    DC_LOCAL,
-    DC_SLOT,
-    DC_EXPR
-};
 
 class ParamDecl;
 class VarDecl;
 
 class Decl : public Statement {
 protected:
-    Decl(enum TreeOp op) : Statement(op), _context(DC_UNKNOWN) {}
+    Decl(enum TreeOp op) : Statement(op) {}
 public:
-
-    void setContext(enum DeclarationContext ctx) { _context = ctx; }
-    enum DeclarationContext context() const { return _context; }
 
     ParamDecl *asParam() const { assert(op() == TO_PARAM); return (ParamDecl *)(this); }
     VarDecl *asVarDecl() const { assert(op() == TO_VAR); return (VarDecl *)(this); }
-
-private:
-    enum DeclarationContext _context;
 };
 
 class ValueDecl : public Decl {

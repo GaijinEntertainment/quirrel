@@ -7,6 +7,7 @@
 #include <setjmp.h>
 
 struct SQFuncState;
+
 namespace SQCompilation {
 
 class CodegenVisitor : public Visitor {

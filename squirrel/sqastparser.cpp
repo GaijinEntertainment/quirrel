@@ -1002,7 +1002,6 @@ Expr* SQParser::Factor(SQInteger &pos)
     case TK_CLASS: {
         Lex();
         Decl *classDecl = ClassExp(NULL);
-        classDecl->setContext(DC_EXPR);
         r = setCoordinates(newNode<DeclExpr>(classDecl), l, c);
         break;
     }
@@ -1162,7 +1161,6 @@ Decl *SQParser::parseLocalFunctionDeclStmt(bool assignable)
     Expect(_SC('('));
     FunctionDecl *f = CreateFunction(varname, false);
     f->setLineStartPos(l); f->setColumnStartPos(c);
-    f->setContext(DC_LOCAL);
     VarDecl *d = newNode<VarDecl>(varname->id(), copyCoordinates(f, newNode<DeclExpr>(f)), assignable); //-V522
     setCoordinates(d, l, c);
     return d;
@@ -1178,7 +1176,6 @@ Decl *SQParser::parseLocalClassDeclStmt(bool assignable)
     Id *varname = (Id *)Expect(TK_IDENTIFIER);
     ClassDecl *cls = ClassExp(NULL);
     cls->setLineStartPos(l); cls->setColumnStartPos(c);
-    cls->setContext(DC_LOCAL);
     VarDecl *d = newNode<VarDecl>(varname->id(), copyCoordinates(cls, newNode<DeclExpr>(cls)), assignable); //-V522
     setCoordinates(d, l, c);
     return d;
