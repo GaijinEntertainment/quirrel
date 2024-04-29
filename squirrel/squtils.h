@@ -36,17 +36,11 @@ void sq_vm_free(SQAllocContext ctx, void *p,SQUnsignedInteger size);
   #endif
 #endif
 
-#define HAVE_STATIC_ASSERT() ((_MSC_VER >= 1600 && !defined(__INTEL_COMPILER)) || (__cplusplus > 199711L))
 
-#if !defined(SQ_STATIC_ASSERT) && HAVE_STATIC_ASSERT()
+#if !defined(SQ_STATIC_ASSERT)
 #define SQ_STATIC_ASSERT(x) static_assert((x), "assertion failed: " #x)
 #endif
 
-#ifndef SQ_STATIC_ASSERT
-#define SQ_STATIC_ASSERT(x) if (sizeof(char[2*((x)?1:0)-1])) ; else
-#endif
-
-#undef HAVE_STATIC_ASSERT
 
 //sqvector mini vector class, supports objects by value
 template<typename T> class sqvector
