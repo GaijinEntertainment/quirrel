@@ -33,6 +33,7 @@ struct SQSharedState;
     MM_IMPL(MT_NEWSLOT  ,"_newslot")\
     MM_IMPL(MT_DELSLOT  ,"_delslot")\
     MM_IMPL(MT_TOSTRING ,"_tostring")\
+    MM_IMPL(MT_LOCK     ,"_lock")\
 
 
 #define MM_IMPL(mm, name) mm,

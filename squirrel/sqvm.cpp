@@ -699,10 +699,16 @@ bool SQVM::CLASS_OP(SQObjectPtr &target,SQInteger baseclass)
 {
     SQClass *base = NULL;
     if(baseclass != -1) {
-        if(sq_type(_stack._vals[_stackbase+baseclass]) != OT_CLASS) { Raise_Error(_SC("trying to inherit from a %s"),GetTypeName(_stack._vals[_stackbase+baseclass])); return false; }
+        if (sq_type(_stack._vals[_stackbase+baseclass]) != OT_CLASS) {
+            Raise_Error(_SC("trying to inherit from a %s"),GetTypeName(_stack._vals[_stackbase+baseclass]));
+            return false;
+        }
         base = _class(_stack._vals[_stackbase + baseclass]);
     }
-    target = SQClass::Create(_ss(this),base);
+    SQClass *cls = SQClass::Create(this, base);
+    if (!cls)
+        return false;
+    target = cls;
     return true;
 }
 
@@ -1462,9 +1468,13 @@ exception_trap:
     return false;
 }
 
-bool SQVM::CreateClassInstance(SQClass *theclass, SQObjectPtr &__restrict inst, SQObjectPtr &__restrict constructor)
+bool SQVM::CreateClassInstance(SQClass *theclass, SQObjectPtr &__restrict out_inst_res, SQObjectPtr &__restrict constructor)
 {
-    inst = theclass->CreateInstance();
+    SQInstance *inst = theclass->CreateInstance(this);
+    if (!inst)
+        return false;
+
+    out_inst_res = inst;
     if(!theclass->GetConstructor(constructor)) {
         constructor.Null();
     }
@@ -1997,7 +2007,7 @@ bool SQVM::NewSlot(const SQObjectPtr &self,const SQObjectPtr &key,const SQObject
     case OT_CLASS:
         if(!_class(self)->NewSlot(_ss(this),key,val,bstatic)) {
             if(_class(self)->isLocked()) {
-                Raise_Error(_SC("trying to modify a class that has already been instantiated"));
+                Raise_Error(_SC("trying to modify a class that has already been instantiated, inherited or is locked manually"));
                 return false;
             }
             else {
@@ -2072,7 +2082,8 @@ bool SQVM::Call(SQObjectPtr &closure,SQInteger nparams,SQInteger stackbase,SQObj
     case OT_CLASS: {
         SQObjectPtr constr;
         SQObjectPtr temp;
-        CreateClassInstance(_class(closure),outres,constr);
+        if (!CreateClassInstance(_class(closure),outres,constr))
+            return false;
         SQObjectType ctype = sq_type(constr);
         if (ctype == OT_NATIVECLOSURE || ctype == OT_CLOSURE) {
             _stack[stackbase] = outres;

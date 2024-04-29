@@ -371,10 +371,14 @@ SQRESULT sq_newclass(HSQUIRRELVM v,SQBool hasbase)
             return sq_throwerror(v,_SC("invalid base type"));
         baseclass = _class(base);
     }
-    SQClass *newclass = SQClass::Create(_ss(v), baseclass);
+    SQClass *newclass = SQClass::Create(v, baseclass);
     if(baseclass) v->Pop();
+    if (newclass) {
     v->Push(newclass);
     return SQ_OK;
+}
+    else
+        return SQ_ERROR; // propagate the raised error
 }
 
 SQBool sq_instanceof(HSQUIRRELVM v)
@@ -1614,7 +1618,10 @@ SQRESULT sq_createinstance(HSQUIRRELVM v,SQInteger idx)
 {
     SQObjectPtr *o = NULL;
     _GETSAFE_OBJ(v, idx, OT_CLASS,o);
-    v->Push(_class(*o)->CreateInstance());
+    SQInstance *inst = _class(*o)->CreateInstance(v);
+    if (!inst)
+        return SQ_ERROR;
+    v->Push(inst);
     return SQ_OK;
 }
 

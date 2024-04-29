@@ -2288,6 +2288,17 @@ static SQInteger get_class_metamethod(HSQUIRRELVM v)
 }
 
 
+static SQInteger class_lock(HSQUIRRELVM v)
+{
+    SQClass *cls = _class(stack_get(v, 1));
+    if (!cls->isLocked()) {
+        if (!cls->Lock(v))
+            return SQ_ERROR; // propagate raised error
+    }
+    return 1;
+}
+
+
 const SQRegFunction SQSharedState::_class_default_delegate_funcz[] = {
     {_SC("rawget"),container_rawget,2, _SC("y")},
     {_SC("rawset"),container_rawset,3, _SC("y")},
@@ -2307,6 +2318,7 @@ const SQRegFunction SQSharedState::_class_default_delegate_funcz[] = {
     {_SC("getmetamethod"),get_class_metamethod, 2, _SC("ys")},
     {_SC("clone"),obj_clone, 1, _SC(".") },
     {_SC("is_frozen"),obj_is_frozen, 1, _SC(".") },
+    {_SC("lock"),class_lock, 1, _SC("y") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
