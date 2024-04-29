@@ -16,7 +16,7 @@ class Comments;
 struct SqASTData {
   Arena *astArena;
   RootBlock *root;
-  const SQChar *sourceName;
+  SQChar sourceName[256];
   class Comments *comments;
 };
 

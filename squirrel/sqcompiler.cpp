@@ -52,7 +52,15 @@ SqASTData *ParseToAST(SQVM *vm, const char *sourceText, size_t sourceTextSize, c
     comments = new (commentsPtr) Comments(_ss(vm)->_alloc_ctx);
   }
 
-  RootBlock *r = parseASTImpl(astArena, vm, sourceText, sourceTextSize, sourcename, comments, raiseerror);
+  SqASTData *astData = (SqASTData *)sq_vm_malloc(_ss(vm)->_alloc_ctx, sizeof(SqASTData));
+  if (sourcename) {
+    strncpy(astData->sourceName, sourcename, sizeof(astData->sourceName));
+    astData->sourceName[sizeof(astData->sourceName) / sizeof(astData->sourceName[0]) - 1] = 0;
+  }
+  else
+    astData->sourceName[0] = 0;
+
+  RootBlock *r = parseASTImpl(astArena, vm, sourceText, sourceTextSize, astData->sourceName, comments, raiseerror);
 
   if (!r) {
     if (comments) {
@@ -61,14 +69,12 @@ SqASTData *ParseToAST(SQVM *vm, const char *sourceText, size_t sourceTextSize, c
     }
     astArena->~Arena();
     sq_vm_free(_ss(vm)->_alloc_ctx, astArena, sizeof(Arena));
+    sq_vm_free(_ss(vm)->_alloc_ctx, astData, sizeof(SqASTData));
     return nullptr;
   }
 
-  SqASTData *astData = (SqASTData *)sq_vm_malloc(_ss(vm)->_alloc_ctx, sizeof(SqASTData));
-
   astData->astArena = astArena;
   astData->root = r;
-  astData->sourceName = sourcename;
   astData->comments = comments;
 
   return astData;
