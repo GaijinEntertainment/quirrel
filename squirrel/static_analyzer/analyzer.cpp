@@ -2115,7 +2115,7 @@ static bool isDivOperator(enum TreeOp op) {
 }
 
 bool isPureArithOperator(enum TreeOp op) {
-  return TO_USHR <= op && op <= TO_SUB || TO_PLUSEQ <= op && op <= TO_MODEQ;
+  return (TO_USHR <= op && op <= TO_SUB) || (TO_PLUSEQ <= op && op <= TO_MODEQ);
 }
 
 bool isRelationOperator(enum TreeOp op) {

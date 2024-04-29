@@ -137,7 +137,7 @@ void Dump(OutputStream *stream, SQFunctionProto *func, bool deep)
 
             SQInteger lidx = inst._arg1;
             streamprintf(stream, _SC("[%03d] %15s %d "), (SQInt32)n, g_InstrDesc[inst.op].name, inst._arg0);
-            if (lidx >= 0xFFFFFFFF)
+            if (lidx >= 0xFFFFFFFF) //-V547
                 streamprintf(stream, _SC("null"));
             else {
                 assert(lidx < func->_nliterals);
@@ -150,7 +150,7 @@ void Dump(OutputStream *stream, SQFunctionProto *func, bool deep)
             else {
                 streamprintf(stream, _SC(" %d "), inst._arg2);
                 lidx = inst._arg3;
-                if (lidx >= 0xFFFFFFFF)
+                if (lidx >= 0xFFFFFFFF) //-V547
                     streamprintf(stream, _SC("null"));
                 else {
                     assert(lidx < func->_nliterals);
@@ -530,7 +530,7 @@ void SQFuncState::AddInstruction(SQInstruction &i)
             if((pi.op == _OP_LOADNULLS && pi._arg0+pi._arg1 == i._arg0)) {
 
                 pi._arg1 = pi._arg1 + 1;
-                pi.op = _OP_LOADNULLS;
+                pi.op = _OP_LOADNULLS; //-V1048
                 return;
             }
             break;
