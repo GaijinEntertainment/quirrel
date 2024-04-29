@@ -46,9 +46,6 @@ SQCompilationContext::SQCompilationContext(SQVM *vm, Arena *arena, const SQChar 
   , _raiseError(raiseError)
   , _errorjmp()
 {
-    if (code) {
-        buildLineMap();
-    }
 }
 
 SQCompilationContext::~SQCompilationContext()
@@ -306,7 +303,7 @@ void SQCompilationContext::buildLineMap() {
 
   for (size_t i = 0; i < _codeSize; ++i) {
     if (prev == '\n') {
-      _linemap.push_back(&_code[i]);
+      _linemap.push_back(i);
     }
 
     prev = _code[i];
@@ -314,11 +311,14 @@ void SQCompilationContext::buildLineMap() {
 }
 
 const char *SQCompilationContext::findLine(int lineNo) {
+  if (_linemap.empty())
+    buildLineMap();
+
   lineNo -= 1;
   if (lineNo < 0 || lineNo >= _linemap.size())
     return nullptr;
 
-  return _linemap[lineNo];
+  return _code + _linemap[lineNo];
 }
 
 

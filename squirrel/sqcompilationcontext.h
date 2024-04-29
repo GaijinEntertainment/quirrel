@@ -282,7 +282,7 @@ private:
 
   bool _raiseError;
 
-  sqvector<const char *> _linemap;
+  sqvector<int> _linemap;
   const Comments *_comments;
 };
 
