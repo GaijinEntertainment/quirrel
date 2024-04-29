@@ -15,11 +15,11 @@ bool VarTrace::isStacksEqual(int a, int b)
 {
   for (int i = 0; i < VAR_TRACE_STACK_DEPTH; i++)
   {
-    if (history[a].stack[i].ip == nullptr && history[b].stack[i].ip == nullptr)
+    if (history[a].stack[i].line == STACK_NOT_INITIALIZED && history[b].stack[i].line == STACK_NOT_INITIALIZED)
       return true;
 
-    if (history[a].stack[i].ip != history[b].stack[i].ip ||
-      history[a].stack[i].func != history[b].stack[i].func)
+    if (history[a].stack[i].line != history[b].stack[i].line ||
+      history[a].stack[i].fileName != history[b].stack[i].fileName)
     {
       return false;
     }
@@ -48,6 +48,7 @@ void VarTrace::saveStack(const SQObject & value, HSQUIRRELVM vm)
 
   setCnt++;
 
+  SQStackInfos si;
   SQInteger level = 0;
 
 #if VAR_TRACE_SAVE_VALUES != 0
@@ -73,22 +74,15 @@ void VarTrace::saveStack(const SQObject & value, HSQUIRRELVM vm)
 #endif
 
   int count = 0;
-  int cssize = vm->_callsstacksize;
-
-  for (;;)
+  while (SQ_SUCCEEDED(sq_stackinfos(vm, level, &si)))
   {
-    if (cssize <= level)
-      break;
-
-    int idx = cssize - level - 1;
-    SQVM::CallInfo &ci = vm->_callsstack[idx];
-
-    if (sq_type(ci._closure) == OT_CLOSURE)
-    {
-      history[pos].stack[count].func = _closure(ci._closure)->_function;
-      history[pos].stack[count].ip = ci._ip;
+    const SQChar *src = _SC("unknown");
+    if (si.source)
+      src = si.source;
+    history[pos].stack[count].fileName = src;
+    history[pos].stack[count].line = int(si.line);
+    if (int(si.line) != -1)
       count++;
-    }
 
     if (count >= VAR_TRACE_STACK_DEPTH)
       break;
@@ -97,7 +91,7 @@ void VarTrace::saveStack(const SQObject & value, HSQUIRRELVM vm)
   }
 
   if (count < VAR_TRACE_STACK_DEPTH)
-    history[pos].stack[count].ip = nullptr;
+    history[pos].stack[count].line = STACK_NOT_INITIALIZED;
 
   int prevPos = (pos - 1 + VAR_TRACE_STACK_DEPTH) % VAR_TRACE_STACK_DEPTH;
 
@@ -105,7 +99,7 @@ void VarTrace::saveStack(const SQObject & value, HSQUIRRELVM vm)
   if (memcmp(&history[pos].val, &history[prevPos].val, sizeof(history[prevPos].val)) == 0 &&
       isStacksEqual(pos, prevPos))
   {
-    history[pos].stack[0].ip = nullptr;
+    history[pos].stack[0].line = STACK_NOT_INITIALIZED;
     history[prevPos].count++;
   }
   else
@@ -135,7 +129,7 @@ void VarTrace::printStack(SQChar * buf, int size)
     int historyPos = (-h + pos + VAR_TRACE_STACK_HISTORY * 2 - 1) % VAR_TRACE_STACK_HISTORY;
     HistoryRecord & hist = history[historyPos];
 
-    bool stackPresent = hist.stack[0].ip != nullptr;
+    bool stackPresent = hist.stack[0].line != STACK_NOT_INITIALIZED;
     if (size > written)
       VT_APRINTF(_SC("%d:"), h);
 
@@ -156,23 +150,11 @@ void VarTrace::printStack(SQChar * buf, int size)
 
     for (int i = 0; i < VAR_TRACE_STACK_DEPTH; i++)
     {
-      if (hist.stack[i].ip == nullptr)
+      if (hist.stack[i].line == STACK_NOT_INITIALIZED)
         break;
 
       if (size > written)
-      {
-        SQFunctionProto * func = hist.stack[i].func;
-        const char * fileName = "NATIVE";
-        int line = -1;
-
-        if (sq_type(func->_sourcename) == OT_STRING)
-        {
-          fileName = func->_sourcename_ptr;
-          line = func->GetLine(hist.stack[i].ip);
-        }
-
-        VT_APRINTF(_SC("  %s:%d\n"), fileName, line);
-      }
+        VT_APRINTF(_SC("  %s:%d\n"), hist.stack[i].fileName, hist.stack[i].line);
     }
 
     VT_APRINTF(_SC("\n"));

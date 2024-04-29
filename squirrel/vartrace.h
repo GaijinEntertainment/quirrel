@@ -2,26 +2,21 @@
 
 #include <memory.h> // memset
 #include <squirrel.h>
-#include "sqpcheader.h"
-#include "sqvm.h"
-#include "sqstate.h"
-#include "sqopcodes.h"
-#include "sqfuncproto.h"
-#include "sqclosure.h"
-
+#include "squtils.h"
 
 #define VAR_TRACE_SAVE_VALUES 0
 
 #define VAR_TRACE_STACK_DEPTH 4
 #define VAR_TRACE_STACK_HISTORY 4
+#define STACK_NOT_INITIALIZED (-2)
 
 
 struct VarTrace
 {
   struct VarStackRecord
   {
-    SQInstruction * ip;
-    SQFunctionProto * func;
+    const SQChar * fileName;
+    int line;
   };
 
   struct HistoryRecord
@@ -53,7 +48,7 @@ struct VarTrace
 #endif
     for (int i = 0; i < VAR_TRACE_STACK_HISTORY; i++)
     {
-      history[i].stack[0].ip = nullptr;
+      history[i].stack[0].line = STACK_NOT_INITIALIZED;
 #if VAR_TRACE_SAVE_VALUES != 0
       history[i].val[0] = 0;
 #endif
