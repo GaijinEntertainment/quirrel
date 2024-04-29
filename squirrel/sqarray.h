@@ -6,7 +6,6 @@
 
 struct SQArray : public CHAINABLE_OBJ
 {
-    VT_DECL_VEC;
 private:
     SQArray(SQSharedState *ss,SQInteger nsize) :
       _values(ss->_alloc_ctx)
@@ -107,5 +106,6 @@ public:
     }
 
     SQObjectPtrVec _values;
+    VT_DECL_VEC;
 };
 #endif //_SQARRAY_H_
