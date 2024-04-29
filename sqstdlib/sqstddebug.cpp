@@ -14,13 +14,13 @@ static SQInteger debug_setdebughook(HSQUIRRELVM v)
   return 0;
 }
 
-SQInteger __getcallstackinfos(HSQUIRRELVM v, SQInteger level);
+extern SQInteger __sq_getcallstackinfos(HSQUIRRELVM v, SQInteger level);
 
 static SQInteger debug_getstackinfos(HSQUIRRELVM v)
 {
   SQInteger level;
   sq_getinteger(v, -1, &level);
-  return __getcallstackinfos(v, level);
+  return __sq_getcallstackinfos(v, level);
 }
 
 #ifndef NO_GARBAGE_COLLECTOR
