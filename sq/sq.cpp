@@ -227,7 +227,6 @@ bool checkOption(char *argv[], int argc, const char *option, const char *&optArg
 int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 {
     assert(module_mgr != nullptr && "Module manager has to be existed");
-    int i;
     const char *optArg = nullptr;
     DumpOptions dumpOpt = { 0 };
     FILE *diagFile = nullptr;
