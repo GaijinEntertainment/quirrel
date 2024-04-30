@@ -16,7 +16,7 @@ function requestCratesContent(armyId, crates) {
       return
     toRequest.each(@(c) armyRequested[c] <- true)
     bar(armyId, toRequest, function(res) {
-      toRequest.each(function(c) { if (c in armyRequested) delete armyRequested[c] })
+      toRequest.each(function(c) { if (c in armyRequested) armyRequested.$rawdelete(c) })
       if ("content" in res)
         requestedCratesContent.mutate(@(cc) cc[armyId] <- (cc?[armyId] ?? {}).__merge(res.content))
     })
