@@ -95,8 +95,6 @@ static const SQPragmaDescriptor pragmaDescriptors[] = {
   { "allow-root-table", 0, LF_FORBID_ROOT_TABLE },
   { "disable-optimizer", LF_DISABLE_OPTIMIZER, 0 },
   { "enable-optimizer", 0, LF_DISABLE_OPTIMIZER },
-  { "forbid-extends-keyword", LF_FORBID_EXTENDS, 0 },
-  { "allow-extends-keyword", 0, LF_FORBID_EXTENDS },
   { "forbid-delete-operator", LF_FORBID_DELETE_OP, 0 },
   { "allow-delete-operator", 0, LF_FORBID_DELETE_OP },
   { "forbid-clone-operator", LF_FORBID_CLONE_OP, 0 },
@@ -1703,9 +1701,6 @@ ClassDecl* SQParser::ClassExp(Expr *key)
     SQInteger l = line(), c = column();
     Expr *baseExpr = NULL;
     if(_token == TK_EXTENDS) {
-        if (_lang_features & LF_FORBID_EXTENDS) {
-          reportDiagnostic(DiagnosticsId::DI_OLD_STYLE_EXTEND_FORBIDDEN);
-        }
         Lex();
         baseExpr = Expression(SQE_RVALUE);
     }

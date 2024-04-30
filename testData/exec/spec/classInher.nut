@@ -7,7 +7,7 @@ class Foo {
     }
 }
 
-class SuperFoo extends Foo {
+class SuperFoo(Foo) {
     //overridden method
     function DoSomething() {
         println("I'm the derived")
