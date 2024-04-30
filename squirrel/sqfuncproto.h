@@ -14,6 +14,7 @@ enum SQLangFeature {
     LF_FORBID_ROOT_TABLE = 0x000001,
     LF_FORBID_DELETE_OP = 0x000004,
     LF_FORBID_CLONE_OP = 0x000008,
+    LF_FORBID_SWITCH_STMT = 0x000010,
 
     // code generation stage
     LF_TOOLS_COMPILE_CHECK = 0x000100,

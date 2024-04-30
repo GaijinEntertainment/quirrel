@@ -99,6 +99,8 @@ static const SQPragmaDescriptor pragmaDescriptors[] = {
   { "allow-delete-operator", 0, LF_FORBID_DELETE_OP },
   { "forbid-clone-operator", LF_FORBID_CLONE_OP, 0 },
   { "allow-clone-operator", 0, LF_FORBID_CLONE_OP },
+  { "forbid-switch-statement", LF_FORBID_SWITCH_STMT, 0 },
+  { "allow-switch-statement", 0, LF_FORBID_SWITCH_STMT },
   { "forbid-implicit-default-delegates", LF_FORBID_IMPLICIT_DEF_DELEGATE, 0 },
   { "allow-implicit-default-delegates", 0, LF_FORBID_IMPLICIT_DEF_DELEGATE }
 };
@@ -168,7 +170,11 @@ void SQParser::Lex()
             break;
     }
 
-    if (_token == TK_CLONE && (_lang_features & LF_FORBID_CLONE_OP)) {
+    const bool forceIdentifier =
+           (_token == TK_CLONE && (_lang_features & LF_FORBID_CLONE_OP))
+        || ((_token == TK_SWITCH || _token == TK_CASE || _token == TK_DEFAULT) && (_lang_features & LF_FORBID_SWITCH_STMT));
+
+    if (forceIdentifier) {
       _token = TK_IDENTIFIER;
       _lex.SetStringValue();
     }
