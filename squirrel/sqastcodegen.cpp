@@ -17,7 +17,7 @@ static bool isObject(const Expr *expr) {
     if (expr->isConst()) return false;
     if (expr->isAccessExpr()) return expr->asAccessExpr()->receiver()->op() != TO_BASE;
     if (expr->op() == TO_ID && expr->asId()->isField()) return true;
-    return expr->op() == TO_ROOT;
+    return expr->op() == TO_ROOT_TABLE_ACCESS;
 }
 
 static bool isOuter(const Expr *expr) {
@@ -646,7 +646,7 @@ void CodegenVisitor::checkClassKey(Expr *key) {
     {
     case TO_GETFIELD:
     case TO_GETTABLE:
-    case TO_ROOT:
+    case TO_ROOT_TABLE_ACCESS:
         return;
     case TO_BASE:
     case TO_ID:
@@ -995,7 +995,7 @@ void CodegenVisitor::visitBaseExpr(BaseExpr *base) {
     base->setPos(_fs->TopTarget());
 }
 
-void CodegenVisitor::visitRootExpr(RootExpr *expr) {
+void CodegenVisitor::visitRootTableAccessExpr(RootTableAccessExpr *expr) {
     maybeAddInExprLine(expr);
     _fs->AddInstruction(_OP_LOADROOT, _fs->PushTarget());
 }

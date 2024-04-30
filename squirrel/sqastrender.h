@@ -151,7 +151,7 @@ public:
         expr->value()->visit(this);
     }
     virtual void visitBaseExpr(BaseExpr *expr) { _out->writeString("base"); }
-    virtual void visitRootExpr(RootExpr *expr) { _out->writeString("::"); }
+    virtual void visitRootTableAccessExpr(RootTableAccessExpr *expr) { _out->writeString("::"); }
     virtual void visitLiteralExpr(LiteralExpr *expr) {
         switch (expr->kind())
         {

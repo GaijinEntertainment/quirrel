@@ -96,7 +96,7 @@ public:
 
   void visitBaseExpr(BaseExpr *base) override;
 
-  void visitRootExpr(RootExpr *expr) override;
+  void visitRootTableAccessExpr(RootTableAccessExpr *expr) override;
 
   void visitLiteralExpr(LiteralExpr *lit) override;
 
@@ -189,7 +189,7 @@ void SQASTWritingVisitor::visitBaseExpr(BaseExpr *expr) {
   writeNodeHeader(expr);
 }
 
-void SQASTWritingVisitor::visitRootExpr(RootExpr *expr) {
+void SQASTWritingVisitor::visitRootTableAccessExpr(RootTableAccessExpr *expr) {
   writeNodeHeader(expr);
 }
 
@@ -920,8 +920,8 @@ BaseExpr *SQASTReader::readBaseExpr() {
   return newNode<BaseExpr>();
 }
 
-RootExpr *SQASTReader::readRootExpr() {
-  return newNode<RootExpr>();
+RootTableAccessExpr *SQASTReader::readRootTableAccessExpr() {
+  return newNode<RootTableAccessExpr>();
 }
 
 IncExpr *SQASTReader::readIncExpr() {
@@ -1218,7 +1218,7 @@ Node *SQASTReader::readNode(enum TreeOp op) {
     return readUnaryExpr(op);
   case TO_LITERAL: return readLiteral();
   case TO_BASE: return readBaseExpr();
-  case TO_ROOT: return readRootExpr();
+  case TO_ROOT_TABLE_ACCESS: return readRootTableAccessExpr();
   case TO_INC: return readIncExpr();
   case TO_DECL_EXPR: return readDeclExpr();
   case TO_ARRAYEXPR: return readArrayExpr();

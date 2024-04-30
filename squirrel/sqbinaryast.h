@@ -108,7 +108,7 @@ class SQASTReader {
 
   LiteralExpr *readLiteral();
 
-  RootExpr *readRootExpr();
+  RootTableAccessExpr *readRootTableAccessExpr();
   BaseExpr *readBaseExpr();
 
   IncExpr *readIncExpr();

@@ -936,7 +936,7 @@ Expr* SQParser::Factor(SQInteger &pos)
         if (_lang_features & LF_FORBID_ROOT_TABLE)
             reportDiagnostic(DiagnosticsId::DI_ROOT_TABLE_FORBIDDEN);
         _token = _SC('.'); /* hack: drop into PrefixExpr, case '.'*/
-        r = setCoordinates(newNode<RootExpr>(), l, c);
+        r = setCoordinates(newNode<RootTableAccessExpr>(), l, c);
         break;
     case TK_NULL:
         r = setCoordinates(newNode<LiteralExpr>(), l, c);

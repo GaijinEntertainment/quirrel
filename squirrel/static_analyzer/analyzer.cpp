@@ -475,7 +475,7 @@ public:
     case TO_CONTINUE:
     case TO_EMPTY:
     case TO_BASE:
-    case TO_ROOT:
+    case TO_ROOT_TABLE_ACCESS:
       return true;
     case TO_EXPR_STMT:
       return cmpExprStmt((const ExprStatement *)lhs, (const ExprStatement *)rhs);
@@ -1398,7 +1398,7 @@ class NodeDiffComputer {
     case TO_CONTINUE:
     case TO_EMPTY:
     case TO_BASE:
-    case TO_ROOT:
+    case TO_ROOT_TABLE_ACCESS:
       return 0;
     case TO_EXPR_STMT:
       return diffExprStmt((const ExprStatement *)lhs, (const ExprStatement *)rhs);
@@ -2297,9 +2297,9 @@ static bool nameLooksLikeFunctionTakeBooleanLambda(const SQChar *n) {
   return hasAnyEqual(n, SQCompilationContext::function_takes_boolean_lambda);
 }
 
-static const SQChar rootName[] = "::";
-static const SQChar baseName[] = "base";
-static const SQChar thisName[] = "this";
+static const char double_colon_str[] = "::";
+static const char base_str[] = "base";
+static const char this_str[] = "this";
 
 enum ValueRefState {
   VRS_UNDEFINED,
@@ -3102,7 +3102,7 @@ void VarScope::checkUnusedSymbols(CheckerVisitor *checker) {
     const SQChar *n = s.first;
     const ValueRef *v = s.second;
 
-    if (strcmp(n, thisName) == 0) // skip 'this'
+    if (strcmp(n, this_str) == 0) // skip 'this'
       continue;
 
 
@@ -3420,7 +3420,7 @@ void CheckerVisitor::checkAccessFromStatic(const GetFieldExpr *acc) {
 
   const Expr *r = acc->receiver();
 
-  if (r->op() != TO_ID || strcmp(r->asId()->id(), thisName) != 0)
+  if (r->op() != TO_ID || strcmp(r->asId()->id(), this_str) != 0)
     return;
 
   const TableMember *m = nullptr;
@@ -3471,7 +3471,7 @@ static bool cannotBeNull(const Expr *e) {
   case TO_USHR: case TO_SHL: case TO_SHR:
   case TO_ADD: case TO_SUB:  case TO_MUL: case TO_DIV: /*case TO_MOD:*/
   case TO_TYPEOF: case TO_RESUME:
-  case TO_BASE: case TO_ROOT:
+  case TO_BASE: case TO_ROOT_TABLE_ACCESS:
   case TO_ARRAYEXPR: case TO_DECL_EXPR:
     return true;
   case TO_LITERAL:
@@ -4344,7 +4344,7 @@ void CheckerVisitor::checkNewGlobalSlot(const BinExpr *bin) {
 
   const GetFieldExpr *gf = lhs->asGetField();
 
-  if (gf->receiver()->op() != TO_ROOT)
+  if (gf->receiver()->op() != TO_ROOT_TABLE_ACCESS)
     return;
 
   storeGlobalDeclaration(gf->fieldName(), bin);
@@ -4563,7 +4563,7 @@ void CheckerVisitor::checkAlreadyRequired(const CallExpr *call) {
   }
   else if (callee->op() == TO_GETFIELD) {
     const GetFieldExpr *g = callee->asGetField();
-    if (g->receiver()->op() == TO_ROOT) {
+    if (g->receiver()->op() == TO_ROOT_TABLE_ACCESS) {
       name = g->fieldName();
     }
   }
@@ -5248,7 +5248,7 @@ void CheckerVisitor::checkNullableIndex(const GetTableExpr *expr) {
 }
 
 void CheckerVisitor::checkGlobalAccess(const GetFieldExpr *expr) {
-  if (expr->receiver()->op() != TO_ROOT)
+  if (expr->receiver()->op() != TO_ROOT_TABLE_ACCESS)
     return;
 
   const BinExpr *newslot = nullptr;
@@ -7082,8 +7082,8 @@ int32_t CheckerVisitor::computeNameLength(const Expr *e) {
   case TO_GETFIELD: return computeNameLength(e->asGetField());
   //case TO_GETTABLE: return computeNameLength(e->asGetTable());
   case TO_ID: return strlen(e->asId()->id());
-  case TO_ROOT: return sizeof rootName;
-  case TO_BASE: return sizeof baseName;
+  case TO_ROOT_TABLE_ACCESS: return sizeof double_colon_str;
+  case TO_BASE: return sizeof base_str;
     // TODO:
   default:
     return -1;
@@ -7100,13 +7100,13 @@ void CheckerVisitor::computeNameRef(const Expr *e, SQChar *b, int32_t &ptr, int3
     ptr += l;
     break;
   }
-  case TO_ROOT:
-    snprintf(&b[ptr], size - ptr, "%s", rootName);
-    ptr += sizeof rootName;
+  case TO_ROOT_TABLE_ACCESS:
+    snprintf(&b[ptr], size - ptr, "%s", double_colon_str);
+    ptr += sizeof double_colon_str;
     break;
   case TO_BASE:
-    snprintf(&b[ptr], size - ptr, "%s", baseName);
-    ptr += sizeof baseName;
+    snprintf(&b[ptr], size - ptr, "%s", base_str);
+    ptr += sizeof base_str;
     break;
   default:
     assert(0);
@@ -7531,7 +7531,7 @@ void CheckerVisitor::applyCallToScope(const CallExpr *call) {
     if (value) {
       applyKnownInvocationToScope(value);
     }
-    else if (!ref || strncmp(ref, rootName, sizeof rootName) != 0) {
+    else if (!ref || strncmp(ref, double_colon_str, sizeof double_colon_str) != 0) {
       // we don't know what exactly is being called so assume the most conservative case
       applyUnknownInvocationToScope();
     }

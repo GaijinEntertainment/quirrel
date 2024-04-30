@@ -70,7 +70,7 @@
     DEF_TREE_OP(DELETE), \
     DEF_TREE_OP(LITERAL), \
     DEF_TREE_OP(BASE), \
-    DEF_TREE_OP(ROOT), \
+    DEF_TREE_OP(ROOT_TABLE_ACCESS), \
     DEF_TREE_OP(INC), \
     DEF_TREE_OP(DECL_EXPR), \
     DEF_TREE_OP(ARRAYEXPR), \
@@ -395,9 +395,9 @@ private:
     int _pos;
 };
 
-class RootExpr : public Expr {
+class RootTableAccessExpr : public Expr {
 public:
-    RootExpr() : Expr(TO_ROOT) {}
+    RootTableAccessExpr() : Expr(TO_ROOT_TABLE_ACCESS) {}
 
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
@@ -1084,7 +1084,7 @@ public:
     virtual void visitGetTableExpr(GetTableExpr *expr) { visitAccessExpr(expr); }
     virtual void visitSetTableExpr(SetTableExpr *expr) { visitAccessExpr(expr); }
     virtual void visitBaseExpr(BaseExpr *expr) { visitExpr(expr); }
-    virtual void visitRootExpr(RootExpr *expr) { visitExpr(expr); }
+    virtual void visitRootTableAccessExpr(RootTableAccessExpr *expr) { visitExpr(expr); }
     virtual void visitLiteralExpr(LiteralExpr *expr) { visitExpr(expr); }
     virtual void visitIncExpr(IncExpr *expr) { visitExpr(expr); }
     virtual void visitDeclExpr(DeclExpr *expr) { visitExpr(expr); }
@@ -1145,7 +1145,7 @@ public:
   virtual Node *transformGetTableExpr(GetTableExpr *expr) { return transformExpr(expr); }
   virtual Node *transformSetTableExpr(SetTableExpr *expr) { return transformExpr(expr); }
   virtual Node *transformBaseExpr(BaseExpr *expr) { return transformExpr(expr); }
-  virtual Node *transformRootExpr(RootExpr *expr) { return transformExpr(expr); }
+  virtual Node *transformRootTableAccessExpr(RootTableAccessExpr *expr) { return transformExpr(expr); }
   virtual Node *transformLiteralExpr(LiteralExpr *expr) { return transformExpr(expr); }
   virtual Node *transformIncExpr(IncExpr *expr) { return transformExpr(expr); }
   virtual Node *transformDeclExpr(DeclExpr *expr) { return transformExpr(expr); }
@@ -1253,8 +1253,8 @@ void Node::visit(V *visitor) {
         visitor->visitLiteralExpr(static_cast<LiteralExpr *>(this)); return;
     case TO_BASE:
         visitor->visitBaseExpr(static_cast<BaseExpr *>(this)); return;
-    case TO_ROOT:
-        visitor->visitRootExpr(static_cast<RootExpr *>(this)); return;
+    case TO_ROOT_TABLE_ACCESS:
+        visitor->visitRootTableAccessExpr(static_cast<RootTableAccessExpr *>(this)); return;
     case TO_INC:
         visitor->visitIncExpr(static_cast<IncExpr *>(this)); return;
     case TO_DECL_EXPR:
@@ -1368,8 +1368,8 @@ Node *Node::transform(T *transformer) {
     return transformer->transformLiteralExpr(static_cast<LiteralExpr *>(this));
   case TO_BASE:
     return transformer->transformBaseExpr(static_cast<BaseExpr *>(this));
-  case TO_ROOT:
-    return transformer->transformRootExpr(static_cast<RootExpr *>(this));
+  case TO_ROOT_TABLE_ACCESS:
+    return transformer->transformRootTableAccessExpr(static_cast<RootTableAccessExpr *>(this));
   case TO_INC:
     return transformer->transformIncExpr(static_cast<IncExpr *>(this));
   case TO_DECL_EXPR:

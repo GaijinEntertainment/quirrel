@@ -123,7 +123,7 @@ public:
     void visitEnumDecl(EnumDecl *enums) override;
     void visitCallExpr(CallExpr *call) override;
     void visitBaseExpr(BaseExpr *base) override;
-    void visitRootExpr(RootExpr *expr) override;
+    void visitRootTableAccessExpr(RootTableAccessExpr *expr) override;
     void visitLiteralExpr(LiteralExpr *lit) override;
     void visitArrayExpr(ArrayExpr *expr) override;
     void visitUnExpr(UnExpr *unary) override;

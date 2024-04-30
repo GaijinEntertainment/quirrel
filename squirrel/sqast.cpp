@@ -76,8 +76,8 @@ void Node::visitChildren(Visitor *visitor) {
         static_cast<LiteralExpr *>(this)->visitChildren(visitor); return;
     case TO_BASE:
         static_cast<BaseExpr *>(this)->visitChildren(visitor); return;
-    case TO_ROOT:
-        static_cast<RootExpr *>(this)->visitChildren(visitor); return;
+    case TO_ROOT_TABLE_ACCESS:
+        static_cast<RootTableAccessExpr *>(this)->visitChildren(visitor); return;
     case TO_INC:
         static_cast<IncExpr *>(this)->visitChildren(visitor); return;
     case TO_DECL_EXPR:
@@ -188,8 +188,8 @@ void Node::transformChildren(Transformer *transformer) {
     static_cast<LiteralExpr *>(this)->transformChildren(transformer); return;
   case TO_BASE:
     static_cast<BaseExpr *>(this)->transformChildren(transformer); return;
-  case TO_ROOT:
-    static_cast<RootExpr *>(this)->transformChildren(transformer); return;
+  case TO_ROOT_TABLE_ACCESS:
+    static_cast<RootTableAccessExpr *>(this)->transformChildren(transformer); return;
   case TO_INC:
     static_cast<IncExpr *>(this)->transformChildren(transformer); return;
   case TO_DECL_EXPR:
