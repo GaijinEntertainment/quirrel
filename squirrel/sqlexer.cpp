@@ -556,7 +556,7 @@ loop_exit:
     return t;
 }
 
-void LexHexadecimal(const SQChar *s,SQUnsignedInteger *res)
+static void LexHexadecimal(const SQChar *s,SQUnsignedInteger *res)
 {
     *res = 0;
     while(*s != 0)
@@ -567,7 +567,7 @@ void LexHexadecimal(const SQChar *s,SQUnsignedInteger *res)
     }
 }
 
-bool LexInteger(const SQChar *s, SQUnsignedInteger *res)
+static bool LexInteger(const SQChar *s, SQUnsignedInteger *res)
 {
     SQUnsignedInteger x = 0;
     while(*s != 0)
@@ -580,7 +580,7 @@ bool LexInteger(const SQChar *s, SQUnsignedInteger *res)
     return x <= (~SQUnsignedInteger(0) >> 1);
 }
 
-SQInteger isexponent(SQInteger c) { return c == 'e' || c=='E'; }
+static SQInteger isexponent(SQInteger c) { return c == 'e' || c=='E'; }
 
 
 #define MAX_HEX_DIGITS (sizeof(SQInteger)*2)

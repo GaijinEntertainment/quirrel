@@ -8,7 +8,7 @@
 
 namespace SQCompilation {
 
-const Expr *deparen(const Expr *e) {
+static const Expr *deparen(const Expr *e) {
   if (!e) return nullptr;
 
   if (e->op() == TO_PAREN)
@@ -16,7 +16,7 @@ const Expr *deparen(const Expr *e) {
   return e;
 }
 
-const Expr *skipUnary(const Expr *e) {
+static const Expr *skipUnary(const Expr *e) {
   if (!e) return nullptr;
 
   if (e->op() == TO_INC) {
@@ -2114,39 +2114,39 @@ static bool isDivOperator(enum TreeOp op) {
   return op == TO_DIV || op == TO_MOD || op == TO_DIVEQ || op == TO_MODEQ;
 }
 
-bool isPureArithOperator(enum TreeOp op) {
+static bool isPureArithOperator(enum TreeOp op) {
   return (TO_USHR <= op && op <= TO_SUB) || (TO_PLUSEQ <= op && op <= TO_MODEQ);
 }
 
-bool isRelationOperator(enum TreeOp op) {
+static bool isRelationOperator(enum TreeOp op) {
   return TO_3CMP <= op && op <= TO_LT;
 }
 
-bool isBoolRelationOperator(enum TreeOp op) {
+static bool isBoolRelationOperator(enum TreeOp op) {
   return TO_GE <= op && op <= TO_LT;
 }
 
-bool isBitwiseOperator(enum TreeOp op) {
+static bool isBitwiseOperator(enum TreeOp op) {
   return op == TO_OR || op == TO_AND || op == TO_XOR;
 }
 
-bool isBoolCompareOperator(enum TreeOp op) {
+static bool isBoolCompareOperator(enum TreeOp op) {
   return op == TO_NE || op == TO_EQ || isBoolRelationOperator(op);
 }
 
-bool isCompareOperator(enum TreeOp op) {
+static bool isCompareOperator(enum TreeOp op) {
   return TO_NE <= op && op <= TO_LT;
 }
 
-bool isShiftOperator(enum TreeOp op) {
+static bool isShiftOperator(enum TreeOp op) {
   return op == TO_SHL || op == TO_SHR || op == TO_USHR;
 }
 
-bool isHigherShiftPriority(enum TreeOp op) {
+static bool isHigherShiftPriority(enum TreeOp op) {
   return TO_MUL <= op && op <= TO_SUB;
 }
 
-bool looksLikeBooleanExpr(const Expr *e) {
+static bool looksLikeBooleanExpr(const Expr *e) {
   enum TreeOp op = e->op(); // -V522
   if (isBooleanResultOperator(op))
     return true;
@@ -4212,7 +4212,7 @@ void CheckerVisitor::checkBoolToStrangePosition(const BinExpr *bin) {
   }
 }
 
-const SQChar *tryExtractKeyName(const Expr *e) {
+static const SQChar *tryExtractKeyName(const Expr *e) {
 
   if (e->op() == TO_GETFIELD)
     return e->asGetField()->fieldName();
@@ -5395,7 +5395,7 @@ void CheckerVisitor::checkDuplicateIfConditions(IfStatement *ifStmt) {
   }
 }
 
-bool wrappedBody(const Statement *stmt) {
+static bool wrappedBody(const Statement *stmt) {
   if (stmt->op() != TO_BLOCK)
     return false;
 
@@ -6081,7 +6081,7 @@ void CheckerVisitor::visitContinueStatement(ContinueStatement *continueStmt) {
   bs->loopScope->mergeUnbalanced(trunkScope);
 }
 
-const Id *extractReceiver(const Expr *e) {
+static const Id *extractReceiver(const Expr *e) {
   const Expr *last = e;
 
   for (;;) {
