@@ -227,7 +227,7 @@ static SQInteger base_compilestring(HSQUIRRELVM v)
     else
         sq_resetobject(&bindings);
 
-    if(SQ_SUCCEEDED(sq_compilebuffer(v,src,size,name,SQFalse,&bindings)))
+    if(SQ_SUCCEEDED(sq_compile(v,src,size,name,SQFalse,&bindings)))
         return 1;
     else
         return SQ_ERROR;

@@ -259,10 +259,7 @@ SQUIRREL_API SQInteger sq_getvmstate(HSQUIRRELVM v);
 SQUIRREL_API SQRESULT sq_registerbaselib(HSQUIRRELVM v);
 
 /*compiler*/
-SQUIRREL_API SQRESULT sq_compileonepass(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, SQBool debugInfo, const HSQOBJECT *bindings = nullptr);
-SQUIRREL_API SQRESULT sq_compilewithast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, SQBool debugInfo, const HSQOBJECT *bindings = nullptr);
-SQRESULT sq_compile(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, const HSQOBJECT *bindings=nullptr);
-SQUIRREL_API SQRESULT sq_compilebuffer(HSQUIRRELVM v,const SQChar *s,SQInteger size,const SQChar *sourcename,SQBool raiseerror,const HSQOBJECT *bindings=nullptr);
+SQUIRREL_API SQRESULT sq_compile(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, const HSQOBJECT *bindings = nullptr);
 
 SQUIRREL_API SQRESULT sq_parsetobinaryast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, OutputStream *ostream, SQBool raiseerror);
 SQUIRREL_API SQRESULT sq_translatebinaryasttobytecode(HSQUIRRELVM v, const uint8_t *buffer, size_t size, const HSQOBJECT *bindings, SQBool raiseerror);

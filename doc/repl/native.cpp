@@ -119,7 +119,7 @@ static std::string runScript(const std::string &source_text)
   moduleMgr->bindBaseLib(hBindings);
   moduleMgr->bindRequireApi(hBindings);
 
-  if (SQ_SUCCEEDED(sq_compilebuffer(vm, source_text.c_str(), source_text.length(), "console", true, &hBindings)))
+  if (SQ_SUCCEEDED(sq_compile(vm, source_text.c_str(), source_text.length(), "console", true, &hBindings)))
   {
     sq_pushnull(vm); //environment
 

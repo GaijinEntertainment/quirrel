@@ -523,7 +523,7 @@ void Interactive(HSQUIRRELVM v)
         i=strlen(buffer);
         if(i>0){
             SQInteger oldtop=sq_gettop(v);
-            if(SQ_SUCCEEDED(sq_compilebuffer(v,buffer,i,_SC("interactive console"),SQTrue))){
+            if(SQ_SUCCEEDED(sq_compile(v,buffer,i,_SC("interactive console"),SQTrue))){
                 sq_pushroottable(v);
                 if(SQ_SUCCEEDED(sq_call(v,1,retval,SQTrue)) &&  retval){
                     printf(_SC("\n"));

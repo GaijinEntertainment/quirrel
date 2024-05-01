@@ -1686,36 +1686,6 @@ SQRESULT sq_next(HSQUIRRELVM v,SQInteger idx)
     return SQ_ERROR;
 }
 
-struct BufState{
-    const SQChar *buf;
-    SQInteger ptr;
-    SQInteger size;
-};
-
-SQInteger buf_lexfeed(SQUserPointer file)
-{
-    BufState *buf=(BufState*)file;
-    if(buf->size<(buf->ptr+1))
-        return 0;
-    return buf->buf[buf->ptr++];
-}
-
-SQRESULT sq_compilebuffer(HSQUIRRELVM v,const SQChar *s,SQInteger size,const SQChar *sourcename,SQBool raiseerror,const HSQOBJECT *bindings) {
-    return sq_compile(v, s, size, sourcename, raiseerror, bindings);
-}
-
-SQRESULT sq_compilewithast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, SQBool debugInfo, const HSQOBJECT *bindings) {
-    SQCompilation::SqASTData *astData = sq_parsetoast(v, s, size, sourcename, false, raiseerror);
-
-    if (!astData)
-        return SQ_ERROR;
-
-    SQRESULT r = sq_translateasttobytecode(v, astData, bindings, s, size, raiseerror, debugInfo);
-
-    sq_releaseASTData(v, astData);
-
-    return r;
-}
 
 SQRESULT sq_translatebinaryasttobytecode(HSQUIRRELVM v, const uint8_t *buffer, size_t size, const HSQOBJECT *bindings, SQBool raiseerror) {
     SQObjectPtr o;
