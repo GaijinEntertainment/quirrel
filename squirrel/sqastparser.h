@@ -133,8 +133,6 @@ public:
     ForStatement* parseForStatement();
     ForeachStatement* parseForEachStatement();
     SwitchStatement* parseSwitchStatement();
-    FunctionDecl* parseFunctionStatement();
-    ClassDecl* parseClassStatement();
     Expr *parseStringTemplate();
     LiteralExpr* ExpectScalar();
     ConstDecl* parseConstStatement(bool global);

@@ -82,9 +82,6 @@ SqASTData *ParseToAST(SQVM *vm, const char *sourceText, size_t sourceTextSize, c
 
 bool Compile(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo)
 {
-    if (vm->_on_compile_file)
-      vm->_on_compile_file(vm, sourcename);
-
     Arena astArena(_ss(vm)->_alloc_ctx, "AST");
 
     RootBlock *r = parseASTImpl(&astArena, vm, sourceText, sourceTextSize, sourcename, nullptr, raiseerror);
