@@ -89,12 +89,12 @@ struct SqASTData {
 #define TK_NULLGETOBJ 327
 #define TK_NULLCOALESCE 328
 #define TK_NULLCALL 329
-#define TK_RESERVED_XXXXX 330
+//#define TK_ 330
 #define TK_GLOBAL 331
 #define TK_DIRECTIVE 332
 #define TK_READERMACRO 333
 #define TK_NOT 334
-#define TK_INEXPR_ASSIGNMENT 335
+//#define TK_ 335
 #define TK_LET 336
 #define TK_TEMPLATE_PREFIX 337
 #define TK_TEMPLATE_INFIX 338

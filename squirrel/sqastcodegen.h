@@ -70,7 +70,7 @@ private:
     bool isLValue(Expr *expr);
 
     void emitNewSlot(Expr *lvalue, Expr *rvalue);
-    void emitAssign(Expr *lvalue, Expr * rvalue, bool inExpr);
+    void emitAssign(Expr *lvalue, Expr * rvalue);
     void emitFieldAssign(bool isLiteral);
 
     bool CanBeDefaultDelegate(const SQChar *key);

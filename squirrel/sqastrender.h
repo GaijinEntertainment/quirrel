@@ -41,7 +41,6 @@ class RenderVisitor : public Visitor {
         case TO_RESUME: return "RESUME ";
         case TO_CLONE: return "CLONE ";
         case TO_DELETE: return "DELETE ";
-        case TO_INEXPR_ASSIGN: return " := ";
         case TO_NEWSLOT: return " <- ";
         case TO_PLUSEQ: return " += ";
         case TO_MINUSEQ: return " -= ";

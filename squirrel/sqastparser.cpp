@@ -420,12 +420,8 @@ Expr* SQParser::Expression(SQExpressionContext expression_context)
 
     Expr *expr = LogicalNullCoalesceExp();
 
-    if (_token == TK_INEXPR_ASSIGNMENT && (expression_context == SQE_REGULAR || expression_context == SQE_FUNCTION_ARG))
-        reportDiagnostic(DiagnosticsId::DI_INCORRECT_INTRA_ASSIGN);
-
     switch(_token)  {
     case _SC('='):
-    case TK_INEXPR_ASSIGNMENT:
     case TK_NEWSLOT:
     case TK_MINUSEQ:
     case TK_PLUSEQ:
@@ -437,34 +433,34 @@ Expr* SQParser::Expression(SQExpressionContext expression_context)
         Expr *e2 = Expression(SQE_RVALUE);
 
         switch (op) {
-        case TK_NEWSLOT: expr = newNode<BinExpr>(TO_NEWSLOT, expr, e2); break;
-        case TK_INEXPR_ASSIGNMENT:
+        case TK_NEWSLOT:
+            expr = newNode<BinExpr>(TO_NEWSLOT, expr, e2);
+            break;
         case _SC('='): //ASSIGN
-            if (op == _SC('='))
-                switch (expression_context)
-                {
-                case SQE_IF:
-                    reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "if");
-                    break;
-                case SQE_LOOP_CONDITION:
-                    reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "loop condition");
-                    break;
-                case SQE_SWITCH:
-                    reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "switch");
-                    break;
-                case SQE_FUNCTION_ARG:
-                    reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "function argument");
-                    break;
-                case SQE_RVALUE:
-                    reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "expression");
-                    break;
-                case SQE_ARRAY_ELEM:
-                    reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "array element");
-                    break;
-                case SQE_REGULAR:
-                    break;
-                }
-            expr = newNode<BinExpr>(op == TK_INEXPR_ASSIGNMENT ? TO_INEXPR_ASSIGN : TO_ASSIGN, expr, e2);
+            switch (expression_context)
+            {
+            case SQE_IF:
+                reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "if");
+                break;
+            case SQE_LOOP_CONDITION:
+                reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "loop condition");
+                break;
+            case SQE_SWITCH:
+                reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "switch");
+                break;
+            case SQE_FUNCTION_ARG:
+                reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "function argument");
+                break;
+            case SQE_RVALUE:
+                reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "expression");
+                break;
+            case SQE_ARRAY_ELEM:
+                reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "array element");
+                break;
+            case SQE_REGULAR:
+                break;
+            }
+            expr = newNode<BinExpr>(TO_ASSIGN, expr, e2);
             break;
         case TK_MINUSEQ: expr = newNode<BinExpr>(TO_MINUSEQ, expr, e2); break;
         case TK_PLUSEQ: expr = newNode<BinExpr>(TO_PLUSEQ, expr, e2); break;

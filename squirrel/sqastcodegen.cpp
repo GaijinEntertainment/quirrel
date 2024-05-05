@@ -1203,7 +1203,7 @@ void CodegenVisitor::emitFieldAssign(bool isLiteral) {
         _fs->AddInstruction(SQOpcode(0), 0, 0, 0, 0);//hint
 }
 
-void CodegenVisitor::emitAssign(Expr *lvalue, Expr * rvalue, bool inExpr) {
+void CodegenVisitor::emitAssign(Expr *lvalue, Expr * rvalue) {
 
     visitNoGet(lvalue);
 
@@ -1425,8 +1425,7 @@ void CodegenVisitor::visitBinExpr(BinExpr *expr) {
     case TO_NULLC: emitShortCircuitLogicalOp(_OP_NULLCOALESCE, expr->lhs(), expr->rhs()); break;
     case TO_OROR: emitShortCircuitLogicalOp(_OP_OR, expr->lhs(), expr->rhs()); break;
     case TO_ANDAND: emitShortCircuitLogicalOp(_OP_AND, expr->lhs(), expr->rhs()); break;
-    case TO_INEXPR_ASSIGN: emitAssign(expr->lhs(), expr->rhs(), true); break;
-    case TO_ASSIGN:  emitAssign(expr->lhs(), expr->rhs(), false); break;
+    case TO_ASSIGN:  emitAssign(expr->lhs(), expr->rhs()); break;
     case TO_PLUSEQ:  emitCompoundArith(_OP_ADD, '+', expr->lhs(), expr->rhs()); break;
     case TO_MINUSEQ: emitCompoundArith(_OP_SUB, '-', expr->lhs(), expr->rhs()); break;
     case TO_MULEQ:   emitCompoundArith(_OP_MUL, '*', expr->lhs(), expr->rhs()); break;

@@ -56,7 +56,6 @@ void Node::visitChildren(Visitor *visitor) {
     case TO_ADD:
     case TO_SUB:
     case TO_NEWSLOT:
-    case TO_INEXPR_ASSIGN:
     case TO_PLUSEQ:
     case TO_MINUSEQ:
     case TO_MULEQ:
@@ -168,7 +167,6 @@ void Node::transformChildren(Transformer *transformer) {
   case TO_ADD:
   case TO_SUB:
   case TO_NEWSLOT:
-  case TO_INEXPR_ASSIGN:
   case TO_PLUSEQ:
   case TO_MINUSEQ:
   case TO_MULEQ:
@@ -594,7 +592,6 @@ const char* treeopStr(enum TreeOp op) {
   case TO_NEG: return "-";
   case TO_NOT: return "!";
   case TO_BNOT: return "~";
-  case TO_INEXPR_ASSIGN: return ":=";
   case TO_NEWSLOT: return "<-";
   case TO_PLUSEQ: return "+=";
   case TO_MINUSEQ: return "-=";

@@ -1200,7 +1200,6 @@ Node *SQASTReader::readNode(enum TreeOp op) {
   case TO_ADD:
   case TO_SUB:
   case TO_NEWSLOT:
-  case TO_INEXPR_ASSIGN:
   case TO_PLUSEQ:
   case TO_MINUSEQ:
   case TO_MULEQ:

@@ -508,7 +508,6 @@ public:
     case TO_ADD:
     case TO_SUB:
     case TO_NEWSLOT:
-    case TO_INEXPR_ASSIGN:
     case TO_PLUSEQ:
     case TO_MINUSEQ:
     case TO_MULEQ:
@@ -1431,7 +1430,6 @@ class NodeDiffComputer {
     case TO_ADD:
     case TO_SUB:
     case TO_NEWSLOT:
-    case TO_INEXPR_ASSIGN:
     case TO_PLUSEQ:
     case TO_MINUSEQ:
     case TO_MULEQ:
@@ -1671,7 +1669,6 @@ void FunctionReturnTypeEvaluator::checkExpr(const Expr *expr) {
         flags |= RT_NULL;
       break;
   case TO_ASSIGN:
-  case TO_INEXPR_ASSIGN:
       flags |= RT_NOTHING;
       break;
   default:
@@ -1840,7 +1837,7 @@ protected:
   bool doCheck(const Node *checkee, Node *n) const {
     enum TreeOp op = n->op();
 
-    if (op == TO_ASSIGN || op == TO_INEXPR_ASSIGN || (TO_PLUSEQ <= op && op <= TO_MODEQ)) {
+    if (op == TO_ASSIGN || (TO_PLUSEQ <= op && op <= TO_MODEQ)) {
       BinExpr *bin = static_cast<BinExpr *>(n);
       return equalChecker.check(checkee, bin->lhs());
     }
@@ -1879,7 +1876,6 @@ public:
     {
     case TO_INC:
     case TO_ASSIGN:
-    case TO_INEXPR_ASSIGN:
     case TO_PLUSEQ:
     case TO_MINUSEQ:
     case TO_MULEQ:
@@ -1905,7 +1901,7 @@ static bool isBinaryArith(const Expr *expr) {
 }
 
 static bool isAssignOp(const TreeOp op) {
-  return op == TO_ASSIGN || op == TO_INEXPR_ASSIGN || (TO_PLUSEQ <= op && op <= TO_MODEQ);
+  return op == TO_ASSIGN || (TO_PLUSEQ <= op && op <= TO_MODEQ);
 }
 
 static bool isAssignExpr(const Expr *expr) {
@@ -2854,7 +2850,6 @@ class CheckerVisitor : public Visitor {
   void checkUselessNullC(const BinExpr *);
   void checkCannotBeNull(const BinExpr *);
   void checkCanBeSimplified(const BinExpr *expr);
-  void checkInExprAssignPriority(const BinExpr *expr);
   void checkRangeCheck(const BinExpr *expr);
   void checkAlwaysTrueOrFalse(const TerExpr *expr);
   void checkTernaryPriority(const TerExpr *expr);
@@ -3383,7 +3378,7 @@ void CheckerVisitor::checkIdUsed(const Id *id, const Node *p, ValueRef *v) {
     const BinExpr *bin = static_cast<const BinExpr *>(e);
     const Expr *lhs = bin->lhs();
     Expr *rhs = bin->rhs();
-    bool simpleAsgn = e->op() == TO_ASSIGN || e->op() == TO_INEXPR_ASSIGN;
+    bool simpleAsgn = e->op() == TO_ASSIGN;
     if (id == lhs) {
       bool used = v->info->usedAfterAssign || existsInTree(id, rhs);
       //if (!used && assigned && simpleAsgn) {
@@ -3913,7 +3908,7 @@ void CheckerVisitor::checkPotentiallyNullableOperands(const BinExpr *bin) {
 
   bool isRelOp = isBoolRelationOperator(op);
   bool isArithOp = isPureArithOperator(op);
-  bool isAssign = op == TO_ASSIGN || op == TO_INEXPR_ASSIGN || op == TO_NEWSLOT;
+  bool isAssign = op == TO_ASSIGN || op == TO_NEWSLOT;
 
   if (!isRelOp && !isArithOp && !isAssign)
     return;
@@ -4428,17 +4423,6 @@ void CheckerVisitor::checkCanBeSimplified(const BinExpr *bin) {
   }
 }
 
-void CheckerVisitor::checkInExprAssignPriority(const BinExpr *expr) {
-  if (effectsOnly)
-    return;
-
-  if (expr->op() != TO_INEXPR_ASSIGN)
-    return;
-
-  if (isBooleanBinaryOrLogicalOpeartor(expr->rhs()->op())) {
-    report(expr, DiagnosticsId::DI_INEXPR_PRIORITY);
-  }
-}
 
 static bool looksLikeElementCount(const Expr *e) {
   const SQChar *checkee = nullptr;
@@ -5103,7 +5087,6 @@ void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   checkUselessNullC(expr);
   checkCannotBeNull(expr);
   checkCanBeSimplified(expr);
-  checkInExprAssignPriority(expr);
   checkRangeCheck(expr);
 
   Expr *lhs = expr->lhs();
@@ -5129,7 +5112,6 @@ void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   case TO_MODEQ:
   case TO_NEWSLOT:
   case TO_ASSIGN:
-  case TO_INEXPR_ASSIGN:
     nodeStack.push_back({ SST_NODE, expr });
     expr->rhs()->visit(this);
     expr->lhs()->visit(this);
@@ -5654,7 +5636,7 @@ void CheckerVisitor::checkFunctionSimilarity(const Block *b) {
 }
 
 static const Expr *extractAssignedExpression(const Node *n) {
-  if (n->op() == TO_ASSIGN || n->op() == TO_NEWSLOT || n->op() == TO_INEXPR_ASSIGN)
+  if (n->op() == TO_ASSIGN || n->op() == TO_NEWSLOT)
     return static_cast<const BinExpr *>(n)->rhs();
 
   if (n->op() == TO_VAR)
@@ -7000,7 +6982,7 @@ ValueRef *CheckerVisitor::findValueInScopes(const SQChar *ref) {
 }
 
 void CheckerVisitor::applyAssignmentToScope(const BinExpr *bin) {
-  assert(bin->op() == TO_ASSIGN || bin->op() == TO_INEXPR_ASSIGN);
+  assert(bin->op() == TO_ASSIGN);
 
   const Expr *lhs = bin->lhs();
   const Expr *rhs = bin->rhs();
@@ -7062,7 +7044,6 @@ void CheckerVisitor::applyBinaryToScope(const BinExpr *bin) {
   switch (bin->op())
   {
   case TO_ASSIGN:
-  case TO_INEXPR_ASSIGN:
     return applyAssignmentToScope(bin);
     //return applyNewslotToScope(bin);
   case TO_PLUSEQ:

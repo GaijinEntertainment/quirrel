@@ -54,7 +54,6 @@
     DEF_TREE_OP(ADD), \
     DEF_TREE_OP(SUB), \
     DEF_TREE_OP(NEWSLOT), \
-    DEF_TREE_OP(INEXPR_ASSIGN), \
     DEF_TREE_OP(PLUSEQ), \
     DEF_TREE_OP(MINUSEQ), \
     DEF_TREE_OP(MULEQ), \
@@ -1233,7 +1232,6 @@ void Node::visit(V *visitor) {
     case TO_ADD:
     case TO_SUB:
     case TO_NEWSLOT:
-    case TO_INEXPR_ASSIGN:
     case TO_PLUSEQ:
     case TO_MINUSEQ:
     case TO_MULEQ:
@@ -1348,7 +1346,6 @@ Node *Node::transform(T *transformer) {
   case TO_ADD:
   case TO_SUB:
   case TO_NEWSLOT:
-  case TO_INEXPR_ASSIGN:
   case TO_PLUSEQ:
   case TO_MINUSEQ:
   case TO_MULEQ:
