@@ -201,31 +201,15 @@ private:
 
 class Id : public Expr {
 public:
-    enum IdType {
-        ID_LOCAL = -1,
-    };
-
-    Id(const SQChar *id) : Expr(TO_ID), _id(id), _outpos(ID_LOCAL), _assignable(false) {}
+    Id(const SQChar *id) : Expr(TO_ID), _id(id) {}
 
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
 
     const SQChar *id() const { return _id; }
 
-    void setOuterPos(int pos) { _outpos = pos; }
-
-    bool isOuter() const { return _outpos >= 0; }
-    bool isLocal() const { return _outpos == ID_LOCAL; }
-
-    int outerPos() const { return _outpos; }
-    void setAssignable(bool v) { _assignable = v; }
-    bool isAssignable() const { return _assignable; }
-    bool isBinding() const { return (isOuter() || isLocal()) && !isAssignable(); }
-
 private:
     const SQChar *_id;
-    int _outpos;
-    bool _assignable;
 };
 
 class UnExpr : public Expr {
@@ -378,16 +362,10 @@ private:
 
 class BaseExpr : public Expr {
 public:
-    BaseExpr() : Expr(TO_BASE), _pos(-1) {}
+    BaseExpr() : Expr(TO_BASE) {}
 
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
-
-    void setPos(int pos) { _pos = pos; }
-    int getPos() const { return _pos; }
-
-private:
-    int _pos;
 };
 
 class RootTableAccessExpr : public Expr {

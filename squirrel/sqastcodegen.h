@@ -67,8 +67,6 @@ private:
     void emitShortCircuitLogicalOp(SQOpcode op, Expr *lhs, Expr *rhs);
     void emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lvalue, Expr *rvalue);
 
-    bool isLValue(Expr *expr);
-
     void emitNewSlot(Expr *lvalue, Expr *rvalue);
     void emitAssign(Expr *lvalue, Expr * rvalue);
     void emitFieldAssign(bool isLiteral);
