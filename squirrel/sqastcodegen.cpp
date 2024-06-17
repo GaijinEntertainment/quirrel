@@ -16,7 +16,6 @@ namespace SQCompilation {
 static bool isObject(const Expr *expr) {
     if (expr->isConst()) return false;
     if (expr->isAccessExpr()) return expr->asAccessExpr()->receiver()->op() != TO_BASE;
-    if (expr->op() == TO_ID && expr->asId()->isField()) return true;
     return expr->op() == TO_ROOT_TABLE_ACCESS;
 }
 
@@ -1142,13 +1141,6 @@ void CodegenVisitor::emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lval
             _fs->AddInstruction(op, p1, p2, p1, 0);
             _fs->SnoozeOpt();
         }
-        else if (id->isField()) {
-            SQInteger val = _fs->PopTarget();
-            SQInteger key = _fs->PopTarget();
-            SQInteger src = _fs->PopTarget();
-            /* _OP_COMPARITH mixes dest obj and source val in the arg1 */
-            _fs->AddInstruction(_OP_COMPARITH, _fs->PushTarget(), (src << 16) | val, key, opcode);
-        }
         else {
             reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_EXPR);
         }
@@ -1228,9 +1220,6 @@ void CodegenVisitor::emitAssign(Expr *lvalue, Expr * rvalue) {
             SQInteger src = _fs->PopTarget();
             SQInteger dst = _fs->TopTarget();
             _fs->AddInstruction(_OP_MOVE, dst, src);
-        }
-        else if (id->isField()) {
-            emitFieldAssign(false);
         }
         else {
             reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_EXPR);
@@ -1515,9 +1504,6 @@ void CodegenVisitor::visitIncExpr(IncExpr *expr) {
             SQInteger dst = isPostfix ? _fs->PushTarget() : src;
             _fs->AddInstruction(isPostfix ? _OP_PINCL : _OP_INCL, dst, src, 0, expr->diff());
         }
-        else if (id->isField()) {
-            Emit2ArgsOP(isPostfix ? _OP_PINC : _OP_INC, expr->diff());
-        }
         else {
             reportDiagnostic(arg, DiagnosticsId::DI_INC_DEC_NOT_ASSIGNABLE);
         }
@@ -1590,14 +1576,13 @@ void CodegenVisitor::visitId(Id *id) {
     }
 
     if (_string(idObj) == _string(_fs->_name)) {
-        reportDiagnostic(id, DiagnosticsId::DI_CONFLICTS_WITH, "Varibale", id->id(), "function name");
+        reportDiagnostic(id, DiagnosticsId::DI_CONFLICTS_WITH, "variable", id->id(), "function name");
     }
 
     if ((pos = _fs->GetLocalVariable(idObj, assignable)) != -1) {
         _fs->PushTarget(pos);
         id->setAssignable(assignable);
     }
-
     else if ((pos = _fs->GetOuterVariable(idObj, assignable)) != -1) {
         id->setOuterPos(pos);
         if (!_donot_get) {
@@ -1606,7 +1591,6 @@ void CodegenVisitor::visitId(Id *id) {
         }
         id->setAssignable(assignable);
     }
-
     else if (IsConstant(idObj, constant)) {
         /* Handle named constant */
         SQObjectPtr constval = constant;
@@ -1636,23 +1620,7 @@ void CodegenVisitor::visitId(Id *id) {
         }
     }
     else {
-        /* Handle a non-local variable, aka a field. Push the 'this' pointer on
-        * the virtual stack (always found in offset 0, so no instruction needs to
-        * be generated), and push the key next. Generate an _OP_LOAD instruction
-        * for the latter. If we are not using the variable as a dref expr, generate
-        * the _OP_GET instruction.
-
-        */
-        // TODO: probably we need a special handling for some corner cases
-        if (!(_fs->lang_features & LF_TOOLS_COMPILE_CHECK))
-            reportDiagnostic(id, DiagnosticsId::DI_UNKNOWN_SYMBOL, id->id());
-
-        _fs->PushTarget(0);
-        _fs->AddInstruction(_OP_LOAD, _fs->PushTarget(), _fs->GetConstant(idObj));
-        if (!_donot_get) {
-            Emit2ArgsOP(_OP_GET);
-        }
-        id->setField();
+        reportDiagnostic(id, DiagnosticsId::DI_UNKNOWN_SYMBOL, id->id());
     }
 }
 

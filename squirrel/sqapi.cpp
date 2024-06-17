@@ -120,14 +120,6 @@ SQGETTHREAD sq_set_thread_id_function(HSQUIRRELVM v, SQGETTHREAD func)
     return res;
 }
 
-void sq_setcompilecheckmode(HSQUIRRELVM v, SQBool on)
-{
-    if (on)
-        _ss(v)->defaultLangFeatures |= LF_TOOLS_COMPILE_CHECK;
-    else
-        _ss(v)->defaultLangFeatures &= ~LF_TOOLS_COMPILE_CHECK;
-}
-
 void sq_forbidglobalconstrewrite(HSQUIRRELVM v, SQBool on)
 {
     if (on)

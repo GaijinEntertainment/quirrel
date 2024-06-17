@@ -198,13 +198,13 @@ private:
     bool _isConst;
 };
 
-enum IdType {
-    ID_LOCAL = -1,
-    ID_FIELD = -2
-};
 
 class Id : public Expr {
 public:
+    enum IdType {
+        ID_LOCAL = -1,
+    };
+
     Id(const SQChar *id) : Expr(TO_ID), _id(id), _outpos(ID_LOCAL), _assignable(false) {}
 
     void visitChildren(Visitor *visitor) {}
@@ -215,15 +215,12 @@ public:
     void setOuterPos(int pos) { _outpos = pos; }
 
     bool isOuter() const { return _outpos >= 0; }
-    bool isField() const { return _outpos == ID_FIELD; }
-    void setField() { _outpos = ID_FIELD; }
     bool isLocal() const { return _outpos == ID_LOCAL; }
 
     int outerPos() const { return _outpos; }
     void setAssignable(bool v) { _assignable = v; }
     bool isAssignable() const { return _assignable; }
     bool isBinding() const { return (isOuter() || isLocal()) && !isAssignable(); }
-
 
 private:
     const SQChar *_id;
@@ -310,7 +307,6 @@ protected:
 class FieldAccessExpr : public AccessExpr {
 protected:
     FieldAccessExpr(enum TreeOp op, Expr *receiver, const SQChar *field, bool nullable) : AccessExpr(op, receiver, nullable), _fieldName(field) {}
-    //bool canBeDefaultDelegate() const;
 
 public:
 
