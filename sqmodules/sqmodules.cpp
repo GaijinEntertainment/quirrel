@@ -173,7 +173,7 @@ bool SqModules::compileScriptImpl(const std::vector<char> &buf, const char *sour
 
   if (!ast)
   {
-    return true;
+    return false;
   }
   else
   {
@@ -186,7 +186,7 @@ bool SqModules::compileScriptImpl(const std::vector<char> &buf, const char *sour
     sq_releaseASTData(sqvm, ast);
     if (return_ast)
       *return_ast = nullptr;
-    return true;
+    return false;
   }
 
   if (compilationOptions.doStaticAnalysis && !return_ast)
@@ -202,7 +202,7 @@ bool SqModules::compileScriptImpl(const std::vector<char> &buf, const char *sour
 
   if (!return_ast)
     sq_releaseASTData(sqvm, ast);
-  return false;
+  return true;
 }
 
 #ifdef _WIN32
@@ -236,7 +236,7 @@ bool SqModules::compileScript(const std::vector<char> &buf, const char *resolved
       filePath = r;
   }
 
-  if (compileScriptImpl(buf, filePath, bindings, return_ast))
+  if (!compileScriptImpl(buf, filePath, bindings, return_ast))
   {
     out_err_msg = string("Failed to compile file: ") + requested_fn + " / " + resolved_fn;
     return false;
