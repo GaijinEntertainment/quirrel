@@ -11,7 +11,6 @@ struct SQBlob : public SQStream
         _buf = (unsigned char *)sq_malloc(_alloc_ctx, size);
         memset(_buf, 0, _size);
         _ptr = 0;
-        _owns = true;
     }
     virtual ~SQBlob() {
         sq_free(_alloc_ctx, _buf, _allocated);
@@ -36,7 +35,9 @@ struct SQBlob : public SQStream
         return n;
     }
     bool Resize(SQInteger n) {
-        if(!_owns) return false;
+        if (n < 0)
+            return false;
+
         if(n != _allocated) {
             unsigned char *newbuf = (unsigned char *)sq_malloc(_alloc_ctx, n);
             memset(newbuf,0,n);
@@ -54,17 +55,15 @@ struct SQBlob : public SQStream
         }
         return true;
     }
-    bool GrowBufOf(SQInteger n)
+    void GrowBufOf(SQInteger n)
     {
-        bool ret = true;
         if(_size + n > _allocated) {
             if(_size + n > _size * 2)
-                ret = Resize(_size + n);
+                Resize(_size + n);
             else
-                ret = Resize(_size * 2);
+                Resize(_size * 2);
         }
         _size = _size + n;
-        return ret;
     }
     bool CanAdvance(SQInteger n) {
         if(_ptr+n>_size)return false;
@@ -107,5 +106,4 @@ private:
     SQInteger _allocated;
     SQInteger _ptr;
     unsigned char *_buf;
-    bool _owns;
 };
