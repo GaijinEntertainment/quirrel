@@ -4791,7 +4791,7 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
   const auto &paramsNames = info->parameters;
   const auto &args = callExpr->arguments();
 
-  const size_t effectiveParamSizeUP = decl->isVararg() ? paramsNames.size() - 2 : paramsNames.size() - 1;
+  const size_t effectiveParamSizeUP = decl->isVararg() ? paramsNames.size() - 1 : paramsNames.size();
   int32_t dpParameters = 0;
 
   for (auto &p : params) {
@@ -4806,7 +4806,7 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
     report(callExpr, DiagnosticsId::DI_PARAM_COUNT_MISMATCH, decl->name());
   }
 
-  for (int i = 1; i < paramsNames.size(); ++i) {
+  for (int i = 0; i < paramsNames.size(); ++i) {
     const SQChar *paramName = paramsNames[i];
     for (int j = 0; j < args.size(); ++j) {
       const Expr *arg = args[j];
@@ -4824,8 +4824,8 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
       SQChar *buffer = (SQChar *)sq_malloc(_ctx.allocContext(), argNL + 1);
       normalizeParamName(possibleArgName, buffer);
 
-      if ((i - 1) != j) {
-        if (strcmp("vargv", paramName) != 0 || (j != (paramsNames.size() - 1))) {
+      if (i != j) {
+        if (strcmp("vargv", paramName) != 0 || (j != paramsNames.size())) {
           if (strcmp(paramName, buffer) == 0) {  // -V575
             report(arg, DiagnosticsId::DI_PARAM_POSITION_MISMATCH, paramName);
           }

@@ -1750,8 +1750,6 @@ FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
     FunctionDecl *f = ctor ? newNode<ConstructorDecl>(arena(), name->id()) : newNode<FunctionDecl>(arena(), name->id());
     f->setLineStartPos(line()); f->setColumnStartPos(column());
 
-    f->addParameter(_SC("this"));
-
     SQInteger defparams = 0;
 
     auto &params = f->parameters();

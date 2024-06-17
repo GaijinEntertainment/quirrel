@@ -790,6 +790,8 @@ void CodegenVisitor::visitFunctionDecl(FunctionDecl *funcDecl) {
 
     SQInteger defparams = 0;
 
+    _childFs->AddParameter(_fs->CreateString("this"));
+
     for (auto param : funcDecl->parameters()) {
         param->visit(this);
         if (param->hasDefaultValue()) {
