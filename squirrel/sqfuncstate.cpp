@@ -285,7 +285,7 @@ SQInteger SQFuncState::CountOuters(SQInteger stacksize)
     while(k >= stacksize) {
         SQLocalVarInfo &lvi = _vlocals[k];
         k--;
-        if(lvi._end_op == UINT_MINUS_ONE) { //this means is an outer
+        if(lvi._end_op == UINT32_MINUS_ONE) { //this means is an outer
             outers++;
         }
     }
@@ -299,7 +299,7 @@ void SQFuncState::SetStackSize(SQInteger n)
         size--;
         SQLocalVarInfo lvi = _vlocals.back();
         if(sq_type(lvi._name)!=OT_NULL){
-            if(lvi._end_op == UINT_MINUS_ONE) { //this means is an outer
+            if(lvi._end_op == UINT32_MINUS_ONE) { //this means is an outer
                 _outers--;
             }
             lvi._end_op = GetCurrentPos();
@@ -350,7 +350,7 @@ SQInteger SQFuncState::GetLocalVariable(const SQObject &name, bool &is_assignabl
 void SQFuncState::MarkLocalAsOuter(SQInteger pos)
 {
     SQLocalVarInfo &lvi = _vlocals[pos];
-    lvi._end_op = UINT_MINUS_ONE;
+    lvi._end_op = UINT32_MINUS_ONE;
     _outers++;
 }
 

@@ -4,11 +4,7 @@
 
 #include "squtils.h"
 
-#ifdef _SQ64
-#define UINT_MINUS_ONE (0xFFFFFFFFFFFFFFFF)
-#else
-#define UINT_MINUS_ONE (0xFFFFFFFF)
-#endif
+#define UINT32_MINUS_ONE (0xFFFFFFFF)
 
 #define SQ_CLOSURESTREAM_HEAD (('S'<<24)|('Q'<<16)|('I'<<8)|('R'))
 #define SQ_CLOSURESTREAM_PART (('P'<<24)|('A'<<16)|('R'<<8)|('T'))

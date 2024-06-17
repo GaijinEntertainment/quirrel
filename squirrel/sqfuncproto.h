@@ -66,13 +66,13 @@ struct SQLocalVarInfo
         _assignable=lvi._assignable;
     }
     SQObjectPtr _name;
-    SQUnsignedInteger _start_op;
-    SQUnsignedInteger _end_op;
-    SQUnsignedInteger _pos;
+    uint32_t _start_op;
+    uint32_t _end_op;
+    uint32_t _pos;
     bool _assignable;
 };
 
-struct SQLineInfo { SQInteger _line;SQInteger _op; };
+struct SQLineInfo { int32_t _line; int32_t _op; };
 
 typedef sqvector<SQOuterVar> SQOuterVarVec;
 typedef sqvector<SQLocalVarInfo> SQLocalVarInfoVec;

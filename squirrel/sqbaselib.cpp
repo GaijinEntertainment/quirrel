@@ -1986,7 +1986,7 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
         res->NewSlot(SQString::Create(_ss(v),_SC("native"),-1),false);
         res->NewSlot(SQString::Create(_ss(v),_SC("name"),-1),f->_name);
         res->NewSlot(SQString::Create(_ss(v),_SC("src"),-1),f->_sourcename);
-        res->NewSlot(SQString::Create(_ss(v),_SC("line"),-1),f->_lineinfos[0]._line);
+        res->NewSlot(SQString::Create(_ss(v),_SC("line"),-1),SQInteger(f->_lineinfos[0]._line));
         res->NewSlot(SQString::Create(_ss(v),_SC("parameters"),-1),params);
         res->NewSlot(SQString::Create(_ss(v),_SC("varargs"),-1),f->_varparams);
         res->NewSlot(SQString::Create(_ss(v),_SC("defparams"),-1),defparams);

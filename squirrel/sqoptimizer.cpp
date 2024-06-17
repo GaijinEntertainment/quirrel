@@ -72,7 +72,7 @@ void SQOptimizer::cutRange(int start, int old_count, int new_count)
             }
             varinfo._start_op -= tmpCount;
         }
-        if (varinfo._end_op >= tmpStart && varinfo._end_op != UINT_MINUS_ONE) {
+        if (varinfo._end_op >= tmpStart && varinfo._end_op != UINT32_MINUS_ONE) {
             int n = int(varinfo._end_op) - tmpCount;
             if (n < tmpStart - 1)
                 n = tmpStart - 1;
