@@ -182,7 +182,7 @@ class CallExpr;
 
 class Expr : public Node {
 protected:
-    Expr(enum TreeOp op) : Node(op), _isConst(false) {}
+    Expr(enum TreeOp op) : Node(op) {}
 
 public:
     bool isAccessExpr() const { return TO_GETFIELD <= op() && op() <= TO_SETTABLE; }
@@ -191,11 +191,6 @@ public:
     DeclExpr *asDeclExpr() const { assert(op() == TO_DECL_EXPR); return (DeclExpr *)this; }
     BinExpr *asBinExpr() const { assert(TO_NULLC <= op() && op() <= TO_MODEQ); return (BinExpr *)this; }
     CallExpr *asCallExpr() const { assert(op() == TO_CALL); return (CallExpr *)this; }
-
-    void setConst() { _isConst = true; }
-    bool isConst() const { return _isConst; }
-private:
-    bool _isConst;
 };
 
 

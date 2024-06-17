@@ -913,8 +913,6 @@ Expr *CodegenVisitor::deparen(Expr *e) const {
 
 
 static bool isCalleeAnObject(const Expr *expr) {
-    if (expr->isConst())
-        return false;
     if (expr->isAccessExpr())
         return expr->asAccessExpr()->receiver()->op() != TO_BASE;
     if (expr->op() == TO_ROOT_TABLE_ACCESS)
@@ -934,7 +932,6 @@ static bool isCalleeAnOuter(SQFuncState *_fs, const Expr *expr, SQInteger &outer
 }
 
 void CodegenVisitor::visitCallExpr(CallExpr *call) {
-
     maybeAddInExprLine(call);
 
     Expr *callee = deparen(call->callee());
@@ -1299,49 +1296,33 @@ void CodegenVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
 
     Expr *receiver = expr->receiver();
 
-    visitForceGet(receiver);
-
-    if (receiver->isConst()) {
-        SQObjectPtr constant = _constVal;
-        if (sq_type(constant) == OT_TABLE && (sq_objflags(constant) & SQOBJ_FLAG_IMMUTABLE) && !expr->isNullable()) {
-            SQObjectPtr next;
-            if (_table(constant)->GetStr(expr->fieldName(), strlen(expr->fieldName()), next)) {
-                SQObjectType fieldType = sq_type(next);
-                bool needsCallContext = fieldType == OT_CLOSURE || fieldType == OT_NATIVECLOSURE || fieldType == OT_GENERATOR;
-                if (!needsCallContext) {
-                    SQInstruction &last = _fs->LastInstruction();
-
-                    SQInteger target = -1;
-
-                    if (last.op == _OP_DLOAD) {
-                        SQInteger t1 = last._arg0;
-                        SQInteger c1 = last._arg1;
-                        assert(last._arg2 == _fs->TopTarget());
-                        target = last._arg2;
-                        _fs->PopInstructions(1);
-                        _fs->AddInstruction(_OP_LOAD, t1, c1);
+    // Handle enums
+    if (receiver->op() == TO_ID) {
+        SQObject constant;
+        SQObject id = _fs->CreateString(receiver->asId()->id());
+        if (IsConstant(id, constant)) {
+            SQObjectPtr constVal = constant;
+            if (sq_type(constVal) == OT_TABLE && (sq_objflags(constVal) & SQOBJ_FLAG_IMMUTABLE) && !expr->isNullable()) {
+                SQObjectPtr next;
+                if (_table(constVal)->GetStr(expr->fieldName(), strlen(expr->fieldName()), next)) {
+                    SQObjectType fieldType = sq_type(next);
+                    bool needsCallContext = fieldType == OT_CLOSURE || fieldType == OT_NATIVECLOSURE
+                        || fieldType == OT_GENERATOR || fieldType == OT_CLASS || fieldType == OT_INSTANCE;
+                    if (!needsCallContext) {
+                        selectConstant(_fs->PushTarget(), next);
+                        return; // Done with enum
                     }
-                    else {
-                        assert(last.op == _OP_LOAD);
-                        assert(last._arg0 == _fs->TopTarget());
-                        target = last._arg0;
-                        _fs->PopInstructions(1);
-                    }
-
-                    selectConstant(target, next);
-                    expr->setConst();
-                    _constVal = next;
+                    // else fall through to normal get
+                }
+                else {
+                    reportDiagnostic(expr, DiagnosticsId::DI_INVALID_ENUM, expr->fieldName(), "enum");
                     return;
                 }
-                // else fall through to normal get
-            }
-            else {
-                _constVal.Null();
-                reportDiagnostic(expr, DiagnosticsId::DI_INVALID_ENUM, expr->fieldName(), "enum");
-                return;
             }
         }
     }
+
+    visitForceGet(receiver);
 
     SQObject nameObj = _fs->CreateString(expr->fieldName());
     SQInteger constantI = _fs->GetConstant(nameObj);
@@ -1589,8 +1570,6 @@ void CodegenVisitor::visitId(Id *id) {
         SQObjectPtr constval = constant;
 
         SQInteger stkPos = _fs->PushTarget();
-        id->setConst();
-        _constVal = constant;
 
         /* generate direct or literal function depending on size */
         SQObjectType ctype = sq_type(constval);

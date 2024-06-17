@@ -30,8 +30,6 @@ class CodegenVisitor : public Visitor {
 
     SQInteger _last_pop = -1;
 
-    SQObjectPtr _constVal;
-
     SQCompilationContext &_ctx;
 
 public:
