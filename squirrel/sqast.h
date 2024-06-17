@@ -1,5 +1,4 @@
-#ifndef _SQAST_H_
-#define _SQAST_H_
+#pragma once
 
 #include <assert.h>
 #include "squirrel.h"
@@ -1384,5 +1383,3 @@ Node *Node::transform(T *transformer) {
 }
 
 } // namespace SQCompilation
-
-#endif // _SQAST_H_

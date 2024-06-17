@@ -1,5 +1,4 @@
-#ifndef _SQ_BINARY_AST_H_
-#define _SQ_BINARY_AST_H_ 1
+#pragma once
 
 #include <stdint.h>
 #include <iostream>
@@ -165,5 +164,3 @@ public:
 
   RootBlock *readAst(const SQChar *&sourceName);
 };
-
-#endif // _SQ_BINARY_AST_H_

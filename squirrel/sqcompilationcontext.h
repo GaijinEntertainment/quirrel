@@ -1,5 +1,4 @@
-#ifndef  _SQCOMPILATIONCONTEXT_H_
-#define _SQCOMPILATIONCONTEXT_H_ 1
+#pragma once
 
 #include <string>
 #include <stdint.h>
@@ -284,5 +283,3 @@ private:
 };
 
 } // namespace SQCompilation
-
-#endif // ! _SQCOMPILATIONCONTEXT_H_

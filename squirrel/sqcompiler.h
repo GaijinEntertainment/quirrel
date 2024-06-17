@@ -1,6 +1,5 @@
 /*  see copyright notice in squirrel.h */
-#ifndef _SQCOMPILER_H_
-#define _SQCOMPILER_H_
+#pragma once
 
 struct SQVM;
 class OutputStream;
@@ -181,4 +180,3 @@ bool TranslateBinaryASTToBytecode(SQVM *vm, const uint8_t *buffer, size_t size, 
 void AnalyzeCode(SQVM *vm, SqASTData *astData, const HSQOBJECT *bindings, const char *sourceText, size_t sourceTextSize);
 
 }; // SQCompilation
-#endif //_SQCOMPILER_H_

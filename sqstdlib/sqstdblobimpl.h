@@ -1,6 +1,5 @@
 /*  see copyright notice in squirrel.h */
-#ifndef _SQSTD_BLOBIMPL_H_
-#define _SQSTD_BLOBIMPL_H_
+#pragma once
 
 struct SQBlob : public SQStream
 {
@@ -110,5 +109,3 @@ private:
     unsigned char *_buf;
     bool _owns;
 };
-
-#endif //_SQSTD_BLOBIMPL_H_
