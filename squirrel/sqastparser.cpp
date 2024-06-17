@@ -990,6 +990,7 @@ Expr* SQParser::Factor(SQInteger &pos)
         Lex();
         TableDecl *t = newNode<TableDecl>(arena());
         ParseTableOrClass(t, _SC(','), _SC('}'));
+        setCoordinates(t, l, c);
         r = setCoordinates(newNode<DeclExpr>(t), l, c);
         break;
     }
@@ -1035,9 +1036,9 @@ Expr* SQParser::Factor(SQInteger &pos)
             r = setCoordinates(UnaryOP(TO_BNOT), l, c);
         }
         break;
-    case TK_TYPEOF : Lex(); r = UnaryOP(TO_TYPEOF); break;
-    case TK_RESUME : Lex(); r = UnaryOP(TO_RESUME); break;
-    case TK_CLONE : Lex(); r = UnaryOP(TO_CLONE); break;
+    case TK_TYPEOF : Lex(); r = setCoordinates(UnaryOP(TO_TYPEOF), l, c); break;
+    case TK_RESUME : Lex(); r = setCoordinates(UnaryOP(TO_RESUME), l, c); break;
+    case TK_CLONE : Lex(); r = setCoordinates(UnaryOP(TO_CLONE), l, c); break;
     case TK_MINUSMINUS :
     case TK_PLUSPLUS :
         r = setCoordinates(PrefixIncDec(_token), l, c);
@@ -1100,6 +1101,7 @@ void SQParser::ParseTableOrClass(TableDecl *decl, SQInteger separator, SQInteger
             Id *funcName = tk == TK_FUNCTION ? (Id *)Expect(TK_IDENTIFIER) : newNode<Id>(_SC("constructor"));
             assert(funcName);
             LiteralExpr *key = newNode<LiteralExpr>(funcName->id()); //-V522
+            setCoordinates(key, l, c);
             Expect(_SC('('));
             FunctionDecl *f = CreateFunction(funcName, false, tk == TK_CONSTRUCTOR);
             DeclExpr *e = newNode<DeclExpr>(f);
