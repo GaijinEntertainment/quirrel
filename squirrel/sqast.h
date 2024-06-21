@@ -6,7 +6,7 @@
 #include "arena.h"
 #include "sqobject.h"
 
-// NOTE: There are some checkers that rely on the order of this list so re-arrange it carrefuly
+// NOTE: There are some checkers that rely on the order of this list so re-arrange it carefully
 
 #define TREE_OPS \
     DEF_TREE_OP(BLOCK), \
@@ -560,7 +560,7 @@ private:
 class ParamDecl : public ValueDecl {
   bool _isVararg;
 public:
-    ParamDecl(const SQChar *name, Expr *defaltVal) : ValueDecl(TO_PARAM, name, defaltVal), _isVararg(false) {}
+    ParamDecl(const SQChar *name, Expr *defaultVal) : ValueDecl(TO_PARAM, name, defaultVal), _isVararg(false) {}
 
     bool hasDefaultValue() const { return expression() != NULL; }
     Expr *defaultValue() const { return expression(); }

@@ -497,7 +497,7 @@ template<typename T> Expr* SQParser::BIN_EXP(T f, enum TreeOp top, Expr *lhs)
 
     Lex();
 
-    checkSuspicciousUnaryOp(prevTok, tok, prevFlags);
+    checkSuspiciousUnaryOp(prevTok, tok, prevFlags);
 
     SQExpressionContext old = _expression_context;
     _expression_context = SQE_RVALUE;
@@ -659,7 +659,7 @@ Expr* SQParser::ShiftExp()
     }
 }
 
-void SQParser::checkSuspicciousUnaryOp(SQInteger pprevTok, SQInteger tok, unsigned pprevFlags) {
+void SQParser::checkSuspiciousUnaryOp(SQInteger pprevTok, SQInteger tok, unsigned pprevFlags) {
   if (tok == _SC('+') || tok == _SC('-')) {
     if (_expression_context == SQE_ARRAY_ELEM || _expression_context == SQE_FUNCTION_ARG) {
       if ((pprevFlags & (TF_PREP_EOL | TF_PREP_SPACE)) && (pprevTok != _SC(',')) && ((_lex._prevflags & TF_PREP_SPACE) == 0)) {
@@ -700,7 +700,7 @@ Expr* SQParser::MultExp()
     }
 }
 
-void SQParser::checkSuspicciousBraket() {
+void SQParser::checkSuspiciousBracket() {
   assert(_token == _SC('(') || _token == _SC('['));
   if (_expression_context == SQE_ARRAY_ELEM || _expression_context == SQE_FUNCTION_ARG) {
     if (_lex._prevtoken != _SC(',')) {
@@ -769,7 +769,7 @@ Expr* SQParser::PrefixedExpr()
             if(_lex._prevtoken == _SC('\n'))
                 reportDiagnostic(DiagnosticsId::DI_BROKEN_SLOT_DECLARATION);
             if (_token == _SC('['))
-              checkSuspicciousBraket();
+              checkSuspiciousBracket();
 
             Lex();
             Expr *receiver = e;
@@ -799,7 +799,7 @@ Expr* SQParser::PrefixedExpr()
             CallExpr *call = newNode<CallExpr>(arena(), e, nullcall);
 
             if (_token == _SC('('))
-              checkSuspicciousBraket();
+              checkSuspiciousBracket();
 
             Lex();
             while (_token != _SC(')')) {
