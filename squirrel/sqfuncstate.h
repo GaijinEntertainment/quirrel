@@ -29,13 +29,10 @@ struct SQFuncState
     SQInteger GetNumericConstant(const SQFloat cons);
     SQInteger PushLocalVariable(const SQObject &name, bool assignable);
     void AddParameter(const SQObject &name);
-    //void AddOuterValue(const SQObject &name);
     SQInteger GetLocalVariable(const SQObject &name, bool &is_assignable);
     void MarkLocalAsOuter(SQInteger pos);
     SQInteger GetOuterVariable(const SQObject &name, bool &is_assignable);
-    SQInteger GenerateCode();
     SQInteger GetStackSize();
-    SQInteger CalcStackFrameSize();
     void AddLineInfos(SQInteger line,bool lineop,bool force=false);
     SQFunctionProto *BuildProto();
     SQInteger AllocStackPos();
@@ -47,9 +44,6 @@ struct SQFuncState
     bool IsLocal(SQUnsignedInteger stkpos);
     SQObject CreateString(const SQChar *s,SQInteger len = -1);
     SQObject CreateTable();
-    bool IsConstant(const SQObject &name,SQObject &e);
-    bool IsLocalConstant(const SQObject &name,SQObject &e);
-    bool IsGlobalConstant(const SQObject &name,SQObject &e);
     SQUnsignedInteger lang_features;
     SQInteger _returnexp;
     SQLocalVarInfoVec _vlocals;
@@ -71,7 +65,6 @@ struct SQFuncState
     SQInteger _nliterals;
     SQLineInfoVec _lineinfos;
     SQFuncState *_parent;
-    SQIntVec _scope_blocks;
     SQIntVec _breaktargets;
     SQIntVec _continuetargets;
     SQIntVec _blockstacksizes;
