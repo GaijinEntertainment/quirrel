@@ -106,7 +106,7 @@ public:
 
   void visitGetFieldExpr(GetFieldExpr *expr) override;
 
-  void visitGetTableExpr(GetTableExpr *expr) override;
+  void visitGetSlotExpr(GetSlotExpr *expr) override;
 
   void visitBinExpr(BinExpr *expr) override;
 
@@ -206,7 +206,7 @@ void SQASTWritingVisitor::visitGetFieldExpr(GetFieldExpr *gf) {
   writeString(gf->fieldName());
 }
 
-void SQASTWritingVisitor::visitGetTableExpr(GetTableExpr *ge) {
+void SQASTWritingVisitor::visitGetSlotExpr(GetSlotExpr *ge) {
   writeNodeHeader(ge);
   ge->receiver()->visit(this);
   stream->writeInt8(ge->isNullable());
@@ -993,14 +993,14 @@ GetFieldExpr *SQASTReader::readGetFieldExpr() {
   return newNode<GetFieldExpr>(receiver, s, nullable, isTypeMethod);
 }
 
-GetTableExpr *SQASTReader::readGetTableExpr() {
+GetSlotExpr *SQASTReader::readGetSlotExpr() {
   Expr *receiver = readExpression();
 
   bool nullable = (bool)stream->readInt8();
 
   Expr *key = readExpression();
 
-  return newNode<GetTableExpr>(receiver, key, nullable);
+  return newNode<GetSlotExpr>(receiver, key, nullable);
 }
 
 ValueDecl *SQASTReader::readValueDecl(bool isVar) {
@@ -1222,7 +1222,7 @@ Node *SQASTReader::readNode(enum TreeOp op) {
   case TO_DECL_EXPR: return readDeclExpr();
   case TO_ARRAYEXPR: return readArrayExpr();
   case TO_GETFIELD: return readGetFieldExpr();
-  case TO_GETTABLE: return readGetTableExpr();
+  case TO_GETSLOT: return readGetSlotExpr();
   case TO_CALL: return readCallExpr();
   case TO_TERNARY: return readTernaryExpr();
   // case TO_EXPR_MARK:

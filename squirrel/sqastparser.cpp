@@ -774,7 +774,7 @@ Expr* SQParser::PrefixedExpr()
             Lex();
             Expr *receiver = e;
             Expr *key = Expression(SQE_RVALUE);
-            e = setCoordinates(newNode<GetTableExpr>(receiver, key, nextIsNullable), receiver->lineStart(), receiver->columnStart());
+            e = setCoordinates(newNode<GetSlotExpr>(receiver, key, nextIsNullable), receiver->lineStart(), receiver->columnStart());
             Expect(_SC(']'));
             break;
         }

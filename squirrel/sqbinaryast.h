@@ -119,7 +119,7 @@ class SQASTReader {
   CallExpr *readCallExpr();
 
   GetFieldExpr *readGetFieldExpr();
-  GetTableExpr *readGetTableExpr();
+  GetSlotExpr *readGetSlotExpr();
 
   ValueDecl *readValueDecl(bool);
   ConstDecl *readConstDecl();

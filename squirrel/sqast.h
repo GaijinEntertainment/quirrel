@@ -74,8 +74,8 @@
     DEF_TREE_OP(ARRAYEXPR), \
     DEF_TREE_OP(GETFIELD), \
     DEF_TREE_OP(SETFIELD), \
-    DEF_TREE_OP(GETTABLE), \
-    DEF_TREE_OP(SETTABLE), \
+    DEF_TREE_OP(GETSLOT), \
+    DEF_TREE_OP(SETSLOT), \
     DEF_TREE_OP(CALL), \
     DEF_TREE_OP(TERNARY), \
     DEF_TREE_OP(EXPR_MARK), \
@@ -112,7 +112,7 @@ class Decl;
 
 class Id;
 class GetFieldExpr;
-class GetTableExpr;
+class GetSlotExpr;
 
 
 class Node : public ArenaObj {
@@ -146,7 +146,7 @@ public:
     Id *asId() { assert(_op == TO_ID); return (Id*)this; }
     const Id *asId() const { assert(_op == TO_ID); return (const Id*)this; }
     GetFieldExpr *asGetField() const { assert(_op == TO_GETFIELD); return (GetFieldExpr*)this; }
-    GetTableExpr *asGetTable() const { assert(_op == TO_GETTABLE); return (GetTableExpr*)this; }
+    GetSlotExpr *asGetSlot() const { assert(_op == TO_GETSLOT); return (GetSlotExpr*)this; }
 
     int lineStart() const { return _coordinates.lineStart; }
     void setLineStartPos(int pos) { _coordinates.lineStart = pos; }
@@ -184,7 +184,7 @@ protected:
     Expr(enum TreeOp op) : Node(op) {}
 
 public:
-    bool isAccessExpr() const { return TO_GETFIELD <= op() && op() <= TO_SETTABLE; }
+    bool isAccessExpr() const { return TO_GETFIELD <= op() && op() <= TO_SETSLOT; }
     AccessExpr *asAccessExpr() const { assert(isAccessExpr()); return (AccessExpr*)this; }
     LiteralExpr *asLiteral() const { assert(op() == TO_LITERAL); return (LiteralExpr *)this; }
     DeclExpr *asDeclExpr() const { assert(op() == TO_DECL_EXPR); return (DeclExpr *)this; }
@@ -324,9 +324,9 @@ protected:
 };
 
 
-class TableAccessExpr : public AccessExpr {
+class SlotAccessExpr : public AccessExpr {
 protected:
-    TableAccessExpr(enum TreeOp op, Expr *receiver, Expr *key, bool nullable) : AccessExpr(op, receiver, nullable), _key(key) {}
+    SlotAccessExpr(enum TreeOp op, Expr *receiver, Expr *key, bool nullable) : AccessExpr(op, receiver, nullable), _key(key) {}
 public:
 
     Expr *key() const { return _key; }
@@ -334,17 +334,17 @@ protected:
     Expr *_key;
 };
 
-class GetTableExpr : public TableAccessExpr {
+class GetSlotExpr : public SlotAccessExpr {
 public:
-    GetTableExpr(Expr *receiver, Expr *key, bool nullable): TableAccessExpr(TO_GETTABLE, receiver, key, nullable) {}
+    GetSlotExpr(Expr *receiver, Expr *key, bool nullable): SlotAccessExpr(TO_GETSLOT, receiver, key, nullable) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
 };
 
-class SetTableExpr : public TableAccessExpr {
+class SetSlotExpr : public SlotAccessExpr {
 public:
-    SetTableExpr(Expr *receiver, Expr *key, Expr *val, bool nullable): TableAccessExpr(TO_SETTABLE, receiver, key, nullable), _val(val) {}
+    SetSlotExpr(Expr *receiver, Expr *key, Expr *val, bool nullable): SlotAccessExpr(TO_SETSLOT, receiver, key, nullable), _val(val) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -1048,8 +1048,8 @@ public:
     virtual void visitAccessExpr(AccessExpr *expr) { visitExpr(expr); }
     virtual void visitGetFieldExpr(GetFieldExpr *expr) { visitAccessExpr(expr); }
     virtual void visitSetFieldExpr(SetFieldExpr *expr) { visitAccessExpr(expr); }
-    virtual void visitGetTableExpr(GetTableExpr *expr) { visitAccessExpr(expr); }
-    virtual void visitSetTableExpr(SetTableExpr *expr) { visitAccessExpr(expr); }
+    virtual void visitGetSlotExpr(GetSlotExpr *expr) { visitAccessExpr(expr); }
+    virtual void visitSetSlotExpr(SetSlotExpr *expr) { visitAccessExpr(expr); }
     virtual void visitBaseExpr(BaseExpr *expr) { visitExpr(expr); }
     virtual void visitRootTableAccessExpr(RootTableAccessExpr *expr) { visitExpr(expr); }
     virtual void visitLiteralExpr(LiteralExpr *expr) { visitExpr(expr); }
@@ -1109,8 +1109,8 @@ public:
   virtual Node *transformId(Id *id) { return transformExpr(id); }
   virtual Node *transformGetFieldExpr(GetFieldExpr *expr) { return transformExpr(expr); }
   virtual Node *transformSetFieldExpr(SetFieldExpr *expr) { return transformExpr(expr); }
-  virtual Node *transformGetTableExpr(GetTableExpr *expr) { return transformExpr(expr); }
-  virtual Node *transformSetTableExpr(SetTableExpr *expr) { return transformExpr(expr); }
+  virtual Node *transformGetSlotExpr(GetSlotExpr *expr) { return transformExpr(expr); }
+  virtual Node *transformSetSlotExpr(SetSlotExpr *expr) { return transformExpr(expr); }
   virtual Node *transformBaseExpr(BaseExpr *expr) { return transformExpr(expr); }
   virtual Node *transformRootTableAccessExpr(RootTableAccessExpr *expr) { return transformExpr(expr); }
   virtual Node *transformLiteralExpr(LiteralExpr *expr) { return transformExpr(expr); }
@@ -1231,10 +1231,10 @@ void Node::visit(V *visitor) {
         visitor->visitGetFieldExpr(static_cast<GetFieldExpr *>(this)); return;
     case TO_SETFIELD:
         visitor->visitSetFieldExpr(static_cast<SetFieldExpr *>(this)); return;
-    case TO_GETTABLE:
-        visitor->visitGetTableExpr(static_cast<GetTableExpr *>(this)); return;
-    case TO_SETTABLE:
-        visitor->visitSetTableExpr(static_cast<SetTableExpr *>(this)); return;
+    case TO_GETSLOT:
+        visitor->visitGetSlotExpr(static_cast<GetSlotExpr *>(this)); return;
+    case TO_SETSLOT:
+        visitor->visitSetSlotExpr(static_cast<SetSlotExpr *>(this)); return;
     case TO_CALL:
         visitor->visitCallExpr(static_cast<CallExpr *>(this)); return;
     case TO_TERNARY:
@@ -1345,10 +1345,10 @@ Node *Node::transform(T *transformer) {
     return transformer->transformGetFieldExpr(static_cast<GetFieldExpr *>(this));
   case TO_SETFIELD:
     return transformer->transformSetFieldExpr(static_cast<SetFieldExpr *>(this));
-  case TO_GETTABLE:
-    return transformer->transformGetTableExpr(static_cast<GetTableExpr *>(this));
-  case TO_SETTABLE:
-    return transformer->transformSetTableExpr(static_cast<SetTableExpr *>(this));
+  case TO_GETSLOT:
+    return transformer->transformGetSlotExpr(static_cast<GetSlotExpr *>(this));
+  case TO_SETSLOT:
+    return transformer->transformSetSlotExpr(static_cast<SetSlotExpr *>(this));
   case TO_CALL:
     return transformer->transformCallExpr(static_cast<CallExpr *>(this));
   case TO_TERNARY:

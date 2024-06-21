@@ -133,14 +133,14 @@ public:
         _out->writeString(" = ");
         expr->value()->visit(this);
     }
-    virtual void visitGetTableExpr(GetTableExpr *expr) {
+    virtual void visitGetSlotExpr(GetSlotExpr *expr) {
         expr->receiver()->visit(this);
         if (expr->isNullable()) _out->writeChar('?');
         _out->writeChar('[');
         expr->key()->visit(this);
         _out->writeChar(']');
     }
-    virtual void visitSetTableExpr(SetTableExpr *expr) {
+    virtual void visitSetSlotExpr(SetSlotExpr *expr) {
         expr->receiver()->visit(this);
         if (expr->isNullable()) _out->writeChar('?');
         _out->writeChar('[');

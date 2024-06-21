@@ -87,10 +87,10 @@ void Node::visitChildren(Visitor *visitor) {
         static_cast<GetFieldExpr *>(this)->visitChildren(visitor); return;
     case TO_SETFIELD:
         static_cast<SetFieldExpr *>(this)->visitChildren(visitor); return;
-    case TO_GETTABLE:
-        static_cast<GetTableExpr *>(this)->visitChildren(visitor); return;
-    case TO_SETTABLE:
-        static_cast<SetTableExpr *>(this)->visitChildren(visitor); return;
+    case TO_GETSLOT:
+        static_cast<GetSlotExpr *>(this)->visitChildren(visitor); return;
+    case TO_SETSLOT:
+        static_cast<SetSlotExpr *>(this)->visitChildren(visitor); return;
     case TO_CALL:
         static_cast<CallExpr *>(this)->visitChildren(visitor); return;
     case TO_TERNARY:
@@ -198,10 +198,10 @@ void Node::transformChildren(Transformer *transformer) {
     static_cast<GetFieldExpr *>(this)->transformChildren(transformer); return;
   case TO_SETFIELD:
     static_cast<SetFieldExpr *>(this)->transformChildren(transformer); return;
-  case TO_GETTABLE:
-    static_cast<GetTableExpr *>(this)->transformChildren(transformer); return;
-  case TO_SETTABLE:
-    static_cast<SetTableExpr *>(this)->transformChildren(transformer); return;
+  case TO_GETSLOT:
+    static_cast<GetSlotExpr *>(this)->transformChildren(transformer); return;
+  case TO_SETSLOT:
+    static_cast<SetSlotExpr *>(this)->transformChildren(transformer); return;
   case TO_CALL:
     static_cast<CallExpr *>(this)->transformChildren(transformer); return;
   case TO_TERNARY:
@@ -278,23 +278,23 @@ void SetFieldExpr::transformChildren(Transformer *transformer) {
   _value = value()->transform(transformer)->asExpression();
 }
 
-void GetTableExpr::visitChildren(Visitor *visitor) {
+void GetSlotExpr::visitChildren(Visitor *visitor) {
     receiver()->visit(visitor);
     key()->visit(visitor);
 }
 
-void GetTableExpr::transformChildren(Transformer *transformer) {
+void GetSlotExpr::transformChildren(Transformer *transformer) {
   _receiver = receiver()->transform(transformer)->asExpression();
   _key = key()->transform(transformer)->asExpression();
 }
 
-void SetTableExpr::visitChildren(Visitor *visitor) {
+void SetSlotExpr::visitChildren(Visitor *visitor) {
     receiver()->visit(visitor);
     key()->visit(visitor);
     value()->visit(visitor);
 }
 
-void SetTableExpr::transformChildren(Transformer *transformer) {
+void SetSlotExpr::transformChildren(Transformer *transformer) {
   _receiver = receiver()->transform(transformer)->asExpression();
   _key = key()->transform(transformer)->asExpression();
   _val = value()->transform(transformer)->asExpression();

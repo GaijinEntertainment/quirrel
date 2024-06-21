@@ -326,7 +326,7 @@ class NodeEqualChecker {
     return check(l->receiver(), r->receiver());
   }
 
-  bool cmpGetTable(const GetTableExpr *l, const GetTableExpr *r) const {
+  bool cmpGetSlot(const GetSlotExpr *l, const GetSlotExpr *r) const {
     if (l->isNullable() != r->isNullable())
       return false;
 
@@ -533,8 +533,8 @@ public:
       return cmpArrayExpr((const ArrayExpr *)lhs, (const ArrayExpr *)rhs);
     case TO_GETFIELD:
       return cmpGetField((const GetFieldExpr *)lhs, (const GetFieldExpr *)rhs);
-    case TO_GETTABLE:
-      return cmpGetTable((const GetTableExpr *)lhs, (const GetTableExpr *)rhs);
+    case TO_GETSLOT:
+      return cmpGetSlot((const GetSlotExpr *)lhs, (const GetSlotExpr *)rhs);
     case TO_CALL:
       return cmpCallExpr((const CallExpr *)lhs, (const CallExpr *)rhs);
     case TO_TERNARY:
@@ -560,7 +560,7 @@ public:
     case TO_TABLE:
       return cmpTable((const TableDecl *)lhs, (const TableDecl *)rhs);
     case TO_SETFIELD:
-    case TO_SETTABLE:
+    case TO_SETSLOT:
     default:
       assert(0);
       return false;
@@ -614,9 +614,9 @@ public:
     Visitor::visitGetFieldExpr(f);
   }
 
-  void visitGetTableExpr(GetTableExpr *t) {
+  void visitGetSlotExpr(GetSlotExpr *t) {
     complexity += 2;
-    Visitor::visitGetTableExpr(t);
+    Visitor::visitGetSlotExpr(t);
   }
 
   void visitCallExpr(CallExpr *call) {
@@ -1120,7 +1120,7 @@ class NodeDiffComputer {
     return receiverDiff;
   }
 
-  int32_t diffGetTable(const GetTableExpr *lhs, const GetTableExpr *rhs) {
+  int32_t diffGetSlot(const GetSlotExpr *lhs, const GetSlotExpr *rhs) {
     int32_t receiverDiff = diffNodes(lhs->receiver(), rhs->receiver());
 
     if (receiverDiff > limit)
@@ -1455,8 +1455,8 @@ class NodeDiffComputer {
       return diffArrayExpr((const ArrayExpr *)lhs, (const ArrayExpr *)rhs);
     case TO_GETFIELD:
       return diffGetField((const GetFieldExpr *)lhs, (const GetFieldExpr *)rhs);
-    case TO_GETTABLE:
-      return diffGetTable((const GetTableExpr *)lhs, (const GetTableExpr *)rhs);
+    case TO_GETSLOT:
+      return diffGetSlot((const GetSlotExpr *)lhs, (const GetSlotExpr *)rhs);
     case TO_CALL:
       return diffCallExpr((const CallExpr *)lhs, (const CallExpr *)rhs);
     case TO_TERNARY:
@@ -1482,7 +1482,7 @@ class NodeDiffComputer {
     case TO_TABLE:
       return diffTable((const TableDecl *)lhs, (const TableDecl *)rhs);
     case TO_SETFIELD:
-    case TO_SETTABLE:
+    case TO_SETSLOT:
     default:
       assert(0);
       return -1;
@@ -1664,7 +1664,7 @@ void FunctionReturnTypeEvaluator::checkExpr(const Expr *expr) {
   case TO_GETFIELD:
       checkGetField(expr->asGetField());
       // Fall Through
-  case TO_GETTABLE:
+  case TO_GETSLOT:
       if (expr->asAccessExpr()->isNullable())
         flags |= RT_NULL;
       break;
@@ -2868,8 +2868,8 @@ class CheckerVisitor : public Visitor {
   void checkUnwantedModification(const CallExpr *expr);
   void checkCannotBeNull(const CallExpr *expr);
   void checkBooleanLambda(const CallExpr *expr);
-  void checkBoolIndex(const GetTableExpr *expr);
-  void checkNullableIndex(const GetTableExpr *expr);
+  void checkBoolIndex(const GetSlotExpr *expr);
+  void checkNullableIndex(const GetSlotExpr *expr);
   void checkGlobalAccess(const GetFieldExpr *expr);
   void checkAccessFromStatic(const GetFieldExpr *expr);
 
@@ -3059,7 +3059,7 @@ public:
   void visitIncExpr(IncExpr *expr);
   void visitCallExpr(CallExpr *expr);
   void visitGetFieldExpr(GetFieldExpr *expr);
-  void visitGetTableExpr(GetTableExpr *expr);
+  void visitGetSlotExpr(GetSlotExpr *expr);
 
   void visitExprStatement(ExprStatement *stmt);
 
@@ -4212,8 +4212,8 @@ static const SQChar *tryExtractKeyName(const Expr *e) {
   if (e->op() == TO_GETFIELD)
     return e->asGetField()->fieldName();
 
-  if (e->op() == TO_GETTABLE) {
-    e = e->asGetTable()->key();
+  if (e->op() == TO_GETSLOT) {
+    e = e->asGetSlot()->key();
   }
 
   if (e->op() == TO_LITERAL) {
@@ -4432,8 +4432,8 @@ static bool looksLikeElementCount(const Expr *e) {
   else if (e->op() == TO_GETFIELD) {
     checkee = e->asGetField()->fieldName();
   }
-  else if (e->op() == TO_GETTABLE) {
-    return looksLikeElementCount(deparen(e->asGetTable()->key()));
+  else if (e->op() == TO_GETSLOT) {
+    return looksLikeElementCount(deparen(e->asGetSlot()->key()));
   }
   else if (e->op() == TO_CALL) {
     return looksLikeElementCount(deparen(e->asCallExpr()->callee()));
@@ -5205,7 +5205,7 @@ void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkArguments(expr);
 }
 
-void CheckerVisitor::checkBoolIndex(const GetTableExpr *expr) {
+void CheckerVisitor::checkBoolIndex(const GetSlotExpr *expr) {
 
   if (effectsOnly)
     return;
@@ -5217,7 +5217,7 @@ void CheckerVisitor::checkBoolIndex(const GetTableExpr *expr) {
   }
 }
 
-void CheckerVisitor::checkNullableIndex(const GetTableExpr *expr) {
+void CheckerVisitor::checkNullableIndex(const GetSlotExpr *expr) {
 
   if (effectsOnly)
     return;
@@ -5266,12 +5266,12 @@ void CheckerVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
   Visitor::visitGetFieldExpr(expr);
 }
 
-void CheckerVisitor::visitGetTableExpr(GetTableExpr *expr) {
+void CheckerVisitor::visitGetSlotExpr(GetSlotExpr *expr) {
   checkBoolIndex(expr);
   checkNullableIndex(expr);
   checkAccessNullable(expr);
 
-  Visitor::visitGetTableExpr(expr);
+  Visitor::visitGetSlotExpr(expr);
 }
 
 void CheckerVisitor::checkDuplicateSwitchCases(SwitchStatement *swtch) {
@@ -5552,8 +5552,8 @@ void CheckerVisitor::checkAssignedTwice(const Block *b) {
 
           if (_equalChecker.check(firstAssignee, jassgn->lhs())) {
             bool ignore = existsInTree(firstAssignee, jassgn->rhs());
-            if (!ignore && firstAssignee->op() == TO_GETTABLE) {
-              const GetTableExpr *getT = firstAssignee->asGetTable();
+            if (!ignore && firstAssignee->op() == TO_GETSLOT) {
+              const GetSlotExpr *getT = firstAssignee->asGetSlot();
               ignore = indexChangedInTree(getT->key());
               if (!ignore) {
                 for (int32_t m = i + 1; m < j; ++m) {
@@ -6372,7 +6372,7 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
     return;
   }
 
-  if (op == TO_GETTABLE || op == TO_GETFIELD) {
+  if (op == TO_GETSLOT || op == TO_GETFIELD) {
     // x?[y]
     const AccessExpr *acc = static_cast<const AccessExpr *>(cond);
     const Expr *reciever = extractReceiver(deparen(acc->receiver()));
@@ -6382,8 +6382,8 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
       setValueFlags(reciever, 0, RT_NULL);
     }
 
-    if (op == TO_GETTABLE) {
-      const Expr *key = deparen(acc->asGetTable()->key());
+    if (op == TO_GETSLOT) {
+      const Expr *key = deparen(acc->asGetSlot()->key());
       if (thenScope) {
         currentScope = thenScope;
         setValueFlags(key, 0, RT_NULL);
@@ -7061,7 +7061,7 @@ int32_t CheckerVisitor::computeNameLength(const Expr *e) {
   switch (e->op()) // -V522
   {
   case TO_GETFIELD: return computeNameLength(e->asGetField());
-  //case TO_GETTABLE: return computeNameLength(e->asGetTable());
+  //case TO_GETSLOT: return computeNameLength(e->asGetSlot());
   case TO_ID: return strlen(e->asId()->id());
   case TO_ROOT_TABLE_ACCESS: return sizeof double_colon_str;
   case TO_BASE: return sizeof base_str;
@@ -7075,7 +7075,7 @@ void CheckerVisitor::computeNameRef(const Expr *e, SQChar *b, int32_t &ptr, int3
   switch (e->op())
   {
   case TO_GETFIELD: return computeNameRef(e->asGetField(), b, ptr, size);
-  //case TO_GETTABLE: return computeNameRef(lhs->asGetTable());
+  //case TO_GETSLOT: return computeNameRef(lhs->asGetSlot());
   case TO_ID: {
     int32_t l = snprintf(&b[ptr], size - ptr, "%s", e->asId()->id());
     ptr += l;

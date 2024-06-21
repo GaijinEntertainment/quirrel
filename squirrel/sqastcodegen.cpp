@@ -677,7 +677,7 @@ void CodegenVisitor::checkClassKey(Expr *key) {
     switch (key->op())
     {
     case TO_GETFIELD:
-    case TO_GETTABLE:
+    case TO_GETSLOT:
     case TO_ROOT_TABLE_ACCESS:
         return;
     case TO_BASE:
@@ -1103,7 +1103,7 @@ void CodegenVisitor::emitDelete(UnExpr *ud) {
     switch (argument->op())
     {
     case TO_GETFIELD:
-    case TO_GETTABLE: break;
+    case TO_GETSLOT: break;
     case TO_BASE:
         reportDiagnostic(ud, DiagnosticsId::DI_CANNOT_DELETE, "'base'");
         break;
@@ -1401,7 +1401,7 @@ void CodegenVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
     }
 }
 
-void CodegenVisitor::visitGetTableExpr(GetTableExpr *expr) {
+void CodegenVisitor::visitGetSlotExpr(GetSlotExpr *expr) {
     // TODO: support similar optimization with contant table as in GetFieldExpr here too
 
     maybeAddInExprLine(expr);
@@ -1488,7 +1488,7 @@ void CodegenVisitor::visitIncExpr(IncExpr *expr) {
 
     visitNoGet(arg);
 
-    if ((arg->op() == TO_GETFIELD || arg->op() == TO_GETTABLE) && arg->asAccessExpr()->receiver()->op() == TO_BASE) {
+    if ((arg->op() == TO_GETFIELD || arg->op() == TO_GETSLOT) && arg->asAccessExpr()->receiver()->op() == TO_BASE) {
         reportDiagnostic(arg, DiagnosticsId::DI_INC_DEC_NOT_ASSIGNABLE);
     }
 

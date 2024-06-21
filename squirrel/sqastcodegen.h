@@ -129,7 +129,7 @@ public:
     void visitArrayExpr(ArrayExpr *expr) override;
     void visitUnExpr(UnExpr *unary) override;
     void visitGetFieldExpr(GetFieldExpr *expr) override;
-    void visitGetTableExpr(GetTableExpr *expr) override;
+    void visitGetSlotExpr(GetSlotExpr *expr) override;
     void visitBinExpr(BinExpr *expr) override;
     void visitTerExpr(TerExpr *expr) override;
     void visitIncExpr(IncExpr *expr) override;
