@@ -10,6 +10,11 @@ struct SQFuncState;
 
 namespace SQCompilation {
 
+struct SQScope {
+    SQInteger outers;
+    SQInteger stacksize;
+};
+
 class CodegenVisitor : public Visitor {
 
     SQFuncState *_fs;

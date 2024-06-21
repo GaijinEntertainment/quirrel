@@ -1677,8 +1677,10 @@ Id* SQParser::generateSurrogateFunctionName()
 
     const SQChar * rightSlash = std::max(strrchr(fileName, _SC('/')), strrchr(fileName, _SC('\\')));
 
-    SQChar buf[MAX_FUNCTION_NAME_LEN];
-    scsprintf(buf, MAX_FUNCTION_NAME_LEN, _SC("(%s:%d)"), rightSlash ? (rightSlash + 1) : fileName, lineNum);
+    constexpr int maxLen = 256;
+
+    SQChar buf[maxLen];
+    scsprintf(buf, maxLen, _SC("(%s:%d)"), rightSlash ? (rightSlash + 1) : fileName, lineNum);
     return newId(buf);
 }
 

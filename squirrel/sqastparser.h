@@ -15,6 +15,16 @@ namespace SQCompilation {
 
 class SQParser
 {
+    enum SQExpressionContext {
+        SQE_REGULAR = 0,
+        SQE_IF,
+        SQE_SWITCH,
+        SQE_LOOP_CONDITION,
+        SQE_FUNCTION_ARG,
+        SQE_RVALUE,
+        SQE_ARRAY_ELEM,
+    };
+
     Arena *_astArena;
 
     template<typename N, typename ... Args>
