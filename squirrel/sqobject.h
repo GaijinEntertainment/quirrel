@@ -66,7 +66,6 @@ enum SQMetaMethod{
     } \
 }
 
-#define MINPOWER2 4
 
 struct SQRefCounted
 {
