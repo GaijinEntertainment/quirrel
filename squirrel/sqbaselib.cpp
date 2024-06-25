@@ -32,31 +32,44 @@ static SQInteger class_getfuncinfos(HSQUIRRELVM v);
         return sq_throwerror(v, _SC("Cannot modify immutable object"));
 
 
-static bool str2num(const SQChar *s,SQObjectPtr &res,SQInteger base)
+static bool sq_parse_float(const SQChar* str_begin, const SQChar * str_end, SQObjectPtr& res, SQInteger base)
 {
-    SQChar *end;
-    const SQChar *e = s;
+#if SQ_USE_STD_FROM_CHARS
+    SQFloat r;
+    auto ret = std::from_chars(str_begin, str_end, r);
+    for (const SQChar* ptr = ret.ptr; ptr != str_end; ++ptr)
+        if (*ptr != '0')
+            return false;
+    if (ret.ec == std::errc::invalid_argument)
+        return false;
+    res = r;
+#else
+    SQChar* end;
+    SQFloat r = SQFloat(strtod(str_begin, &end));
+    if (str_begin == end)
+        return false;
+    res = r;
+#endif
+    return true;
+}
+
+static bool sq_parse_int(const SQChar* str_begin, const SQChar* str_end, SQObjectPtr& res, SQInteger base)
+{
+    SQChar* end;
+    const SQChar* e = str_begin;
     bool iseintbase = base > 13; //to fix error converting hexadecimals with e like 56f0791e
-    bool isfloat = false;
     SQChar c;
-    while((c = *e) != _SC('\0'))
+    while ((c = *e) != _SC('\0'))
     {
-        if (c == _SC('.') || (!iseintbase && (c == _SC('E') || c == _SC('e')))) { //e and E is for scientific notation
-            isfloat = true;
-            break;
-        }
+        if (c == _SC('.') || (!iseintbase && (c == _SC('E') || c == _SC('e')))) //e and E is for scientific notation
+            return sq_parse_float(str_begin, str_end, res, base);
         e++;
     }
-    if(isfloat){
-        SQFloat r = SQFloat(strtod(s,&end));
-        if(s == end) return false;
-        res = r;
-    }
-    else{
-        SQInteger r = SQInteger(scstrtol(s,&end,(int)base));
-        if(s == end) return false;
-        res = r;
-    }
+
+    SQInteger r = SQInteger(scstrtol(str_begin, &end, (int)base));
+    if (str_begin == end)
+        return false;
+    res = r;
     return true;
 }
 
@@ -495,7 +508,7 @@ static SQInteger default_delegate_tofloat(HSQUIRRELVM v)
     switch(sq_type(o)){
     case OT_STRING:{
         SQObjectPtr res;
-        if(str2num(_stringval(o),res,10)){
+        if(sq_parse_float(_stringval(o), _stringval(o) + _string(o)->_len, res, 10)){
             v->Push(SQObjectPtr(tofloat(res)));
             break;
         }}
@@ -523,7 +536,7 @@ static SQInteger default_delegate_tointeger(HSQUIRRELVM v)
     switch(sq_type(o)){
     case OT_STRING:{
         SQObjectPtr res;
-        if(str2num(_stringval(o),res,base)){
+        if(sq_parse_int(_stringval(o), _stringval(o) + _string(o)->_len, res, base)){
             v->Push(SQObjectPtr(tointeger(res)));
             break;
         }}

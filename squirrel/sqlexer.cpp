@@ -646,7 +646,22 @@ SQInteger SQLexer::ReadNumber()
     switch(type) {
     case TSCIENTIFIC:
     case TFLOAT:
-        value = (SQFloat)strtod(&_longstr[0],&sTemp);
+#if SQ_USE_STD_FROM_CHARS
+        {
+            auto ret = std::from_chars(&_longstr[0], &_longstr[0] + _longstr.size(), _fvalue);
+            if (ret.ec == std::errc::result_out_of_range)
+                _ctx.reportDiagnostic(_fvalue == 0 ? DiagnosticsId::DI_LITERAL_UNDERFLOW : DiagnosticsId::DI_LITERAL_OVERFLOW,
+                    _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "float");
+
+            for (const char * c = ret.ptr; c < &_longstr[0] + _longstr.size() - 1; ++c)
+                if (*c != '0')
+                {
+                    _ctx.reportDiagnostic(DiagnosticsId::DI_MALFORMED_NUMBER, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+                    break;
+                }
+        }
+#else
+        value = (SQFloat)strtod(&_longstr[0], &sTemp);
         _fvalue = value;
         if(value == 0)
         {
@@ -659,6 +674,7 @@ SQInteger SQLexer::ReadNumber()
                     _ctx.reportDiagnostic(DiagnosticsId::DI_LITERAL_UNDERFLOW, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "float");
             }
         }
+#endif
 
         if(sizeof(_fvalue) == sizeof(float))
         {
