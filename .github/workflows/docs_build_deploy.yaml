@@ -1,0 +1,79 @@
+name: Docs - build and deploy
+
+on:
+  push:
+    branches:
+    - master
+    paths:
+    - "doc/**"
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_name: ${{ steps.artifact_name.outputs.artifact_name }}
+    permissions:
+      contents: read
+
+    steps:
+    - name: Checkout project
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.9"
+        cache: "pip"
+
+    - name: Install dependencies
+      working-directory: ./doc
+      run: python3 -m pip install -r requirements.txt
+
+    - name: Build documentation with sphinx-build
+      working-directory: ./doc
+      run: sphinx-build -b html -d build/doctrees source build/html
+
+    - name: Generate artifact name
+      id: artifact_name
+      run: |
+        export AN=docs_html_$(date +'%Y%m%dT%H%M%S')
+        echo Generated artifact name: ${AN}
+        echo "ARTIFACT_NAME=${AN}" >> $GITHUB_ENV
+        echo "artifact_name=${AN}" >> $GITHUB_OUTPUT
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.ARTIFACT_NAME }}
+        path: ./doc/build/html
+        retention-days: 1
+        if-no-files-found: error
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      ARTIFACT_NAME: ${{ needs.build.outputs.artifact_name }}
+    permissions:
+      actions: read
+
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ env.ARTIFACT_NAME }}
+        path: ./doc
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.DOC_KEYID }}
+        aws-secret-access-key: ${{ secrets.DOC_SECRET }}
+        aws-region: eu-west-1
+
+    - name: Update target
+      run: |
+        aws s3 sync ./doc s3://quirrel.io/doc
+        aws cloudfront create-invalidation --distribution-id ${{ secrets.DOC_DISTID }} --paths "/*"
