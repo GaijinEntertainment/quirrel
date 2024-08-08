@@ -146,7 +146,7 @@ static void dumpBytecodeAst_callback(HSQUIRRELVM vm, HSQOBJECT obj, void *opts)
     }
 }
 
-bool search_sqconfig(const char * initial_file_name, char *buffer, size_t bufferSize)
+static bool search_sqconfig(const char * initial_file_name, char *buffer, size_t bufferSize)
 {
   if (!initial_file_name)
     return false;
@@ -201,7 +201,7 @@ bool search_sqconfig(const char * initial_file_name, char *buffer, size_t buffer
   return false;
 }
 
-bool checkOption(char *argv[], int argc, const char *option, const char *&optArg) {
+static bool checkOption(char *argv[], int argc, const char *option, const char *&optArg) {
   optArg = nullptr;
   for (int i = 1; i< argc; ++i) {
     const char *arg = argv[i];
@@ -472,13 +472,20 @@ void Interactive(HSQUIRRELVM v)
     SQInteger done=0;
     PrintVersionInfos();
 
-    sq_pushroottable(v);
+    HSQOBJECT bindingsTable;
+    sq_newtable(v);
+    sq_getstackobj(v, -1, &bindingsTable);
+    sq_addref(v, &bindingsTable);
+
+    sq_registerbaselib(v);
+
     sq_pushstring(v,_SC("quit"),-1);
     sq_pushuserpointer(v,&done);
     sq_newclosure(v,quit,1);
     sq_setparamscheck(v,1,NULL);
     sq_newslot(v,-3,SQFalse);
-    sq_pop(v,1);
+
+    sq_pop(v, 1); // bindingsTable
 
     while (!done)
     {
@@ -523,7 +530,7 @@ void Interactive(HSQUIRRELVM v)
         i=strlen(buffer);
         if(i>0){
             SQInteger oldtop=sq_gettop(v);
-            if(SQ_SUCCEEDED(sq_compile(v,buffer,i,_SC("interactive console"),SQTrue))){
+            if(SQ_SUCCEEDED(sq_compile(v,buffer,i,_SC("interactive console"),SQTrue,&bindingsTable))){
                 sq_pushroottable(v);
                 if(SQ_SUCCEEDED(sq_call(v,1,retval,SQTrue)) &&  retval){
                     printf(_SC("\n"));
@@ -541,6 +548,8 @@ void Interactive(HSQUIRRELVM v)
             sq_settop(v,oldtop);
         }
     }
+
+    sq_release(v, &bindingsTable);
 }
 
 int main(int argc, char* argv[])
