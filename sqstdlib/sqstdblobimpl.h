@@ -17,7 +17,7 @@ struct SQBlob : public SQStream
         sq_free(_alloc_ctx, _buf, _allocated);
     }
 
-    SQInteger Write(void *buffer, SQInteger size) override {
+    SQInteger Write(const void *buffer, SQInteger size) override {
         if(!CanAdvance(size)) {
             GrowBufOf(_ptr + size - _size);
         }

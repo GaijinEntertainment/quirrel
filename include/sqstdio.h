@@ -14,7 +14,7 @@ struct SQStream {
     SQStream& operator=(SQStream&&) = default;
     virtual ~SQStream() {}
     virtual SQInteger Read(void *buffer, SQInteger size) = 0;
-    virtual SQInteger Write(void *buffer, SQInteger size) = 0;
+    virtual SQInteger Write(const void *buffer, SQInteger size) = 0;
     virtual SQInteger Flush() = 0;
     virtual SQInteger Tell() = 0;
     virtual SQInteger Len() = 0;

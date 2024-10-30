@@ -92,8 +92,8 @@ struct SQFile : public SQStream {
         return sqstd_fread(buffer,1,size,_handle);
     }
 
-    SQInteger Write(void *buffer,SQInteger size) override {
-        return sqstd_fwrite(buffer,1,size,_handle);
+    SQInteger Write(const void *buffer,SQInteger size) override {
+        return sqstd_fwrite(const_cast<void*>(buffer), 1, size, _handle);
     }
 
     SQInteger Flush() override {
