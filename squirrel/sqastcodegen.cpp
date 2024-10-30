@@ -673,23 +673,6 @@ void CodegenVisitor::visitTableDecl(TableDecl *tableDecl) {
     generateTableDecl(tableDecl);
 }
 
-void CodegenVisitor::checkClassKey(Expr *key) {
-    switch (key->op())
-    {
-    case TO_GETFIELD:
-    case TO_GETSLOT:
-    case TO_ROOT_TABLE_ACCESS:
-        return;
-    case TO_BASE:
-    case TO_ID:
-        reportDiagnostic(key, DiagnosticsId::DI_LOCAL_CLASS_SYNTAX);
-        break;
-    default:
-        reportDiagnostic(key, DiagnosticsId::DI_INVALID_CLASS_NAME);
-        break;
-    }
-}
-
 void CodegenVisitor::visitClassDecl(ClassDecl *klass) {
     addLineNumber(klass);
 

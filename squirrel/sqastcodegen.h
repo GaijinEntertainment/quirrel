@@ -60,8 +60,6 @@ private:
 
     void generateTableDecl(TableDecl *tableDecl);
 
-    void checkClassKey(Expr *key);
-
     SQTable* GetScopedConstsTable();
 
     void emitUnaryOp(SQOpcode op, UnExpr *arg);
