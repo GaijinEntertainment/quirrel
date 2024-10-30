@@ -101,6 +101,8 @@ Default delegates
 -----------------
 
 Except null and userdata every quirrel object has a default delegate containing a set of functions to manipulate and retrieve information from the object itself.
+All these default delegates can be called also by adding $ symbol before delegate name, like `table.$tostring()` or `table?.$tostring()`.
+With '$' symbol Squirrel will know that you want to call default delegate. This can really matter in tables and instances (`{len=@() 0}.len() //0` vs `{len= @() 0}.$len() //1`)
 
 ^^^^^^^^
 Integer
@@ -497,8 +499,7 @@ Resizes the array. If the optional parameter 'fill' is specified, its value will
 
 Sorts the array in-place. A custom compare function can be optionally passed. The function prototype as to be the following.::
 
-    function custom_compare(a,b)
-    {
+    function custom_compare(a,b) {
         if(a>b) return 1
         else if(a<b) return -1
         return 0;
