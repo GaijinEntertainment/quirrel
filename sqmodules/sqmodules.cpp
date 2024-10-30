@@ -358,6 +358,10 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   sq_pushstring(vm, __name__, -1);
   sq_rawset(vm, -3);
 
+  sq_pushstring(vm, "__static_analysis__", 19);
+  sq_pushbool(vm, compilationOptions.doStaticAnalysis);
+  sq_rawset(vm, -3);
+
   SQRAT_ASSERT(sq_gettop(vm) == prevTop+1); // bindings table
 
   bindBaseLib(hBindings);
