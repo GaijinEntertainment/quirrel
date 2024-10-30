@@ -14,7 +14,7 @@
 
 
 template<typename PrintFunc>
-static void collect_stack_sting(HSQUIRRELVM v, PrintFunc pf)
+static void collect_stack_string(HSQUIRRELVM v, PrintFunc pf)
 {
     SQStackInfos si;
     SQInteger i;
@@ -123,7 +123,7 @@ void sqstd_printcallstack(HSQUIRRELVM v)
 {
     SQPRINTFUNCTION pf = sq_geterrorfunc(v);
     if (pf)
-        collect_stack_sting(v, pf);
+        collect_stack_string(v, pf);
 }
 
 
@@ -137,7 +137,7 @@ SQRESULT sqstd_formatcallstackstring(HSQUIRRELVM v)
 
     SQChar* dst = mem;
 
-    collect_stack_sting(v, [alloc_ctx, &mem, &dst, &memlen](HSQUIRRELVM, const SQChar *fmt, ...) {
+    collect_stack_string(v, [alloc_ctx, &mem, &dst, &memlen](HSQUIRRELVM, const SQChar *fmt, ...) {
         const int appendBlock = 128;
         va_list args;
 
