@@ -1307,6 +1307,15 @@ bool CodegenVisitor::CanBeDefaultDelegate(const SQChar *key)
     return false;
 }
 
+bool CodegenVisitor::CanBeDefaultTableDelegate(const SQChar *key)
+{
+    if (_fs->lang_features & LF_FORBID_IMPLICIT_DEF_DELEGATE)
+      return false;
+
+    SQObjectPtr tmp;
+    return _table(_fs->_sharedstate->_table_default_delegate)->GetStr(key, strlen(key), tmp);
+}
+
 
 void CodegenVisitor::selectConstant(SQInteger target, const SQObject &constant) {
     SQObjectType ctype = sq_type(constant);
@@ -1342,8 +1351,11 @@ void CodegenVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
                     // else fall through to normal get
                 }
                 else {
-                    reportDiagnostic(expr, DiagnosticsId::DI_INVALID_ENUM, expr->fieldName(), "enum");
-                    return;
+                    if (!CanBeDefaultTableDelegate(expr->fieldName())) {
+                        reportDiagnostic(expr, DiagnosticsId::DI_INVALID_ENUM, expr->fieldName(), "enum");
+                        return;
+                    }
+                    // else fall through to normal get
                 }
             }
         }

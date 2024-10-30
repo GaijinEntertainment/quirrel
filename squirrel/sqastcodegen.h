@@ -73,6 +73,7 @@ private:
     void emitFieldAssign(bool isLiteral);
 
     bool CanBeDefaultDelegate(const SQChar *key);
+    bool CanBeDefaultTableDelegate(const SQChar *key);
     bool canBeLiteral(AccessExpr *expr);
 
     void MoveIfCurrentTargetIsLocal();
