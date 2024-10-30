@@ -1215,9 +1215,10 @@ void CodegenVisitor::emitNewSlot(Expr *lvalue, Expr *rvalue) {
     }
 }
 
-void CodegenVisitor::emitFieldAssign(bool isLiteral) {
+void CodegenVisitor::emitFieldAssign(int isLiteralIndex) {
+    const bool isLiteral = isLiteralIndex >= 0;
     SQInteger val = _fs->PopTarget();
-    SQInteger key = _fs->PopTarget();
+    SQInteger key = isLiteralIndex >= 0 ? isLiteralIndex : _fs->PopTarget();
     SQInteger src = _fs->PopTarget();
 
     _fs->AddInstruction(isLiteral ? _OP_SET_LITERAL : _OP_SET, _fs->PushTarget(), src, key, val);
@@ -1227,6 +1228,21 @@ void CodegenVisitor::emitFieldAssign(bool isLiteral) {
 }
 
 void CodegenVisitor::emitAssign(Expr *lvalue, Expr * rvalue) {
+
+    if (lvalue->isAccessExpr() && lvalue->asAccessExpr()->receiver()->op() != TO_BASE && canBeLiteral(lvalue->asAccessExpr())) {
+        FieldAccessExpr *fieldAccess = lvalue->asAccessExpr()->asFieldAccessExpr();
+        SQObject nameObj = _fs->CreateString(fieldAccess->fieldName());
+        SQInteger constantI = _fs->GetConstant(nameObj);
+        if (constantI < 256)
+        {
+          visitForceGet(fieldAccess->receiver());
+
+          visitForceGet(rvalue);
+
+          emitFieldAssign(constantI);
+          return;
+        }
+    }
 
     visitNoGet(lvalue);
 
@@ -1260,7 +1276,7 @@ void CodegenVisitor::emitAssign(Expr *lvalue, Expr * rvalue) {
     }
     else if (lvalue->isAccessExpr()) {
         if (lvalue->asAccessExpr()->receiver()->op() != TO_BASE) {
-            emitFieldAssign(canBeLiteral(lvalue->asAccessExpr()));
+            emitFieldAssign(-1);
         }
         else {
             reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_EXPR);

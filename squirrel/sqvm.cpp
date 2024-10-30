@@ -967,7 +967,7 @@ exception_restore:
             case _OP_SET_LITERAL: {
                 uint64_t *__restrict hintP = ((uint64_t*__restrict )(ci->_ip++));
                 uint64_t hint = *hintP;
-                const SQObjectPtr &from = STK(arg1), &__restrict key = STK(arg2), &val = STK(arg3);
+                const SQObjectPtr &from = STK(arg1), &__restrict key = ci->_literals[arg2], &val = STK(arg3);
                 auto sqType = sq_type(from);
                 if (sqType == OT_INSTANCE && !(from._flags & SQOBJ_FLAG_IMMUTABLE))//for wrong access go to normal Set
                 {
