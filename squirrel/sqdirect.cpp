@@ -32,15 +32,22 @@ SQBool sq_direct_cmp(HSQUIRRELVM v, const HSQOBJECT *a, const HSQOBJECT *b, SQIn
     const SQObjectPtr &aPtr = static_cast<const SQObjectPtr &>(*a);
     const SQObjectPtr &bPtr = static_cast<const SQObjectPtr &>(*b);
 
-    SQObjectType t1 = sq_type(*a), t2 = sq_type(*b);
-    if (t1 == t2 || t1==OT_NULL || t2==OT_NULL || (sq_isnumeric(*a) && sq_isnumeric(*b)))
-    {
-      SQBool status = v->ObjCmp(aPtr, bPtr, *res);
-      assert(status);
-      return status;
-    }
-    return false;
+    return v->ObjCmp(aPtr, bPtr, *res);
 }
+
+
+bool sq_direct_is_equal(HSQUIRRELVM v, const HSQOBJECT *a, const HSQOBJECT *b)
+{
+    const SQObjectPtr &aPtr = static_cast<const SQObjectPtr &>(*a);
+    const SQObjectPtr &bPtr = static_cast<const SQObjectPtr &>(*b);
+
+    bool res = false;
+    bool status = v->IsEqual(aPtr, bPtr, res);
+    (void)status;
+    assert(status); // cannot fail
+    return res;
+}
+
 
 SQRESULT sq_direct_getuserdata(const HSQOBJECT *obj, SQUserPointer *p, SQUserPointer *typetag)
 {
