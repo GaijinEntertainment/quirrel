@@ -13,4 +13,4 @@ LOCALS
 [bar] CLOSURE
 [foo] CLOSURE
 [vargv] ARRAY
-[this] TABLE
+[this] NULL

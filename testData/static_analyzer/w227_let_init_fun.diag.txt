@@ -8,4 +8,4 @@ LOCALS
 [setGroup] NULL
 [foo] CLOSURE
 [vargv] ARRAY
-[this] TABLE
+[this] NULL

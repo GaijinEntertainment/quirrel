@@ -39,7 +39,6 @@ public:
     Sqrat::Object exports;
     Sqrat::Object stateStorage;
     Sqrat::Object refHolder;
-    Sqrat::Object moduleThis;
     string  __name__;
   };
 
