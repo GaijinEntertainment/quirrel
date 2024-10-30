@@ -434,15 +434,15 @@ void SQFuncState::AddInstruction(SQInstruction &i)
             if(i._arg0 == i._arg3) {
                 i._arg0 = 0xFF;
             }
-            if( pi.op == _OP_LOAD && pi._arg0 == i._arg2 && (!IsLocal(pi._arg0)) && i._arg1 < 256){
-                pi._arg2 = (unsigned char)i._arg1;
+            if( pi.op == _OP_LOAD && pi._arg0 == i._arg1 && (!IsLocal(pi._arg0))){
+                pi._arg2 = i._arg2;
                 pi.op = _OP_SETK;
                 pi._arg0 = i._arg0;
                 pi._arg3 = i._arg3;
                 return;
             }
-            if( pi.op == _OP_LOADINT && pi._arg0 == i._arg2 && (!IsLocal(pi._arg0)) && i._arg1 < 256){
-                pi._arg2 = (unsigned char)i._arg1;
+            if( pi.op == _OP_LOADINT && pi._arg0 == i._arg1 && (!IsLocal(pi._arg0))){
+                pi._arg2 = i._arg2;
                 pi.op = _OP_SETI;
                 pi._arg0 = i._arg0;
                 pi._arg3 = i._arg3;

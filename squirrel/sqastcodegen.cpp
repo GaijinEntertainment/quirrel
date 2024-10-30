@@ -1271,7 +1271,7 @@ void CodegenVisitor::emitFieldAssign(int isLiteralIndex) {
     SQInteger key = isLiteralIndex >= 0 ? isLiteralIndex : _fs->PopTarget();
     SQInteger src = _fs->PopTarget();
 
-    _fs->AddInstruction(isLiteral ? _OP_SET_LITERAL : _OP_SET, _fs->PushTarget(), src, key, val);
+    _fs->AddInstruction(isLiteral ? _OP_SET_LITERAL : _OP_SET, _fs->PushTarget(), key, src, val);
     SQ_STATIC_ASSERT(_OP_DATA_NOP == 0);
     if (isLiteral)
         _fs->AddInstruction(SQOpcode(0), 0, 0, 0, 0);//hint
@@ -1283,15 +1283,13 @@ void CodegenVisitor::emitAssign(Expr *lvalue, Expr * rvalue) {
         FieldAccessExpr *fieldAccess = lvalue->asAccessExpr()->asFieldAccessExpr();
         SQObject nameObj = _fs->CreateString(fieldAccess->fieldName());
         SQInteger constantI = _fs->GetConstant(nameObj);
-        if (constantI < 256)
-        {
-          visitForceGet(fieldAccess->receiver());
+        // arg1 is of int size, enough
+        visitForceGet(fieldAccess->receiver());
 
-          visitForceGet(rvalue);
+        visitForceGet(rvalue);
 
-          emitFieldAssign(constantI);
-          return;
-        }
+        emitFieldAssign(constantI);
+        return;
     }
 
     visitNoGet(lvalue);
