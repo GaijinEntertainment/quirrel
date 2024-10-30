@@ -383,7 +383,7 @@ bool SQVM::TypeOf(const SQObjectPtr &obj1,SQObjectPtr &dest)
 
 bool SQVM::Init(SQVM *friendvm, SQInteger stacksize)
 {
-    _stack.resize(stacksize);
+    _stack.resize(stacksize + STACK_GROW_THRESHOLD);
     _alloccallsstacksize = 4;
     _callstackdata.resize(_alloccallsstacksize);
     _callsstacksize = 0;
@@ -2117,13 +2117,18 @@ bool SQVM::EnterFrame(SQInteger newbase, SQInteger newtop, bool tailcall)
 
     _stackbase = newbase;
     _top = newtop;
-    if(newtop + MIN_STACK_OVERHEAD > (SQInteger)_stack.size()) {
-        if(_nmetamethodscall) {
-            Raise_Error(_SC("stack overflow, cannot resize stack while in a metamethod"));
+
+    if(newtop + STACK_GROW_THRESHOLD > (SQInteger)_stack.size()) {
+        if(!_nmetamethodscall) {
+            _stack.resize(newtop + (STACK_GROW_THRESHOLD << 1));
+            RelocateOuters();
+        }
+        // TODO: this exception should never occur and will be removed soon
+        else if(newtop + MIN_STACK_OVERHEAD > (SQInteger)_stack.size()) {
+            Raise_Error(_SC("stack overflow, cannot resize stack while in a metamethod, stack.size = %d, required = %d"),
+                int(_stack.size()), int(newtop + MIN_STACK_OVERHEAD));
             return false;
         }
-        _stack.resize(newtop + (MIN_STACK_OVERHEAD << 2));
-        RelocateOuters();
     }
     return true;
 }

@@ -7,6 +7,10 @@
 #define MAX_NATIVE_CALLS 100
 #define MIN_STACK_OVERHEAD 15
 
+// keep 256 stack slots reserved for locals and function arguments,
+// and another 256 slots for stack operations from native code
+#define STACK_GROW_THRESHOLD (256 * 2)
+
 #define SQ_SUSPEND_FLAG -666
 #define SQ_TAILCALL_FLAG -777
 #define DONT_FALL_BACK 666 // Non-zero value
