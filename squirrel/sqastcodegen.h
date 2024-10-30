@@ -49,7 +49,6 @@ private:
     void CheckDuplicateLocalIdentifier(Node *n, SQObject name, const SQChar *desc, bool ignore_global_consts);
     bool CheckMemberUniqueness(ArenaVector<Expr *> &vec, Expr *obj);
 
-    void Emit2ArgsOP(SQOpcode op, SQInteger p3 = 0);
     void EmitLoadConstInt(SQInteger value, SQInteger target);
     void EmitLoadConstFloat(SQFloat value, SQInteger target);
 

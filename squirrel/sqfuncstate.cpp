@@ -435,6 +435,7 @@ void SQFuncState::AddInstruction(SQInstruction &i)
                 i._arg0 = 0xFF;
             }
             if( pi.op == _OP_LOAD && pi._arg0 == i._arg1 && (!IsLocal(pi._arg0))){
+                // arg1 is size of int
                 pi._arg2 = i._arg2;
                 pi.op = _OP_SETK;
                 pi._arg0 = i._arg0;
@@ -444,6 +445,7 @@ void SQFuncState::AddInstruction(SQInstruction &i)
             if( pi.op == _OP_LOADINT && pi._arg0 == i._arg1 && (!IsLocal(pi._arg0))){
                 pi._arg2 = i._arg2;
                 pi.op = _OP_SETI;
+                // arg1 is size of int
                 pi._arg0 = i._arg0;
                 pi._arg3 = i._arg3;
                 return;
@@ -454,6 +456,7 @@ void SQFuncState::AddInstruction(SQInstruction &i)
                 i._arg0 = 0xFF;
             }
             if( (pi.op == _OP_LOADINT || pi.op == _OP_LOAD) && pi._arg0 == i._arg1 && (!IsLocal(pi._arg0))){
+                // arg1 is size of int
                 pi._arg1 = pi.op == _OP_LOADINT ? GetNumericConstant((SQInteger)pi._arg1) : pi._arg1;
                 pi._arg0 = i._arg0;
                 pi._arg3 = i._arg3;
@@ -483,15 +486,18 @@ void SQFuncState::AddInstruction(SQInstruction &i)
             }
         break;
         case _OP_GET:
-            if( pi.op == _OP_LOAD && pi._arg0 == i._arg2 && (!IsLocal(pi._arg0))){
-                pi._arg2 = (unsigned char)i._arg1;
+            if( pi.op == _OP_LOAD && pi._arg0 == i._arg1 && (!IsLocal(pi._arg0))){
+                // arg1 is size of int
+                pi._arg2 = i._arg2;
                 pi.op = _OP_GETK;
                 pi._arg0 = i._arg0;
                 pi._arg3 = i._arg3;
                 return;
             }
-            if( pi.op == _OP_LOADINT && pi._arg0 == i._arg2 && (!IsLocal(pi._arg0))){
-                pi._arg2 = (unsigned char)i._arg1;
+            if( pi.op == _OP_LOADINT && pi._arg0 == i._arg1 && (!IsLocal(pi._arg0))){
+                // arg1 is size of int
+                // if (GetNumericConstant((SQInteger)pi._arg1) < 256)
+                pi._arg2 = i._arg2;
                 pi._arg1 = GetNumericConstant((SQInteger)pi._arg1);
                 pi.op = _OP_GETK;
                 pi._arg0 = i._arg0;
@@ -528,7 +534,8 @@ void SQFuncState::AddInstruction(SQInstruction &i)
             break;
         case _OP_MOVE:
             switch(pi.op) {
-            case _OP_GET: case _OP_ADD: case _OP_SUB: case _OP_MUL: case _OP_DIV: case _OP_MOD: case _OP_BITW:
+            case _OP_GET: case _OP_GETK:
+            case _OP_ADD: case _OP_SUB: case _OP_MUL: case _OP_DIV: case _OP_MOD: case _OP_BITW:
             case _OP_LOADINT: case _OP_LOADFLOAT: case _OP_LOADBOOL: case _OP_LOAD:
 
                 if(pi._arg0 == i._arg1)
@@ -540,7 +547,7 @@ void SQFuncState::AddInstruction(SQInstruction &i)
                 }
             }
 
-            if(pi.op == _OP_MOVE)
+            if(pi.op == _OP_MOVE && i._arg1 < 256)
             {
                 pi.op = _OP_DMOVE;
                 pi._arg2 = i._arg0;

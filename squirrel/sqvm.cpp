@@ -1048,7 +1048,7 @@ exception_restore:
                 uint64_t *__restrict hintP = ((uint64_t*__restrict )(ci->_ip++));
                 uint64_t hint = *hintP;
                 const SQUnsignedInteger getFlagsByOp = GET_FLAG_NO_DEF_DELEGATE;
-                const SQObjectPtr &__restrict from = STK(arg1), &__restrict key = ci->_literals[arg2];
+                const SQObjectPtr &__restrict from = STK(arg2), &__restrict key = ci->_literals[arg1];
                 auto sqType = sq_type(from);
 
                 //Or we can disallow table access by table.key
@@ -1130,7 +1130,7 @@ exception_restore:
                 if (arg3 & OP_GET_FLAG_TYPE_METHODS_ONLY)
                     getFlagsByOp |= GET_FLAG_TYPE_METHODS_ONLY;
                 if (arg3 & OP_GET_FLAG_NO_ERROR) {
-                    SQInteger fb = GetImpl(STK(arg1), STK(arg2), temp_reg, GET_FLAG_DO_NOT_RAISE_ERROR | getFlagsByOp, DONT_FALL_BACK);
+                    SQInteger fb = GetImpl(STK(arg2), STK(arg1), temp_reg, GET_FLAG_DO_NOT_RAISE_ERROR | getFlagsByOp, DONT_FALL_BACK);
                     if (fb == SLOT_RESOLVE_STATUS_OK) {
                         _Swap(TARGET,temp_reg);
                     } else if (fb == SLOT_RESOLVE_STATUS_ERROR) {
@@ -1139,7 +1139,7 @@ exception_restore:
                         TARGET.Null();
                     }
                 } else {
-                    if (!Get(STK(arg1), STK(arg2), temp_reg, getFlagsByOp, arg1)) {
+                    if (!Get(STK(arg2), STK(arg1), temp_reg, getFlagsByOp, arg2)) {
                         SQ_THROW();
                     }
                     _Swap(TARGET,temp_reg);//TARGET = temp_reg;
