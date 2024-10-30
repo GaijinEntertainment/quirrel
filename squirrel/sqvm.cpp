@@ -1043,7 +1043,7 @@ exception_restore:
                 uint64_t *__restrict hintP = ((uint64_t*__restrict )(ci->_ip++));
                 uint64_t hint = *hintP;
                 const SQUnsignedInteger getFlagsByOp = GET_FLAG_NO_DEF_DELEGATE;
-                const SQObjectPtr &__restrict from = STK(arg1), &__restrict key = STK(arg2);
+                const SQObjectPtr &__restrict from = STK(arg1), &__restrict key = ci->_literals[arg2];
                 auto sqType = sq_type(from);
 
                 //Or we can disallow table access by table.key

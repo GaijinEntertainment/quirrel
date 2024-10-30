@@ -1365,7 +1365,7 @@ void CodegenVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
 
     SQObject nameObj = _fs->CreateString(expr->fieldName());
     SQInteger constantI = _fs->GetConstant(nameObj);
-    _fs->AddInstruction(_OP_LOAD, _fs->PushTarget(), constantI);
+    SQInteger constTarget = _fs->PushTarget();
 
     SQInteger flags = expr->isNullable() ? OP_GET_FLAG_NO_ERROR : 0;
 
@@ -1380,19 +1380,23 @@ void CodegenVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
     }
 
     if (expr->receiver()->op() == TO_BASE) {
+        _fs->AddInstruction(_OP_LOAD, constTarget, constantI);
         Emit2ArgsOP(_OP_GET, flags);
     } else if (!_donot_get) {
-        SQInteger src = _fs->PopTarget();
         SQInteger key = _fs->PopTarget();
-
-        if (expr->canBeLiteral(defaultDelegate)) {
-            _fs->AddInstruction(_OP_GET_LITERAL, _fs->PushTarget(), key, src, flags);
+        SQInteger src = _fs->PopTarget();
+        if (expr->canBeLiteral(defaultDelegate) && constantI < 256) {
+            _fs->AddInstruction(_OP_GET_LITERAL, _fs->PushTarget(), src, constantI, flags);
             SQ_STATIC_ASSERT(_OP_DATA_NOP == 0);
             _fs->AddInstruction(SQOpcode(0), 0, 0, 0, 0); //hint
         }
         else {
-            _fs->AddInstruction(_OP_GET, _fs->PushTarget(), key, src, flags);
+            _fs->AddInstruction(_OP_LOAD, constTarget, constantI);
+            _fs->AddInstruction(_OP_GET, _fs->PushTarget(), src, key, flags);
         }
+    } else
+    {
+        _fs->AddInstruction(_OP_LOAD, constTarget, constantI);
     }
 }
 
