@@ -21,13 +21,7 @@ enum SQLangFeature {
     LF_FORBID_GLOBAL_CONST_REWRITE = 0x000400,
     LF_FORBID_IMPLICIT_DEF_DELEGATE = 0x000800,
 
-    // runtime stage
-    LF_STRICT_BOOL = 0x010000,
-    LF_NO_PLUS_CONCAT = 0x020000,
-
-    LF_STRICT = LF_STRICT_BOOL |
-                LF_NO_PLUS_CONCAT |
-                LF_FORBID_ROOT_TABLE
+    LF_STRICT = LF_FORBID_ROOT_TABLE
 };
 
 struct SQOuterVar

@@ -87,10 +87,6 @@ struct SQPragmaDescriptor {
 static const SQPragmaDescriptor pragmaDescriptors[] = {
   { "strict", LF_STRICT, 0 },
   { "relaxed", 0, LF_STRICT },
-  { "strict-bool", LF_STRICT_BOOL, 0 },
-  { "relaxed-bool", 0, LF_STRICT_BOOL },
-  { "no-plus-concat", LF_NO_PLUS_CONCAT, 0 },
-  { "allow-plus-concat", 0, LF_NO_PLUS_CONCAT },
   { "forbid-root-table", LF_FORBID_ROOT_TABLE, 0 },
   { "allow-root-table", 0, LF_FORBID_ROOT_TABLE },
   { "disable-optimizer", LF_DISABLE_OPTIMIZER, 0 },
