@@ -186,12 +186,18 @@ typedef struct tagSQStackInfos{
     SQInteger line;
 }SQStackInfos;
 
+typedef enum tagSQMessageSeverity{
+    SEV_HINT,
+    SEV_WARNING,
+    SEV_ERROR,
+}SQMessageSeverity;
+
 typedef struct SQVM* HSQUIRRELVM;
 typedef SQObject HSQOBJECT;
 typedef SQMemberHandle HSQMEMBERHANDLE;
 typedef SQInteger (*SQFUNCTION)(HSQUIRRELVM);
 typedef SQInteger (*SQRELEASEHOOK)(SQUserPointer,SQInteger size);
-typedef void (*SQCOMPILERERROR)(HSQUIRRELVM,const SQChar * /*desc*/,const SQChar * /*source*/,SQInteger /*line*/,SQInteger /*column*/, const SQChar * /*extra info*/);
+typedef void (*SQCOMPILERERROR)(HSQUIRRELVM,SQMessageSeverity /*severity*/,const SQChar * /*desc*/,const SQChar * /*source*/,SQInteger /*line*/,SQInteger /*column*/, const SQChar * /*extra info*/);
 typedef void (*SQPRINTFUNCTION)(HSQUIRRELVM,const SQChar * ,...);
 typedef void (*SQDEBUGHOOK)(HSQUIRRELVM /*v*/, SQInteger /*type*/, const SQChar * /*sourcename*/, SQInteger /*line*/, const SQChar * /*funcname*/);
 typedef SQInteger (*SQWRITEFUNC)(SQUserPointer,SQUserPointer,SQInteger);

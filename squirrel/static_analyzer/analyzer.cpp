@@ -8067,7 +8067,7 @@ void StaticAnalyzer::reportGlobalNamesWarnings(HSQUIRRELVM vm) {
 
       message.clear();
       SQCompilationContext::renderDiagnosticHeader(DiagnosticsId::DI_GLOBAL_NAME_REDEF, &message, name);
-      errorFunc(vm, message.c_str(), loc.filename, loc.line, loc.column, "\n");
+      errorFunc(vm, SEV_WARNING, message.c_str(), loc.filename, loc.line, loc.column, "\n");
     }
   }
 
@@ -8092,7 +8092,7 @@ void StaticAnalyzer::reportGlobalNamesWarnings(HSQUIRRELVM vm) {
 
       message.clear();
       SQCompilationContext::renderDiagnosticHeader(DiagnosticsId::DI_UNDEFINED_GLOBAL, &message, id.c_str());
-      errorFunc(vm, message.c_str(), loc.filename, loc.line, loc.column, "\n");
+      errorFunc(vm, SEV_WARNING, message.c_str(), loc.filename, loc.line, loc.column, "\n");
     }
   }
 }

@@ -575,7 +575,7 @@ void SQASTReader::error(const char *fmt, ...) {
     vsnprintf(buffer, sizeof buffer, fmt, vl);
     va_end(vl);
 
-    _ss(vm)->_compilererrorhandler(vm, buffer, "BinaryAST", -1, -1, nullptr);
+    _ss(vm)->_compilererrorhandler(vm, SEV_ERROR, buffer, "BinaryAST", -1, -1, nullptr);
   }
   longjmp(_errorjmp, 1);
 }

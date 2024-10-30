@@ -521,7 +521,7 @@ void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t 
       extra = extraInfo.c_str();
     }
 
-    auto errorFunc = _ss(_vm)->_compilererrorhandler;
+    auto messageFunc = _ss(_vm)->_compilererrorhandler;
 
     const char *msg = message.c_str();
 
@@ -539,8 +539,11 @@ void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t 
       diagMsgFunc(_vm, &cm);
     }
 
-    if (_raiseError && errorFunc) {
-      errorFunc(_vm, msg, _sourceName, line, pos, extra);
+    if (_raiseError && messageFunc) {
+      SQMessageSeverity sev = SEV_ERROR;
+      if (desc.severity == DS_HINT) sev = SEV_HINT;
+      else if (desc.severity == DS_WARNING) sev = SEV_WARNING;
+      messageFunc(_vm, sev, msg, _sourceName, line, pos, extra);
     }
     if (isError) {
       _vm->_lasterror = SQString::Create(_ss(_vm), msg, message.length());

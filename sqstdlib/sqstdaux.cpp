@@ -186,7 +186,7 @@ static SQInteger _sqstd_aux_printerror(HSQUIRRELVM v)
     return 0;
 }
 
-void _sqstd_compiler_error(HSQUIRRELVM v,const SQChar *sErr,const SQChar *sSource,SQInteger line,SQInteger column, const SQChar *extra)
+void _sqstd_compiler_message(HSQUIRRELVM v,SQMessageSeverity severity,const SQChar *sErr,const SQChar *sSource,SQInteger line,SQInteger column, const SQChar *extra)
 {
     SQPRINTFUNCTION pf = sq_geterrorfunc(v);
     if(pf) {
@@ -199,7 +199,7 @@ void _sqstd_compiler_error(HSQUIRRELVM v,const SQChar *sErr,const SQChar *sSourc
 
 void sqstd_seterrorhandlers(HSQUIRRELVM v)
 {
-    sq_setcompilererrorhandler(v,_sqstd_compiler_error);
+    sq_setcompilererrorhandler(v,_sqstd_compiler_message);
     sq_newclosure(v,_sqstd_aux_printerror,0);
     sq_seterrorhandler(v);
 }
