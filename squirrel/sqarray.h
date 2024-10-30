@@ -68,12 +68,18 @@ public:
     }
     SQArray *Clone(){SQArray *anew=Create(_opt_ss(this),0); anew->_values.copy(_values); VT_CLONE_FROM_TO(this, anew); return anew; }
     SQInteger Size() const {return _values.size();}
-    void Resize(SQInteger size)
+    void Resize(SQInteger size, SQBool shrink = SQTrue)
     {
         SQObjectPtr _null;
-        Resize(size,_null);
+        Resize(size,_null, shrink);
     }
-    void Resize(SQInteger size,SQObjectPtr &fill) { _values.resize(size,fill); VT_RESIZE(size); ShrinkIfNeeded(); }
+    void Resize(SQInteger size,SQObjectPtr &fill, SQBool shrink = SQTrue)
+    {
+      _values.resize(size,fill);
+      VT_RESIZE(size);
+      if (shrink)
+        ShrinkIfNeeded();
+    }
     void Reserve(SQInteger size) { _values.reserve(size); VT_RESERVE(size); }
     void Append(const SQObject &o){_values.push_back(o); VT_PUSHBACK(o, _ss(this)->_root_vm); }
     void Extend(const SQArray *a);

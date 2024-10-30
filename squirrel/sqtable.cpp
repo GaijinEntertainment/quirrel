@@ -304,6 +304,7 @@ void SQTable::_ClearNodes()
     for (_HashNode *__restrict i = _nodes, *e = i + _numofnodes_minus_one; i <= e; i++) {
       i->key.Null();
       i->val.Null();
+      i->next = NULL;
       VT_CLEAR_SINGLE(i);
     }
 }
@@ -314,10 +315,13 @@ void SQTable::Finalize()
     SetDelegate(NULL);
 }
 
-void SQTable::Clear()
+void SQTable::Clear(SQBool rehash)
 {
     _ClearNodes();
     _usednodes = 0;
     _classTypeId = 0;
-    Rehash(true);
+    if (rehash)
+      Rehash(true);
+    else
+      _firstfree=&_nodes[_numofnodes_minus_one];
 }

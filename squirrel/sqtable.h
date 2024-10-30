@@ -139,7 +139,7 @@ public:
     SQInteger Next(bool getweakrefs,const SQObjectPtr &refpos, SQObjectPtr &outkey, SQObjectPtr &outval);
 
     SQInteger CountUsed(){ return _usednodes;}
-    void Clear();
+    void Clear(SQBool rehash = SQTrue);
     void Release()
     {
         sq_delete(_alloc_ctx, this, SQTable);

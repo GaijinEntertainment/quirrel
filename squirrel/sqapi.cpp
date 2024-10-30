@@ -595,12 +595,12 @@ SQRESULT sq_getclosurename(HSQUIRRELVM v,SQInteger idx)
 }
 
 
-SQRESULT sq_clear(HSQUIRRELVM v,SQInteger idx)
+SQRESULT sq_clear(HSQUIRRELVM v,SQInteger idx, SQBool freemem)
 {
     SQObject &o=stack_get(v,idx);
     switch(sq_type(o)) {
-        case OT_TABLE: _table(o)->Clear();  break;
-        case OT_ARRAY: _array(o)->Resize(0); break;
+        case OT_TABLE: _table(o)->Clear(freemem);  break;
+        case OT_ARRAY: _array(o)->Resize(0, freemem); break;
         default:
             return sq_throwerror(v, _SC("clear only works on table and array"));
         break;
