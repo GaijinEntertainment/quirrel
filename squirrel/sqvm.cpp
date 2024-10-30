@@ -1241,9 +1241,10 @@ exception_restore:
                 }
                 _array(STK(arg0))->Append(val); continue;
                 }
-            case _OP_COMPARITH: {
+            case _OP_COMPARITH:
+            case _OP_COMPARITH_K: {
                 SQInteger selfidx = (((SQUnsignedInteger)arg1&0xFFFF0000)>>16);
-                _GUARD(DerefInc(arg3, TARGET, STK(selfidx), STK(arg2), STK(arg1&0x0000FFFF), false, selfidx));
+                _GUARD(DerefInc(arg3, TARGET, STK(selfidx), _i_.op == _OP_COMPARITH_K ? ci->_literals[arg2] : STK(arg2), STK(arg1&0x0000FFFF), false, selfidx));
                                 }
                 continue;
             case _OP_INC: {

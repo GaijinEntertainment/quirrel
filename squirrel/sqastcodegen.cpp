@@ -1148,6 +1148,24 @@ void CodegenVisitor::emitShortCircuitLogicalOp(SQOpcode op, Expr *lhs, Expr *rhs
 
 void CodegenVisitor::emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lvalue, Expr *rvalue) {
 
+    if (lvalue->isAccessExpr() && lvalue->asAccessExpr()->isFieldAccessExpr()) {
+        FieldAccessExpr *fieldAccess = lvalue->asAccessExpr()->asFieldAccessExpr();
+        SQObject nameObj = _fs->CreateString(fieldAccess->fieldName());
+        SQInteger constantI = _fs->GetConstant(nameObj);
+        if (constantI < 256)
+        {
+          visitForceGet(fieldAccess->receiver());
+          SQInteger constTarget = _fs->PushTarget();
+          visitForceGet(rvalue);
+          SQInteger val = _fs->PopTarget();
+          _fs->PopTarget();
+          SQInteger src = _fs->PopTarget();
+          /* _OP_COMPARITH mixes dest obj and source val in the arg1 */
+          _fs->AddInstruction(_OP_COMPARITH_K, _fs->PushTarget(), (src << 16) | val, constantI, opcode);
+          return;
+        }
+    }
+
     visitNoGet(lvalue);
 
     visitForceGet(rvalue);
