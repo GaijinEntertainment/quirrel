@@ -424,7 +424,7 @@ public:
         obj._flags &= ~SQOBJ_FLAG_IMMUTABLE;
     }
 
-    const SQRAT_STD::string_view GetString(const SQRAT_STD::string_view def_val = {}) {
+    const SQRAT_STD::string_view GetString(const SQRAT_STD::string_view def_val = {}) const {
         if (obj._type != OT_STRING)
           return def_val;
         sq_pushobject(vm, GetObject());
