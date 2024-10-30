@@ -408,7 +408,7 @@ void SQFuncState::DiscardTarget()
     if(size > 0 && _optimization){
         SQInstruction &pi = _instructions[size-1];//previous instruction
         switch(pi.op) {
-        case _OP_SET:case _OP_NEWSLOT:case _OP_SETOUTER:case _OP_CALL:case _OP_NULLCALL:
+        case _OP_SETI:case _OP_SETK:case _OP_SET:case _OP_NEWSLOTK:case _OP_NEWSLOT:case _OP_SETOUTER:case _OP_CALL:case _OP_NULLCALL:
             if(pi._arg0 == discardedtarget) {
                 pi._arg0 = 0xFF;
             }
@@ -431,7 +431,40 @@ void SQFuncState::AddInstruction(SQInstruction &i)
             }
             break;
         case _OP_SET:
+            if(i._arg0 == i._arg3) {
+                i._arg0 = 0xFF;
+            }
+            if( pi.op == _OP_LOAD && pi._arg0 == i._arg2 && (!IsLocal(pi._arg0)) && i._arg1 < 256){
+                pi._arg2 = (unsigned char)i._arg1;
+                pi.op = _OP_SETK;
+                pi._arg0 = i._arg0;
+                pi._arg3 = i._arg3;
+                return;
+            }
+            if( pi.op == _OP_LOADINT && pi._arg0 == i._arg2 && (!IsLocal(pi._arg0)) && i._arg1 < 256){
+                pi._arg2 = (unsigned char)i._arg1;
+                pi.op = _OP_SETI;
+                pi._arg0 = i._arg0;
+                pi._arg3 = i._arg3;
+                return;
+            }
+            break;
         case _OP_NEWSLOT:
+            if(i._arg0 == i._arg3) {
+                i._arg0 = 0xFF;
+            }
+            if( (pi.op == _OP_LOADINT || pi.op == _OP_LOAD) && pi._arg0 == i._arg1 && (!IsLocal(pi._arg0))){
+                pi._arg1 = pi.op == _OP_LOADINT ? GetNumericConstant((SQInteger)pi._arg1) : pi._arg1;
+                pi._arg0 = i._arg0;
+                pi._arg3 = i._arg3;
+                pi._arg2 = i._arg2;
+                pi.op = _OP_NEWSLOTK;
+                return;
+            }
+            break;
+        case _OP_SETI:
+        case _OP_SETK:
+        case _OP_NEWSLOTK:
             if(i._arg0 == i._arg3) {
                 i._arg0 = 0xFF;
             }

@@ -651,18 +651,35 @@ void CodegenVisitor::generateTableDecl(TableDecl *tableDecl) {
 #endif
         CheckMemberUniqueness(memberConstantKeys, m.key);
 
-        visitForceGet(m.key);
+        bool isConstKey = m.key->op() == TO_LITERAL && !isKlass;
+        SQInteger constantI;
+        if (isConstKey)
+        {
+          switch(m.key->asLiteral()->kind())
+          {
+            case LK_STRING: constantI = _fs->GetConstant(_fs->CreateString(m.key->asLiteral()->s())); break;
+            case LK_INT: constantI = _fs->GetNumericConstant(m.key->asLiteral()->i()); break;
+            case LK_FLOAT: constantI = _fs->GetNumericConstant(m.key->asLiteral()->f()); break;
+            case LK_BOOL: constantI = _fs->GetConstant(SQObjectPtr(m.key->asLiteral()->b())); break;
+            default:case LK_NULL: assert(0); break;
+          }
+          //isConstKey = constantI < 256; // since currently we store in arg1, it is sufficient
+        }
+
+        if (!isConstKey)
+          visitForceGet(m.key);
         visitForceGet(m.value);
 
         SQInteger val = _fs->PopTarget();
-        SQInteger key = _fs->PopTarget();
+        SQInteger key = isConstKey ? constantI : _fs->PopTarget();
         SQInteger table = _fs->TopTarget(); //<<BECAUSE OF THIS NO COMMON EMIT FUNC IS POSSIBLE
+        assert(table < 256);
 
         if (isKlass) {
             _fs->AddInstruction(_OP_NEWSLOTA, m.isStatic() ? NEW_SLOT_STATIC_FLAG : 0, table, key, val);
         }
         else {
-            _fs->AddInstruction(_OP_NEWSLOT, 0xFF, table, key, val);
+            _fs->AddInstruction(isConstKey ? _OP_NEWSLOTK : _OP_NEWSLOT, 0xFF, key, table, val);
         }
     }
 }
@@ -1218,6 +1235,21 @@ void CodegenVisitor::emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lval
 
 void CodegenVisitor::emitNewSlot(Expr *lvalue, Expr *rvalue) {
 
+    if (lvalue->isAccessExpr() && lvalue->asAccessExpr()->receiver()->op() != TO_BASE && canBeLiteral(lvalue->asAccessExpr())) {
+        FieldAccessExpr *fieldAccess = lvalue->asAccessExpr()->asFieldAccessExpr();
+        SQObject nameObj = _fs->CreateString(fieldAccess->fieldName());
+        SQInteger constantI = _fs->GetConstant(nameObj);
+        //if (constantI < 256) // currently stored in arg1, unlimited
+        {
+            visitForceGet(fieldAccess->receiver());
+            visitForceGet(rvalue);
+            SQInteger val = _fs->PopTarget();
+            SQInteger src = _fs->PopTarget();
+            _fs->AddInstruction(_OP_NEWSLOTK, _fs->PushTarget(), constantI, src, val);
+            return;
+       }
+   }
+
     visitNoGet(lvalue);
 
     visitForceGet(rvalue);
@@ -1226,7 +1258,7 @@ void CodegenVisitor::emitNewSlot(Expr *lvalue, Expr *rvalue) {
         SQInteger val = _fs->PopTarget();
         SQInteger key = _fs->PopTarget();
         SQInteger src = _fs->PopTarget();
-        _fs->AddInstruction(_OP_NEWSLOT, _fs->PushTarget(), src, key, val);
+        _fs->AddInstruction(_OP_NEWSLOT, _fs->PushTarget(), key, src, val);
     }
     else {
         reportDiagnostic(lvalue, DiagnosticsId::DI_LOCAL_SLOT_CREATE);

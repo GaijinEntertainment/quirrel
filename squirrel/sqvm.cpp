@@ -960,7 +960,8 @@ exception_restore:
             }
             case _OP_MOVE: TARGET = STK(arg1); continue;
             case _OP_NEWSLOT:
-                _GUARD(NewSlot(STK(arg1), STK(arg2), STK(arg3),false));
+            case _OP_NEWSLOTK:
+                _GUARD(NewSlot(STK(arg2), _i_.op == _OP_NEWSLOTK ? ci->_literals[arg1] : STK(arg1), STK(arg3),false));
                 if(arg0 != 0xFF) TARGET = STK(arg3);
                 continue;
             case _OP_DELETE: _GUARD(DeleteSlot(STK(arg1), STK(arg2), TARGET)); continue;
@@ -1037,6 +1038,10 @@ exception_restore:
             }
             case _OP_SET:
                 if (!Set(STK(arg1), STK(arg2), STK(arg3),arg1)) { SQ_THROW(); }
+                if (arg0 != 0xFF) TARGET = STK(arg3);
+                continue;
+            case _OP_SETI: case _OP_SETK:
+                if (!Set(STK(arg2), _i_.op == _OP_SETI ? SQInteger(arg1) : ci->_literals[arg1], STK(arg3),arg2)) { SQ_THROW(); }
                 if (arg0 != 0xFF) TARGET = STK(arg3);
                 continue;
             case _OP_GET_LITERAL:{
