@@ -566,14 +566,19 @@ static void LexHexadecimal(const SQChar *s,SQUnsignedInteger *res)
     }
 }
 
+#define INT_OVERFLOW_THRESHOLD (~SQUnsignedInteger(0) / 10)
+#define INT_OVERFLOW_DIGIT (~SQUnsignedInteger(0) % 10)
+
 static bool LexInteger(const SQChar *s, SQUnsignedInteger *res)
 {
+
     SQUnsignedInteger x = 0;
     while(*s != 0)
     {
-        SQUnsignedInteger prev = x;
-        x = x * 10 + ((*s++) - '0');
-        if(prev > x) return false; //overflow
+        SQUnsignedInteger digit = (*s++) - '0';
+        if (x > INT_OVERFLOW_THRESHOLD || (x == INT_OVERFLOW_THRESHOLD && digit > INT_OVERFLOW_DIGIT))
+            return false;
+        x = x * 10 + digit;
     }
     *res = x;
     return x <= (~SQUnsignedInteger(0) >> 1);
