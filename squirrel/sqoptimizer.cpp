@@ -145,9 +145,13 @@ void SQOptimizer::optimizeConstFolding()
                             }
 
                             if (applyOpt && res >= SQInteger(INT_MIN) && res <= SQInteger(INT_MAX)) {
-                                instr[i]._arg1 = (SQInt32)res;
-                                instr[i]._arg0 = operation._arg0;
-                                cutRange(i, 3, 1);
+                                const bool removeLocalVar = !isUnsafeRange(i, 3);
+                                const int targetInst = removeLocalVar ? i : i + 2;
+                                instr[targetInst]._arg1 = (SQInt32)res;
+                                instr[targetInst]._arg0 = operation._arg0;
+                                instr[targetInst].op = _OP_LOADINT;
+                                if (removeLocalVar)
+                                    cutRange(i, 3, 1);
                                 changed = true;
                                 codeChanged = true;
                                 #ifdef _DEBUG_DUMP
@@ -174,10 +178,13 @@ void SQOptimizer::optimizeConstFolding()
                             }
 
                             if (applyOpt) {
-                                instr[i].op = _OP_LOADFLOAT;
-                                instr[i]._arg1 = *((SQInt32*) &res);
-                                instr[i]._arg0 = operation._arg0;
-                                cutRange(i, 3, 1);
+                                const bool removeLocalVar = !isUnsafeRange(i, 3);
+                                const int targetInst = removeLocalVar ? i : i + 2;
+                                instr[targetInst].op = _OP_LOADFLOAT;
+                                instr[targetInst]._arg1 = *((SQInt32*) &res);
+                                instr[targetInst]._arg0 = operation._arg0;
+                                if (removeLocalVar)
+                                    cutRange(i, 3, 1);
                                 changed = true;
                                 codeChanged = true;
                                 #ifdef _DEBUG_DUMP
