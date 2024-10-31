@@ -1293,8 +1293,15 @@ SQRESULT sq_resume(HSQUIRRELVM v,SQBool retval,SQBool invoke_err_handler)
     if (sq_type(v->GetUp(-1)) == OT_GENERATOR)
     {
         v->PushNull(); //retval
-        if (!v->Execute(v->GetUp(-2), 0, v->_top, v->GetUp(-1), invoke_err_handler, SQVM::ET_RESUME_GENERATOR))
-        {v->Raise_Error(v->_lasterror); return SQ_ERROR;}
+        bool res = v->_debughook ?
+            v->Execute<true>(v->GetUp(-2), 0, v->_top, v->GetUp(-1), invoke_err_handler, SQVM::ET_RESUME_GENERATOR) :
+            v->Execute<false>(v->GetUp(-2), 0, v->_top, v->GetUp(-1), invoke_err_handler, SQVM::ET_RESUME_GENERATOR);
+
+        if (!res)
+        {
+            v->Raise_Error(v->_lasterror);
+            return SQ_ERROR;
+        }
         if(!retval)
             v->Pop();
         return SQ_OK;
@@ -1357,9 +1364,14 @@ SQRESULT sq_wakeupvm(HSQUIRRELVM v,SQBool wakeupret,SQBool retval,SQBool invoke_
         v->Pop();
     } else if(target != -1) { v->GetAt(v->_stackbase+v->_suspended_target).Null(); }
     SQObjectPtr dummy;
-    if(!v->Execute(dummy,-1,-1,ret,invoke_err_handler,throwerror?SQVM::ET_RESUME_THROW_VM : SQVM::ET_RESUME_VM)) {
+
+    bool res = v->_debughook ?
+        v->Execute<true>(dummy,-1,-1,ret,invoke_err_handler,throwerror?SQVM::ET_RESUME_THROW_VM : SQVM::ET_RESUME_VM) :
+        v->Execute<false>(dummy,-1,-1,ret,invoke_err_handler,throwerror?SQVM::ET_RESUME_THROW_VM : SQVM::ET_RESUME_VM);
+
+    if(!res)
         return SQ_ERROR;
-    }
+
     if(retval)
         v->Push(ret);
     return SQ_OK;

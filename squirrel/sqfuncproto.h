@@ -65,7 +65,12 @@ struct SQLocalVarInfo
     bool _assignable;
 };
 
-struct SQLineInfo { int32_t _line; int32_t _op; };
+struct SQLineInfo
+{
+    int32_t _op;
+    unsigned _line: 31;
+    unsigned _is_line_op: 1;
+};
 
 typedef sqvector<SQOuterVar> SQOuterVarVec;
 typedef sqvector<SQLocalVarInfo> SQLocalVarInfoVec;
@@ -138,7 +143,7 @@ public:
     }
 
     const SQChar* GetLocal(SQVM *v,SQUnsignedInteger stackbase,SQUnsignedInteger nseq,SQUnsignedInteger nop);
-    SQInteger GetLine(SQInstruction *curr);
+    SQInteger GetLine(SQInstruction *curr, int *hint = nullptr, bool *is_line_op = nullptr);
     bool Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write);
     static bool Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr &ret);
 #ifndef NO_GARBAGE_COLLECTOR

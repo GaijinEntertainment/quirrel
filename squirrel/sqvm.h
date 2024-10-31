@@ -63,7 +63,10 @@ public:
     SQVM(SQSharedState *ss);
     ~SQVM();
     bool Init(SQVM *friendvm, SQInteger stacksize);
+
+    template <bool debughookPresent>
     bool Execute(SQObjectPtr &func, SQInteger nargs, SQInteger stackbase, SQObjectPtr &outres, SQBool invoke_err_handler, ExecutionType et = ET_CALL);
+
     //starts a native call return when the NATIVE closure returns
     bool CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newbase, SQObjectPtr &retval, SQInt32 target, bool &suspend,bool &tailcall);
     bool TailCall(SQClosure *closure, SQInteger firstparam, SQInteger nparams);

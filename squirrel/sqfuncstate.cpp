@@ -388,13 +388,14 @@ void SQFuncState::AddParameter(const SQObject &name)
     _parameters.push_back(name);
 }
 
-void SQFuncState::AddLineInfos(SQInteger line,bool lineop,bool force)
+void SQFuncState::AddLineInfos(SQInteger line, bool lineop, bool force)
 {
     if(_lastline!=line || force){
-        SQLineInfo li;
-        li._line=line;li._op=(GetCurrentPos()+1);
-        if(lineop)AddInstruction(_OP_LINE,0,line);
         if(_lastline!=line) {
+            SQLineInfo li;
+            li._op = (GetCurrentPos()+1);
+            li._line = line;
+            li._is_line_op = lineop;
             _lineinfos.push_back(li);
         }
         _lastline=line;
@@ -579,12 +580,6 @@ void SQFuncState::AddInstruction(SQInstruction &i)
                 pi._arg1 = pi._arg1 + 1;
                 pi.op = _OP_LOADNULLS; //-V1048
                 return;
-            }
-            break;
-        case _OP_LINE:
-            if(pi.op == _OP_LINE) {
-                _instructions.pop_back();
-                _lineinfos.pop_back();
             }
             break;
         }

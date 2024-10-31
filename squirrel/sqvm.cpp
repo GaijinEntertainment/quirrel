@@ -750,6 +750,8 @@ bool SQVM::IsFalse(const SQObjectPtr &o)
 
 
 extern SQInstructionDesc g_InstrDesc[];
+
+template <bool debughookPresent>
 bool SQVM::Execute(SQObjectPtr &closure, SQInteger nargs, SQInteger stackbase,SQObjectPtr &outres, SQBool invoke_err_handler,ExecutionType et)
 {
     ValidateThreadAccess();
@@ -804,14 +806,33 @@ bool SQVM::Execute(SQObjectPtr &closure, SQInteger nargs, SQInteger stackbase,SQ
 exception_restore:
     //
     {
+        int prevLineNum = -1;
+        int lineHint = 0;
+        SQFunctionProto *funcProto;
+        if constexpr (debughookPresent)
+            funcProto = _closure(ci->_closure)->_function;
+
         for(;;)
         {
+            if constexpr (debughookPresent) {
+                if (_debughook) {
+                    SQFunctionProto *funcProto = _closure(ci->_closure)->_function;
+                    bool isLineOp;
+                    int curLineNum = funcProto->GetLine(ci->_ip, &lineHint, &isLineOp);
+                    if (curLineNum != prevLineNum) {
+                        prevLineNum = curLineNum;
+                        if (isLineOp)
+                            CallDebugHook(_SC('l'), curLineNum);
+                    }
+                }
+            }
+
             const SQInstruction &_i_ = *ci->_ip++;
             //dumpstack(_stackbase);
             //printf("\n[%d] %s %d %d %d %d\n",ci->_ip-_closure(ci->_closure)->_function->_instructions,g_InstrDesc[_i_.op].name,arg0,arg1,arg2,arg3);
             switch(_i_.op)
             {
-            case _OP_LINE: if (_debughook) CallDebugHook(_SC('l'),arg1); continue;
+            case _OP_DATA_NOP: continue;
             case _OP_LOAD: TARGET = ci->_literals[arg1]; continue;
             case _OP_LOADINT:
 #ifndef _SQ64
@@ -2043,7 +2064,9 @@ bool SQVM::Call(SQObjectPtr &closure,SQInteger nparams,SQInteger stackbase,SQObj
 {
     switch(sq_type(closure)) {
     case OT_CLOSURE:
-        return Execute(closure, nparams, stackbase, outres, invoke_err_handler);
+        return _debughook ?
+            Execute<true>(closure, nparams, stackbase, outres, invoke_err_handler) :
+            Execute<false>(closure, nparams, stackbase, outres, invoke_err_handler);
     case OT_NATIVECLOSURE:{
         bool dummy;
         return CallNative(_nativeclosure(closure), nparams, stackbase, outres, -1, dummy, dummy);

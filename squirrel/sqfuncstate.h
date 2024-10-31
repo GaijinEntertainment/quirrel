@@ -33,7 +33,7 @@ struct SQFuncState
     void MarkLocalAsOuter(SQInteger pos);
     SQInteger GetOuterVariable(const SQObject &name, bool &is_assignable);
     SQInteger GetStackSize();
-    void AddLineInfos(SQInteger line,bool lineop,bool force=false);
+    void AddLineInfos(SQInteger line, bool lineop, bool force);
     SQFunctionProto *BuildProto();
     SQInteger AllocStackPos();
     SQInteger PushTarget(SQInteger n=-1);

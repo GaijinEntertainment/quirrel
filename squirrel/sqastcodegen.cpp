@@ -639,7 +639,7 @@ void CodegenVisitor::generateTableDecl(TableDecl *tableDecl) {
         const TableMember &m = members[i];
 #if SQ_LINE_INFO_IN_STRUCTURES
         if (i < 100 && m.key->lineStart() != -1) {
-            _fs->AddLineInfos(m.key->lineStart(), false);
+            _fs->AddLineInfos(m.key->lineStart(), false, false);
         }
 #endif
         CheckMemberUniqueness(memberConstantKeys, m.key);
@@ -1064,7 +1064,7 @@ void CodegenVisitor::visitArrayExpr(ArrayExpr *expr) {
         Expr *valExpr = inits[i];
 #if SQ_LINE_INFO_IN_STRUCTURES
         if (i < 100 && valExpr->lineStart() != -1)
-            _fs->AddLineInfos(valExpr->lineStart(), false);
+            _fs->AddLineInfos(valExpr->lineStart(), false, false);
 #endif
         visitForceGet(valExpr);
         SQInteger val = _fs->PopTarget();

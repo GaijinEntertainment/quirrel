@@ -224,19 +224,39 @@ const SQChar* SQFunctionProto::GetLocal(SQVM *vm,SQUnsignedInteger stackbase,SQU
 }
 
 
-SQInteger SQFunctionProto::GetLine(SQInstruction *curr)
+SQInteger SQFunctionProto::GetLine(SQInstruction *curr, int *hint, bool *is_line_op)
 {
-    SQInteger op = (SQInteger)(curr-_instructions);
-    SQInteger line=_lineinfos[0]._line;
-    SQInteger low = 0;
-    SQInteger high = _nlineinfos - 1;
-    SQInteger mid = 0;
+    int op = (int)(curr-_instructions);
+    int high = _nlineinfos - 1;
+
+    if (hint && *hint < high) {
+        int pos = *hint;
+        if (op > _lineinfos[pos]._op && op <= _lineinfos[pos + 1]._op) {
+            if (is_line_op)
+                *is_line_op = _lineinfos[pos]._is_line_op;
+            return _lineinfos[pos]._line;
+        }
+        if (op == _lineinfos[pos + 1]._op + 1) {
+            *hint = ++pos;
+            if (is_line_op)
+                *is_line_op = _lineinfos[pos]._is_line_op;
+            return _lineinfos[pos]._line;
+        }
+        if (!op) {
+            if (is_line_op)
+                *is_line_op = _lineinfos[pos]._is_line_op;
+            return _lineinfos[0]._line;
+        }
+    }
+
+    int line = 0;
+    int low = 0;
+    int mid = 0;
     while(low <= high)
     {
         mid = low + ((high - low) >> 1);
-        SQInteger curop = _lineinfos[mid]._op;
-        if(curop > op)
-        {
+        int curop = _lineinfos[mid]._op;
+        if(curop > op) {
             high = mid - 1;
         }
         else if(curop < op) {
@@ -254,6 +274,12 @@ SQInteger SQFunctionProto::GetLine(SQInstruction *curr)
     while(mid > 0 && _lineinfos[mid]._op >= op) mid--;
 
     line = _lineinfos[mid]._line;
+
+    if (is_line_op)
+        *is_line_op = _lineinfos[mid]._is_line_op;
+
+    if (hint)
+        *hint = mid;
 
     return line;
 }
