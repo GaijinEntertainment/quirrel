@@ -296,6 +296,89 @@ bool SQVM::ObjCmp(const SQObjectPtr &o1,const SQObjectPtr &o2,SQInteger &result)
     _RET_SUCCEED(0); //cannot happen
 }
 
+bool SQVM::ObjCmpI(const SQObjectPtr &o1,const SQInteger o2,SQInteger &result)
+{
+    SQObjectType t1 = sq_type(o1);
+    if(t1 == OT_INTEGER) {
+        SQInteger i1 = _integer(o1);
+        result = (i1 == o2) ? 0 : (i1 < o2 ? -1 : 1);
+        return true;
+    }
+    else if (t1 == OT_FLOAT){
+        SQFloat f1 = _float(o1);
+        result = (f1 == o2) ? 0 : (f1 < o2 ? -1 : 1);
+        return true;
+    } else if(t1==OT_NULL) {_RET_SUCCEED(-1);}
+    else Raise_CompareError(o1, SQObjectPtr(o2));
+    return false;
+}
+
+bool SQVM::ObjCmpF(const SQObjectPtr &o1,const SQFloat o2,SQInteger &result)
+{
+    SQObjectType t1 = sq_type(o1);
+    if(t1 == OT_FLOAT) {
+        float f1 = _float(o1);
+        result = (f1 == o2) ? 0 : (f1 < o2 ? -1 : 1);
+        return true;
+    }
+    else if (t1 == OT_INTEGER){
+        SQInteger i1 = _integer(o1);
+        result = (i1 == o2) ? 0 : (i1 < o2 ? -1 : 1);
+        return true;
+    } else if(t1==OT_NULL) {_RET_SUCCEED(-1);}
+    else Raise_CompareError(o1, SQObjectPtr(o2));
+    return false;
+}
+
+bool SQVM::CMP_OP_RESI(CmpOP op, const SQObjectPtr &o1,const SQInteger o2, int &res)
+{
+    SQInteger r;
+    if(ObjCmpI(o1,o2,r)) {
+        switch(op) {
+            case CMP_G: res = (r > 0); return true;
+            case CMP_GE: res = (r >= 0); return true;
+            case CMP_L: res = (r < 0); return true;
+            case CMP_LE: res = (r <= 0); return true;
+            case CMP_3W: res = r; return true;
+        }
+        assert(0);
+    }
+    return false;
+}
+
+bool SQVM::CMP_OP_RESF(CmpOP op, const SQObjectPtr &o1,const SQFloat o2, int &res)
+{
+    SQInteger r;
+    if(ObjCmpF(o1,o2,r)) {
+        switch(op) {
+            case CMP_G: res = (r > 0); return true;
+            case CMP_GE: res = (r >= 0); return true;
+            case CMP_L: res = (r < 0); return true;
+            case CMP_LE: res = (r <= 0); return true;
+            case CMP_3W: res = r; return true;
+        }
+        assert(0);
+    }
+    return false;
+}
+
+
+bool SQVM::CMP_OP_RES(CmpOP op, const SQObjectPtr &o1,const SQObjectPtr &o2, int &res)
+{
+    SQInteger r;
+    if(ObjCmp(o1,o2,r)) {
+        switch(op) {
+            case CMP_G: res = (r > 0); return true;
+            case CMP_GE: res = (r >= 0); return true;
+            case CMP_L: res = (r < 0); return true;
+            case CMP_LE: res = (r <= 0); return true;
+            case CMP_3W: res = r; return true;
+        }
+        assert(0);
+    }
+    return false;
+}
+
 bool SQVM::CMP_OP(CmpOP op, const SQObjectPtr &o1,const SQObjectPtr &o2,SQObjectPtr &res)
 {
     SQInteger r;
@@ -582,12 +665,13 @@ bool SQVM::DerefInc(SQInteger op,SQObjectPtr &target, SQObjectPtr &self, SQObjec
 }
 
 #define arg0 (_i_._arg0)
-//#define sarg0 ((SQInteger)*((const signed char *)&_i_._arg0))
 #define arg1 (_i_._arg1)
-#define sarg1 (*((const SQInt32 *)&_i_._arg1))
+#define sarg1 (((SQInt32)_i_._arg1))
+#define farg1 (_i_._farg1)
 #define arg2 (_i_._arg2)
 #define arg3 (_i_._arg3)
-#define sarg3 ((SQInteger)*((const signed char *)&_i_._arg3))
+#define sarg3 ((SQInteger)((signed char)_i_._arg3))
+#define sarg0 ((SQInteger)((signed char)_i_._arg0))
 
 SQRESULT SQVM::Suspend()
 {
@@ -835,7 +919,7 @@ exception_restore:
 
             const SQInstruction &_i_ = *ci->_ip++;
             //dumpstack(_stackbase);
-            //printf("\n[%d] %s %d %d %d %d\n",ci->_ip-_closure(ci->_closure)->_function->_instructions,g_InstrDesc[_i_.op].name,arg0,arg1,arg2,arg3);
+            //printf("\n%s[%d] %s %d %d %d %d\n",_stringval(_closure(ci->_closure)->_function->_name), ci->_ip-1-_closure(ci->_closure)->_function->_instructions,g_InstrDesc[_i_.op].name,arg0,arg1,arg2,arg3);
             switch(_i_.op)
             {
             case _OP_DATA_NOP: continue;
@@ -846,7 +930,7 @@ exception_restore:
 #else
                 TARGET = (SQInteger)((SQInt32)arg1); continue;
 #endif
-            case _OP_LOADFLOAT: TARGET = *((const SQFloat *)&arg1); continue;
+            case _OP_LOADFLOAT: TARGET = farg1; continue;
             case _OP_DLOAD: TARGET = ci->_literals[arg1]; STK(arg2) = ci->_literals[arg3];continue;
             case _OP_TAILCALL:{
                 SQObjectPtr &t = STK(arg1);
@@ -1210,15 +1294,40 @@ exception_restore:
             case _OP_LOADBOOL: TARGET = arg1?true:false; continue;
             case _OP_LOADCALLEE: TARGET = ci->_closure; continue;
             case _OP_DMOVE: STK(arg0) = STK(arg1); STK(arg2) = STK(arg3); continue;
-            case _OP_JMP: ci->_ip += (sarg1); continue;
+            case _OP_JMP: ci->_ip += sarg1; continue;
             //case _OP_JNZ: if(!IsFalse(STK(arg0))) ci->_ip+=(sarg1); continue;
             case _OP_JCMP: {
-                _GUARD(CMP_OP((CmpOP)arg3,STK(arg2),STK(arg0),temp_reg));
-                if(IsFalse(temp_reg)) ci->_ip+=(sarg1);
+                int r;
+                const uint8_t uArg3 = arg3;
+                _GUARD(CMP_OP_RES((CmpOP)(uArg3&7),STK(arg2),STK(arg0),r));
+                if(uint8_t(bool(r)) == (uArg3>>3)) ci->_ip+=(sarg1);
+                }
+                continue;
+            case _OP_JCMPK: {
+                int r;
+                const uint8_t uArg3 = arg3;
+                _GUARD(CMP_OP_RES((CmpOP)(uArg3&7),STK(arg2),ci->_literals[arg0],r));
+                if(uint8_t(bool(r)) == (uArg3>>3)) ci->_ip+=(sarg1);
+                }
+                continue;
+            case _OP_JCMPI: {
+                int r;
+                //todo: optimize comparison with int
+                const uint8_t uArg3 = arg3;
+                _GUARD(CMP_OP_RESI((CmpOP)(uArg3&7),STK(arg2), (SQInteger)sarg1, r));
+                if(uint8_t(bool(r)) == (uArg3>>3)) ci->_ip+=(sarg0);
+                }
+                continue;
+            case _OP_JCMPF: {
+                int r;
+                //todo: optimize comparison with float
+                const uint8_t uArg3 = arg3;
+                _GUARD(CMP_OP_RESF((CmpOP)(uArg3&7),STK(arg2), farg1, r));
+                if(uint8_t(bool(r)) == (uArg3>>3)) ci->_ip+=(sarg0);
                 }
                 continue;
             case _OP_JZ: {
-              if(IsFalse(STK(arg0))) ci->_ip+=(sarg1);
+              if(uint8_t(IsFalse(STK(arg0))) != arg2) ci->_ip+=(sarg1);
             } continue;
             case _OP_GETOUTER: {
                 SQClosure *cur_cls = _closure(ci->_closure);

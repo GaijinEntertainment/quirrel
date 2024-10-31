@@ -361,25 +361,23 @@ void CodegenVisitor::visitForStatement(ForStatement *forLoop) {
     }
 
     _fs->SnoozeOpt();
-    SQInteger jmppos = _fs->GetCurrentPos();
     SQInteger jzpos = -1;
 
     if (forLoop->condition()) {
+        _fs->SnoozeOpt();
         visitForceGet(forLoop->condition());
         _fs->AddInstruction(_OP_JZ, _fs->PopTarget());
         jzpos = _fs->GetCurrentPos();
     }
-
-    _fs->SnoozeOpt();
+    SQInteger jmppos = _fs->GetCurrentPos();
 
     SQInteger expstart = _fs->GetCurrentPos() + 1;
 
     if (forLoop->modifier()) {
+        _fs->SnoozeOpt();
         visitForceGet(forLoop->modifier());
         _fs->PopTarget();
     }
-
-    _fs->SnoozeOpt();
 
     SQInteger expend = _fs->GetCurrentPos();
     SQInteger expsize = (expend - expstart) + 1;
@@ -391,6 +389,8 @@ void CodegenVisitor::visitForStatement(ForStatement *forLoop) {
         _fs->PopInstructions(expsize);
     }
 
+    _fs->SnoozeOpt();
+
     BEGIN_BREAKABLE_BLOCK();
     forLoop->body()->visit(this);
     SQInteger continuetrg = _fs->GetCurrentPos();
@@ -399,8 +399,17 @@ void CodegenVisitor::visitForStatement(ForStatement *forLoop) {
             _fs->AddInstruction(exp[i]);
     }
 
-    _fs->AddInstruction(_OP_JMP, 0, jmppos - _fs->GetCurrentPos() - 1, 0);
+    if (forLoop->condition()) {
+        _fs->SnoozeOpt();
+        visitForceGet(forLoop->condition());
+        const int cmpPos = _fs->GetCurrentPos();
+        _fs->AddInstruction(_OP_JZ, _fs->PopTarget(), jmppos - cmpPos, 1);
+        if (cmpPos != _fs->GetCurrentPos()) // instruction was optimized
+          _fs->SetInstructionParam(_fs->GetCurrentPos(), 1, jmppos - cmpPos - 1);
+    } else
+        _fs->AddInstruction(_OP_JMP, 0, jmppos - _fs->GetCurrentPos() - 1, 0);
     if (jzpos > 0) _fs->SetInstructionParam(jzpos, 1, _fs->GetCurrentPos() - jzpos);
+    _fs->RestoreOpt();
 
     END_BREAKABLE_BLOCK(continuetrg);
 

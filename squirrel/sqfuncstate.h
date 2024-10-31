@@ -22,6 +22,7 @@ struct SQFuncState
     void SetStackSize(SQInteger n);
     SQInteger CountOuters(SQInteger stacksize);
     void SnoozeOpt(){_optimization=false;}
+    void RestoreOpt(){_optimization=true;}
     void AddDefaultParam(SQInteger trg) { _defaultparams.push_back(trg); }
     SQInteger GetDefaultParamCount() { return _defaultparams.size(); }
     SQInteger GetCurrentPos(){return _instructions.size()-1;}
@@ -76,7 +77,7 @@ struct SQFuncState
     bool _optimization;
     SQSharedState *_sharedstate;
     sqvector<SQFuncState*> _childstates;
-    SQInteger GetConstant(const SQObject &cons);
+    SQInteger GetConstant(const SQObject &cons, int max_const_no = 0x7FFFFFFF);//will return value <= max_const_no, or -1
 private:
     SQCompilationContext &_ctx;
     SQSharedState *_ss;

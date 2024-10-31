@@ -98,9 +98,9 @@ void SQOptimizer::optimizeConstFolding()
         do {
             changed = false;
             if (i + 3 < instr.size()) {
-                SQInstruction & operation = instr[i + 2];
-                SQInstruction & loadA = instr[i];
-                SQInstruction & loadB = instr[i + 1];
+                const SQInstruction & operation = instr[i + 2];
+                const SQInstruction & loadA = instr[i];
+                const SQInstruction & loadB = instr[i + 1];
                 int s = operation.op;
 
                 if ((s == _OP_ADD || s == _OP_SUB || s == _OP_MUL || s == _OP_DIV || s == _OP_MOD || s == _OP_BITW) &&
@@ -181,7 +181,7 @@ void SQOptimizer::optimizeConstFolding()
                                 const bool removeLocalVar = !isUnsafeRange(i, 3);
                                 const int targetInst = removeLocalVar ? i : i + 2;
                                 instr[targetInst].op = _OP_LOADFLOAT;
-                                instr[targetInst]._arg1 = *((SQInt32*) &res);
+                                instr[targetInst]._farg1 = res;
                                 instr[targetInst]._arg0 = operation._arg0;
                                 if (removeLocalVar)
                                     cutRange(i, 3, 1);
@@ -196,8 +196,8 @@ void SQOptimizer::optimizeConstFolding()
                 }
             }
             if (i + 2 < instr.size()) {
-                SQInstruction & operation = instr[i + 1];
-                SQInstruction & loadA = instr[i];
+                const SQInstruction operation = instr[i + 1];
+                const SQInstruction loadA = instr[i];
                 int s = operation.op;
 
                 if (s == _OP_ADDI && (loadA.op == _OP_LOADINT || loadA.op == _OP_LOADFLOAT) && loadA._arg0 == operation._arg2){
@@ -240,7 +240,7 @@ void SQOptimizer::optimizeConstFolding()
                             const bool removeLocalVar = !isUnsafeRange(i, 2);
                             int targetInst = removeLocalVar ? i : i + 1;
                             instr[targetInst].op = _OP_LOADFLOAT;
-                            instr[targetInst]._arg1 = *((SQInt32*) &res);
+                            instr[targetInst]._farg1 = res;
                             instr[targetInst]._arg0 = operation._arg0;
                             if (removeLocalVar)
                                 cutRange(i, 2, 1);
@@ -252,7 +252,68 @@ void SQOptimizer::optimizeConstFolding()
                         }
                     }
                 }
+/*
+                // breaks code such as `for (local i = 0; i < (true ? 5 : 1); i++) { print(i); }`
+                bool isLinearBlock = false;
+                // todo: we need to check if operation.arg0 is only set in this _LOADINT.
+                // it is not an easy task in general and can be only done in SSA form or inside a linear block
 
+                if (isLinearBlock && s == _OP_JCMP && (loadA.op == _OP_LOADINT || loadA.op == _OP_LOADFLOAT || loadA.op == _OP_LOAD) &&
+                    loadA._arg0 == operation._arg0 &&
+                    ( loadA._arg1 <= 255 || (loadA.op != _OP_LOAD && operation._arg1 >= -128 && operation._arg1 <= 127) )) {
+                    const bool removeLocalVar = !isUnsafeRange(i, 2);
+                    const int targetInst = removeLocalVar ? i : i + 1;
+                    bool applyOpt = true;
+                    if (loadA.op == _OP_LOAD)
+                    {
+                        instr[targetInst]._arg1 = operation._arg1;
+                        instr[targetInst]._arg2 = operation._arg2;
+                        instr[targetInst]._arg3 = operation._arg3;
+                        instr[targetInst]._arg0 = loadA._arg1;
+                        instr[targetInst].op = _OP_JCMPK;
+                    } else if (operation._arg1 < -128 || operation._arg1 > 127) // we can't fit into JCMP(I|F) due to big jump distance
+                    {
+                        const uint32_t constI = fs->GetConstant(SQObjectPtr(loadA.op == _OP_LOADFLOAT ? loadA._farg1 : (SQInteger)loadA._arg1), 255);
+                        if (constI <= 255u)
+                        {
+                            instr[targetInst]._arg1 = operation._arg1;
+                            instr[targetInst]._arg2 = operation._arg2;
+                            instr[targetInst]._arg3 = operation._arg3;
+                            instr[targetInst]._arg0 = constI;
+                            instr[targetInst].op = _OP_JCMPK;
+                        } else
+                            applyOpt = false;
+                    } else {
+                        instr[targetInst]._arg3 = operation._arg3; // cmp type
+                        instr[targetInst]._arg1 = loadA._arg1; // compare value
+                        instr[targetInst]._arg2 = operation._arg2;
+                        instr[targetInst]._arg0 = operation._arg1;  // jump target
+                        instr[targetInst].op = loadA.op == _OP_LOADINT ? _OP_JCMPI : _OP_JCMPF;
+                    }
+                    if (applyOpt)
+                    {
+                        const bool convertJumpTarget = instr[targetInst].op == _OP_JCMPI || instr[targetInst].op == _OP_JCMPF;
+                        if (removeLocalVar)
+                            cutRange(i, 2, 1);
+                        if (convertJumpTarget)
+                            for (int ji = 0, jie = jumps.size(); ji < jie; ji++)
+                            {
+                                if (jumps[ji].instructionIndex == targetInst)
+                                {
+                                    assert(jumps[ji].jumpArg == JumpArg::JUMP_ARG1);
+                                    jumps[ji].jumpArg = JumpArg::JUMP_ARG0;
+                                    break;
+                                }
+                            }
+                        changed = true;
+                        codeChanged = true;
+                        #ifdef _DEBUG_DUMP
+                            debugPrintInstructionPos(_SC("Jump Const folding"), i);
+                        #endif
+                    }
+
+                }
+*/
             }
 
         } while (changed && i + 2 < instr.size());
@@ -268,7 +329,7 @@ void SQOptimizer::optimizeJumpFolding()
         changed = false;
         for (int i = 0; i < instr.size(); i++) {
             int op = instr[i].op;
-            if (op == _OP_JMP || op == _OP_JCMP || op == _OP_JZ || op == _OP_AND || op == _OP_OR || op == _OP_PUSHTRAP) {
+            if (op == _OP_JMP || op == _OP_JCMP || op == _OP_JCMPK || op == _OP_JZ || op == _OP_AND || op == _OP_OR || op == _OP_PUSHTRAP) {
                 int to = (i + instr[i]._arg1 + 1);
                 if (instr[to].op == _OP_JMP) {
                     changed = true;
@@ -277,6 +338,21 @@ void SQOptimizer::optimizeJumpFolding()
                     #ifdef _DEBUG_DUMP
                         debugPrintInstructionPos(_SC("Jump folding"), i);
                     #endif
+                }
+            }
+            if (op == _OP_JCMPI || op == _OP_JCMPF) {
+                int to = (i + instr[i]._sarg0() + 1);
+                if (instr[to].op == _OP_JMP) {
+                    const int nextJumpOfs = instr[i]._sarg0() + instr[to]._arg1 + 1;
+                    if (nextJumpOfs >= -128 && nextJumpOfs <= 127)
+                    {
+                        changed = true;
+                        codeChanged = true;
+                        instr[i]._arg0 = nextJumpOfs;
+                        #ifdef _DEBUG_DUMP
+                            debugPrintInstructionPos(_SC("Jump folding"), i);
+                        #endif
+                    }
                 }
             }
         }
@@ -311,6 +387,7 @@ void SQOptimizer::optimize()
             switch (instr[i].op) {
                 case _OP_JMP:
                 case _OP_JCMP:
+                case _OP_JCMPK:
                 case _OP_JZ:
                 case _OP_AND:
                 case _OP_OR:
@@ -318,10 +395,14 @@ void SQOptimizer::optimize()
                 case _OP_FOREACH:
                 case _OP_PREFOREACH:
                 case _OP_POSTFOREACH:
-                    jumps.push_back({i, i, i + instr[i]._arg1 + 1, i + instr[i]._arg1 + 1, false});
+                    jumps.push_back({i, i, i + instr[i]._arg1 + 1, i + instr[i]._arg1 + 1, false, JumpArg::JUMP_ARG1});
+                    break;
+                case _OP_JCMPI:
+                case _OP_JCMPF:
+                    jumps.push_back({i, i, i + instr[i]._sarg0() + 1, i + instr[i]._sarg0() + 1, false, JumpArg::JUMP_ARG0});
                     break;
                 case _OP_NULLCOALESCE:
-                    jumps.push_back({i, i, i + instr[i]._arg1, i + instr[i]._arg1, false});
+                    jumps.push_back({i, i, i + instr[i]._arg1, i + instr[i]._arg1, false, JumpArg::JUMP_ARG1});
                     break;
                 default:
                     break;
@@ -334,8 +415,28 @@ void SQOptimizer::optimize()
         if (codeChanged)
             for (int i = 0; i < jumps.size(); i++)
                 if (jumps[i].modified) {
-                    instr[jumps[i].instructionIndex]._arg1 +=
-                        (jumps[i].jumpTo - jumps[i].originalJumpTo) - (jumps[i].instructionIndex - jumps[i].originalInstructionIndex);
+                    const int change = (jumps[i].jumpTo - jumps[i].originalJumpTo) - (jumps[i].instructionIndex - jumps[i].originalInstructionIndex);
+                    if (jumps[i].jumpArg == JumpArg::JUMP_ARG1)
+                        instr[jumps[i].instructionIndex]._arg1 += change;
+                    else {
+                        const SQInstruction originalJump = instr[jumps[i].instructionIndex];
+                        const int nextJumpVal = originalJump._sarg0() + change;
+                        if (nextJumpVal >= -128 && nextJumpVal <= 127)
+                        {
+                            instr[jumps[i].instructionIndex]._arg0 = nextJumpVal; // still fit
+                        } else if (instr[jumps[i].instructionIndex].op == _OP_JCMPF || instr[jumps[i].instructionIndex].op == _OP_JCMPI) {
+                            const uint32_t constI = fs->GetConstant(SQObjectPtr(instr[jumps[i].instructionIndex].op == _OP_JCMPF ? originalJump._farg1 : (SQInteger)originalJump._arg1), 255);
+                            if (constI <= 255u) // we still fit in const table
+                            {
+                              jumps[i].jumpArg = JumpArg::JUMP_ARG1;
+                              instr[jumps[i].instructionIndex]._arg1 = nextJumpVal;
+                              instr[jumps[i].instructionIndex]._arg0 = constI;
+                              instr[jumps[i].instructionIndex].op = _OP_JCMPK;
+                            } else
+                              assert(0);//todo: we need to convert back to OP_JCMP, and we need to generate load instruction for that
+                        } else
+                          assert(0);//todo: we need to convert back to OP_JCMP, and we need to generate load instruction for that
+                    }
                 }
     }
 

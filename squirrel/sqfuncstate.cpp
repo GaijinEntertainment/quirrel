@@ -196,20 +196,26 @@ SQInteger SQFuncState::GetNumericConstant(const SQFloat cons)
     return GetConstant(SQObjectPtr(cons));
 }
 
-SQInteger SQFuncState::GetConstant(const SQObject &cons)
+SQInteger SQFuncState::GetConstant(const SQObject &cons, int max_const_no)
 {
     SQObjectPtr val;
+    max_const_no = max_const_no < MAX_LITERALS ? max_const_no : MAX_LITERALS;
     if(!_table(_literals)->Get(cons,val))
     {
+        if(_nliterals >= max_const_no) {
+            if (max_const_no == MAX_LITERALS)
+            {
+                val.Null();
+                _ctx.reportDiagnostic(DiagnosticsId::DI_TOO_MANY_SYMBOLS, -1, -1, 0, "literals");
+            } else
+                return -1;
+        }
         val = _nliterals;
         _table(_literals)->NewSlot(cons,val);
         _nliterals++;
-        if(_nliterals > MAX_LITERALS) {
-            val.Null();
-            _ctx.reportDiagnostic(DiagnosticsId::DI_TOO_MANY_SYMBOLS, -1, -1, 0, "literals");
-        }
     }
-    return _integer(val);
+    int iv = _integer(val);
+    return iv <= max_const_no ? iv : -1;
 }
 
 void SQFuncState::SetInstructionParams(SQInteger pos,SQInteger arg0,SQInteger arg1,SQInteger arg2,SQInteger arg3)
@@ -427,6 +433,7 @@ void SQFuncState::AddInstruction(SQInstruction &i)
             if( pi.op == _OP_CMP && pi._arg1 < 0xFF) {
                 pi.op = _OP_JCMP;
                 pi._arg0 = (unsigned char)pi._arg1;
+                pi._arg3 |= (uint8_t(i._arg2 ? 1 : 0)<<3);
                 pi._arg1 = i._arg1;
                 return;
             }

@@ -74,6 +74,9 @@ enum AppendArrayType {
     SQ_OPCODE(_OP_DMOVE) \
     SQ_OPCODE(_OP_JMP) \
     SQ_OPCODE(_OP_JCMP) \
+    SQ_OPCODE(_OP_JCMPI) \
+    SQ_OPCODE(_OP_JCMPF) \
+    SQ_OPCODE(_OP_JCMPK) \
     SQ_OPCODE(_OP_JZ) \
     SQ_OPCODE(_OP_SETOUTER) \
     SQ_OPCODE(_OP_GETOUTER) \
@@ -134,12 +137,23 @@ struct SQInstruction
         _arg2 = (unsigned char)a2;_arg3 = (unsigned char)a3;
     }
 
+    SQInstruction(SQOpcode _op,SQInteger a0,float a1=0,SQInteger a2=0,SQInteger a3=0)
+    {   op = (unsigned char)_op;
+        _arg0 = (unsigned char)a0;_farg1 = a1;
+        _arg2 = (unsigned char)a2;_arg3 = (unsigned char)a3;
+    }
 
-    SQInt32 _arg1;
+    union {
+        SQInt32 _arg1;
+        float _farg1;
+    };
     unsigned char op;
     unsigned char _arg0;
     unsigned char _arg2;
     unsigned char _arg3;
+    int _sarg0() const {return (signed char)_arg0;}
+    int _sarg2() const {return (signed char)_arg2;}
+    int _sarg3() const {return (signed char)_arg3;}
 };
 
 #include "squtils.h"

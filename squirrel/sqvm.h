@@ -118,6 +118,11 @@ public:
     _SQ_INLINE bool BW_OP(SQUnsignedInteger op,SQObjectPtr &trg,const SQObjectPtr &o1,const SQObjectPtr &o2);
     _SQ_INLINE bool NEG_OP(SQObjectPtr &trg,const SQObjectPtr &o1);
     _SQ_INLINE bool CMP_OP(CmpOP op, const SQObjectPtr &o1,const SQObjectPtr &o2,SQObjectPtr &res);
+    _SQ_INLINE bool CMP_OP_RES(CmpOP op, const SQObjectPtr &o1,const SQObjectPtr &o2,int &res);
+    _SQ_INLINE bool CMP_OP_RESI(CmpOP op, const SQObjectPtr &o1,const SQInteger o2,int &res);
+    _SQ_INLINE bool CMP_OP_RESF(CmpOP op, const SQObjectPtr &o1,const SQFloat o2,int &res);
+    _SQ_INLINE bool ObjCmpI(const SQObjectPtr &o1, const SQInteger o2,SQInteger &res);
+    _SQ_INLINE bool ObjCmpF(const SQObjectPtr &o1, const SQFloat o2,SQInteger &res);
     bool CLOSURE_OP(SQObjectPtr &target, SQFunctionProto *func);
     bool CLASS_OP(SQObjectPtr &target,SQInteger base);
     //return true if the loop is finished
