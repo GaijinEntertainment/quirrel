@@ -1197,7 +1197,7 @@ exception_restore:
                     return true;
                 }
                 continue;
-            case _OP_LOADNULLS:{ for(SQInt32 n=0; n < arg1; n++) STK(arg0+n).Null(); }continue;
+            case _OP_LOADNULLS:{ SQInt32 n=arg1-1; assert(n>=0); do { STK(arg0+n).Null(); } while (--n >= 0); }continue;
             case _OP_LOADROOT:
                 TARGET = _roottable;
                 continue;
