@@ -195,7 +195,67 @@ void SQOptimizer::optimizeConstFolding()
                     }
                 }
             }
-        } while (changed && i + 3 < instr.size());
+            if (i + 2 < instr.size()) {
+                SQInstruction & operation = instr[i + 1];
+                SQInstruction & loadA = instr[i];
+                int s = operation.op;
+
+                if (s == _OP_ADDI && (loadA.op == _OP_LOADINT || loadA.op == _OP_LOADFLOAT) && loadA._arg0 == operation._arg2){
+                    if (loadA.op == _OP_LOADINT) {
+                        SQInteger res = 0;
+                        SQInt32 lv = loadA._arg1;
+                        SQInt32 rv = operation._arg1;
+                        bool applyOpt = true;
+                        switch (s) { // -V785
+                            case _OP_ADDI: res = SQInteger(lv) + SQInteger(rv); break;
+                            default: applyOpt = false; break;
+                        }
+
+                        if (applyOpt && res >= SQInteger(INT_MIN) && res <= SQInteger(INT_MAX)) { // -V547
+                            const bool removeLocalVar = !isUnsafeRange(i, 2);
+                            const int targetInst = removeLocalVar ? i : i + 1;
+                            instr[targetInst].op = _OP_LOADINT;
+                            instr[targetInst]._arg1 = (SQInt32)res;
+                            instr[targetInst]._arg0 = operation._arg0;
+                            if (removeLocalVar)
+                                cutRange(i, 2, 1);
+                            changed = true;
+                            codeChanged = true;
+                            #ifdef _DEBUG_DUMP
+                                debugPrintInstructionPos(_SC("Const folding"), i);
+                            #endif
+                        }
+                    } else { // float
+                        assert(sizeof(SQFloat) == sizeof(SQInt32));
+                        SQFloat res = 0;
+                        SQFloat lv = *((SQFloat *) &loadA._arg1);
+                        SQFloat rv = SQFloat(operation._arg1);
+                        bool applyOpt = true;
+                        switch (s) { // -V785
+                            case _OP_ADDI: res = lv + rv; break;
+                            default: applyOpt = false; break;
+                        }
+
+                        if (applyOpt) { // -V547
+                            const bool removeLocalVar = !isUnsafeRange(i, 2);
+                            int targetInst = removeLocalVar ? i : i + 1;
+                            instr[targetInst].op = _OP_LOADFLOAT;
+                            instr[targetInst]._arg1 = *((SQInt32*) &res);
+                            instr[targetInst]._arg0 = operation._arg0;
+                            if (removeLocalVar)
+                                cutRange(i, 2, 1);
+                            changed = true;
+                            codeChanged = true;
+                            #ifdef _DEBUG_DUMP
+                                debugPrintInstructionPos(_SC("Const folding"), i);
+                            #endif
+                        }
+                    }
+                }
+
+            }
+
+        } while (changed && i + 2 < instr.size());
     }
 }
 

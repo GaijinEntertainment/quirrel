@@ -61,6 +61,7 @@ enum AppendArrayType {
     SQ_OPCODE(_OP_EQ) \
     SQ_OPCODE(_OP_NE) \
     SQ_OPCODE(_OP_ADD) \
+    SQ_OPCODE(_OP_ADDI) \
     SQ_OPCODE(_OP_SUB) \
     SQ_OPCODE(_OP_MUL) \
     SQ_OPCODE(_OP_DIV) \

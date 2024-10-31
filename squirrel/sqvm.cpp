@@ -1180,6 +1180,7 @@ exception_restore:
             case _OP_ADD:
               _ARITH_(+,TARGET,STK(arg2),STK(arg1));
               continue;
+            case _OP_ADDI: {SQObjectPtr ai = (SQInteger)arg1; _ARITH_(+,TARGET,STK(arg2), ai); continue;}
             case _OP_SUB: _ARITH_(-,TARGET,STK(arg2),STK(arg1)); continue;
             case _OP_MUL: _ARITH_(*,TARGET,STK(arg2),STK(arg1)); continue;
             case _OP_DIV: _ARITH_NOZERO(/,TARGET,STK(arg2),STK(arg1)); continue;

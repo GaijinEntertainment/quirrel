@@ -1469,6 +1469,17 @@ void CodegenVisitor::visitGetSlotExpr(GetSlotExpr *expr) {
     }
 }
 
+static inline bool is_literal_in_int_range(const Expr *expr)
+{
+    if ( expr->op() != TO_LITERAL)
+        return false;
+    LiteralExpr * le = expr->asLiteral();
+    if (le->kind() != LK_INT)
+      return false;
+    SQInteger i = le->i();
+    return i >= SQInteger(INT_MIN) && i <= SQInteger(INT_MAX);
+}
+
 void CodegenVisitor::visitBinExpr(BinExpr *expr) {
     maybeAddInExprLine(expr);
     switch (expr->op()) {
@@ -1482,8 +1493,29 @@ void CodegenVisitor::visitBinExpr(BinExpr *expr) {
     case TO_MULEQ:   emitCompoundArith(_OP_MUL, '*', expr->lhs(), expr->rhs()); break;
     case TO_DIVEQ:   emitCompoundArith(_OP_DIV, '/', expr->lhs(), expr->rhs()); break;
     case TO_MODEQ:   emitCompoundArith(_OP_MOD, '%', expr->lhs(), expr->rhs()); break;
-    case TO_ADD: emitSimpleBinaryOp(_OP_ADD, expr->lhs(), expr->rhs()); break;
-    case TO_SUB: emitSimpleBinaryOp(_OP_SUB, expr->lhs(), expr->rhs()); break;
+    case TO_ADD:
+      if ( is_literal_in_int_range(expr->lhs()) )
+      {
+          visitForceGet(expr->rhs());
+          SQInteger op2 = _fs->PopTarget();
+          _fs->AddInstruction(_OP_ADDI, _fs->PushTarget(), expr->lhs()->asLiteral()->i(), op2, 0);
+      } else if ( is_literal_in_int_range(expr->rhs()) )
+      {
+          visitForceGet(expr->lhs());
+          SQInteger op2 = _fs->PopTarget();
+          _fs->AddInstruction(_OP_ADDI, _fs->PushTarget(), expr->rhs()->asLiteral()->i(), op2, 0);
+      } else
+          emitSimpleBinaryOp(_OP_ADD, expr->lhs(), expr->rhs());
+    break;
+    case TO_SUB:
+        if ( is_literal_in_int_range(expr->rhs()) )
+        {
+            visitForceGet(expr->lhs());
+            SQInteger op2 = _fs->PopTarget();
+            _fs->AddInstruction(_OP_ADDI, _fs->PushTarget(), -expr->rhs()->asLiteral()->i(), op2, 0);
+        } else
+            emitSimpleBinaryOp(_OP_SUB, expr->lhs(), expr->rhs());
+    break;
     case TO_MUL: emitSimpleBinaryOp(_OP_MUL, expr->lhs(), expr->rhs()); break;
     case TO_DIV: emitSimpleBinaryOp(_OP_DIV, expr->lhs(), expr->rhs()); break;
     case TO_MOD: emitSimpleBinaryOp(_OP_MOD, expr->lhs(), expr->rhs()); break;
