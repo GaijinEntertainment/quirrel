@@ -71,6 +71,7 @@ public:
     bool CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newbase, SQObjectPtr &retval, SQInt32 target, bool &suspend,bool &tailcall);
     bool TailCall(SQClosure *closure, SQInteger firstparam, SQInteger nparams);
     //starts a SQUIRREL call in the same "Execution loop"
+    template <bool debughookPresent>
     bool StartCall(SQClosure *closure, SQInteger target, SQInteger nargs, SQInteger stackbase, bool tailcall);
     bool CreateClassInstance(SQClass *theclass, SQObjectPtr &inst, SQObjectPtr &constructor);
     //call a generic closure pure SQUIRREL or NATIVE
@@ -110,6 +111,7 @@ public:
     bool TypeOf(const SQObjectPtr &obj1, SQObjectPtr &dest);
     bool CallMetaMethod(SQObjectPtr &closure, SQMetaMethod mm, SQInteger nparams, SQObjectPtr &outres);
     bool ArithMetaMethod(SQInteger op, const SQObjectPtr &o1, const SQObjectPtr &o2, SQObjectPtr &dest);
+    template <bool debughookPresent>
     bool Return(SQInteger _arg0, SQInteger _arg1, SQObjectPtr &retval);
     //new stuff
     _SQ_INLINE bool ARITH_OP(SQUnsignedInteger op,SQObjectPtr &trg,const SQObjectPtr &o1,const SQObjectPtr &o2);

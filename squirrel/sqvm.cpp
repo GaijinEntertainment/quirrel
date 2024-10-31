@@ -409,6 +409,7 @@ bool SQVM::Init(SQVM *friendvm, SQInteger stacksize)
 }
 
 
+template <bool debughookPresent>
 bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQInteger stackbase,bool tailcall)
 {
     SQFunctionProto *func = closure->_function;
@@ -469,9 +470,11 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
     ci->_literals = func->_literals;
     ci->_ip       = func->_instructions;
     ci->_target   = (SQInt32)target;
-
-    if (_debughook) {
-        CallDebugHook(_SC('c'));
+    if constexpr (debughookPresent)
+    {
+        if (_debughook) {
+            CallDebugHook(_SC('c'));
+        }
     }
 
     if (closure->_function->_bgenerator) {
@@ -480,7 +483,7 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
         if(!gen->Yield(this,f->_stacksize))
             return false;
         SQObjectPtr temp;
-        Return(1, target, temp);
+        Return<debughookPresent>(1, target, temp);
         STK(target) = gen;
     }
 
@@ -488,14 +491,17 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
     return true;
 }
 
+template <bool debughookPresent>
 bool SQVM::Return(SQInteger _arg0, SQInteger _arg1, SQObjectPtr &retval)
 {
     SQBool    _isroot      = ci->_root;
     SQInteger callerbase   = _stackbase - ci->_prevstkbase;
-
-    if (_debughook) {
-        for(SQInteger i=0; i<ci->_ncalls; i++) {
-            CallDebugHook(_SC('r'));
+    if constexpr (debughookPresent)
+    {
+        if (_debughook) {
+            for(SQInteger i=0; i<ci->_ncalls; i++) {
+                CallDebugHook(_SC('r'));
+            }
         }
     }
 
@@ -775,7 +781,7 @@ bool SQVM::Execute(SQObjectPtr &closure, SQInteger nargs, SQInteger stackbase,SQ
     switch(et) {
         case ET_CALL: {
             temp_reg = closure;
-            if(!StartCall(_closure(temp_reg), _top - nargs, nargs, stackbase, false)) {
+            if(!StartCall<debughookPresent>(_closure(temp_reg), _top - nargs, nargs, stackbase, false)) {
                 //call the handler if there are no calls in the stack, if not relies on the previous node
                 if(ci == NULL) CallErrorHandler(_lasterror);
                 return false;
@@ -850,7 +856,7 @@ exception_restore:
                     SQInteger last_top = _top;
                     if(_openouters) CloseOuters(&(_stack._vals[_stackbase]));
                     for (SQInteger i = 0; i < arg3; i++) STK(i) = STK(arg2 + i);
-                    _GUARD(StartCall(_closure(clo), ci->_target, arg3, _stackbase, true));
+                    _GUARD(StartCall<debughookPresent>(_closure(clo), ci->_target, arg3, _stackbase, true));
                     if (last_top >= _top) {
                       _top = last_top;
                     }
@@ -865,7 +871,7 @@ exception_restore:
                     bool nullcall = (_i_.op == _OP_NULLCALL);
                     switch (sq_type(clo)) {
                     case OT_CLOSURE:
-                        _GUARD(StartCall(_closure(clo), tgt0, arg3, _stackbase+arg2, false));
+                        _GUARD(StartCall<debughookPresent>(_closure(clo), tgt0, arg3, _stackbase+arg2, false));
                         continue;
                     case OT_NATIVECLOSURE: {
                         bool suspend;
@@ -895,7 +901,7 @@ exception_restore:
                             case OT_CLOSURE:
                                 stkbase = _stackbase+arg2;
                                 _stack._vals[stkbase] = inst;
-                                _GUARD(StartCall(_closure(ctor), -1, arg3, stkbase, false));
+                                _GUARD(StartCall<debughookPresent>(_closure(ctor), -1, arg3, stkbase, false));
                                 break;
                             case OT_NATIVECLOSURE:
                                 bool dummy;
@@ -1190,7 +1196,7 @@ exception_restore:
                 if((ci)->_generator) {
                     (ci)->_generator->Kill();
                 }
-                if(Return(arg0, arg1, temp_reg)){
+                if(Return<debughookPresent>(arg0, arg1, temp_reg)){
                     assert(traps==0);
                     //outres = temp_reg;
                     _Swap(outres,temp_reg);
@@ -1360,7 +1366,7 @@ exception_restore:
                     if(sarg1 != MAX_FUNC_STACKSIZE) _Swap(STK(arg1),temp_reg);//STK(arg1) = temp_reg;
                 }
                 else { Raise_Error(_SC("trying to yield a '%s',only genenerator can be yielded"), GetTypeName(ci->_generator)); SQ_THROW();}
-                if(Return(arg0, arg1, temp_reg)){
+                if(Return<debughookPresent>(arg0, arg1, temp_reg)){
                     assert(traps == 0);
                     outres = temp_reg;
                     return true;
@@ -1630,7 +1636,7 @@ bool SQVM::TailCall(SQClosure *closure, SQInteger parambase,SQInteger nparams)
         return false;
     }
     for (SQInteger i = 0; i < nparams; i++) STK(i) = STK(parambase + i);
-    bool ret = StartCall(closure, ci->_target, nparams, _stackbase, true);
+    bool ret = StartCall<true>(closure, ci->_target, nparams, _stackbase, true);
     if (last_top >= _top) {
         _top = last_top;
     }
