@@ -595,11 +595,11 @@ void CodegenVisitor::visitReturnStatement(ReturnStatement *retStmt) {
 
     if (retStmt->argument()) {
         _fs->_returnexp = retexp;
-        _fs->AddInstruction(_OP_RETURN, 1, _fs->PopTarget(), _fs->GetStackSize());
+        _fs->AddInstruction(_OP_RETURN, 1, _fs->PopTarget());
     }
     else {
         _fs->_returnexp = -1;
-        _fs->AddInstruction(_OP_RETURN, 0xFF, 0, _fs->GetStackSize());
+        _fs->AddInstruction(_OP_RETURN, 0xFF, 0);
     }
 }
 
