@@ -1379,15 +1379,35 @@ exception_restore:
                 _GUARD(_generator(STK(arg1))->Resume(this, TARGET));
                 traps += ci->_etraps;
                 continue;
-            case _OP_FOREACH:{ int tojump;
-                _GUARD(FOREACH_OP(STK(arg0),STK(arg2),STK(arg2+1),STK(arg2+2),arg2,sarg1,tojump));
-                ci->_ip += tojump; }
+            case _OP_PREFOREACH:{
+                STK(arg2).Null();STK(arg2+1).Null();STK(arg2+2).Null();
+                auto &arg0Stack = STK(arg0);
+                const bool isGenerator = sq_type(arg0Stack) == OT_GENERATOR;
+                int tojump;
+                _GUARD(FOREACH_OP(arg0Stack,STK(arg2),STK(arg2+1),STK(arg2+2),arg2,2,tojump));
+                if (tojump == 1)
+                    ci->_ip ++;
+                else if (tojump == 2) // empty
+                    ci->_ip += sarg1;
+                }
                 continue;
             case _OP_POSTFOREACH:
                 assert(sq_type(STK(arg0)) == OT_GENERATOR);
                 if(_generator(STK(arg0))->_state == SQGenerator::eDead)
-                    ci->_ip += (sarg1 - 1); // NOTE: worth to use the same way to encode displacements, fix some day
+                    ci->_ip += sarg1;
                 continue;
+            case _OP_FOREACH:{
+                const int jumpToBodyOffset = sarg1;
+                auto &arg0Stack = STK(arg0);
+                const bool isGenerator = sq_type(arg0Stack) == OT_GENERATOR;
+                if (isGenerator)
+                    ci->_ip += jumpToBodyOffset - 1;  // so generator will resume at postforeach
+                int tojump;
+                _GUARD(FOREACH_OP(arg0Stack,STK(arg2),STK(arg2+1),STK(arg2+2),arg2,2,tojump));
+                assert((tojump == 0 && isGenerator) || (tojump != 0 && !isGenerator));
+                if (tojump == 1)
+                    ci->_ip += jumpToBodyOffset;
+                }continue;
             case _OP_CLONE: _GUARD(Clone(STK(arg1), TARGET)); continue;
             case _OP_TYPEOF: _GUARD(TypeOf(STK(arg1), TARGET)) continue;
             case _OP_PUSHTRAP:{

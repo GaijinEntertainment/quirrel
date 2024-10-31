@@ -419,33 +419,38 @@ void CodegenVisitor::visitForeachStatement(ForeachStatement *foreachLoop) {
     SQObject idxName;
     SQInteger indexpos = -1;
     if (foreachLoop->idx()) {
-        foreachLoop->idx()->visit(this);
-        indexpos = _fs->_vlocals.back()._pos;
+        assert(foreachLoop->idx()->op() == TO_VAR && ((VarDecl *)foreachLoop->idx())->initializer() == nullptr);
+        idxName = _fs->CreateString(_SC(((VarDecl *)foreachLoop->idx())->name() ));
+        //foreachLoop->idx()->visit(this);
     }
     else {
         idxName = _fs->CreateString(_SC("@INDEX@"));
-        indexpos = _fs->PushLocalVariable(idxName, false);
     }
-    _fs->AddInstruction(_OP_LOADNULLS, indexpos, 1);
+    indexpos = _fs->PushLocalVariable(idxName, false);
 
-    foreachLoop->val()->visit(this);
-    SQInteger valuepos = _fs->_vlocals.back()._pos;
-    _fs->AddInstruction(_OP_LOADNULLS, valuepos, 1);
+    assert(foreachLoop->val()->op() == TO_VAR && ((VarDecl *)foreachLoop->val())->initializer() == nullptr);
+    SQInteger valuepos = _fs->PushLocalVariable(_fs->CreateString(_SC(((VarDecl *)foreachLoop->val())->name() )), false);
+
+    //foreachLoop->val()->visit(this);
+    //SQInteger valuepos = _fs->_vlocals.back()._pos;
 
     //push reference index
     SQInteger itrpos = _fs->PushLocalVariable(_fs->CreateString(_SC("@ITERATOR@")), false); //use invalid id to make it inaccessible
-    _fs->AddInstruction(_OP_LOADNULLS, itrpos, 1);
-    SQInteger jmppos = _fs->GetCurrentPos();
-    _fs->AddInstruction(_OP_FOREACH, container, 0, indexpos);
-    SQInteger foreachpos = _fs->GetCurrentPos();
+
+    _fs->AddInstruction(_OP_PREFOREACH, container, 0, indexpos);
+    SQInteger preForEachPos = _fs->GetCurrentPos();
     _fs->AddInstruction(_OP_POSTFOREACH, container, 0, indexpos);
+    SQInteger postForEachPos = _fs->GetCurrentPos();
 
     BEGIN_BREAKABLE_BLOCK();
     foreachLoop->body()->visit(this);
-    _fs->AddInstruction(_OP_JMP, 0, jmppos - _fs->GetCurrentPos() - 1);
-    _fs->SetInstructionParam(foreachpos, 1, _fs->GetCurrentPos() - foreachpos);
-    _fs->SetInstructionParam(foreachpos + 1, 1, _fs->GetCurrentPos() - foreachpos);
-    END_BREAKABLE_BLOCK(foreachpos - 1);
+    SQInteger continuePos = _fs->GetCurrentPos();
+    SQInteger forEachLabelPos = _fs->GetCurrentPos() + 1;
+    _fs->AddInstruction(_OP_FOREACH, container, postForEachPos - forEachLabelPos, indexpos); //ip is already + 1 now
+    _fs->SetInstructionParam(preForEachPos, 1, forEachLabelPos - preForEachPos); //ip is already + 1 now
+    _fs->SetInstructionParam(postForEachPos, 1, _fs->GetCurrentPos() - postForEachPos); //ip is already + 1 now
+
+    END_BREAKABLE_BLOCK(continuePos);
     //restore the local variable stack(remove index,val and ref idx)
     _fs->PopTarget();
     END_SCOPE();

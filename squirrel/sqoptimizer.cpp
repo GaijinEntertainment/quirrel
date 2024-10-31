@@ -316,9 +316,10 @@ void SQOptimizer::optimize()
                 case _OP_OR:
                 case _OP_PUSHTRAP:
                 case _OP_FOREACH:
+                case _OP_PREFOREACH:
+                case _OP_POSTFOREACH:
                     jumps.push_back({i, i, i + instr[i]._arg1 + 1, i + instr[i]._arg1 + 1, false});
                     break;
-                case _OP_POSTFOREACH:
                 case _OP_NULLCOALESCE:
                     jumps.push_back({i, i, i + instr[i]._arg1, i + instr[i]._arg1, false});
                     break;
