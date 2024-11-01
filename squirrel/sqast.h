@@ -78,6 +78,7 @@
     DEF_TREE_OP(SETSLOT), \
     DEF_TREE_OP(CALL), \
     DEF_TREE_OP(TERNARY), \
+    DEF_TREE_OP(EXTERNAL_VALUE), \
     DEF_TREE_OP(EXPR_MARK), \
     DEF_TREE_OP(VAR), \
     DEF_TREE_OP(PARAM), \
@@ -409,6 +410,21 @@ private:
         SQUnsignedInteger raw;
     } _v;
 
+};
+
+// Used in the analyzer for external bindings
+class ExternalValueExpr : public Expr {
+public:
+    ExternalValueExpr(const SQObject &from) : Expr(TO_EXTERNAL_VALUE), _value(from) {}
+
+    void visitChildren(Visitor *visitor) {}
+    void transformChildren(Transformer *transformer) {}
+
+    SQObject& value() { return _value; }
+    const SQObject& value() const { return _value; }
+
+private:
+    SQObject _value;
 };
 
 enum IncForm {
@@ -1057,6 +1073,7 @@ public:
     virtual void visitDeclExpr(DeclExpr *expr) { visitExpr(expr); }
     virtual void visitArrayExpr(ArrayExpr *expr) { visitExpr(expr); }
     virtual void visitCommaExpr(CommaExpr *expr) { visitExpr(expr); }
+    virtual void visitExternalValueExpr(ExternalValueExpr *expr) { visitExpr(expr); }
 
     virtual void visitStmt(Statement *stmt) { visitNode(stmt); }
     virtual void visitBlock(Block *block) { visitStmt(block); }
@@ -1118,6 +1135,7 @@ public:
   virtual Node *transformDeclExpr(DeclExpr *expr) { return transformExpr(expr); }
   virtual Node *transformArrayExpr(ArrayExpr *expr) { return transformExpr(expr); }
   virtual Node *transformCommaExpr(CommaExpr *expr) { return transformExpr(expr); }
+  virtual Node *transformExternalValueExpr(ExternalValueExpr *expr) { return transformExpr(expr); }
 
   virtual Node *transformStmt(Statement *stmt) { return transformNode(stmt); }
   virtual Node *transformBlock(Block *block) { return transformStmt(block); }
@@ -1239,6 +1257,8 @@ void Node::visit(V *visitor) {
         visitor->visitCallExpr(static_cast<CallExpr *>(this)); return;
     case TO_TERNARY:
         visitor->visitTerExpr(static_cast<TerExpr *>(this)); return;
+    case TO_EXTERNAL_VALUE:
+        visitor->visitExternalValueExpr(static_cast<ExternalValueExpr *>(this)); return;
         //case TO_EXPR_MARK:
     case TO_VAR:
         visitor->visitVarDecl(static_cast<VarDecl *>(this)); return;
@@ -1353,6 +1373,8 @@ Node *Node::transform(T *transformer) {
     return transformer->transformCallExpr(static_cast<CallExpr *>(this));
   case TO_TERNARY:
     return transformer->transformTerExpr(static_cast<TerExpr *>(this));
+  case TO_EXTERNAL_VALUE:
+    return transformer->transformExternalValueExpr(static_cast<ExternalValueExpr *>(this));
     //case TO_EXPR_MARK:
   case TO_VAR:
     return transformer->transformVarDecl(static_cast<VarDecl *>(this));

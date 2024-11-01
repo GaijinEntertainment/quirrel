@@ -1,4 +1,4 @@
-WARNING: w288 (param-count) Function '(w288.nut:5)' is called with the wrong number of parameters.
+WARNING: w288 (param-count) Function '(w288.nut:5)' (2..2147483647 parameters) is called with the wrong number of arguments (1).
 testData/static_analyzer/w288.nut:8:7
 
 local b = 1;

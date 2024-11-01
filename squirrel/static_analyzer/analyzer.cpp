@@ -4,7 +4,11 @@
 #include <unordered_set>
 #include <vector>
 #include <algorithm>
+#include <climits>
 #include "../sqtable.h"
+#include "../sqfuncproto.h"
+#include "../sqclosure.h"
+// #include "../sqast_tree_dump.h"
 
 namespace SQCompilation {
 
@@ -2421,6 +2425,7 @@ struct SymbolInfo {
     const EnumDecl *e;
     const ConstDecl *c;
     const EnumConst *ec;
+    const ExternalValueExpr *ev;
   } declarator;
 
   enum SymbolKind kind;
@@ -2464,6 +2469,8 @@ struct SymbolInfo {
       return declarator.ec->val;
     case SK_PARAM:
       return declarator.p;
+    case SK_EXTERNAL_BINDING:
+      return declarator.ev;
     default:
       assert(0);
       return nullptr;
@@ -3001,13 +3008,15 @@ class CheckerVisitor : public Visitor {
   void applyKnownInvocationToScope(const ValueRef *ref);
   void applyUnknownInvocationToScope();
 
+  const ExternalValueExpr *findExternalValue(const Expr *e);
+  const SQFunctionProto *findExternalFunction(const Expr *e);
   const FunctionInfo *findFunctionInfo(const Expr *e, bool &isCtor);
 
   void setValueFlags(const Expr *lvalue, unsigned pf, unsigned nf);
   const ValueRef *findValueForExpr(const Expr *e);
-  const Expr *maybeEval(const Expr *e, int32_t &evalId, std::unordered_set<const Expr *> &visited);
-  const Expr *maybeEval(const Expr *e, int32_t &evalId);
-  const Expr *maybeEval(const Expr *e);
+  const Expr *maybeEval(const Expr *e, int32_t &evalId, std::unordered_set<const Expr *> &visited, bool allow_external = false);
+  const Expr *maybeEval(const Expr *e, int32_t &evalId, bool allow_external = false);
+  const Expr *maybeEval(const Expr *e, bool allow_external = false);
 
   const SQChar *findFieldName(const Expr *e);
 
@@ -3088,7 +3097,7 @@ public:
   void visitEnumDecl(EnumDecl *enm);
   void visitDestructuringDecl(DestructuringDecl *decl);
 
-  void analyze(RootBlock *root);
+  void analyze(RootBlock *root, const HSQOBJECT *bindings);
 };
 
 void VarScope::checkUnusedSymbols(CheckerVisitor *checker) {
@@ -4782,32 +4791,59 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
 
   bool dummy;
   const FunctionInfo *info = findFunctionInfo(callExpr->callee(), dummy);
+  const SQFunctionProto *proto = nullptr;
 
-  if (!info)
-    return;
+  const SQChar *funcName;
+  int numParams;
+  int dpParameters;
+  bool isVararg;
 
-  const FunctionDecl *decl = info->declaration;
-  const auto &params = decl->parameters();
-  const auto &paramsNames = info->parameters;
+  if (info) {
+    const FunctionDecl *decl = info->declaration;
+    funcName = decl->name();
+    numParams = info->parameters.size();
+    isVararg = decl->isVararg();
+
+    dpParameters = 0;
+    for (auto &p : decl->parameters()) {
+      if (p->hasDefaultValue())
+        ++dpParameters;
+    }
+  }
+  else {
+    proto = findExternalFunction(callExpr->callee());
+    if (!proto)
+      return;
+
+    funcName = sq_isstring(proto->_name) ? _stringval(proto->_name) : _SC("unknown");
+    numParams = proto->_nparameters - 1; // not counting 'this'
+    isVararg = proto->_varparams;
+    dpParameters = proto->_ndefaultparams;
+  }
+
+  const int effectiveParamSizeUP = isVararg ? numParams - 1 : numParams;
+  const int effectiveParamSizeLB = effectiveParamSizeUP - dpParameters;
+  const int maxParamSize = isVararg ? INT_MAX : effectiveParamSizeUP;
+
   const auto &args = callExpr->arguments();
 
-  const size_t effectiveParamSizeUP = decl->isVararg() ? paramsNames.size() - 1 : paramsNames.size();
-  int32_t dpParameters = 0;
-
-  for (auto &p : params) {
-    if (p->hasDefaultValue())
-      ++dpParameters;
-  }
-
-  const size_t effectiveParamSizeLB = effectiveParamSizeUP - dpParameters;
-  const size_t maxParamSize = decl->isVararg() ? SIZE_MAX : effectiveParamSizeUP;
-
   if (!(effectiveParamSizeLB <= args.size() && args.size() <= maxParamSize)) {
-    report(callExpr, DiagnosticsId::DI_PARAM_COUNT_MISMATCH, decl->name());
+    report(callExpr, DiagnosticsId::DI_PARAM_COUNT_MISMATCH, funcName,
+      effectiveParamSizeLB, maxParamSize, args.size());
   }
 
-  for (int i = 0; i < paramsNames.size(); ++i) {
-    const SQChar *paramName = paramsNames[i];
+  for (int i = 0; i < numParams; ++i) {
+    const SQChar *paramName;
+    if (info) paramName = info->parameters[i];
+    else if (proto) {
+      if (!sq_isstring(proto->_parameters[i + 1])) continue;
+      paramName = _stringval(proto->_parameters[i + 1]);
+    }
+    else {
+      assert(0);
+      continue;
+    }
+
     for (int j = 0; j < args.size(); ++j) {
       const Expr *arg = args[j];
       const SQChar *possibleArgName = nullptr;
@@ -4825,7 +4861,7 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
       normalizeParamName(possibleArgName, buffer);
 
       if (i != j) {
-        if (strcmp("vargv", paramName) != 0 || (j != paramsNames.size())) {
+        if (strcmp("vargv", paramName) != 0 || (j != numParams)) {
           if (strcmp(paramName, buffer) == 0) {  // -V575
             report(arg, DiagnosticsId::DI_PARAM_POSITION_MISMATCH, paramName);
           }
@@ -7295,17 +7331,17 @@ bool CheckerVisitor::couldBeString(const Expr *e) {
   return false;
 }
 
-const Expr *CheckerVisitor::maybeEval(const Expr *e) {
+const Expr *CheckerVisitor::maybeEval(const Expr *e, bool allow_external) {
   int32_t dummy = -1;
-  return maybeEval(e, dummy);
+  return maybeEval(e, dummy, allow_external);
 }
 
-const Expr *CheckerVisitor::maybeEval(const Expr *e, int32_t &evalId) {
+const Expr *CheckerVisitor::maybeEval(const Expr *e, int32_t &evalId, bool allow_external) {
   std::unordered_set<const Expr *> visited;
-  return maybeEval(e, evalId, visited);
+  return maybeEval(e, evalId, visited, allow_external);
 }
 
-const Expr *CheckerVisitor::maybeEval(const Expr *e, int32_t &evalId, std::unordered_set<const Expr *> &visited) {
+const Expr *CheckerVisitor::maybeEval(const Expr *e, int32_t &evalId, std::unordered_set<const Expr *> &visited, bool allow_external) {
 
   if (visited.find(e) != visited.end())
     return e;
@@ -7321,7 +7357,9 @@ const Expr *CheckerVisitor::maybeEval(const Expr *e, int32_t &evalId, std::unord
 
   evalId = v->evalIndex;
   if (v->hasValue()) {
-    return maybeEval(v->expression, evalId, visited);
+    if (!allow_external && v->expression && v->expression->op() == TO_EXTERNAL_VALUE)
+      return e;
+    return maybeEval(v->expression, evalId, visited, allow_external);
   }
   else {
     return e;
@@ -7367,6 +7405,42 @@ void CheckerVisitor::computeNameRef(const GetFieldExpr *access, SQChar *b, int32
   b[ptr++] = '.';
   int32_t l = snprintf(&b[ptr], size - ptr, "%s", access->fieldName());
   ptr += l;
+}
+
+const ExternalValueExpr *CheckerVisitor::findExternalValue(const Expr *e) {
+  const Expr *ee = maybeEval(e, true);
+
+  if (ee->op() == TO_EXTERNAL_VALUE)
+    return static_cast<const ExternalValueExpr *>(ee);
+
+  SQChar buffer[128] = { 0 };
+  const SQChar *name = computeNameRef(ee, buffer, sizeof buffer);
+  if (!name)
+    return nullptr;
+
+  const ValueRef *v = findValueInScopes(name);
+
+  if (!v || !v->hasValue())
+    return nullptr;
+
+  const Expr *expr = maybeEval(v->expression, true);
+
+  if (expr->op() == TO_EXTERNAL_VALUE)
+    return static_cast<const ExternalValueExpr *>(expr);
+
+  return nullptr;
+}
+
+const SQFunctionProto *CheckerVisitor::findExternalFunction(const Expr *e) {
+  auto ev = findExternalValue(e);
+
+  if (ev) {
+    auto &v = ev->value();
+    if (sq_isclosure(v)) return _closure(v)->_function;
+    if (sq_isfunction(v)) return _funcproto(v);
+  }
+
+  return nullptr;
 }
 
 const FunctionInfo *CheckerVisitor::findFunctionInfo(const Expr *e, bool &isCtor) {
@@ -7664,8 +7738,41 @@ void CheckerVisitor::visitDestructuringDecl(DestructuringDecl *d) {
   Visitor::visitDestructuringDecl(d);
 }
 
-void CheckerVisitor::analyze(RootBlock *root) {
+void CheckerVisitor::analyze(RootBlock *root, const HSQOBJECT *bindings) {
+  assert(currentScope == nullptr);
+  VarScope rootScope(nullptr, nullptr);
+  currentScope = &rootScope;
+
+  if (bindings && sq_istable(*bindings)) {
+    SQTable *table = _table(*bindings);
+
+    SQInteger idx = 0;
+    SQObjectPtr pos(idx), key, val;
+
+    while ((idx = table->Next(false, pos, key, val)) >= 0) {
+      if (sq_isstring(key)) {
+        const SQChar *name = _string(key)->_val;
+
+        SymbolInfo *info = makeSymbolInfo(SK_EXTERNAL_BINDING);
+        ValueRef *v = makeValueRef(info);
+        ExternalValueExpr *ev = new(arena) ExternalValueExpr(val);
+
+        info->declarator.ev = ev;
+        v->state = VRS_INITIALIZED;
+        v->expression = ev;
+        if (sq_isnull(val)) v->flagsPositive |= RT_NULL;
+        // TODO: could create LiteralExpr for some values
+
+        declareSymbol(name, v);
+      }
+      pos._unVal.nInteger = idx;
+    }
+  }
+
   root->visit(this);
+
+  rootScope.parent = nullptr;
+  currentScope = nullptr;
 }
 
 class NameShadowingChecker : public Visitor {
@@ -8141,7 +8248,7 @@ void StaticAnalyzer::mergeKnownBindings(const HSQOBJECT *bindings) {
 void StaticAnalyzer::runAnalysis(RootBlock *root, const HSQOBJECT *bindings)
 {
   mergeKnownBindings(bindings);
-  CheckerVisitor(_ctx).analyze(root);
+  CheckerVisitor(_ctx).analyze(root, bindings);
   NameShadowingChecker(_ctx, bindings).analyze(root);
 }
 

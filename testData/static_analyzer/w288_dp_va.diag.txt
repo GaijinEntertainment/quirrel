@@ -1,4 +1,4 @@
-WARNING: w288 (param-count) Function 'foo' is called with the wrong number of parameters.
+WARNING: w288 (param-count) Function 'foo' (1..3 parameters) is called with the wrong number of arguments (4).
 testData/static_analyzer/w288_dp_va.nut:14:0
 
 foo(10, 20, 30, 40)
@@ -6,7 +6,7 @@ foo(10, 20, 30, 40)
 foo(10, 20, 30)
 
 
-WARNING: w288 (param-count) Function 'foo' is called with the wrong number of parameters.
+WARNING: w288 (param-count) Function 'foo' (1..3 parameters) is called with the wrong number of arguments (0).
 testData/static_analyzer/w288_dp_va.nut:18:0
 
 foo(10)
@@ -14,7 +14,7 @@ foo()
 ^----
 
 
-WARNING: w288 (param-count) Function 'bar' is called with the wrong number of parameters.
+WARNING: w288 (param-count) Function 'bar' (2..2147483647 parameters) is called with the wrong number of arguments (0).
 testData/static_analyzer/w288_dp_va.nut:21:0
 
 bar()
@@ -22,7 +22,7 @@ bar()
 bar(10)
 
 
-WARNING: w288 (param-count) Function 'bar' is called with the wrong number of parameters.
+WARNING: w288 (param-count) Function 'bar' (2..2147483647 parameters) is called with the wrong number of arguments (1).
 testData/static_analyzer/w288_dp_va.nut:22:0
 
 bar()
