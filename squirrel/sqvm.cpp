@@ -403,8 +403,13 @@ bool SQVM::ToString(const SQObjectPtr &o,SQObjectPtr &res)
     case OT_STRING:
         res = o;
         return true;
-    case OT_FLOAT:
-        scsprintf(_sp(NUMBER_MAX_CHAR+1),NUMBER_MAX_CHAR,_SC("%g"),_float(o));
+    case OT_FLOAT: {
+            char * p = _sp(NUMBER_MAX_CHAR+1);
+            int i = scsprintf(p, NUMBER_MAX_CHAR, _SC("%g"), _float(o));
+            for (; i >= 0; i--)
+                if (p[i] == ',')
+                    p[i] = '.';
+        }
         break;
     case OT_INTEGER:
         scsprintf(_sp(NUMBER_MAX_CHAR+1),NUMBER_MAX_CHAR,_PRINT_INT_FMT,_integer(o));
