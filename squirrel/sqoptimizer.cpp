@@ -115,14 +115,29 @@ void SQOptimizer::optimizeConstFolding()
                 if ((s == _OP_ADD || s == _OP_SUB || s == _OP_MUL || s == _OP_DIV || s == _OP_MOD || s == _OP_BITW) &&
                         (loadA.op == _OP_LOADINT || loadA.op == _OP_LOADFLOAT) &&
                         (loadB.op == _OP_LOADINT || loadB.op == _OP_LOADFLOAT) &&
-                        loadB._arg0 == operation._arg1 && loadA._arg0 == operation._arg2 && !isUnsafeRange(i, 3)) {
+                        ((loadB._arg0 == operation._arg2 && loadA._arg0 == operation._arg1) ||
+                        (loadB._arg0 == operation._arg1 && loadA._arg0 == operation._arg2))
+                        && !isUnsafeJumpRange(i, 3)) {
 
                     bool applyOpt = true;
+                    const bool reversed = (loadB._arg0 == operation._arg2 && loadA._arg0 == operation._arg1);
+                    bool removeLoadAVar = false, removeLoadBVar = false;
+                    if (!isLocalVarInstructions(i, 3))
+                        removeLoadAVar = removeLoadBVar = true;
+                    else if (!isLocalVarInstructions(i, 2))
+                        removeLoadAVar = true;
+                    else if (!isLocalVarInstructions(i + 1, 2))
+                        removeLoadBVar = true;
+                    const int targetInst = removeLoadAVar ? i : removeLoadBVar ? i + 1 : i + 2;
 
                     if (loadA.op == _OP_LOADINT && loadB.op == _OP_LOADINT) {
                         SQInteger res = 0;
                         SQInt32 lv = loadA._arg1;
                         SQInt32 rv = loadB._arg1;
+                        if (reversed)
+                        {
+                            SQInt32 t = lv; lv = rv; rv = t;
+                        }
                         switch (s) {
                             case _OP_ADD: res = SQInteger(lv) + SQInteger(rv); break;
                             case _OP_SUB: res = SQInteger(lv) - SQInteger(rv); break;
@@ -156,7 +171,6 @@ void SQOptimizer::optimizeConstFolding()
                             applyOpt = false;
 
                         if (applyOpt) {
-                            const int targetInst = i;
                             instr[targetInst]._arg1 = (SQInt32)res;
                             instr[targetInst]._arg0 = operation._arg0;
                             instr[targetInst].op = _OP_LOADINT;
@@ -169,8 +183,12 @@ void SQOptimizer::optimizeConstFolding()
                     } else { // float
                         assert(sizeof(SQFloat) == sizeof(SQInt32));
                         SQFloat res = 0;
-                        SQFloat lv = (loadA.op == _OP_LOADFLOAT) ? *((SQFloat *) &loadA._arg1) : SQFloat(loadA._arg1);
-                        SQFloat rv = (loadB.op == _OP_LOADFLOAT) ? *((SQFloat *) &loadB._arg1) : SQFloat(loadB._arg1);
+                        SQFloat lv = (loadA.op == _OP_LOADFLOAT) ? loadA._farg1 : SQFloat(loadA._arg1);
+                        SQFloat rv = (loadB.op == _OP_LOADFLOAT) ? loadB._farg1 : SQFloat(loadB._arg1);
+                        if (reversed)
+                        {
+                            SQFloat t = lv; lv = rv; rv = t;
+                        }
                         switch (s) {
                             case _OP_ADD: res = lv + rv; break;
                             case _OP_SUB: res = lv - rv; break;
@@ -185,7 +203,6 @@ void SQOptimizer::optimizeConstFolding()
                         }
 
                         if (applyOpt) {
-                            const int targetInst = i;
                             instr[targetInst].op = _OP_LOADFLOAT;
                             instr[targetInst]._farg1 = res;
                             instr[targetInst]._arg0 = operation._arg0;
@@ -196,8 +213,17 @@ void SQOptimizer::optimizeConstFolding()
                             #endif
                         }
                     }
-                    if (applyOpt)
-                        cutRange(i, 3, 1);
+                    if (applyOpt && (removeLoadAVar || removeLoadBVar))
+                    {
+                        if (removeLoadAVar && removeLoadBVar)
+                            cutRange(i, 3, 1);
+                        else
+                        {
+                            if (removeLoadAVar)
+                                cutRange(i, 1, 0);
+                            cutRange(i + 1, 2, 1);
+                        }
+                    }
                 }
             }
             if (i + 2 < instr.size()) {
