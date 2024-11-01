@@ -24,21 +24,30 @@ SQOptimizer::SQOptimizer(SQFuncState & func_state) : fs(&func_state), jumps(func
 #endif
 
 
-bool SQOptimizer::isUnsafeRange(int start, int count)
+bool SQOptimizer::isUnsafeJumpRange(int start, int count) const
 {
-    for (int i = 0; i < jumps.size(); i++) {
+    for (int i = 0, ie = jumps.size(); i < ie; i++) {
         int to = jumps[i].jumpTo;
         if (to > start && to < start + count)
             return true;
     }
+    return false;
+}
 
-    for (int i = 0; i < fs->_localvarinfos.size(); i++) {
+bool SQOptimizer::isLocalVarInstructions(int start, int count) const
+{
+    for (int i = 0, ie = fs->_localvarinfos.size(); i < ie; i++) {
         int pos = int(fs->_localvarinfos[i]._start_op);
         if (pos > start && pos < start + count)
             return true;
     }
 
     return false;
+}
+
+bool SQOptimizer::isUnsafeRange(int start, int count) const
+{
+    return isUnsafeJumpRange(start, count) || isLocalVarInstructions(start, count);
 }
 
 void SQOptimizer::cutRange(int start, int old_count, int new_count)

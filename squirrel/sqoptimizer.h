@@ -11,7 +11,9 @@ struct SQOptimizer
     void optimize();
 
 private:
-    bool isUnsafeRange(int start, int count);
+    bool isUnsafeRange(int start, int count) const;
+    bool isUnsafeJumpRange(int start, int count) const;
+    bool isLocalVarInstructions(int start, int count) const;
     void cutRange(int start, int old_count, int new_count);
 
     void optimizeConstFolding();
