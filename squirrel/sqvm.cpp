@@ -898,9 +898,6 @@ exception_restore:
     {
         int prevLineNum = -1;
         int lineHint = 0;
-        SQFunctionProto *funcProto;
-        if constexpr (debughookPresent)
-            funcProto = _closure(ci->_closure)->_function;
 
         for(;;)
         {
