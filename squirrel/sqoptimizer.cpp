@@ -200,25 +200,22 @@ void SQOptimizer::optimizeConstFolding()
                 const SQInstruction loadA = instr[i];
                 int s = operation.op;
 
-                if (s == _OP_ADDI && (loadA.op == _OP_LOADINT || loadA.op == _OP_LOADFLOAT) && loadA._arg0 == operation._arg2){
+                if (s == _OP_ADDI && (loadA.op == _OP_LOADINT || loadA.op == _OP_LOADFLOAT) && loadA._arg0 == operation._arg2 && !isUnsafeRange(i, 2)){
+                    bool applyOpt = true;
                     if (loadA.op == _OP_LOADINT) {
                         SQInteger res = 0;
                         SQInt32 lv = loadA._arg1;
                         SQInt32 rv = operation._arg1;
-                        bool applyOpt = true;
                         switch (s) { // -V785
                             case _OP_ADDI: res = SQInteger(lv) + SQInteger(rv); break;
                             default: applyOpt = false; break;
                         }
 
                         if (applyOpt && res >= SQInteger(INT_MIN) && res <= SQInteger(INT_MAX)) { // -V547
-                            const bool removeLocalVar = !isUnsafeRange(i, 2);
-                            const int targetInst = removeLocalVar ? i : i + 1;
+                            const int targetInst = i;
                             instr[targetInst].op = _OP_LOADINT;
                             instr[targetInst]._arg1 = (SQInt32)res;
                             instr[targetInst]._arg0 = operation._arg0;
-                            if (removeLocalVar)
-                                cutRange(i, 2, 1);
                             changed = true;
                             codeChanged = true;
                             #ifdef _DEBUG_DUMP
@@ -230,20 +227,16 @@ void SQOptimizer::optimizeConstFolding()
                         SQFloat res = 0;
                         SQFloat lv = *((SQFloat *) &loadA._arg1);
                         SQFloat rv = SQFloat(operation._arg1);
-                        bool applyOpt = true;
                         switch (s) { // -V785
                             case _OP_ADDI: res = lv + rv; break;
                             default: applyOpt = false; break;
                         }
 
                         if (applyOpt) { // -V547
-                            const bool removeLocalVar = !isUnsafeRange(i, 2);
-                            int targetInst = removeLocalVar ? i : i + 1;
+                            int targetInst = i;
                             instr[targetInst].op = _OP_LOADFLOAT;
                             instr[targetInst]._farg1 = res;
                             instr[targetInst]._arg0 = operation._arg0;
-                            if (removeLocalVar)
-                                cutRange(i, 2, 1);
                             changed = true;
                             codeChanged = true;
                             #ifdef _DEBUG_DUMP
@@ -251,6 +244,8 @@ void SQOptimizer::optimizeConstFolding()
                             #endif
                         }
                     }
+                    if (applyOpt) // -V547
+                        cutRange(i, 2, 1);
                 }
 /*
                 // breaks code such as `for (local i = 0; i < (true ? 5 : 1); i++) { print(i); }`
