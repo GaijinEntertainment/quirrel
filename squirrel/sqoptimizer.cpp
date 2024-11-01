@@ -247,17 +247,12 @@ void SQOptimizer::optimizeConstFolding()
                     if (applyOpt) // -V547
                         cutRange(i, 2, 1);
                 }
-/*
-                // breaks code such as `for (local i = 0; i < (true ? 5 : 1); i++) { print(i); }`
-                bool isLinearBlock = false;
-                // todo: we need to check if operation.arg0 is only set in this _LOADINT.
-                // it is not an easy task in general and can be only done in SSA form or inside a linear block
-
-                if (isLinearBlock && s == _OP_JCMP && (loadA.op == _OP_LOADINT || loadA.op == _OP_LOADFLOAT || loadA.op == _OP_LOAD) &&
+                if (s == _OP_JCMP && (loadA.op == _OP_LOADINT || loadA.op == _OP_LOADFLOAT || loadA.op == _OP_LOAD) &&
                     loadA._arg0 == operation._arg0 &&
-                    ( loadA._arg1 <= 255 || (loadA.op != _OP_LOAD && operation._arg1 >= -128 && operation._arg1 <= 127) )) {
-                    const bool removeLocalVar = !isUnsafeRange(i, 2);
-                    const int targetInst = removeLocalVar ? i : i + 1;
+                    ( loadA._arg1 <= 255 || (loadA.op != _OP_LOAD && operation._arg1 >= -128 && operation._arg1 <= 127) ) &&
+                    !isUnsafeRange(i, 2))
+                {
+                    const int targetInst = i;
                     bool applyOpt = true;
                     if (loadA.op == _OP_LOAD)
                     {
@@ -287,9 +282,8 @@ void SQOptimizer::optimizeConstFolding()
                     }
                     if (applyOpt)
                     {
+                        cutRange(i, 2, 1);
                         const bool convertJumpTarget = instr[targetInst].op == _OP_JCMPI || instr[targetInst].op == _OP_JCMPF;
-                        if (removeLocalVar)
-                            cutRange(i, 2, 1);
                         if (convertJumpTarget)
                             for (int ji = 0, jie = jumps.size(); ji < jie; ji++)
                             {
@@ -308,7 +302,6 @@ void SQOptimizer::optimizeConstFolding()
                     }
 
                 }
-*/
             }
 
         } while (changed && i + 2 < instr.size());
