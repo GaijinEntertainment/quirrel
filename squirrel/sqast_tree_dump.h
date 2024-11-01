@@ -66,7 +66,10 @@ public:
 };
 
 inline std::ostream& operator << (std::ostream &output, const Node *node) {
-  if (node) const_cast<Node*>(node)->visit(&TreeDumpVisitor(output));
+  if (node) {
+    TreeDumpVisitor v(output);
+    const_cast<Node*>(node)->visit(&v);
+  }
   else output << "(null)" << std::endl;
   return output;
 }

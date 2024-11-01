@@ -6,8 +6,11 @@
 #include <algorithm>
 #include <climits>
 #include "../sqtable.h"
+#include "../sqarray.h"
+#include "../sqclass.h"
 #include "../sqfuncproto.h"
 #include "../sqclosure.h"
+#include <sqdirect.h>
 // #include "../sqast_tree_dump.h"
 
 namespace SQCompilation {
@@ -2879,6 +2882,9 @@ class CheckerVisitor : public Visitor {
   void checkNullableIndex(const GetSlotExpr *expr);
   void checkGlobalAccess(const GetFieldExpr *expr);
   void checkAccessFromStatic(const GetFieldExpr *expr);
+  void checkExternalField(const GetFieldExpr *expr);
+
+  bool hasDynamicContent(const SQObject &container);
 
   bool findIfWithTheSameCondition(const Expr * condition, const IfStatement * elseNode, const Expr *&duplicated) {
     if (_equalChecker.check(condition, elseNode->condition())) {
@@ -2985,6 +2991,9 @@ class CheckerVisitor : public Visitor {
 
   std::unordered_set<const SQChar *, StringHasher, StringEqualer> requiredModules;
   std::unordered_set<const SQChar *, StringHasher, StringEqualer> persistedKeys;
+
+  std::unordered_map<const Node *, ValueRef *> astValues;
+  std::vector<ExternalValueExpr *> externalValues;
 
   Arena *arena;
 
@@ -3095,6 +3104,9 @@ public:
   void visitConstDecl(ConstDecl *cnst);
   void visitEnumDecl(EnumDecl *enm);
   void visitDestructuringDecl(DestructuringDecl *decl);
+
+  ValueRef* addExternalValue(const SQObject &val, const Node *location);
+  void checkDestructuredVarDefault(VarDecl *var);
 
   void analyze(RootBlock *root, const HSQOBJECT *bindings);
 };
@@ -3257,6 +3269,8 @@ CheckerVisitor::~CheckerVisitor() {
     if (p.second)
       p.second->~FunctionInfo();
   }
+  for (auto ev : externalValues)
+    ev->~ExternalValueExpr();
 }
 
 void CheckerVisitor::visitNode(Node *n) {
@@ -3460,6 +3474,43 @@ void CheckerVisitor::checkAccessFromStatic(const GetFieldExpr *acc) {
   }
 
   report(acc, DiagnosticsId::DI_USED_FROM_STATIC, memberName, "static member");
+}
+
+bool CheckerVisitor::hasDynamicContent(const SQObject &container) {
+  if (!sq_istable(container))
+    return false;
+  SQObjectPtr key(_ctx.getVm(), "__dynamic_content__");
+  SQObjectPtr val;
+  return _table(container)->Get(key, val);
+}
+
+void CheckerVisitor::checkExternalField(const GetFieldExpr *acc) {
+  if (effectsOnly)
+    return;
+
+  const Expr *r = acc->receiver();
+  r = maybeEval(r, true);
+  if (r->op() != TO_EXTERNAL_VALUE)
+    return;
+
+  const auto &container = r->asExternal()->value();
+  if (sq_isinstance(container))
+    return;
+
+  SQObjectPtr key(_ctx.getVm(), acc->fieldName());
+  SQObjectPtr val;
+  if (!SQ_SUCCEEDED(sq_direct_get(_ctx.getVm(), &container, &key, &val, false))) {
+    if (!acc->isNullable() && !hasDynamicContent(container)) {
+      report(acc, DI_MISSING_FIELD, acc->fieldName(), GetTypeName(container));
+      char buf[128];
+      snprintf(buf, sizeof(buf), "source of %s", GetTypeName(container));
+      report(r, DI_SEE_OTHER, buf);
+    }
+    return;
+  }
+
+  __AddRef(val._type, val._unVal);
+  astValues[acc] = addExternalValue(val, acc);
 }
 
 static bool cannotBeNull(const Expr *e) {
@@ -4522,9 +4573,6 @@ void CheckerVisitor::checkAlreadyRequired(const CallExpr *call) {
   if (effectsOnly)
     return;
 
-  if (nodeStack.size() > 2)
-    return; // do not consider require which is not on TL
-
   if (call->arguments().size() != 1)
     return;
 
@@ -4563,10 +4611,43 @@ void CheckerVisitor::checkAlreadyRequired(const CallExpr *call) {
   if (!name)
     return;
 
-  if (strcmp(name, "require") != 0)
+  if (strcmp(name, "require") != 0 && strcmp(name, "require_optional") != 0)
     return;
 
   const SQChar *moduleName = l->s();
+
+  if (!_ctx.isRequireDisabled(call->lineStart(), call->columnStart()))
+    if (auto fv = findValueInScopes("require_optional"); fv && fv->expression && fv->expression->op() == TO_EXTERNAL_VALUE) {
+      auto vm = _ctx.getVm();
+      SQInteger top = sq_gettop(vm);
+
+      sq_pushobject(vm, fv->expression->asExternal()->value());
+      sq_pushnull(vm);
+      sq_pushstring(vm, moduleName, -1);
+
+      SQRESULT result = sq_call(vm, 2, true, false);
+      if (SQ_SUCCEEDED(result)) {
+        SQObject ret;
+        if (SQ_SUCCEEDED(sq_getstackobj(vm, -1, &ret)) && !sq_isnull(ret)) {
+          astValues[call] = addExternalValue(ret, call);
+        }
+        else if (SQCompilationContext::do_report_missing_modules) {
+          report(call, DI_MISSING_MODULE, moduleName);
+          SQObjectPtr empty;
+          astValues[call] = addExternalValue(empty, call);
+        }
+      }
+      else if (SQCompilationContext::do_report_missing_modules) {
+        report(call, DI_MISSING_MODULE, moduleName);
+        SQObjectPtr empty;
+        astValues[call] = addExternalValue(empty, call);
+      }
+
+      sq_settop(vm, top);
+    }
+
+  if (nodeStack.size() > 2)
+    return; // do not consider require which is not on TL
 
   if (requiredModules.find(moduleName) != requiredModules.end()) {
     report(call, DiagnosticsId::DI_ALREADY_REQUIRED, moduleName);
@@ -4840,7 +4921,9 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
       return;
   }
 
-  const int effectiveParamSizeUP = isVararg ? numParams - 1 : numParams;
+  if (numParams < 0) numParams = 0;
+
+  const int effectiveParamSizeUP = std::max<int>(isVararg ? numParams - 1 : numParams, 0);
   const int effectiveParamSizeLB = effectiveParamSizeUP - dpParameters;
   const int maxParamSize = isVararg ? INT_MAX : effectiveParamSizeUP;
 
@@ -4849,6 +4932,7 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
   if (!(effectiveParamSizeLB <= args.size() && args.size() <= maxParamSize)) {
     report(callExpr, DiagnosticsId::DI_PARAM_COUNT_MISMATCH, funcName,
       effectiveParamSizeLB, maxParamSize, args.size());
+    report(maybeEval(callExpr->callee(), true), DI_SEE_OTHER, "the function");
   }
 
   for (int i = 0; i < numParams; ++i) {
@@ -5320,6 +5404,8 @@ void CheckerVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
   checkAccessFromStatic(expr);
 
   Visitor::visitGetFieldExpr(expr);
+
+  checkExternalField(expr);
 }
 
 void CheckerVisitor::visitGetSlotExpr(GetSlotExpr *expr) {
@@ -7188,6 +7274,10 @@ void CheckerVisitor::setValueFlags(const Expr *lvalue, unsigned pf, unsigned nf)
 
 const ValueRef *CheckerVisitor::findValueForExpr(const Expr *e) {
   e = deparen(e);
+  if (!e) return nullptr;
+
+  if (auto it = astValues.find(e); it != astValues.end())
+    return it->second;
 
   SQChar buffer[128] = { 0 };
 
@@ -7531,6 +7621,10 @@ void CheckerVisitor::applyKnownInvocationToScope(const ValueRef *value) {
         return;
       }
     }
+    else if (expr->op() == TO_EXTERNAL_VALUE) {
+      applyUnknownInvocationToScope();
+      return;
+    }
   }
 
   if (!info) {
@@ -7654,6 +7748,7 @@ void CheckerVisitor::visitVarDecl(VarDecl *decl) {
   SymbolInfo *info = makeSymbolInfo(decl->isAssignable() ? SK_VAR : SK_BINDING);
   ValueRef *v = makeValueRef(info);
   const Expr *init = decl->initializer();
+  init = maybeEval(init, true);
   if (decl->isDestructured()) {
     v->state = VRS_UNKNOWN;
     v->expression = nullptr;
@@ -7688,6 +7783,7 @@ void CheckerVisitor::visitVarDecl(VarDecl *decl) {
   info->ownedScope = currentScope;
 
   declareSymbol(decl->name(), v);
+  astValues[decl] = v;
 }
 
 void CheckerVisitor::visitConstDecl(ConstDecl *cnst) {
@@ -7740,11 +7836,146 @@ void CheckerVisitor::visitEnumDecl(EnumDecl *enm) {
   }
 }
 
+void CheckerVisitor::checkDestructuredVarDefault(VarDecl *var) {
+  const Expr *def = var->initializer();
+  def = maybeEval(def, true);
+  if (def) {
+    auto vv = astValues[var];
+    assert(vv);
+    vv->state = VRS_INITIALIZED;
+    vv->expression = def;
+  }
+  else {
+    report(var, DiagnosticsId::DI_MISSING_DESTRUCTURED_VALUE, var->name());
+  }
+}
+
 void CheckerVisitor::visitDestructuringDecl(DestructuringDecl *d) {
 
   checkAccessNullable(d);
 
   Visitor::visitDestructuringDecl(d);
+
+  if (auto v = findValueForExpr(d->initExpression()); v && v->hasValue() && v->expression) {
+    if (v->expression->op() == TO_EXTERNAL_VALUE) {
+      const auto &init = v->expression->asExternal()->value();
+      if (sq_isnull(init)) {
+        for (auto var : d->declarations()) {
+          checkDestructuredVarDefault(var);
+        }
+      }
+      else if (sq_istable(init)) {
+        if (d->type() == DT_TABLE) {
+          auto table = _table(init);
+          for (auto var : d->declarations()) {
+            SQObjectPtr val;
+            if (table->GetStr(var->name(), strlen(var->name()), val)) {
+              auto vv = astValues[var];
+              assert(vv);
+              vv->state = VRS_INITIALIZED;
+              vv->expression = addExternalValue(val, var)->expression;
+            }
+            else {
+              checkDestructuredVarDefault(var);
+            }
+          }
+        }
+        else {
+          report(d, DiagnosticsId::DI_DESTRUCTURED_TYPE_MISMATCH, "table");
+        }
+      }
+      else if (sq_isclass(init)) {
+        if (d->type() == DT_TABLE) {
+          auto klass = _class(init);
+          for (auto var : d->declarations()) {
+            SQObjectPtr key(_ctx.getVm(), var->name());
+            SQObjectPtr val;
+            if (klass->Get(key, val)) {
+              auto vv = astValues[var];
+              assert(vv);
+              vv->state = VRS_INITIALIZED;
+              vv->expression = addExternalValue(val, var)->expression;
+            }
+            else {
+              checkDestructuredVarDefault(var);
+            }
+          }
+        }
+        else {
+          report(d, DiagnosticsId::DI_DESTRUCTURED_TYPE_MISMATCH, "class");
+        }
+      }
+      else if (sq_isinstance(init)) {
+        if (d->type() == DT_TABLE) {
+          auto inst = _instance(init);
+          for (auto var : d->declarations()) {
+            SQObjectPtr key(_ctx.getVm(), var->name());
+            SQObjectPtr val;
+            if (inst->Get(key, val)) {
+              auto vv = astValues[var];
+              assert(vv);
+              vv->state = VRS_INITIALIZED;
+              vv->expression = addExternalValue(val, var)->expression;
+            }
+            else {
+              checkDestructuredVarDefault(var);
+            }
+          }
+        }
+        else {
+          report(d, DiagnosticsId::DI_DESTRUCTURED_TYPE_MISMATCH, "instance");
+        }
+      }
+      else if (sq_isarray(init)) {
+        if (d->type() == DT_ARRAY) {
+          auto array = _array(init);
+          SQInteger index = 0;
+          for (auto var : d->declarations()) {
+            SQObjectPtr val;
+            if (array->Get(index, val)) {
+              auto vv = astValues[var];
+              assert(vv);
+              vv->state = VRS_INITIALIZED;
+              vv->expression = addExternalValue(val, var)->expression;
+            }
+            else {
+              checkDestructuredVarDefault(var);
+            }
+            index++;
+          }
+        }
+        else {
+          report(d, DiagnosticsId::DI_DESTRUCTURED_TYPE_MISMATCH, "array");
+        }
+      }
+      else {
+        report(d, DiagnosticsId::DI_DESTRUCTURED_TYPE_MISMATCH, GetTypeName(init));
+      }
+    }
+    else if (v->expression->op() == TO_TABLE) {
+      // TODO: check table destructuring
+    }
+    else if (v->expression->op() == TO_ARRAYEXPR) {
+      // TODO: check array destructuring
+    }
+  }
+}
+
+ValueRef* CheckerVisitor::addExternalValue(const SQObject &val, const Node *location) {
+  SymbolInfo *info = makeSymbolInfo(SK_EXTERNAL_BINDING);
+  ValueRef *v = makeValueRef(info);
+  ExternalValueExpr *ev = new(arena) ExternalValueExpr(val);
+  if (location)
+    ev->copyLocationFrom(*location);
+  externalValues.push_back(ev);
+
+  info->declarator.ev = ev;
+  v->state = VRS_INITIALIZED;
+  v->expression = ev;
+  if (sq_isnull(val)) v->flagsPositive |= RT_NULL;
+  // TODO: could create LiteralExpr for some values
+
+  return v;
 }
 
 void CheckerVisitor::analyze(RootBlock *root, const HSQOBJECT *bindings) {
@@ -7761,18 +7992,7 @@ void CheckerVisitor::analyze(RootBlock *root, const HSQOBJECT *bindings) {
     while ((idx = table->Next(false, pos, key, val)) >= 0) {
       if (sq_isstring(key)) {
         const SQChar *name = _string(key)->_val;
-
-        SymbolInfo *info = makeSymbolInfo(SK_EXTERNAL_BINDING);
-        ValueRef *v = makeValueRef(info);
-        ExternalValueExpr *ev = new(arena) ExternalValueExpr(val);
-
-        info->declarator.ev = ev;
-        v->state = VRS_INITIALIZED;
-        v->expression = ev;
-        if (sq_isnull(val)) v->flagsPositive |= RT_NULL;
-        // TODO: could create LiteralExpr for some values
-
-        declareSymbol(name, v);
+        declareSymbol(name, addExternalValue(val, root));
       }
       pos._unVal.nInteger = idx;
     }

@@ -153,7 +153,13 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(RELATIVE_CMP_BOOL, WARNING, SEMA, 305, "relative-bool-cmp", "Relative comparison non-boolean with boolean. It is potential runtime error"), \
   DEF_DIAGNOSTIC(EQ_PAREN_MISSED, WARNING, SEMA, 306, "eq-paren-miss", "Suspicious expression, probably parens are missed."), \
   DEF_DIAGNOSTIC(GLOBAL_NAME_REDEF, WARNING, SEMA, 307, "global-id-redef", "Redefinition of existed global name '%s'."), \
-  DEF_DIAGNOSTIC(BOOL_LAMBDA_REQUIRED, WARNING, SEMA, 308, "bool-lambda-required", "Function '%s' reuires lambda which returns boolean.")
+  DEF_DIAGNOSTIC(BOOL_LAMBDA_REQUIRED, WARNING, SEMA, 308, "bool-lambda-required", "Function '%s' requires lambda which returns boolean."), \
+  DEF_DIAGNOSTIC(MISSING_DESTRUCTURED_VALUE, WARNING, SEMA, 309, "missing-destructured-value", "No value for '%s' in destructured declaration."), \
+  DEF_DIAGNOSTIC(DESTRUCTURED_TYPE_MISMATCH, WARNING, SEMA, 310, "destructured-type", "Destructured type mismatch, right side is %s."), \
+  DEF_DIAGNOSTIC(WRONG_TYPE, WARNING, SEMA, 311, "wrong-type", "Wrong type: expected %s, got %s."), \
+  DEF_DIAGNOSTIC(MISSING_FIELD, WARNING, SEMA, 312, "missing-field", "No field '%s' in %s."), \
+  DEF_DIAGNOSTIC(MISSING_MODULE, HINT, SEMA, 313, "missing-module", "Module '%s' not found, or it returns null."), \
+  DEF_DIAGNOSTIC(SEE_OTHER, HINT, SEMA, 314, "see-other", "You can find %s here.")
 
 namespace SQCompilation {
 
@@ -222,12 +228,14 @@ public:
   const SQChar *sourceName() const { return _sourceName; }
 
   SQAllocContext allocContext() const { return _ss(_vm)->_alloc_ctx; }
+  SQVM *getVm() const { return _vm; }
 
   static void vrenderDiagnosticHeader(enum DiagnosticsId diag, std::string &msg, va_list args);
   static void renderDiagnosticHeader(enum DiagnosticsId diag, std::string *msg, ...);
   void vreportDiagnostic(enum DiagnosticsId diag, int32_t line, int32_t pos, int32_t width, va_list args);
   void reportDiagnostic(enum DiagnosticsId diag, int32_t line, int32_t pos, int32_t width, ...);
   bool isDisabled(enum DiagnosticsId id, int line, int pos);
+  bool isRequireDisabled(int line, int col);
 
   static void printAllWarnings(FILE *ostream);
   static void flipWarningsState();
@@ -240,6 +248,8 @@ public:
   static void resetConfig();
   static bool loadConfigFile(const KeyValueFile &configBlk);
   static bool loadConfigFile(const char *configFile);
+
+  static bool do_report_missing_modules;
 
   static std::vector<std::string> function_can_return_string;
   static std::vector<std::string> function_should_return_bool_prefix;

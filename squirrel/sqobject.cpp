@@ -46,6 +46,11 @@ const SQChar *GetTypeName(const SQObjectPtr &obj1)
     return IdType2Name(sq_type(obj1));
 }
 
+SQObjectPtr::SQObjectPtr(SQVM *vm, const SQChar *str, SQInteger len)
+    : SQObjectPtr(SQString::Create(vm->_sharedstate, str, len))
+{
+}
+
 SQString *SQString::Create(SQSharedState *ss,const SQChar *s,SQInteger len)
 {
     SQString *str=ADD_STRING(ss,s,len);

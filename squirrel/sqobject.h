@@ -223,6 +223,8 @@ struct SQObjectPtr : public SQObject
     _SCALAR_TYPE_DECL(OT_FLOAT,SQFloat,fFloat)
     _SCALAR_TYPE_DECL(OT_USERPOINTER,SQUserPointer,pUserPointer)
 
+    SQObjectPtr(SQVM *vm, const SQChar *str, SQInteger len = -1);
+
     SQObjectPtr(bool bBool)
     {
         memset(this, 0, sizeof(SQObjectPtr));

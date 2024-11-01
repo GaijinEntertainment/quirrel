@@ -68,6 +68,8 @@ const Comments::LineCommentsList &Comments::lineComment(int line) const {
   return _commentsList[line];
 }
 
+bool SQCompilationContext::do_report_missing_modules = false;
+
 std::vector<std::string> SQCompilationContext::function_forbidden;
 std::vector<std::string> SQCompilationContext::format_function_name;
 std::vector<std::string> SQCompilationContext::function_can_return_string;
@@ -157,7 +159,8 @@ void SQCompilationContext::resetConfig() {
   function_can_return_null = {
     "indexof",
     "findindex",
-    "findvalue"
+    "findvalue",
+    "require_optional"
   };
 
   function_takes_boolean_lambda = {
@@ -250,6 +253,8 @@ bool SQCompilationContext::loadConfigFile(const char *configFile) {
 }
 
 bool SQCompilationContext::loadConfigFile(const KeyValueFile &config) {
+  do_report_missing_modules = config.getBool("report_missing_modules", false);
+
   //for (auto && v : config.getValuesList("format_function_name"))
   //{
   //  string functionName(v);
@@ -370,6 +375,19 @@ void SQCompilationContext::switchSyntaxWarningsState(bool state) {
       diag.disabled = !state;
     }
   }
+}
+
+bool SQCompilationContext::isRequireDisabled(int line, int col) {
+  if (!_comments)
+    return false;
+
+  auto &lineCmts = _comments->lineComment(line);
+  for (auto &comment : lineCmts) {
+    if (strstr(comment.text, "-skip-require"))
+      return true;
+  }
+
+  return false;
 }
 
 bool SQCompilationContext::isDisabled(enum DiagnosticsId id, int line, int pos) {

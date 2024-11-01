@@ -161,6 +161,8 @@ public:
 
     int textWidth() const { return columnEnd() - columnStart(); }
 
+    void copyLocationFrom(const Node &from) { _coordinates = from._coordinates; }
+
 private:
 
   struct {
@@ -179,6 +181,7 @@ class LiteralExpr;
 class DeclExpr;
 class BinExpr;
 class CallExpr;
+class ExternalValueExpr;
 
 class Expr : public Node {
 protected:
@@ -191,6 +194,7 @@ public:
     DeclExpr *asDeclExpr() const { assert(op() == TO_DECL_EXPR); return (DeclExpr *)this; }
     BinExpr *asBinExpr() const { assert(TO_NULLC <= op() && op() <= TO_MODEQ); return (BinExpr *)this; }
     CallExpr *asCallExpr() const { assert(op() == TO_CALL); return (CallExpr *)this; }
+    ExternalValueExpr *asExternal() const { assert(op() == TO_EXTERNAL_VALUE); return (ExternalValueExpr *)this; }
 };
 
 
@@ -420,11 +424,11 @@ public:
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
 
-    SQObject& value() { return _value; }
-    const SQObject& value() const { return _value; }
+    SQObjectPtr& value() { return _value; }
+    const SQObjectPtr& value() const { return _value; }
 
 private:
-    SQObject _value;
+    SQObjectPtr _value;
 };
 
 enum IncForm {
