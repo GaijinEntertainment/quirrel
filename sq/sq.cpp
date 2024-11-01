@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <string>
+#include <vector>
 
 #if defined(_MSC_VER) && defined(_DEBUG)
 #include <crtdbg.h>
@@ -64,24 +65,23 @@ void PrintVersionInfos()
 
 void PrintUsage()
 {
-    fprintf(stderr,_SC("usage: sq <options> <scriptpath [args]>.\n")
+    fprintf(stderr,_SC("Usage: sq <scriptpath [args]> [options]\n")
         _SC("Available options are:\n")
-        _SC("   -c               compiles the file to bytecode(default output 'out.cnut')\n")
-        _SC("   -o               specifies output file for the -c option\n")
-        _SC("   -ast-dump [file] dump AST into console or file if specified\n")
-        _SC("   -absolute-path   use absolute path when print diangostics\n")
-        _SC("   -bytecode-dump [file] dump SQ bytecode into console or file if specified\n")
-        _SC("   -c               compiles only\n")
-        _SC("   -diag-file file  write diagnostics into specified file\n")
-        _SC("   -sa              enable static analyzer\n")
-        _SC("   --inverse-warnings flip diagnostic state\n")
-        _SC("   --warnings-list  print all warnings and exit\n")
-        _SC("   -W<num>          disable diagnostic by numeric id\n")
-        _SC("   -<diagnostic_name> disable diagnostic by text id\n")
-        _SC("   -optCH           enable Closure Hoisting Optimization\n")
-        _SC("   -d               generates debug infos\n")
-        _SC("   -v               displays version infos\n")
-        _SC("   -h               prints help\n"));
+        _SC("  -c                        compiles the file to bytecode (default output 'out.cnut')\n")
+        _SC("  -o <out-file>             specifies output file for the -c option\n")
+        _SC("  -ast-dump [out-file]      dump AST into console or file if specified\n")
+        _SC("  -absolute-path            use absolute path when print diangostics\n")
+        _SC("  -bytecode-dump [out-file] dump SQ bytecode into console or file if specified\n")
+        _SC("  -diag-file file           write diagnostics into specified file\n")
+        _SC("  -sa                       enable static analyzer\n")
+        _SC("  --inverse-warnings        flip diagnostic state\n")
+        _SC("  --warnings-list           print all warnings and exit\n")
+        _SC("  -W<num>                   disable diagnostic by numeric id\n")
+        _SC("  -<diagnostic-name>        disable diagnostic by text id\n")
+        _SC("  -optCH                    enable Closure Hoisting Optimization\n")
+        _SC("  -d                        generates debug infos\n")
+        _SC("  -v                        displays version\n")
+        _SC("  -h                        prints help\n"));
 }
 
 struct DumpOptions {
@@ -220,6 +220,12 @@ static bool checkOption(char *argv[], int argc, const char *option, const char *
   return false;
 }
 
+bool ends_with(const char * str, const char * suffix)
+{
+    const char * s = strstr(str, suffix);
+    return s && s[strlen(suffix)] == 0;
+}
+
 #define _INTERACTIVE 0
 #define _DONE 2
 #define _ERROR 3
@@ -238,139 +244,116 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
       sq_enablesyntaxwarnings(true);
     }
 
-    char * output = NULL;
+    std::vector<std::string> listOfNutFiles;
+
+    const char * output = NULL;
     *retval = 0;
     if(argc>1)
     {
-        int arg=1,exitloop=0;
+        int index=1, exitloop=0;
 
-        while(arg < argc && !exitloop)
+        while(index < argc && !exitloop)
         {
+            const char *arg = argv[index];
+            if (arg[0] == '-' && arg[1] == '-')
+                arg++;
 
-            if(argv[arg][0]=='-')
+            if (strcmp("-ast-dump", arg) == 0)
             {
-                switch(argv[arg][1])
+                dumpOpt.astDump = true;
+                if ((index + 1) < argc && argv[index + 1][0] != '-' && !ends_with(argv[index + 1], ".nut"))
+                    dumpOpt.astDumpFileName = argv[++index];
+            }
+            else if (strcmp("-absolute-path", arg) == 0)
+            {
+                module_mgr->compilationOptions.useAbsolutePath = true;
+            }
+            else if (strcmp("-d", arg) == 0)
+            {
+                module_mgr->compilationOptions.debugInfo = true;
+                //sq_enabledebuginfo(v,1);
+                sq_lineinfo_in_expressions(v, 1);
+            }
+            else if (strcmp("-diag-file", arg) == 0)
+            {
+                if (((index + 1) < argc) && argv[index + 1][0] != '-')
                 {
-                case 'a':
-                    if (strcmp("-ast-dump", argv[arg]) == 0)
+                    const char *fileName = argv[++index];
+                    diagFile = fopen(fileName, "wb");
+                    if (diagFile == NULL)
                     {
-                        dumpOpt.astDump = true;
-                        if (((arg + 1) < argc) && argv[arg + 1][0] != '-')
-                        {
-                            dumpOpt.astDumpFileName = argv[++arg];
-                        }
+                        printf(_SC("Cannot open diagnostic output file '%s'\n"), fileName);
+                        return _ERROR;
                     }
-                    else if (strcmp("-absolute-path", argv[arg]) == 0)
-                    {
-                        module_mgr->compilationOptions.useAbsolutePath = true;
-                    }
-                    else {
-                        goto unknown_opt;
-                    }
-                    break;
-                case 'd': //DEBUG(debug infos)
-                    if (strcmp("-d", argv[arg]) == 0)
-                    {
-                        module_mgr->compilationOptions.debugInfo = true;
-                        //sq_enabledebuginfo(v,1);
-                        sq_lineinfo_in_expressions(v, 1);
-                    }
-                    else if (strcmp("-diag-file", argv[arg]) == 0)
-                    {
-                        if (((arg + 1) < argc) && argv[arg + 1][0] != '-')
-                        {
-                            const char *fileName = argv[++arg];
-                            diagFile = fopen(fileName, "wb");
-                            if (diagFile == NULL)
-                            {
-                                printf(_SC("Cannot open diagnostic output file '%s'\n"), fileName);
-                                return _ERROR;
-                            }
-                        }
-                        else
-                        {
-                            printf(_SC("-diag-file option requires file name to be specified\n"));
-                            return _ERROR;
-                        }
-                    }
-                    else
-                    {
-                        goto unknown_opt;
-                    }
-                    break;
-                case 'b':
-                    if (strcmp("-bytecode-dump", argv[arg]) == 0)
-                    {
-                      dumpOpt.bytecodeDump = 1;
-                      if (((arg + 1) < argc) && argv[arg + 1][0] != '-')
-                      {
-                          dumpOpt.bytecodeDumpFileName = argv[++arg];
-                      }
-                    }
-                    else
-                    {
-                        goto unknown_opt;
-                    }
-                    break;
-                case 'c':
-                    compiles_only = 1;
-                    break;
-                case 'o':
-                    if (strcmp("-optCH", argv[arg]) == 0) {
-                        sq_setcompilationoption(v, CompilationOptions::CO_CLOSURE_HOISTING_OPT, true);
-                        break;
-                    } else if(arg < argc) {
-                        arg++;
-                        output = argv[arg];
-                    }
-                    break;
-                case 'v':
-                    PrintVersionInfos();
-                    return _DONE;
-
-                case 'h':
-                    PrintVersionInfos();
-                    PrintUsage();
-                    return _DONE;
-                case 's':
-                    if (strcmp("-sa", argv[arg]) == 0) {
-                        static_analysis = true;
-                        break;
-                    }
-                case 'w':
-                case 'W':
-                    if (isdigit(argv[arg][2])) {
-                      int id = atoi(&argv[arg][2]);
-                      if (!sq_setdiagnosticstatebyid(id, false)) {
-                        printf("Unknown warning ID %s\n", &argv[arg][2]);
-                      }
-                    }
-                    break;
-                case '-':
-                    if (strcmp(argv[arg], "--inverse-warnings") == 0) {
-                      flip_warnigns = true;
-                    }
-                    else if (strcmp(argv[arg], "--warnings-list") == 0) {
-                      sq_printwarningslist(stdout);
-                      return _DONE;
-                    }
-                    else {
-                      goto unknown_opt;
-                    }
-                    break;
-                default:
-                    if (static_analysis && isalpha(argv[arg][1]) && sq_setdiagnosticstatebyname(argv[arg] + 1, false)) {
-                      break;
-                    }
-                unknown_opt:
-                    PrintVersionInfos();
-                    printf(_SC("unknown prameter '-%c'\n"),argv[arg][1]);
-                    PrintUsage();
-                    *retval = -1;
+                }
+                else
+                {
+                    printf(_SC("-diag-file option requires file name to be specified\n"));
                     return _ERROR;
                 }
-            }else break;
-            arg++;
+            }
+            else if (strcmp("-bytecode-dump", arg) == 0)
+            {
+              dumpOpt.bytecodeDump = 1;
+              if (((index + 1) < argc) && argv[index + 1][0] != '-' && !ends_with(argv[index + 1], ".nut"))
+              {
+                  dumpOpt.bytecodeDumpFileName = argv[++index];
+              }
+            }
+            else if (strcmp("-c", arg) == 0) {
+                compiles_only = 1;
+            }
+            else if (strcmp("-o", arg) == 0) {
+                index++;
+                output = arg;
+            }
+            else if (strcmp("-optCH", arg) == 0) {
+                sq_setcompilationoption(v, CompilationOptions::CO_CLOSURE_HOISTING_OPT, true);
+            }
+            else if (strcmp("-v", arg) == 0 || strcmp("--version", arg) == 0) {
+                PrintVersionInfos();
+                return _DONE;
+            }
+            else if (strcmp("-h", arg) == 0 || strcmp("--help", arg) == 0) {
+                PrintVersionInfos();
+                PrintUsage();
+                return _DONE;
+            }
+            else if (strcmp("-sa", arg) == 0) {
+                static_analysis = true;
+            }
+            else if (strcmp("-W", arg) == 0 || strcmp("-w", arg) == 0) {
+                if (isdigit(arg[2])) {
+                    int id = atoi(&arg[2]);
+                    if (!sq_setdiagnosticstatebyid(id, false)) {
+                        printf("Unknown warning ID %s\n", &arg[2]);
+                    }
+                }
+            }
+            else if (strcmp(arg, "-inverse-warnings") == 0) {
+                flip_warnigns = true;
+            }
+            else if (strcmp(arg, "-warnings-list") == 0) {
+                sq_printwarningslist(stdout);
+                return _DONE;
+            }
+            else if (arg[0] == '-' && static_analysis && isalpha(arg[1])) {
+                if (!sq_setdiagnosticstatebyname(arg + 1, false)) {
+                    printf("Unknown warning ID: '%s'", arg);
+                }
+            }
+            else if (arg[0] == '-') {
+                PrintVersionInfos();
+                printf(_SC("unknown argument '%s'\n"), arg);
+                PrintUsage();
+                *retval = -1;
+                return _ERROR;
+            }
+            else {
+                listOfNutFiles.emplace_back(std::string(arg));
+            }
+
+            index++;
         }
 
         module_mgr->up_data = &dumpOpt;
@@ -393,9 +376,13 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 
         // src file
 
-        if(arg<argc) {
-            const SQChar *filename=NULL;
-            filename=argv[arg];
+        if (listOfNutFiles.empty()) {
+            printf("Error: expected source file name\n");
+            return _ERROR;
+        }
+
+        for (const std::string & fn : listOfNutFiles) {
+            const SQChar *filename=fn.c_str();
 
             if (static_analysis) {
               sq_resetanalyzerconfig();
@@ -407,8 +394,6 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 }
               }
             }
-
-            arg++;
 
             if (compiles_only) {
                 if(SQ_SUCCEEDED(sqstd_loadfile(v,filename,SQTrue))){
