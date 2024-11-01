@@ -152,14 +152,14 @@ void SQOptimizer::optimizeConstFolding()
                             default: applyOpt = false; break;
                         }
 
-                        if (applyOpt && res >= SQInteger(INT_MIN) && res <= SQInteger(INT_MAX)) {
-                            const bool removeLocalVar = !isUnsafeRange(i, 3);
-                            const int targetInst = removeLocalVar ? i : i + 2;
+                        if (res < SQInteger(INT_MIN) || res > SQInteger(INT_MAX))
+                            applyOpt = false;
+
+                        if (applyOpt) {
+                            const int targetInst = i;
                             instr[targetInst]._arg1 = (SQInt32)res;
                             instr[targetInst]._arg0 = operation._arg0;
                             instr[targetInst].op = _OP_LOADINT;
-                            if (removeLocalVar)
-                                cutRange(i, 3, 1);
                             changed = true;
                             codeChanged = true;
                             #ifdef _DEBUG_DUMP
@@ -189,7 +189,6 @@ void SQOptimizer::optimizeConstFolding()
                             instr[targetInst].op = _OP_LOADFLOAT;
                             instr[targetInst]._farg1 = res;
                             instr[targetInst]._arg0 = operation._arg0;
-                            cutRange(i, 3, 1);
                             changed = true;
                             codeChanged = true;
                             #ifdef _DEBUG_DUMP
@@ -197,6 +196,8 @@ void SQOptimizer::optimizeConstFolding()
                             #endif
                         }
                     }
+                    if (applyOpt)
+                        cutRange(i, 3, 1);
                 }
             }
             if (i + 2 < instr.size()) {
