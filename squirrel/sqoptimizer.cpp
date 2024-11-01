@@ -115,91 +115,86 @@ void SQOptimizer::optimizeConstFolding()
                 if ((s == _OP_ADD || s == _OP_SUB || s == _OP_MUL || s == _OP_DIV || s == _OP_MOD || s == _OP_BITW) &&
                         (loadA.op == _OP_LOADINT || loadA.op == _OP_LOADFLOAT) &&
                         (loadB.op == _OP_LOADINT || loadB.op == _OP_LOADFLOAT) &&
-                        loadB._arg0 == operation._arg1 && loadA._arg0 == operation._arg2) {
+                        loadB._arg0 == operation._arg1 && loadA._arg0 == operation._arg2 && !isUnsafeRange(i, 3)) {
 
-                    if (!isUnsafeRange(i, 3)) {
+                    bool applyOpt = true;
 
-                        if (loadA.op == _OP_LOADINT && loadB.op == _OP_LOADINT) {
-                            SQInteger res = 0;
-                            SQInt32 lv = loadA._arg1;
-                            SQInt32 rv = loadB._arg1;
-                            bool applyOpt = true;
-                            switch (s) {
-                                case _OP_ADD: res = SQInteger(lv) + SQInteger(rv); break;
-                                case _OP_SUB: res = SQInteger(lv) - SQInteger(rv); break;
-                                case _OP_MUL: res = SQInteger(lv) * SQInteger(rv); break;
-                                case _OP_DIV:
-                                    if (rv < -1 || rv > 0)
-                                        res = lv / rv;
-                                    else
-                                        applyOpt = false;
-                                    break;
-                                case _OP_MOD:
-                                    if (rv < -1 || rv > 0)
-                                        res = lv % rv;
-                                    else
-                                        applyOpt = false;
-                                    break;
-                                case _OP_BITW:
-                                    switch (operation._arg3) {
-                                        case BW_AND: res = lv & rv; break;
-                                        case BW_OR: res = lv | rv; break;
-                                        case BW_XOR: res = lv ^ rv; break;
-                                        case BW_SHIFTL: res = SQInteger(lv) << rv; break;
-                                        default: applyOpt = false; break;
-                                    }
-                                    break;
+                    if (loadA.op == _OP_LOADINT && loadB.op == _OP_LOADINT) {
+                        SQInteger res = 0;
+                        SQInt32 lv = loadA._arg1;
+                        SQInt32 rv = loadB._arg1;
+                        switch (s) {
+                            case _OP_ADD: res = SQInteger(lv) + SQInteger(rv); break;
+                            case _OP_SUB: res = SQInteger(lv) - SQInteger(rv); break;
+                            case _OP_MUL: res = SQInteger(lv) * SQInteger(rv); break;
+                            case _OP_DIV:
+                                if (rv < -1 || rv > 0)
+                                    res = lv / rv;
+                                else
+                                    applyOpt = false;
+                                break;
+                            case _OP_MOD:
+                                if (rv < -1 || rv > 0)
+                                    res = lv % rv;
+                                else
+                                    applyOpt = false;
+                                break;
+                            case _OP_BITW:
+                                switch (operation._arg3) {
+                                    case BW_AND: res = lv & rv; break;
+                                    case BW_OR: res = lv | rv; break;
+                                    case BW_XOR: res = lv ^ rv; break;
+                                    case BW_SHIFTL: res = SQInteger(lv) << rv; break;
+                                    default: applyOpt = false; break;
+                                }
+                                break;
 
-                                default: applyOpt = false; break;
-                            }
+                            default: applyOpt = false; break;
+                        }
 
-                            if (applyOpt && res >= SQInteger(INT_MIN) && res <= SQInteger(INT_MAX)) {
-                                const bool removeLocalVar = !isUnsafeRange(i, 3);
-                                const int targetInst = removeLocalVar ? i : i + 2;
-                                instr[targetInst]._arg1 = (SQInt32)res;
-                                instr[targetInst]._arg0 = operation._arg0;
-                                instr[targetInst].op = _OP_LOADINT;
-                                if (removeLocalVar)
-                                    cutRange(i, 3, 1);
-                                changed = true;
-                                codeChanged = true;
-                                #ifdef _DEBUG_DUMP
-                                    debugPrintInstructionPos(_SC("Const folding"), i);
-                                #endif
-                            }
-                        } else { // float
-                            assert(sizeof(SQFloat) == sizeof(SQInt32));
-                            SQFloat res = 0;
-                            SQFloat lv = (loadA.op == _OP_LOADFLOAT) ? *((SQFloat *) &loadA._arg1) : SQFloat(loadA._arg1);
-                            SQFloat rv = (loadB.op == _OP_LOADFLOAT) ? *((SQFloat *) &loadB._arg1) : SQFloat(loadB._arg1);
-                            bool applyOpt = true;
-                            switch (s) {
-                                case _OP_ADD: res = lv + rv; break;
-                                case _OP_SUB: res = lv - rv; break;
-                                case _OP_MUL: res = lv * rv; break;
-                                case _OP_DIV:
-                                    if (rv != 0)
-                                        res = lv / rv;
-                                    else
-                                        applyOpt = false;
-                                    break;
-                                default: applyOpt = false; break;
-                            }
+                        if (applyOpt && res >= SQInteger(INT_MIN) && res <= SQInteger(INT_MAX)) {
+                            const bool removeLocalVar = !isUnsafeRange(i, 3);
+                            const int targetInst = removeLocalVar ? i : i + 2;
+                            instr[targetInst]._arg1 = (SQInt32)res;
+                            instr[targetInst]._arg0 = operation._arg0;
+                            instr[targetInst].op = _OP_LOADINT;
+                            if (removeLocalVar)
+                                cutRange(i, 3, 1);
+                            changed = true;
+                            codeChanged = true;
+                            #ifdef _DEBUG_DUMP
+                                debugPrintInstructionPos(_SC("Const folding"), i);
+                            #endif
+                        }
+                    } else { // float
+                        assert(sizeof(SQFloat) == sizeof(SQInt32));
+                        SQFloat res = 0;
+                        SQFloat lv = (loadA.op == _OP_LOADFLOAT) ? *((SQFloat *) &loadA._arg1) : SQFloat(loadA._arg1);
+                        SQFloat rv = (loadB.op == _OP_LOADFLOAT) ? *((SQFloat *) &loadB._arg1) : SQFloat(loadB._arg1);
+                        switch (s) {
+                            case _OP_ADD: res = lv + rv; break;
+                            case _OP_SUB: res = lv - rv; break;
+                            case _OP_MUL: res = lv * rv; break;
+                            case _OP_DIV:
+                                if (rv != 0)
+                                    res = lv / rv;
+                                else
+                                    applyOpt = false;
+                                break;
+                            default: applyOpt = false; break;
+                        }
 
-                            if (applyOpt) {
-                                const bool removeLocalVar = !isUnsafeRange(i, 3);
-                                const int targetInst = removeLocalVar ? i : i + 2;
-                                instr[targetInst].op = _OP_LOADFLOAT;
-                                instr[targetInst]._farg1 = res;
-                                instr[targetInst]._arg0 = operation._arg0;
-                                if (removeLocalVar)
-                                    cutRange(i, 3, 1);
-                                changed = true;
-                                codeChanged = true;
-                                #ifdef _DEBUG_DUMP
-                                    debugPrintInstructionPos(_SC("Const folding"), i);
-                                #endif
-                            }
+                        if (applyOpt) {
+                            const int targetInst = i;
+                            instr[targetInst].op = _OP_LOADFLOAT;
+                            instr[targetInst]._farg1 = res;
+                            instr[targetInst]._arg0 = operation._arg0;
+                            cutRange(i, 3, 1);
+                            changed = true;
+                            codeChanged = true;
+                            #ifdef _DEBUG_DUMP
+                                debugPrintInstructionPos(_SC("Const folding"), i);
+                            #endif
                         }
                     }
                 }
