@@ -268,7 +268,8 @@ bool SQVM::ObjCmp(const SQObjectPtr &o1,const SQObjectPtr &o2,SQInteger &result)
             }
             //continues through (no break needed)
         default:
-            _RET_SUCCEED( _userpointer(o1) < _userpointer(o2)?-1:1 );
+            Raise_CompareError(o1, o2);
+            return false;
         }
         assert(0);
         //if(sq_type(res)!=OT_INTEGER) { Raise_CompareError(o1,o2); return false; }
