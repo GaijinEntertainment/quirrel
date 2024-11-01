@@ -54,7 +54,7 @@ static void compile_error_handler(HSQUIRRELVM /*v*/, SQMessageSeverity sev, cons
   const SQChar *sevName = "error";
   if (sev == SEV_HINT) sevName = "hint";
   else if (sev == SEV_WARNING) sevName = "warning";
-  output += vaformat("Squirrel compile %s %s (%d:%d): %s", sevText, source, int(line), int(column), desc);
+  output += vaformat("Squirrel compile %s: %s (%d:%d): %s", sevName, source, int(line), int(column), desc);
   if (extra_info)
   {
     output += "\n";
