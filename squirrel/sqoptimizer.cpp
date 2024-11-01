@@ -284,7 +284,7 @@ void SQOptimizer::optimizeConstFolding()
                     ( loadA._arg1 <= 255 || (loadA.op != _OP_LOAD && operation._arg1 >= -128 && operation._arg1 <= 127) ) &&
                     !isUnsafeJumpRange(i, 2))
                 {
-                    const bool removeLoadAVar = !isLocalVarInstructions(i, 1);
+                    const bool removeLoadAVar = !isLocalVarInstructions(i, 2);
                     const int targetInst = removeLoadAVar ? i : i + 1;
                     bool applyOpt = true;
                     if (loadA.op == _OP_LOAD)

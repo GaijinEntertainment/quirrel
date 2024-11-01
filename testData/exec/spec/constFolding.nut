@@ -8,3 +8,8 @@ let e = 3
 let f = 4
 let g = e + f
 print(g)
+
+let v0 = 1
+if (v0 > v0) { }
+print(v0)
+
