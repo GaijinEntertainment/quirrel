@@ -245,6 +245,7 @@ bool SQVM::ObjCmp(const SQObjectPtr &o1,const SQObjectPtr &o2,SQInteger &result)
         case OT_STRING:
             _RET_SUCCEED(strcmp(_stringval(o1),_stringval(o2)));
         case OT_INTEGER:
+        case OT_BOOL:
             _RET_SUCCEED((_integer(o1)<_integer(o2))?-1:1);
         case OT_FLOAT:
             _RET_SUCCEED((_float(o1)<_float(o2))?-1:1);
