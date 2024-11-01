@@ -3009,7 +3009,6 @@ class CheckerVisitor : public Visitor {
   void applyUnknownInvocationToScope();
 
   const ExternalValueExpr *findExternalValue(const Expr *e);
-  const SQFunctionProto *findExternalFunction(const Expr *e);
   const FunctionInfo *findFunctionInfo(const Expr *e, bool &isCtor);
 
   void setValueFlags(const Expr *lvalue, unsigned pf, unsigned nf);
@@ -4792,6 +4791,7 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
   bool dummy;
   const FunctionInfo *info = findFunctionInfo(callExpr->callee(), dummy);
   const SQFunctionProto *proto = nullptr;
+  const SQNativeClosure *nclosure = nullptr;
 
   const SQChar *funcName;
   int numParams;
@@ -4811,14 +4811,33 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
     }
   }
   else {
-    proto = findExternalFunction(callExpr->callee());
-    if (!proto)
+    const ExternalValueExpr *ev = findExternalValue(callExpr->callee());
+    if (!ev)
       return;
 
-    funcName = sq_isstring(proto->_name) ? _stringval(proto->_name) : _SC("unknown");
-    numParams = proto->_nparameters - 1; // not counting 'this'
-    isVararg = proto->_varparams;
-    dpParameters = proto->_ndefaultparams;
+    const SQObject& v = ev->value();
+    if (sq_isclosure(v)) {
+      proto = _closure(v)->_function;
+      funcName = sq_isstring(proto->_name) ? _stringval(proto->_name) : _SC("unknown");
+      numParams = proto->_nparameters - 1; // not counting 'this'
+      isVararg = proto->_varparams;
+      dpParameters = proto->_ndefaultparams;
+    }
+    else if (sq_isfunction(v)) {
+      assert(!"Encountered function proto - internal structure, should not happen");
+      return;
+    }
+    else if (sq_isnativeclosure(v)) {
+      nclosure = _nativeclosure(v);
+      if (nclosure->_nparamscheck == 0)
+        return;
+      funcName = sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : _SC("unknown native");
+      numParams = abs(nclosure->_nparamscheck)-1; // not counting 'this'
+      isVararg = nclosure->_nparamscheck < 0;
+      dpParameters = 0;
+    }
+    else
+      return;
   }
 
   const int effectiveParamSizeUP = isVararg ? numParams - 1 : numParams;
@@ -4840,7 +4859,8 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
       paramName = _stringval(proto->_parameters[i + 1]);
     }
     else {
-      assert(0);
+      if (!nclosure)
+        assert(0);
       continue;
     }
 
@@ -7431,17 +7451,6 @@ const ExternalValueExpr *CheckerVisitor::findExternalValue(const Expr *e) {
   return nullptr;
 }
 
-const SQFunctionProto *CheckerVisitor::findExternalFunction(const Expr *e) {
-  auto ev = findExternalValue(e);
-
-  if (ev) {
-    auto &v = ev->value();
-    if (sq_isclosure(v)) return _closure(v)->_function;
-    if (sq_isfunction(v)) return _funcproto(v);
-  }
-
-  return nullptr;
-}
 
 const FunctionInfo *CheckerVisitor::findFunctionInfo(const Expr *e, bool &isCtor) {
   const Expr *ee = maybeEval(e);
