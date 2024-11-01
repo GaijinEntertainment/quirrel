@@ -605,6 +605,20 @@ void SQFuncState::AddInstruction(SQInstruction &i)
                 }
             }
 
+            if(pi.op == _OP_GETOUTER && i._arg1 < 256 && i._arg0 && !pi._arg2)
+            {
+                pi._arg2 = i._arg0;
+                pi._arg3 = (unsigned char)i._arg1;
+                return;
+            }
+
+            if(pi.op == _OP_LOADCALLEE && i._arg1 < 256 && i._arg0 && !pi._arg2)
+            {
+                pi._arg2 = i._arg0;
+                pi._arg3 = (unsigned char)i._arg1;
+                return;
+            }
+
             if(pi.op == _OP_MOVE && i._arg1 < 256)
             {
                 pi.op = _OP_DMOVE;
