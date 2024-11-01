@@ -74,11 +74,11 @@ namespace SQCompilation
 #include <stdio.h>
 
 #define SQUIRREL_VERSION_NUMBER_MAJOR 4
-#define SQUIRREL_VERSION_NUMBER_MINOR 7
-#define SQUIRREL_VERSION_NUMBER_PATCH 1
+#define SQUIRREL_VERSION_NUMBER_MINOR 8
+#define SQUIRREL_VERSION_NUMBER_PATCH 0
 
-#define SQUIRREL_VERSION    _SC("4.7.1")
-#define SQUIRREL_COPYRIGHT  _SC("Copyright (C) 2003-2016 Alberto Demichelis; 2016-2022 Gaijin Entertainment")
+#define SQUIRREL_VERSION    _SC("4.8.0")
+#define SQUIRREL_COPYRIGHT  _SC("Copyright (C) 2003-2016 Alberto Demichelis; 2016-2024 Gaijin Games KFT")
 
 #define SQ_VMSTATE_IDLE         0
 #define SQ_VMSTATE_RUNNING      1
