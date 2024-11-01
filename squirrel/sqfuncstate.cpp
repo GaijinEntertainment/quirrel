@@ -572,12 +572,16 @@ void SQFuncState::AddInstruction(SQInstruction &i)
             }
             break;
         case _OP_EQ:case _OP_NE:
-            if(pi.op == _OP_LOAD && pi._arg0 == i._arg1 && (!IsLocal(pi._arg0) ))
+            if((pi.op == _OP_LOAD || pi.op == _OP_LOADINT || pi.op == _OP_LOADFLOAT || pi.op == _OP_LOADBOOL) && pi._arg0 == i._arg1 && (!IsLocal(pi._arg0) ))
             {
+                if (pi.op != _OP_LOAD)
+                {
+                    pi._arg1 = pi.op == _OP_LOADINT ? GetNumericConstant((SQInteger)pi._arg1) : pi.op == _OP_LOADFLOAT ? GetNumericConstant(pi._farg1) : GetConstant(SQObjectPtr(bool(pi._arg1)));
+                }
                 pi.op = i.op;
                 pi._arg0 = i._arg0;
                 pi._arg2 = i._arg2;
-                pi._arg3 = MAX_FUNC_STACKSIZE;
+                pi._arg3 = 1;
                 return;
             }
             break;
