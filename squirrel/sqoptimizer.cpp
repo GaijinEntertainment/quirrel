@@ -205,8 +205,11 @@ void SQOptimizer::optimizeConstFolding()
                 const SQInstruction loadA = instr[i];
                 int s = operation.op;
 
-                if (s == _OP_ADDI && (loadA.op == _OP_LOADINT || loadA.op == _OP_LOADFLOAT) && loadA._arg0 == operation._arg2 && !isUnsafeRange(i, 2)){
+                if (s == _OP_ADDI && (loadA.op == _OP_LOADINT || loadA.op == _OP_LOADFLOAT) && loadA._arg0 == operation._arg2 && !isUnsafeJumpRange(i, 2)){
                     bool applyOpt = true;
+                    const bool removeLoadAVar = !isLocalVarInstructions(i, 2);
+                    const int targetInst = removeLoadAVar ? i : i + 1;
+
                     if (loadA.op == _OP_LOADINT) {
                         SQInteger res = 0;
                         SQInt32 lv = loadA._arg1;
@@ -217,7 +220,6 @@ void SQOptimizer::optimizeConstFolding()
                         }
 
                         if (applyOpt && res >= SQInteger(INT_MIN) && res <= SQInteger(INT_MAX)) { // -V547
-                            const int targetInst = i;
                             instr[targetInst].op = _OP_LOADINT;
                             instr[targetInst]._arg1 = (SQInt32)res;
                             instr[targetInst]._arg0 = operation._arg0;
@@ -238,7 +240,6 @@ void SQOptimizer::optimizeConstFolding()
                         }
 
                         if (applyOpt) { // -V547
-                            int targetInst = i;
                             instr[targetInst].op = _OP_LOADFLOAT;
                             instr[targetInst]._farg1 = res;
                             instr[targetInst]._arg0 = operation._arg0;
@@ -249,15 +250,16 @@ void SQOptimizer::optimizeConstFolding()
                             #endif
                         }
                     }
-                    if (applyOpt) // -V547
+                    if (applyOpt && removeLoadAVar) // -V547
                         cutRange(i, 2, 1);
                 }
                 if (s == _OP_JCMP && (loadA.op == _OP_LOADINT || loadA.op == _OP_LOADFLOAT || loadA.op == _OP_LOAD) &&
                     loadA._arg0 == operation._arg0 &&
                     ( loadA._arg1 <= 255 || (loadA.op != _OP_LOAD && operation._arg1 >= -128 && operation._arg1 <= 127) ) &&
-                    !isUnsafeRange(i, 2))
+                    !isUnsafeJumpRange(i, 2))
                 {
-                    const int targetInst = i;
+                    const bool removeLoadAVar = !isLocalVarInstructions(i, 1);
+                    const int targetInst = removeLoadAVar ? i : i + 1;
                     bool applyOpt = true;
                     if (loadA.op == _OP_LOAD)
                     {
@@ -287,7 +289,8 @@ void SQOptimizer::optimizeConstFolding()
                     }
                     if (applyOpt)
                     {
-                        cutRange(i, 2, 1);
+                        if (removeLoadAVar)
+                            cutRange(i, 2, 1);
                         const bool convertJumpTarget = instr[targetInst].op == _OP_JCMPI || instr[targetInst].op == _OP_JCMPF;
                         if (convertJumpTarget)
                             for (int ji = 0, jie = jumps.size(); ji < jie; ji++)
