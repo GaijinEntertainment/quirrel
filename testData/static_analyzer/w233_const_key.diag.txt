@@ -2,12 +2,12 @@
 AN ERROR HAS OCCURRED [the index 's' does not exist]
 
 CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w233_const_key.nut line [4]
+*FUNCTION [__main__()] testData/static_analyzer/w233_const_key.nut:4
 
 LOCALS
 [o] NULL
 [s] NULL
-[foo] CLOSURE
-[bar] CLOSURE
-[vargv] ARRAY
+[foo] CLOSURE=FN:foo
+[bar] CLOSURE=FN:bar
+[vargv] ARRAY=[]
 [this] NULL

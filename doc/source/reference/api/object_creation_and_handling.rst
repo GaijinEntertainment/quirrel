@@ -295,7 +295,7 @@ returns the type of the value at the position idx in the stack
     :param SQInteger idx: an index in the stack
     :param SQUserPointer * typetag: a pointer to the variable that will store the tag
     :returns: a SQRESULT
-    :remarks: the function works also with instances. if the taget object is an instance, the typetag of it's base class is fetched.
+    :remarks: the function works also with instances. if the target object is an instance, the typetag of its base class is fetched.
 
 gets the typetag of the object (userdata or class) at position idx in the stack.
 

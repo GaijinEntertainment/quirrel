@@ -64,15 +64,15 @@ struct SQSharedState
     void Init();
 public:
     bool checkCompilationOption(SQUnsignedInteger co) const {
-        return (compilationOptions & co) != 0;
+      return (compilationOptions & co) != 0;
     }
 
     void enableCompilationOption(SQUnsignedInteger co) {
-        compilationOptions |= co;
+      compilationOptions |= co;
     }
 
     void disableCompilationOption(SQUnsignedInteger co) {
-        compilationOptions &= ~co;
+      compilationOptions &= ~co;
     }
     SQChar* GetScratchPad(SQInteger size);
     SQInteger GetMetaMethodIdxByName(const SQObjectPtr &name);
@@ -132,6 +132,10 @@ public:
     SQUnsignedInteger defaultLangFeatures;
     SQUserPointer _foreignptr;
     SQRELEASEHOOK _releasehook;
+
+    SQObjectPtr doc_objects;
+    int doc_object_index;
+    SQUnsignedInteger32 rand_seed;
 private:
     SQChar *_scratchpad;
     SQInteger _scratchpadsize;

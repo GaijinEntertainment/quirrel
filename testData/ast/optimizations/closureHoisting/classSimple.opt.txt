@@ -1,14 +1,53 @@
-{
-  let foo = FUNCTION foo(x, y) {
-    let $ch0 = FUNCTION (classSimple.nut:6)() {
-      RETURN x + 10
-    }
-    let c = CLASS {
-      "x" <- 10
-      "zed" <- FUNCTION zed() {
-        RETURN $ch0() + this.x
-      }
-    }
-    RETURN c().zed()
-  }
-}
+Block isRoot = 1, isBody = 0
+  VarDecl 'let' 'foo'
+    Initializer
+      DeclExpr
+        FunctionDecl name = 'foo'
+        |-Parameters count = 2
+        | |-Parameter #1 name = 'x'
+        | `-Parameter #2 name = 'y'
+        `-Body
+            Block isRoot = 0, isBody = 1
+            |-VarDecl 'let' '$ch0'
+            |   Initializer
+            |     DeclExpr
+            |       FunctionDecl name = '(classSimple.nut:6)'
+            |       |-Parameters count = 0
+            |       `-Body
+            |           Block isRoot = 0, isBody = 1
+            |             ReturnStatement
+            |               BinExpr '+'
+            |               |-Left
+            |               |   Id 'x'
+            |               `-Right
+            |                   LiteralExpr LK_INT 10
+            |-VarDecl 'let' 'c'
+            |   Initializer
+            |     DeclExpr
+            |       ClassDecl
+            |       |-Key: <anonymous>
+            |       `-Members
+            |         |-LiteralExpr LK_INT 10
+            |         `-DeclExpr
+            |             FunctionDecl name = 'zed'
+            |             |-Parameters count = 0
+            |             `-Body
+            |                 Block isRoot = 0, isBody = 1
+            |                   ReturnStatement
+            |                     BinExpr '+'
+            |                     |-Left
+            |                     |   CallExpr
+            |                     |     Callee
+            |                     |       Id '$ch0'
+            |                     `-Right
+            |                         GetFieldExpr '.' fieldName = 'x'
+            |                           Receiver
+            |                             Id 'this'
+            `-ReturnStatement
+                CallExpr
+                  Callee
+                    GetFieldExpr '.' fieldName = 'zed'
+                      Receiver
+                        CallExpr
+                          Callee
+                            Id 'c'

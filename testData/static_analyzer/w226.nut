@@ -4,7 +4,7 @@
 
 let o = {}
 
-function x(y) {
+let function x(y) {
   if (y == 1)
     return "y == 1"
   else if (y == 2)

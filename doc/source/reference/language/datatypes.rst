@@ -93,9 +93,9 @@ Table
 Tables are associative containers implemented as a set of key/value pairs
 called slots.::
 
-    let t={}
+    let t = {}
     let test = {
-        a=10
+        a = 10
         b = function(x) { return x+1 }
     }
 

@@ -100,7 +100,7 @@ public:
     {
         sq_pushobject(vm, obj);
         sq_pushinteger(vm, index);
-        if (SQ_FAILED(sq_get_noerr(vm, -2))) {
+        if (SQ_FAILED(sq_get(vm, -2))) {
             sq_pop(vm, 1);
             SQRAT_ASSERT(0); // Ensure that index is valid before calling this method
             return T();
@@ -118,7 +118,7 @@ public:
         HSQOBJECT funcObj;
         sq_pushobject(vm, GetObject());
         sq_pushinteger(vm, index);
-        if(SQ_FAILED(sq_get_noerr(vm, -2))) {
+        if(SQ_FAILED(sq_get(vm, -2))) {
             sq_pop(vm, 1);
             return Function();
         }

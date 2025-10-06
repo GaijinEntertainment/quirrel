@@ -7,7 +7,7 @@ The Debug library
 the library implements some basic debug routines.
 
 --------------
-Squirrel API
+Quirrel API
 --------------
 
 

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.5)
 project(squirrel VERSION 4.0 LANGUAGES C CXX)
 
 option(ENABLE_VAR_TRACE "Enable variable change tracing feature.")
@@ -33,13 +33,14 @@ elseif(MSVC)
 endif()
 
 add_subdirectory(squirrel)
+add_subdirectory(squirrel/compiler)
 add_subdirectory(sqstdlib)
 add_subdirectory(sqmodules)
 add_subdirectory(sq)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(tgts)
-  list(APPEND tgts squirrel sqstdlib sqmodules sq)
+  list(APPEND tgts squirrel quirrel-compiler sqstdlib sqmodules sq)
   foreach(t ${tgts})
     target_compile_definitions(${t} PUBLIC -D_SQ64)
   endforeach()

@@ -2,14 +2,14 @@
 AN ERROR HAS OCCURRED [the index 'null' does not exist]
 
 CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w301_closure.nut line [8]
+*FUNCTION [__main__()] testData/static_analyzer/w301_closure.nut:8
 
 LOCALS
 [tree] NULL
 [dp] NULL
-[d] TABLE
-[foo] CLOSURE
+[d] TABLE={}
+[foo] CLOSURE=FN:foo
 [cr] NULL
 [c] NULL
-[vargv] ARRAY
+[vargv] ARRAY=[]
 [this] NULL

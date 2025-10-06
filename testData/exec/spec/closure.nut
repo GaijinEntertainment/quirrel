@@ -10,7 +10,7 @@ function foo(a, b, c) {
         local u = 490
         return function(q) {
           return q + u + w
-        } 
+        }
       }
     } else {
       return function(t) {

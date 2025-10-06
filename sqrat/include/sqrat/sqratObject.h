@@ -65,7 +65,8 @@ public:
     }
 
     Object(const Object& so) : vm(so.vm), obj(so.obj) {
-        sq_addref(vm, &obj);
+        if (ISREFCOUNTED(sq_type(obj)))
+            sq_addref(vm, &obj);
     }
 
     Object(Object && so) : vm(so.vm), obj(so.obj) {
@@ -75,7 +76,8 @@ public:
     Object(const Object &&)=delete;
 
     Object(HSQOBJECT o, HSQUIRRELVM v) : vm(v), obj(o) {
-        sq_addref(vm, &obj);
+        if (ISREFCOUNTED(sq_type(obj)))
+            sq_addref(vm, &obj);
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -138,7 +140,7 @@ public:
         obj._unVal.nInteger = t ? 1 : 0;
     }
 
-    virtual ~Object() {
+    ~Object() {
         Release();
     }
 
@@ -148,7 +150,8 @@ public:
           Release();
           vm = so.vm;
           obj = so.obj;
-          sq_addref(vm, &obj);
+          if (ISREFCOUNTED(sq_type(obj)))
+            sq_addref(vm, &obj);
         }
         return *this;
     }
@@ -180,11 +183,11 @@ public:
         return sq_isnull(GetObject());
     }
 
-    virtual HSQOBJECT GetObject() const {
+    const HSQOBJECT &GetObject() const {
         return obj;
     }
 
-    virtual HSQOBJECT& GetObject() {
+    HSQOBJECT& GetObject() {
         return obj;
     }
 
@@ -193,7 +196,8 @@ public:
     }
 
     void Release() {
-        sq_release(vm, &obj);
+        if (ISREFCOUNTED(sq_type(obj)))
+            sq_release(vm, &obj);
         sq_resetobject(&obj);
     }
 
@@ -211,12 +215,12 @@ public:
     /// \return An Object representing the value of the slot (can be a null object if nothing was found)
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     template <bool raw>
-    Object GetSlotImpl(const SQChar* slot) const {
+    Object GetSlotImpl(const SQChar* slot, int slen) const {
         HSQOBJECT slotObj;
         sq_pushobject(vm, GetObject());
-        sq_pushstring(vm, slot, -1);
+        sq_pushstring(vm, slot, slen);
 
-        SQRESULT res = raw ? sq_rawget_noerr(vm, -2) : sq_get_noerr(vm, -2);
+        SQRESULT res = raw ? sq_rawget(vm, -2) : sq_get(vm, -2);
         if(SQ_FAILED(res)) {
             sq_pop(vm, 1);
             return Object(vm); // Return a NULL object
@@ -229,11 +233,11 @@ public:
     }
 
     Object GetSlot(const SQChar* slot) const {
-        return GetSlotImpl<false>(slot);
+        return GetSlotImpl<false>(slot, strlen(slot));
     }
 
     Object RawGetSlot(const SQChar* slot) const {
-        return GetSlotImpl<true>(slot);
+        return GetSlotImpl<true>(slot, strlen(slot));
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -246,7 +250,7 @@ public:
         sq_pushobject(vm, GetObject());
         sq_pushinteger(vm, index);
 
-        SQRESULT res = raw ? sq_rawget_noerr(vm, -2) : sq_get_noerr(vm, -2);
+        SQRESULT res = raw ? sq_rawget(vm, -2) : sq_get(vm, -2);
         if(SQ_FAILED(res)) {
             sq_pop(vm, 1);
             return Object(vm); // Return a NULL object
@@ -311,15 +315,18 @@ public:
 
     /// Gets object slot value as a certain C++ type
     template<class T, bool raw>
-    T GetSlotValueImpl(const SQChar* slot, T def_val) const {
+    T GetSlotValueImpl(const SQChar* slot, int slen, T def_val) const {
         static_assert(VarControlsValueLifeTime<T>::value == 0,
                       "direct cast to T failed due to value is bound to Var<T>");
         sq_pushobject(vm, GetObject());
-        sq_pushstring(vm, slot, -1);
+        sq_pushstring(vm, slot, slen);
 
-        SQRESULT res = raw ? sq_rawget_noerr(vm, -2) : sq_get_noerr(vm, -2);
-        if(SQ_FAILED(res) || !Var<T>::check_type(vm, -1)) {
+        SQRESULT res = raw ? sq_rawget(vm, -2) : sq_get(vm, -2);
+        if (SQ_FAILED(res)) {
             sq_pop(vm, 1);
+            return def_val;
+        } else if (!Var<T>::check_type(vm, -1)) {
+            sq_pop(vm, 2);
             return def_val;
         } else {
             T ret = Var<T>(vm, -1).value;
@@ -330,12 +337,12 @@ public:
 
     template<class T>
     T GetSlotValue(const SQChar* slot, T def_val) const {
-        return GetSlotValueImpl<T, false>(slot, def_val);
+        return GetSlotValueImpl<T, false>(slot, strlen(slot), def_val);
     }
 
     template<class T>
     T RawGetSlotValue(const SQChar* slot, T def_val) const {
-        return GetSlotValueImpl<T, true>(slot, def_val);
+        return GetSlotValueImpl<T, true>(slot, strlen(slot), def_val);
     }
 
     template<class T, bool raw>
@@ -345,9 +352,12 @@ public:
         sq_pushobject(vm, GetObject());
         sq_pushinteger(vm, slot);
 
-        SQRESULT res = raw ? sq_rawget_noerr(vm, -2) : sq_get_noerr(vm, -2);
-        if(SQ_FAILED(res) || !Var<T>::check_type(vm, -1)) {
+        SQRESULT res = raw ? sq_rawget(vm, -2) : sq_get(vm, -2);
+        if (SQ_FAILED(res)) {
             sq_pop(vm, 1);
+            return def_val;
+        } else if (!Var<T>::check_type(vm, -1)) {
+            sq_pop(vm, 2);
             return def_val;
         } else {
             T ret = Var<T>(vm, -1).value;
@@ -480,9 +490,14 @@ protected:
 
     /// Set the value of a variable on the object. Changes to values set this way are not reciprocated
     template<class V>
-    inline void BindValue(const SQChar* name, const V& val, bool staticVar = false) {
+#ifdef _MSC_VER
+    __declspec(noinline) // To force `SetValue` to be inlined for `strlen(name)`
+#elif defined(__GNUC__)
+    __attribute__((noinline))
+#endif
+    inline void BindValue(const SQChar* name, int nlen, const V& val, bool staticVar = false) {
         sq_pushobject(vm, GetObject());
-        sq_pushstring(vm, name, -1);
+        sq_pushstring(vm, name, nlen);
         PushVar(vm, val);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, staticVar)));
         sq_pop(vm,1); // pop table
@@ -559,9 +574,14 @@ template<> inline float Object::Cast() const {
 
 
 template<>
-inline void Object::BindValue<int>(const SQChar* name, const int & val, bool staticVar /* = false */) {
+#ifdef _MSC_VER
+  __declspec(noinline) // To force `SetValue` to be inlined for `strlen(name)`
+#elif defined(__GNUC__)
+  __attribute__((noinline))
+#endif
+inline void Object::BindValue<int>(const SQChar* name, int nlen, const int & val, bool staticVar /* = false */) {
     sq_pushobject(vm, GetObject());
-    sq_pushstring(vm, name, -1);
+    sq_pushstring(vm, name, nlen);
     PushVar<int>(vm, val);
     SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, staticVar)));
     sq_pop(vm,1); // pop table

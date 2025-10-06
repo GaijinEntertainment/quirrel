@@ -117,6 +117,12 @@ public:
             _realloc(_size * 2);
         return *(new ((void *)&_vals[_size++]) T(val));
     }
+    inline T &push_back(T&& val)
+    {
+        if(_allocated <= _size)
+            _realloc(_size * 2);
+        return *(new ((void *)&_vals[_size++]) T(std::move(val)));
+    }
     inline void pop_back()
     {
         _size--; _vals[_size].~T();

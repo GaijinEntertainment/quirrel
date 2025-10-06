@@ -3,14 +3,65 @@
 #include <sqstdaux.h>
 #include <stdio.h>
 #include <assert.h>
+#include <inttypes.h>
 #include <string.h>
 #include <stdarg.h>
+#include <squirrel/sqvm.h>
+#include <squirrel/sqstate.h>
+#include <squirrel/sqobject.h>
+#include <squirrel/sqfuncproto.h>
+#include <squirrel/sqclosure.h>
+#include <squirrel/sqtable.h>
+#include <squirrel/sqarray.h>
+#include <squirrel/sqvm.h>
+
+#define ARRAY_ELEMENTS_IN_BRIEF_DUMP 4
+#define TABLE_ELEMENTS_IN_BRIEF_DUMP 3
 
 #ifdef SQ_STACK_DUMP_SECRET_PREFIX
     #define STRINGIZE(x) #x
     #define SQ_STRING_EXPAND(x) _SC(STRINGIZE(x))
     #define SECRET_PREFIX SQ_STRING_EXPAND(SQ_STACK_DUMP_SECRET_PREFIX)
 #endif
+
+template<typename PrintFunc>
+static void print_simple_value(HSQUIRRELVM v, PrintFunc pf, SQObjectPtr &val, bool string_quotes = true)
+{
+    SQObjectPtr valStr;
+    switch (sq_type(val))
+    {
+        case OT_STRING:
+            if (v->ToString(val, valStr))
+            {
+                if (string_quotes)
+                    pf(v, _SC("\"%s\""), _stringval(valStr));
+                else
+                    pf(v, _SC("%s"), _stringval(valStr));
+            }
+            break;
+        case OT_CLOSURE:
+            if (v->ToString(_closure(val)->_function->_name, valStr))
+                pf(v, _SC("FN:%s"), _stringval(valStr));
+            break;
+        case OT_NATIVECLOSURE:
+            if (v->ToString(_nativeclosure(val)->_name, valStr))
+                pf(v, _SC("FN:%s"), _stringval(valStr));
+            break;
+        case OT_TABLE:
+            pf(v, _SC("TABLE"));
+            break;
+        case OT_ARRAY:
+            pf(v, _SC("ARRAY"));
+            break;
+        case OT_CLASS:
+            pf(v, _SC("CLASS"));
+            break;
+        default:
+            if (v->ToString(val, valStr))
+                pf(v, _SC("%s"), _stringval(valStr));
+        break;
+    }
+}
 
 
 template<typename PrintFunc>
@@ -35,7 +86,7 @@ static void collect_stack_string(HSQUIRRELVM v, PrintFunc pf)
         const SQChar *src=_SC("unknown");
         if(si.funcname)fn=si.funcname;
         if(si.source)src=si.source;
-        pf(v,_SC("*FUNCTION [%s()] %s line [%d]\n"),fn,src,si.line);
+        pf(v,_SC("*FUNCTION [%s()] %s:%d\n"),fn,src,si.line);
         level++;
     }
     level=0;
@@ -60,7 +111,7 @@ static void collect_stack_string(HSQUIRRELVM v, PrintFunc pf)
                 break;
             case OT_INTEGER:
                 sq_getinteger(v,-1,&i);
-                pf(v,_SC("[%s] %d\n"),name,i);
+                pf(v,_SC("[%s] ") _SC("%" PRId64) _SC("\n"),name, int64_t(i));
                 break;
             case OT_FLOAT:
                 sq_getfloat(v,-1,&f);
@@ -74,16 +125,63 @@ static void collect_stack_string(HSQUIRRELVM v, PrintFunc pf)
                 pf(v,_SC("[%s] \"%s\"\n"),name,s);
                 break;
             case OT_TABLE:
-                pf(v,_SC("[%s] TABLE\n"),name);
+                {
+                    pf(v,_SC("[%s] TABLE={"),name);
+                    SQTable * t = _table(stack_get(v, -1));
+                    SQObjectPtr refidx, key, val;
+                    SQInteger idx;
+                    SQInteger count = 0;
+                    while((idx = t->Next(false, refidx, key, val)) != -1) {
+                        refidx = idx;
+                        print_simple_value(v, pf, key, false);
+                        pf(v,_SC("="));
+                        print_simple_value(v, pf, val);
+                        count++;
+                        if (count != t->CountUsed())
+                            pf(v,_SC(", "));
+                        if (count + 1 > TABLE_ELEMENTS_IN_BRIEF_DUMP && count != t->CountUsed()) {
+                            pf(v,_SC("..."), int(t->CountUsed()));
+                            break;
+                        }
+                    }
+                    if (t->CountUsed() > TABLE_ELEMENTS_IN_BRIEF_DUMP)
+                        pf(v,_SC("} (%d)\n"), int(t->CountUsed()));
+                    else
+                        pf(v,_SC("}\n"));
+                }
                 break;
             case OT_ARRAY:
-                pf(v,_SC("[%s] ARRAY\n"),name);
+                {
+                    pf(v,_SC("[%s] ARRAY=["),name);
+                    SQArray * a = _array(stack_get(v, -1));
+                    SQObjectPtr val;
+                    for (SQInteger i = 0; i < a->Size(); i++) {
+                        a->Get(i, val);
+                        print_simple_value(v, pf, val);
+                        if (i + 1 < a->Size())
+                        {
+                            pf(v,_SC(", "));
+                            if (i > ARRAY_ELEMENTS_IN_BRIEF_DUMP - 2) {
+                                pf(v,_SC("..."));
+                                break;
+                            }
+                        }
+                    }
+                    if (a->Size() > ARRAY_ELEMENTS_IN_BRIEF_DUMP)
+                        pf(v,_SC("] (%d)\n"), int(a->Size()));
+                    else
+                        pf(v,_SC("]\n"),name);
+                }
                 break;
             case OT_CLOSURE:
-                pf(v,_SC("[%s] CLOSURE\n"),name);
+                pf(v,_SC("[%s] CLOSURE="),name);
+                print_simple_value(v, pf, stack_get(v, -1));
+                pf(v,_SC("\n"));
                 break;
             case OT_NATIVECLOSURE:
-                pf(v,_SC("[%s] NATIVECLOSURE\n"),name);
+                pf(v,_SC("[%s] NATIVECLOSURE="),name);
+                print_simple_value(v, pf, stack_get(v, -1));
+                pf(v,_SC("\n"));
                 break;
             case OT_GENERATOR:
                 pf(v,_SC("[%s] GENERATOR\n"),name);
@@ -98,7 +196,9 @@ static void collect_stack_string(HSQUIRRELVM v, PrintFunc pf)
                 pf(v,_SC("[%s] CLASS\n"),name);
                 break;
             case OT_INSTANCE:
-                pf(v,_SC("[%s] INSTANCE\n"),name);
+                pf(v,_SC("[%s] INSTANCE="),name);
+                print_simple_value(v, pf, stack_get(v, -1));
+                pf(v,_SC("\n"));
                 break;
             case OT_WEAKREF:
                 pf(v,_SC("[%s] WEAKREF\n"),name);

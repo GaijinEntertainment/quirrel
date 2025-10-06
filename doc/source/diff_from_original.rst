@@ -36,11 +36,13 @@ New features
 * Support call()/acall() delegates for classes
 * min(), max(), clamp() global functions added to base library
 * string default delegates: .subst(), .replace(), .join(), .split(), .concat() methods added
-* table default delegates: .map(), .each(), .findindex(), .findvalue(), .reduce(),
+* table default delegates: .map(), .each(), .findindex(), .findvalue(), .reduce(), .swap()
   __merge(), .__update() methods added
-* array default delegates: .each(), .findvalue(), .replace()  methods added
+* array default delegates: .each(), .findvalue(), .replace(), .swap() methods added
+* instances and classes default delegates: .swap()
+* classes default delegates: .lock(), .__update() methods added
 * Support negative indexes in array.slice()
-* Class methods hinting (that can gives performance of LuaJIT in nonJIT mode)
+* Class methods hinting (that can give performance of LuaJIT in nonJIT mode)
 * Compiler directives for stricter and thus safer language (some of them can be used to test upcoming or planned language changes)
 * Added C APIs not using stack pushes/pops
 * Variable change tracking
@@ -53,11 +55,10 @@ Removed features
 
 * Support for comma operator removed (were never used, but were error-prone, like table = {["foo", "bar"] = null} instead of [["foo","bar"] = null])
 * Class and member attributes removed (were never used in any real code)
-* Adding table/class methods with class::method syntaxic sugar disallowed (as There should be one -- and preferably only one -- obvious way to do it.)
+* Adding table/class methods with class::method syntactic sugar disallowed (as There should be one -- and preferably only one -- obvious way to do it.)
 * # single line comments removed (as There should be one -- and preferably only one -- obvious way to do it.)
 * Support for post-initializer syntax removed (was ambiguous, especially because of optional comma)
 * Removed support for octal numbers (error-prone)
-* 
 
 ----------------
 Changes
@@ -70,7 +71,7 @@ Changes
 * 'global' keyword for declaring global constants and enum explicitly
 * Arrays/strings .find() default delegate renamed to .indexof()
 * getinfos() renamed to getfuncinfos() and now can be applied to callable objects (instances, tables)
-* array.append() can take multiple arguments
+* array.append() and array.extend() can take multiple arguments
 * changed arguments order for array.filter() to unify with other functions
 * syntax for type methods call (for tables) (table.$rawdelete("rawdelete") will work for table {rawdelete=@() null})
 * compiler is now AST based with some optimizations (like closure hoisting) and checks. Analyzer works on the same AST.

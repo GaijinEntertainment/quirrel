@@ -95,8 +95,7 @@ bool SQClass::NewSlot(SQSharedState *ss,const SQObjectPtr &key,const SQObjectPtr
                 __ObjAddRef(_base); //ref for the closure
             }
             if(sq_type(temp) == OT_NULL) {
-                bool isconstructor;
-                SQVM::IsEqual(ss->_constructorstr, key, isconstructor);
+                bool isconstructor = SQVM::IsEqual(ss->_constructorstr, key);
                 if(isconstructor) {
                     _constructoridx = (SQInteger)_methods.size();
                 }

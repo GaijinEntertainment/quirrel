@@ -1,8 +1,27 @@
-{
-  let $ch0 = FUNCTION (simple.nut:3)(a, b) {
-    RETURN a + b
-  }
-  let foo = FUNCTION foo(x, y) {
-    RETURN $ch0
-  }
-}
+Block isRoot = 1, isBody = 0
+|-VarDecl 'let' '$ch0'
+|   Initializer
+|     DeclExpr
+|       FunctionDecl name = '(simple.nut:3)'
+|       |-Parameters count = 2
+|       | |-Parameter #1 name = 'a'
+|       | `-Parameter #2 name = 'b'
+|       `-Body
+|           Block isRoot = 0, isBody = 1
+|             ReturnStatement
+|               BinExpr '+'
+|               |-Left
+|               |   Id 'a'
+|               `-Right
+|                   Id 'b'
+`-VarDecl 'let' 'foo'
+    Initializer
+      DeclExpr
+        FunctionDecl name = 'foo'
+        |-Parameters count = 2
+        | |-Parameter #1 name = 'x'
+        | `-Parameter #2 name = 'y'
+        `-Body
+            Block isRoot = 0, isBody = 1
+              ReturnStatement
+                Id '$ch0'
