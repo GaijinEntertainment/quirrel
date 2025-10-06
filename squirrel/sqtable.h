@@ -16,11 +16,18 @@
 #define TBL_CLASS_TYPE_MEMBER_MASK ((1u<<TBL_CLASS_TYPE_MEMBER_BITS)-1)
 #define TBL_CLASS_CLASS_MASK ( (~(uint64_t(0))) ^ TBL_CLASS_TYPE_MEMBER_MASK )
 
+inline SQUnsignedInteger32 sq_float_hash32(float v)
+{
+    SQUnsignedInteger32 i;
+    memcpy(&i, &v, 4);
+    return i ^ (i >> 23);
+}
+
 inline SQHash HashObj(const SQObject &key)
 {
     switch(sq_type(key)) {
         case OT_STRING:     return _string(key)->_hash;
-        case OT_FLOAT:      return (SQHash)((SQInteger)_float(key));
+        case OT_FLOAT:      return (SQHash)(sq_float_hash32(_float(key)));
         case OT_BOOL: case OT_INTEGER:  return (SQHash)((SQInteger)_integer(key));
         default:            return hashptr(key._unVal.pRefCounted);
     }
@@ -30,9 +37,11 @@ struct SQTable : public SQDelegable
 {
 private:
     friend struct SQVM;
+    friend struct SQDeduplicateShrinker;
+    friend struct SQStreamSerializer;
     struct _HashNode
     {
-        _HashNode() { next = NULL; }
+        _HashNode() { key._type = OT_FREE_TABLE_SLOT; next = NULL; }
         SQObjectPtr val;
         SQObjectPtr key;
         _HashNode *next;
@@ -139,6 +148,8 @@ public:
     SQInteger Next(bool getweakrefs,const SQObjectPtr &refpos, SQObjectPtr &outkey, SQObjectPtr &outval);
 
     SQInteger CountUsed(){ return _usednodes;}
+    SQInteger AllocatedNodes(){ return _numofnodes_minus_one + 1; }
+    bool IsBinaryEqual(SQTable *o);
     void Clear(SQBool rehash = SQTrue);
     void Release()
     {

@@ -44,7 +44,7 @@ For instance: ::
 
 
 After its declaration, methods or properties can be added or modified by following
-the same rules that apply to a table(operator ``<-``).::
+the same rules that apply to a table (operator ``<-``).::
 
     //adds a new property
     Foo.stuff <- 10
@@ -105,30 +105,30 @@ class declaration. The values are copied verbatim, *no cloning is performed* eve
 
     Quirrel doesn't clone member's default values nor executes the member declaration for each instance (as C# or java do), just like in Python.
 
-            So consider this example: ::
+    So consider this example: ::
 
-                class Foo {
-                  myarray = [1,2,3]
-                  mytable = {}
-                }
+        class Foo {
+            myarray = [1,2,3]
+            mytable = {}
+        }
 
-                let a = Foo()
-                let b = Foo()
+        let a = Foo()
+        let b = Foo()
 
     In the snippet above both instances will refer to the same array and same table.
     To achieve what a C# or Java programmer would expect, the following approach should be taken. ::
 
-                class Foo {
-                  myarray = null
-                  mytable = null
-                  constructor() {
-                    this.myarray = [1,2,3]
-                    this.mytable = {}
-                  }
-                }
+        class Foo {
+            myarray = null
+            mytable = null
+            constructor() {
+                this.myarray = [1,2,3]
+                this.mytable = {}
+            }
+        }
 
-                let a = Foo()
-                let b = Foo()
+        let a = Foo()
+        let b = Foo()
 
 When a class defines a method called 'constructor', the class instantiation operation will
 automatically invoke it for the newly created instance.
@@ -195,7 +195,7 @@ The syntax for a derived class is the following: ::
 When a derived class is declared, Quirrel first copies all base's members in the
 new class then proceeds with evaluating the rest of the declaration.
 
-A derived class inherit all members and properties of it's base, if the derived class
+A derived class inherits all members and properties of its base, if the derived class
 overrides a base function the base implementation is shadowed.
 It's possible to access a overridden method of the base class by fetching the method from it
 through the 'base' keyword.
@@ -299,7 +299,7 @@ the following example show how to create a class that implements the metamethod 
 
     class Vector3 {
         constructor(...) {
-            if (vargv.len() >= 3) {
+            if(vargv.len() >= 3) {
                 this.x = vargv[0]
                 this.y = vargv[1]
                 this.z = vargv[2]

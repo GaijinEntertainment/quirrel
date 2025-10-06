@@ -377,4 +377,10 @@ public:
   {
     return kv[index];
   }
+
+
+  const std::string getFileName() const
+  {
+    return fileName;
+  }
 };

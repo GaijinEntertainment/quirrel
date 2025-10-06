@@ -2,10 +2,10 @@
 AN ERROR HAS OCCURRED [the index 'value' does not exist]
 
 CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w248_evaled.nut line [6]
+*FUNCTION [__main__()] testData/static_analyzer/w248_evaled.nut:6
 
 LOCALS
-[foo] CLOSURE
-[t] TABLE
-[vargv] ARRAY
+[foo] CLOSURE=FN:foo
+[t] TABLE={}
+[vargv] ARRAY=[]
 [this] NULL

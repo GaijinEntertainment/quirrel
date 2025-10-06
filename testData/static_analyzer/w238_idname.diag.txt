@@ -2,9 +2,9 @@
 AN ERROR HAS OCCURRED [the index 'foo' does not exist]
 
 CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w238_idname.nut line [3]
+*FUNCTION [__main__()] testData/static_analyzer/w238_idname.nut:3
 
 LOCALS
-[state] TABLE
-[vargv] ARRAY
+[state] TABLE={}
+[vargv] ARRAY=[]
 [this] NULL

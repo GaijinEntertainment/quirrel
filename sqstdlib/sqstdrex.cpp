@@ -5,7 +5,9 @@
 #include <setjmp.h>
 #include <sqstdstring.h>
 
-#ifdef _DEBUG
+#define SQREX_DEBUG 0
+
+#if SQREX_DEBUG
 #include <stdio.h>
 
 static const SQChar *g_nnames[] =
@@ -570,7 +572,7 @@ SQRex *sqstd_rex_compile(SQAllocContext alloc_ctx, const SQChar *pattern,const S
         exp->_nodes[exp->_first].left = res;
         if(*exp->_p!='\0')
             sqstd_rex_error(exp,_SC("unexpected character"));
-#ifdef _DEBUG
+#if SQREX_DEBUG
         {
             SQInteger nsize,i;
             SQRexNode *t;

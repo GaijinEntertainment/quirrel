@@ -47,17 +47,14 @@ public:
         }
     }
 
-    template <typename T,
-              SQRAT_STD::enable_if_t<SQRAT_STD::is_integral_v<T> ||
-                                     SQRAT_STD::is_floating_point_v<T> ||
-                                     SQRAT_STD::is_enum_v<T>, int> = 0>
+    template <typename T, SQRAT_STD::enable_if_t<SQRAT_STD::is_arithmetic_v<T> || SQRAT_STD::is_enum_v<T>, int> = 0>
     Enumeration& Const(const SQChar* name, T val) {
-        BindValue<T>(name, val, false);
+        BindValue<T>(name, strlen(name), val, false);
         return *this;
     }
 
     Enumeration& Const(const SQChar* name, const SQChar* val) {
-        BindValue<const SQChar*>(name, val, false);
+        BindValue<const SQChar*>(name, strlen(name), val, false);
         return *this;
     }
 };

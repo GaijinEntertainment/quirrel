@@ -7,7 +7,7 @@ The String library
 the string lib implements string formatting and regular expression matching routines.
 
 --------------
-Squirrel API
+Quirrel API
 --------------
 
 ++++++++++++++

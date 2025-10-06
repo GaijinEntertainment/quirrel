@@ -1,19 +1,28 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.5)
 project(sqjsrepl VERSION 4.0 LANGUAGES C CXX)
 
 option(ENABLE_VAR_TRACE "Enable variable change tracing feature." OFF)
 
 add_subdirectory(../../squirrel "${PROJECT_BINARY_DIR}/squirrel")
+add_subdirectory(../../squirrel/compiler "${PROJECT_BINARY_DIR}/quirrel-compiler")
 add_subdirectory(../../sqstdlib "${PROJECT_BINARY_DIR}/sqstdlib")
 add_subdirectory(../../sqmodules "${PROJECT_BINARY_DIR}/sqmodules")
 
 #add_library(sqjsrepl native.cpp)
 add_executable(sqjsrepl native.cpp)
-target_link_libraries(sqjsrepl squirrel sqstdlib sqmodules)
+target_link_libraries(sqjsrepl squirrel sqstdlib sqmodules quirrel-compiler)
 
 target_include_directories(squirrel PUBLIC
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/../../include>"
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/../../internal>"
+  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/../../helpers>"
+  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/../../squirrel>"
+)
+
+target_include_directories(quirrel-compiler PUBLIC
+  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/../../include>"
+  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/../../squirrel>"
+  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/../../squirrel/compiler>"
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/../../helpers>"
 )
 

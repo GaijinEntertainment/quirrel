@@ -2,11 +2,11 @@
 AN ERROR HAS OCCURRED [assertion failed]
 
 CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w248_assert.nut line [11]
+*FUNCTION [__main__()] testData/static_analyzer/w248_assert.nut:11
 
 LOCALS
 [c] NULL
 [o] NULL
-[foo] CLOSURE
-[vargv] ARRAY
+[foo] CLOSURE=FN:foo
+[vargv] ARRAY=[]
 [this] NULL

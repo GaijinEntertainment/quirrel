@@ -1,3 +1,7 @@
+#allow-switch-statement
+
+let {min, max} = require("math")
+
 if (min(100,200) > max(50,20))
     println("I'm useless statement just to show up the if/else")
 else
@@ -18,8 +22,8 @@ function typy(obj) {
     }
 }
 
-local a=1, b={}
-local function c(a,b){return a+b}
+let a=1, b={}
+function c(a,b){return a+b}
 
 println($"a {typy(a)}")
 println($"b {typy(b)}")

@@ -2,12 +2,12 @@
 AN ERROR HAS OCCURRED [Script file not found: m.nut / m.nut]
 
 CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w241_conditional.nut line [5]
+*FUNCTION [__main__()] testData/static_analyzer/w241_conditional.nut:5
 
 LOCALS
 [_m] NULL
 [d] NULL
 [x] NULL
-[foo] CLOSURE
-[vargv] ARRAY
+[foo] CLOSURE=FN:foo
+[vargv] ARRAY=[]
 [this] NULL

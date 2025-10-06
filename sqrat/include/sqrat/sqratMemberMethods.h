@@ -132,7 +132,7 @@ inline SQInteger sqStaticGet(HSQUIRRELVM vm) {
 inline SQInteger sqVarGet(HSQUIRRELVM vm) {
     // Find the get method in the get table
     sq_push(vm, 2);
-    if (SQ_FAILED(sq_rawget_noerr(vm, -2))) {
+    if (SQ_FAILED(sq_rawget(vm, -2))) {
         sq_pushnull(vm);
         return sq_throwobject(vm);
     }

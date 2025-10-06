@@ -12,7 +12,7 @@ class BaseVector {
     z = 0
 }
 
-class Vector3 extends BaseVector {
+class Vector3(BaseVector) {
     function _add(other) {
         local cls = this.getclass()
         if (other instanceof cls)

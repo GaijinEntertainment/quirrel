@@ -1,6 +1,6 @@
 /*
  * Squirrel API extensions
- * Copyright (C) 2003-2016  Gaijin Entertainment Corp.  All rights reserved
+ * Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
  *
  * Manipulate with Squirrel objects directlywithout unnecessary use of
  * stack and refcount
@@ -23,6 +23,8 @@ SQUIRREL_API SQBool sq_direct_tobool(const HSQOBJECT *o);
 
 SQUIRREL_API SQBool sq_direct_cmp(HSQUIRRELVM v, const HSQOBJECT *a, const HSQOBJECT *b, SQInteger *res);
 SQUIRREL_API bool sq_direct_is_equal(HSQUIRRELVM v, const HSQOBJECT *a, const HSQOBJECT *b);
+
+SQUIRREL_API bool sq_fast_equal_by_value_deep(const HSQOBJECT *a, const HSQOBJECT *b, int depth);
 
 SQUIRREL_API SQRESULT sq_direct_getuserdata(const HSQOBJECT *obj, SQUserPointer *p, SQUserPointer *typetag=NULL);
 

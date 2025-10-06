@@ -1,5 +1,5 @@
 WARNING: w217 (unconditional-terminated-loop) Unconditional 'break' inside a loop.
-testData/static_analyzer/w217_complex.nut:28:12
+testData/static_analyzer/w217_complex.nut:30:12
 
             foo()
             break
@@ -8,7 +8,7 @@ testData/static_analyzer/w217_complex.nut:28:12
 
 
 WARNING: w217 (unconditional-terminated-loop) Unconditional 'throw' inside a loop.
-testData/static_analyzer/w217_complex.nut:46:8
+testData/static_analyzer/w217_complex.nut:48:8
 
         foo()
         throw "y"
@@ -17,7 +17,7 @@ testData/static_analyzer/w217_complex.nut:46:8
 
 
 WARNING: w217 (unconditional-terminated-loop) Unconditional 'return' inside a loop.
-testData/static_analyzer/w217_complex.nut:68:4
+testData/static_analyzer/w217_complex.nut:70:4
 
     return 0
     ^-------

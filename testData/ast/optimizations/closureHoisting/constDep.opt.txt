@@ -1,10 +1,31 @@
-{
-  let foo = FUNCTION foo() {
-    x = "asdf"
-    println(x)
-    let bar = FUNCTION bar() {
-      let a = x
-    }
-    bar()
-  }
-}
+Block isRoot = 1, isBody = 0
+  VarDecl 'let' 'foo'
+    Initializer
+      DeclExpr
+        FunctionDecl name = 'foo'
+        |-Parameters count = 0
+        `-Body
+            Block isRoot = 0, isBody = 1
+            |-ConstDecl name = 'x', isGlobal = 0
+            |   LiteralExpr LK_STRING "asdf"
+            |-ExprStatement
+            |   CallExpr
+            |   |-Callee
+            |   |   Id 'println'
+            |   `-Arguments
+            |       Argument #1
+            |         Id 'x'
+            |-VarDecl 'let' 'bar'
+            |   Initializer
+            |     DeclExpr
+            |       FunctionDecl name = 'bar'
+            |       |-Parameters count = 0
+            |       `-Body
+            |           Block isRoot = 0, isBody = 1
+            |             VarDecl 'let' 'a'
+            |               Initializer
+            |                 Id 'x'
+            `-ExprStatement
+                CallExpr
+                  Callee
+                    Id 'bar'

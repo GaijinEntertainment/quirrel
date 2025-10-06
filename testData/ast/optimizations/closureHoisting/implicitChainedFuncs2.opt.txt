@@ -1,18 +1,76 @@
-{
-  local z = 0
-  let $ch0 = FUNCTION fff() {
-    RETURN z
-  }
-  let foo = FUNCTION foo(x, y) {
-    let $ch1 = FUNCTION (implicitChainedFuncs2.nut:10)(f, g) {
-      RETURN f - g - x
-    }
-    RETURN FUNCTION (implicitChainedFuncs2.nut:4)(a, b) {
-      let fff = $ch0
-      RETURN FUNCTION (implicitChainedFuncs2.nut:8)(c, d) {
-        z = x + a - c
-        RETURN $ch1
-      }
-    }
-  }
-}
+Block isRoot = 1, isBody = 0
+|-VarDecl 'local' 'z'
+|   Initializer
+|     LiteralExpr LK_INT 0
+|-VarDecl 'let' '$ch0'
+|   Initializer
+|     DeclExpr
+|       FunctionDecl name = 'fff'
+|       |-Parameters count = 0
+|       `-Body
+|           Block isRoot = 0, isBody = 1
+|             ReturnStatement
+|               Id 'z'
+`-VarDecl 'let' 'foo'
+    Initializer
+      DeclExpr
+        FunctionDecl name = 'foo'
+        |-Parameters count = 2
+        | |-Parameter #1 name = 'x'
+        | `-Parameter #2 name = 'y'
+        `-Body
+            Block isRoot = 0, isBody = 1
+            |-VarDecl 'let' '$ch1'
+            |   Initializer
+            |     DeclExpr
+            |       FunctionDecl name = '(implicitChainedFuncs2.nut:10)'
+            |       |-Parameters count = 2
+            |       | |-Parameter #1 name = 'f'
+            |       | `-Parameter #2 name = 'g'
+            |       `-Body
+            |           Block isRoot = 0, isBody = 1
+            |             ReturnStatement
+            |               BinExpr '-'
+            |               |-Left
+            |               |   BinExpr '-'
+            |               |   |-Left
+            |               |   |   Id 'f'
+            |               |   `-Right
+            |               |       Id 'g'
+            |               `-Right
+            |                   Id 'x'
+            `-ReturnStatement
+                DeclExpr
+                  FunctionDecl name = '(implicitChainedFuncs2.nut:4)'
+                  |-Parameters count = 2
+                  | |-Parameter #1 name = 'a'
+                  | `-Parameter #2 name = 'b'
+                  `-Body
+                      Block isRoot = 0, isBody = 1
+                      |-VarDecl 'let' 'fff'
+                      |   Initializer
+                      |     Id '$ch0'
+                      `-ReturnStatement
+                          DeclExpr
+                            FunctionDecl name = '(implicitChainedFuncs2.nut:8)'
+                            |-Parameters count = 2
+                            | |-Parameter #1 name = 'c'
+                            | `-Parameter #2 name = 'd'
+                            `-Body
+                                Block isRoot = 0, isBody = 1
+                                |-ExprStatement
+                                |   BinExpr '='
+                                |   |-Left
+                                |   |   Id 'z'
+                                |   `-Right
+                                |       BinExpr '-'
+                                |       |-Left
+                                |       |   BinExpr '+'
+                                |       |   |-Left
+                                |       |   |   Id 'x'
+                                |       |   `-Right
+                                |       |       Id 'a'
+                                |       `-Right
+                                |           Id 'c'
+                                `-ReturnStatement
+                                    Id '$ch1'

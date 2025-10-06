@@ -1,14 +1,52 @@
-{
-  local z = 0
-  let foo = FUNCTION foo(x, y) {
-    let f1 = FUNCTION f1(a) {
-      let $ch0 = FUNCTION f3(c) {
-        RETURN a + c
-      }
-      let f2 = FUNCTION f2(x) {
-        let f3 = $ch0
-        RETURN x + y
-      }
-    }
-  }
-}
+Block isRoot = 1, isBody = 0
+|-VarDecl 'local' 'z'
+|   Initializer
+|     LiteralExpr LK_INT 0
+`-VarDecl 'let' 'foo'
+    Initializer
+      DeclExpr
+        FunctionDecl name = 'foo'
+        |-Parameters count = 2
+        | |-Parameter #1 name = 'x'
+        | `-Parameter #2 name = 'y'
+        `-Body
+            Block isRoot = 0, isBody = 1
+              VarDecl 'let' 'f1'
+                Initializer
+                  DeclExpr
+                    FunctionDecl name = 'f1'
+                    |-Parameters count = 1
+                    |   Parameter #1 name = 'a'
+                    `-Body
+                        Block isRoot = 0, isBody = 1
+                        |-VarDecl 'let' '$ch0'
+                        |   Initializer
+                        |     DeclExpr
+                        |       FunctionDecl name = 'f3'
+                        |       |-Parameters count = 1
+                        |       |   Parameter #1 name = 'c'
+                        |       `-Body
+                        |           Block isRoot = 0, isBody = 1
+                        |             ReturnStatement
+                        |               BinExpr '+'
+                        |               |-Left
+                        |               |   Id 'a'
+                        |               `-Right
+                        |                   Id 'c'
+                        `-VarDecl 'let' 'f2'
+                            Initializer
+                              DeclExpr
+                                FunctionDecl name = 'f2'
+                                |-Parameters count = 1
+                                |   Parameter #1 name = 'x'
+                                `-Body
+                                    Block isRoot = 0, isBody = 1
+                                    |-VarDecl 'let' 'f3'
+                                    |   Initializer
+                                    |     Id '$ch0'
+                                    `-ReturnStatement
+                                        BinExpr '+'
+                                        |-Left
+                                        |   Id 'x'
+                                        `-Right
+                                            Id 'y'

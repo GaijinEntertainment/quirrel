@@ -24,7 +24,7 @@ adds a reference to an object handler.
     :param HSQOBJECT* o: pointer to an object handler
     :param SQUserPointer* typetag: a pointer to the variable that will store the tag
     :returns: a SQRESULT
-    :remarks: the function works also with instances. if the target object is an instance, the typetag of it's base class is fetched.
+    :remarks: the function works also with instances. if the target object is an instance, the typetag of its base class is fetched.
 
 gets the typetag of a raw object reference(userdata or class).
 
