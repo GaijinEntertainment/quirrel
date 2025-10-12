@@ -242,7 +242,7 @@ const SQChar* SQFunctionProto::GetLocal(SQVM *vm,SQUnsignedInteger stackbase,SQU
 }
 
 
-SQInteger SQFunctionProto::GetLine(SQLineInfo* lineinfos, int nlineinfos, int instruction_index, int* hint, bool* is_line_op)
+SQInteger SQFunctionProto::GetLine(SQLineInfo* lineinfos, int nlineinfos, int instruction_index, int* hint, bool* is_dbg_step_point)
 {
     int pos = nlineinfos - 1;
     int low = 0;
@@ -252,23 +252,23 @@ SQInteger SQFunctionProto::GetLine(SQLineInfo* lineinfos, int nlineinfos, int in
     if (hint && unsigned(*hint) < unsigned(high)) {
         int h = *hint;
         if (instruction_index >= lineinfos[h]._op && instruction_index < lineinfos[h + 1]._op) {
-            if (is_line_op)
-                *is_line_op = lineinfos[h]._is_line_op;
+            if (is_dbg_step_point)
+                *is_dbg_step_point = lineinfos[h]._is_dbg_step_point;
             return lineinfos[h]._line;
         }
         else if (instruction_index >= lineinfos[h + 1]._op && instruction_index < lineinfos[h + 2]._op) {
             h++;
             *hint = h;
-            if (is_line_op)
-                *is_line_op = lineinfos[h]._is_line_op;
+            if (is_dbg_step_point)
+                *is_dbg_step_point = lineinfos[h]._is_dbg_step_point;
             return lineinfos[h]._line;
         }
         else if (instruction_index == 0) {
             for (int i = 0; i < nlineinfos - 1; i++)
                 if (instruction_index >= lineinfos[i]._op && instruction_index < lineinfos[i + 1]._op) {
                     *hint = i;
-                    if (is_line_op)
-                        *is_line_op = lineinfos[i]._is_line_op;
+                    if (is_dbg_step_point)
+                        *is_dbg_step_point = lineinfos[i]._is_dbg_step_point;
                     return lineinfos[i]._line;
                 }
         }
@@ -297,8 +297,8 @@ SQInteger SQFunctionProto::GetLine(SQLineInfo* lineinfos, int nlineinfos, int in
             }
     }
 
-    if (is_line_op)
-        *is_line_op = lineinfos[pos]._is_line_op;
+    if (is_dbg_step_point)
+        *is_dbg_step_point = lineinfos[pos]._is_dbg_step_point;
 
     if (hint)
         *hint = pos;
@@ -307,9 +307,9 @@ SQInteger SQFunctionProto::GetLine(SQLineInfo* lineinfos, int nlineinfos, int in
 }
 
 
-SQInteger SQFunctionProto::GetLine(const SQInstruction *curr, int *hint, bool *is_line_op)
+SQInteger SQFunctionProto::GetLine(const SQInstruction *curr, int *hint, bool *is_dbg_step_point)
 {
-    return GetLine(_lineinfos, _nlineinfos, int(curr - _instructions), hint, is_line_op);
+    return GetLine(_lineinfos, _nlineinfos, int(curr - _instructions), hint, is_dbg_step_point);
 }
 
 

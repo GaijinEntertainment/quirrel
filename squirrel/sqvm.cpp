@@ -908,11 +908,11 @@ exception_restore:
             if constexpr (debughookPresent) {
                 if (_debughook) {
                     SQFunctionProto *funcProto = _closure(ci->_closure)->_function;
-                    bool isLineOp;
-                    int curLineNum = funcProto->GetLine(ci->_ip, &lineHint, &isLineOp);
+                    bool isStepPoint;
+                    int curLineNum = funcProto->GetLine(ci->_ip, &lineHint, &isStepPoint);
                     if (curLineNum != prevLineNum) {
                         prevLineNum = curLineNum;
-                        if (isLineOp)
+                        if (isStepPoint)
                             CallDebugHook(_SC('l'), curLineNum);
                     }
                 }

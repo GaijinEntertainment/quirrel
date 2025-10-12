@@ -71,7 +71,7 @@
 namespace SQCompilation {
 
 
-CodeGenVisitor::CodeGenVisitor(Arena *arena, const HSQOBJECT *bindings, SQVM *vm, const SQChar *sourceName, SQCompilationContext &ctx, bool lineinfo)
+CodeGenVisitor::CodeGenVisitor(Arena *arena, const HSQOBJECT *bindings, SQVM *vm, const SQChar *sourceName, SQCompilationContext &ctx)
     : Visitor(),
     _fs(NULL),
     _childFs(NULL),
@@ -83,7 +83,6 @@ CodeGenVisitor::CodeGenVisitor(Arena *arena, const HSQOBJECT *bindings, SQVM *vm
     _inside_static_memo(false),
     _visit_arrays_and_tables(false),
     _variable_node(nullptr),
-    _lineinfo(lineinfo),
     _arena(arena),
     _scope() {
 
@@ -125,7 +124,7 @@ bool CodeGenVisitor::generate(RootBlock *root, SQObjectPtr &out) {
         root->visit(this);
 
         _fs->SetStackSize(stacksize);
-        _fs->AddLineInfos(root->lineEnd(), _lineinfo, true);
+        _fs->AddLineInfos(root->lineEnd(), true, true);
         _fs->AddInstruction(_OP_RETURN, 0xFF);
 
         if (GLOBAL_OPTIMIZATION_SWITCH && !(_fs->lang_features & LF_DISABLE_OPTIMIZER)) {
@@ -1435,7 +1434,7 @@ void CodeGenVisitor::visitFunctionDecl(FunctionDecl *funcDecl) {
     Block *body = funcDecl->body();
     SQInteger startLine = body->lineStart();
     if (startLine != -1) {
-        _childFs->AddLineInfos(startLine, _lineinfo, false);
+        _childFs->AddLineInfos(startLine, true, false);
     }
 
     {
@@ -1450,7 +1449,7 @@ void CodeGenVisitor::visitFunctionDecl(FunctionDecl *funcDecl) {
         _fs = _childFs->_parent;
     }
 
-    _childFs->AddLineInfos(body->lineEnd(), _lineinfo, true);
+    _childFs->AddLineInfos(body->lineEnd(), true, true);
     _childFs->AddInstruction(_OP_RETURN, -1);
 
     if (GLOBAL_OPTIMIZATION_SWITCH && !(_childFs->lang_features & LF_DISABLE_OPTIMIZER)) {
@@ -1554,14 +1553,14 @@ void CodeGenVisitor::maybeAddInExprLine(Expr *expr) {
     if (!_ss(_vm)->_lineInfoInExpressions) return;
 
     if (expr->lineStart() != -1) {
-        _fs->AddLineInfos(expr->lineStart(), _lineinfo, false);
+        _fs->AddLineInfos(expr->lineStart(), true, false);
     }
 }
 
 void CodeGenVisitor::addLineNumber(Statement *stmt) {
     SQInteger line = stmt->lineStart();
     if (line != -1) {
-        _fs->AddLineInfos(line, _lineinfo, false);
+        _fs->AddLineInfos(line, true, false);
     }
 }
 

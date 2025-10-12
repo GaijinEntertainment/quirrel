@@ -48,7 +48,6 @@ public:
     : sqvm(vm), onAST_cb(nullptr), onBytecode_cb(nullptr), up_data(nullptr)
   {
     compilationOptions.raiseError = true;
-    compilationOptions.debugInfo = false;
     compilationOptions.doStaticAnalysis = false;
     compilationOptions.useAbsolutePath = false;
     sq_enablesyntaxwarnings(false);
@@ -114,7 +113,6 @@ public:
 
   struct {
     bool raiseError;
-    bool debugInfo;
     bool doStaticAnalysis;
     bool useAbsolutePath;
   } compilationOptions;

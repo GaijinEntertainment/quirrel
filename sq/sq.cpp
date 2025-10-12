@@ -388,8 +388,6 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             }
             else if (strcmp("-d", arg) == 0)
             {
-                module_mgr->compilationOptions.debugInfo = true;
-                //sq_enabledebuginfo(v,1);
                 sq_lineinfo_in_expressions(v, 1);
             }
             else if (strcmp("-diag-file", arg) == 0)

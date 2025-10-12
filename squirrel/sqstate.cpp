@@ -21,7 +21,6 @@ SQSharedState::SQSharedState(SQAllocContext allocctx) :
     _compilerdiaghandler = NULL;
     _printfunc = NULL;
     _errorfunc = NULL;
-    _debuginfo = false;
     _lineInfoInExpressions = false;
     _varTraceEnabled = false;
     _notifyallexceptions = false;

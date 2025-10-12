@@ -78,7 +78,7 @@ namespace SQCompilation
 
 #define SQUIRREL_VERSION_NUMBER_MAJOR 4
 #define SQUIRREL_VERSION_NUMBER_MINOR 9
-#define SQUIRREL_VERSION_NUMBER_PATCH 2
+#define SQUIRREL_VERSION_NUMBER_PATCH 3
 
 #define SQ_STRINGIFY_HELPER(x) #x
 #define SQ_STRINGIFY(x) SQ_STRINGIFY_HELPER(x)
@@ -306,7 +306,7 @@ SQUIRREL_API SQRESULT sq_registerbaselib(HSQUIRRELVM v);
 SQUIRREL_API SQRESULT sq_compile(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, const HSQOBJECT *bindings = nullptr);
 
 SQUIRREL_API SQCompilation::SqASTData *sq_parsetoast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool preserveComments, SQBool raiseerror);
-SQUIRREL_API SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size, SQBool raiseerror, SQBool debugInfo);
+SQUIRREL_API SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size, SQBool raiseerror);
 SQUIRREL_API void sq_analyzeast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size);
 SQUIRREL_API void sq_checktrailingspaces(HSQUIRRELVM v, const SQChar *sourceName, const SQChar *s, SQInteger size);
 SQUIRREL_API SQRESULT sq_getimports(HSQUIRRELVM v, SQCompilation::SqASTData *astData, SQInteger *num, SQModuleImport **imports);
@@ -323,7 +323,6 @@ SQUIRREL_API void sq_releaseASTData(HSQUIRRELVM v, SQCompilation::SqASTData *ast
 
 SQUIRREL_API void sq_setcompilationoption(HSQUIRRELVM v, enum CompilationOptions co, bool value);
 SQUIRREL_API bool sq_checkcompilationoption(HSQUIRRELVM v, enum CompilationOptions co);
-SQUIRREL_API void sq_enabledebuginfo(HSQUIRRELVM v, SQBool enable);
 SQUIRREL_API void sq_enablevartrace(HSQUIRRELVM v, SQBool enable);
 SQUIRREL_API SQBool sq_isvartracesupported();
 SQUIRREL_API void sq_lineinfo_in_expressions(HSQUIRRELVM v, SQBool enable);

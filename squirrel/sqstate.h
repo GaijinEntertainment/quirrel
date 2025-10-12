@@ -124,7 +124,6 @@ public:
     SQPRINTFUNCTION _errorfunc;
     SQ_COMPILER_DIAG_CB _compilerdiaghandler;
 
-    bool _debuginfo;
     bool _notifyallexceptions;
     bool _lineInfoInExpressions;
     bool _varTraceEnabled;

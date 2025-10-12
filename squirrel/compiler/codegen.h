@@ -32,7 +32,6 @@ class CodeGenVisitor : public Visitor {
     bool _inside_static_memo;
     int _complexity_level;
 
-    bool _lineinfo;
     const SQChar *_sourceName;
 
     Arena *_arena;
@@ -44,7 +43,7 @@ class CodeGenVisitor : public Visitor {
     SQCompilationContext &_ctx;
 
 public:
-    CodeGenVisitor(Arena *arena, const HSQOBJECT *bindings, SQVM *vm, const SQChar *sourceName, SQCompilationContext &ctx, bool lineinfo);
+    CodeGenVisitor(Arena *arena, const HSQOBJECT *bindings, SQVM *vm, const SQChar *sourceName, SQCompilationContext &ctx);
 
     bool generate(RootBlock *root, SQObjectPtr &out);
 

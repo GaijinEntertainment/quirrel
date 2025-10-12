@@ -37,7 +37,7 @@ struct SQFuncState
     void MarkLocalAsOuter(SQInteger pos);
     SQInteger GetOuterVariable(const SQObject &name, char &varFlags, Expr **node = nullptr);
     SQInteger GetStackSize();
-    void AddLineInfos(SQInteger line, bool lineop, bool force);
+    void AddLineInfos(SQInteger line, bool is_dbg_step_point, bool force);
     SQFunctionProto *BuildProto();
     SQInteger AllocStackPos();
     SQInteger PushTarget(SQInteger n=-1);

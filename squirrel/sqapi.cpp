@@ -175,7 +175,7 @@ SQRESULT sq_compile(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar
 {
     SQObjectPtr o;
 #ifndef NO_COMPILER
-    if (Compile(v, s, size, bindings, sourcename, o, raiseerror ? true : false, _ss(v)->_debuginfo)) {
+    if (Compile(v, s, size, bindings, sourcename, o, raiseerror ? true : false)) {
         v->Push(SQObjectPtr(SQClosure::Create(_ss(v), _funcproto(o))));
         return SQ_OK;
     }
@@ -213,11 +213,6 @@ void sq_setcompilationoption(HSQUIRRELVM v, enum CompilationOptions co, bool val
 
 bool sq_checkcompilationoption(HSQUIRRELVM v, enum CompilationOptions co) {
   return _ss(v)->checkCompilationOption(co);
-}
-
-void sq_enabledebuginfo(HSQUIRRELVM v, SQBool enable)
-{
-    _ss(v)->_debuginfo = enable?true:false;
 }
 
 void sq_notifyallexceptions(HSQUIRRELVM v, SQBool enable)
@@ -1786,10 +1781,10 @@ void sq_reset_static_memos(HSQUIRRELVM v, HSQOBJECT func)
     }
 }
 
-SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size, SQBool raiseerror, SQBool debugInfo)
+SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size, SQBool raiseerror)
 {
     SQObjectPtr o;
-    if (TranslateASTToBytecode(v, astData, bindings, s, size, o, raiseerror, debugInfo))
+    if (TranslateASTToBytecode(v, astData, bindings, s, size, o, raiseerror))
     {
         v->Push(SQObjectPtr(SQClosure::Create(_ss(v), _funcproto(o))));
         return SQ_OK;

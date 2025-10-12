@@ -82,7 +82,7 @@ struct SQLineInfo
 {
     int32_t _op;
     unsigned _line: 31;
-    unsigned _is_line_op: 1;
+    unsigned _is_dbg_step_point: 1;
 };
 
 typedef sqvector<SQOuterVar> SQOuterVarVec;
@@ -163,8 +163,8 @@ public:
     }
 
     const SQChar* GetLocal(SQVM *v,SQUnsignedInteger stackbase,SQUnsignedInteger nseq,SQUnsignedInteger nop);
-    static SQInteger GetLine(SQLineInfo * lineinfos, int nlineinfos, int instruction_index, int *hint, bool *is_line_op = nullptr);
-    SQInteger GetLine(const SQInstruction *curr, int *hint = nullptr, bool *is_line_op = nullptr);
+    static SQInteger GetLine(SQLineInfo * lineinfos, int nlineinfos, int instruction_index, int *hint, bool *is_dbg_step_point = nullptr);
+    SQInteger GetLine(const SQInstruction *curr, int *hint = nullptr, bool *is_dbg_step_point = nullptr);
     bool Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write);
     static bool Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr &ret);
 #ifndef NO_GARBAGE_COLLECTOR

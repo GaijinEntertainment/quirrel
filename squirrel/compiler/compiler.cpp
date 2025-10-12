@@ -63,7 +63,7 @@ SqASTData *ParseToAST(SQVM *vm, const char *sourceText, size_t sourceTextSize, c
     return nullptr;
 }
 
-bool Compile(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo)
+bool Compile(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror)
 {
     Arena astArena(_ss(vm)->_alloc_ctx, "AST");
 
@@ -74,23 +74,23 @@ bool Compile(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQO
 
     Arena cgArena(_ss(vm)->_alloc_ctx, "Codegen");
     SQCompilationContext ctx(vm, &cgArena, sourcename, sourceText, sourceTextSize, nullptr, raiseerror);
-    CodeGenVisitor codegen(&cgArena, bindings, vm, sourcename, ctx, lineinfo);
+    CodeGenVisitor codegen(&cgArena, bindings, vm, sourcename, ctx);
 
     return codegen.generate(r, out);
 }
 
-static bool TranslateASTToBytecodeImpl(SQVM *vm, RootBlock *ast, const HSQOBJECT *bindings, const SQChar *sourcename, const char *sourceText, size_t sourceTextSize, SQObjectPtr &out, const Comments *comments, bool raiseerror, bool lineinfo)
+static bool TranslateASTToBytecodeImpl(SQVM *vm, RootBlock *ast, const HSQOBJECT *bindings, const SQChar *sourcename, const char *sourceText, size_t sourceTextSize, SQObjectPtr &out, const Comments *comments, bool raiseerror)
 {
     Arena cgArena(_ss(vm)->_alloc_ctx, "Codegen");
     SQCompilationContext ctx(vm, &cgArena, sourcename, sourceText, sourceTextSize, comments, raiseerror);
-    CodeGenVisitor codegen(&cgArena, bindings, vm, sourcename, ctx, lineinfo);
+    CodeGenVisitor codegen(&cgArena, bindings, vm, sourcename, ctx);
 
     return codegen.generate(ast, out);
 }
 
-bool TranslateASTToBytecode(SQVM *vm, SqASTData *astData, const HSQOBJECT *bindings, const char *sourceText, size_t sourceTextSize, SQObjectPtr &out, bool raiseerror, bool lineinfo)
+bool TranslateASTToBytecode(SQVM *vm, SqASTData *astData, const HSQOBJECT *bindings, const char *sourceText, size_t sourceTextSize, SQObjectPtr &out, bool raiseerror)
 {
-    return TranslateASTToBytecodeImpl(vm, astData->root, bindings, astData->sourceName, sourceText, sourceTextSize, out, astData->comments, raiseerror, lineinfo);
+    return TranslateASTToBytecodeImpl(vm, astData->root, bindings, astData->sourceName, sourceText, sourceTextSize, out, astData->comments, raiseerror);
 }
 
 void AnalyzeCode(SQVM *vm, SqASTData *astData, const HSQOBJECT *bindings, const char *sourceText, size_t sourceTextSize)
