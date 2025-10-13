@@ -22,22 +22,6 @@ compiles a quirrel program from a memory buffer; if it succeeds, push the compil
 
 
 
-
-
-.. _sq_enabledebuginfo:
-
-.. c:function:: void sq_enabledebuginfo(HSQUIRRELVM v, SQBool enable)
-
-    :param HSQUIRRELVM v: the target VM
-    :param SQBool enable: if true enables the debug info generation, if == 0 disables it.
-    :remarks: The function affects all threads as well.
-
-enable/disable the debug line information generation at compile time.
-
-
-
-
-
 .. _sq_notifyallexceptions:
 
 .. c:function:: void sq_notifyallexceptions(HSQUIRRELVM v, SQBool enable)
