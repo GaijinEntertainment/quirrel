@@ -34,6 +34,7 @@ target_include_directories(sqstdlib PUBLIC
 
 target_include_directories(sqmodules PUBLIC
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/../../include>"
+  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/../../sqrat/include>"
 )
 
 target_include_directories(sqjsrepl PUBLIC
