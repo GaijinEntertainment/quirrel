@@ -24,12 +24,9 @@ endif()
 
 add_library(squirrel STATIC ${SQUIRREL_SRC})
 add_library(squirrel::squirrel ALIAS squirrel)
-set_property(TARGET squirrel PROPERTY EXPORT_NAME squirrel)
 target_include_directories(squirrel PUBLIC
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
-  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/internal>"
-  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/helpers>"
-  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/squirrel>"
-  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+  PRIVATE
+  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/internal>"
   )
