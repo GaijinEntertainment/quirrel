@@ -32,19 +32,15 @@ elseif(MSVC)
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()
 
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  add_compile_definitions(_SQ64)
+endif()
+
 add_subdirectory(squirrel)
 add_subdirectory(squirrel/compiler)
 add_subdirectory(sqstdlib)
 add_subdirectory(sqmodules)
 add_subdirectory(sq)
-
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-  set(tgts)
-  list(APPEND tgts squirrel quirrel-compiler sqstdlib sqmodules sq)
-  foreach(t ${tgts})
-    target_compile_definitions(${t} PUBLIC -D_SQ64)
-  endforeach()
-endif()
 
 
 include(CMakePackageConfigHelpers)
