@@ -126,7 +126,7 @@ template<class C> int ClassData<C>::type_id_helper = 0;
 
 struct ClassesRegistryTable {
     static SQUserPointer slotKey() {
-        static int slot_id_helper = 0;
+        static int slot_id_helper = 0; //-V1096
         return &slot_id_helper;
     }
 };

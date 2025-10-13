@@ -98,7 +98,8 @@ static std::string runScript(const std::string &source_text)
   assert(vm);
 
   std::unique_ptr<SqModules> moduleMgr;
-  moduleMgr.reset(new SqModules(vm));
+  DefSqModulesFileAccess fileAccess;
+  moduleMgr.reset(new SqModules(vm, &fileAccess));
 
   sq_setprintfunc(vm, script_print_func, script_err_print_func);
   sq_setcompilererrorhandler(vm, compile_error_handler);
@@ -106,7 +107,6 @@ static std::string runScript(const std::string &source_text)
   sq_newclosure(vm, runtime_error_handler, 0);
   sq_seterrorhandler(vm);
 
-  sq_enabledebuginfo(vm, true);
   sq_enablevartrace(vm, false);
 
   moduleMgr->registerMathLib();

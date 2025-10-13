@@ -13,4 +13,4 @@ function useKeywords() {
 }
 
 useKeywords()
-//println(sin(0), abs(-5)) // uncomment when modules are implemented in `sq`
+println(sin(0), abs(-5))

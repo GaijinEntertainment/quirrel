@@ -125,7 +125,7 @@ struct Var {
     T value; ///< The actual value of get operations
 
     /// Attempts to get the value off the stack at idx as the given type
-    Var(HSQUIRRELVM vm, SQInteger idx) {
+    Var(HSQUIRRELVM vm, SQInteger idx) { //-V1077
         T* ptr = ClassT::GetInstance(vm, idx);
         if (ptr != NULL) {
             value = *ptr;
@@ -180,7 +180,7 @@ struct Var<T&> {
     T& value; ///< The actual value of get operations
 
     /// Attempts to get the value off the stack at idx as the given type
-    Var(HSQUIRRELVM vm, SQInteger idx) : value(*ClassT::GetInstance(vm, idx)) {
+    Var(HSQUIRRELVM vm, SQInteger idx) : value(*ClassT::GetInstance(vm, idx)) { //-V522
     }
 
     /// Called by Sqrat::PushVarR to put a class object on the stack

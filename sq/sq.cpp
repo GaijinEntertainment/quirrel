@@ -29,6 +29,7 @@
 
 
 static SqModules *module_mgr = nullptr;
+static DefSqModulesFileAccess file_access;
 static bool check_stack_mode = false;
 
 
@@ -346,7 +347,7 @@ static bool parse_types_from_file(HSQUIRRELVM sqvm, const char *filename)
 //<<FIXME>> this func is a mess
 int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 {
-    assert(module_mgr != nullptr && "Module manager has to be existed");
+    assert(module_mgr != nullptr && "Module manager has to be initialized");
     const char *optArg = nullptr;
     DumpOptions dumpOpt = { 0 };
     FILE *diagFile = nullptr;
@@ -380,7 +381,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             }
             else if (strcmp("-absolute-path", arg) == 0)
             {
-                module_mgr->compilationOptions.useAbsolutePath = true;
+                file_access.useAbsolutePath = true;
             }
             else if (strcmp("-parse-types", arg) == 0)
             {
@@ -679,7 +680,7 @@ int main(int argc, char* argv[])
     //sets error handlers
     sqstd_seterrorhandlers(v);
 
-    module_mgr = new SqModules(v);
+    module_mgr = new SqModules(v, &file_access);
     module_mgr->registerMathLib();
     module_mgr->registerStringLib();
     module_mgr->registerSystemLib();
@@ -687,7 +688,6 @@ int main(int argc, char* argv[])
     module_mgr->registerIoLib();
     module_mgr->registerDateTimeLib();
     module_mgr->registerDebugLib();
-    module_mgr->registerModulesLib();
 
     sqstd_register_command_line_args(v, argc, argv);
 
