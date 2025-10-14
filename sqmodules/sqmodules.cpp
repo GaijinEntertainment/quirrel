@@ -230,7 +230,7 @@ Sqrat::Table SqModules::setupStateStorage(const char *resolved_fn)
   SQRAT_ASSERT(sqvm);
 
   for (const Module &prevMod : prevModules)
-    if (prevMod.fn.c_str() == resolved_fn)
+    if (prevMod.fn == resolved_fn)
       return prevMod.stateStorage;
 
   return Sqrat::Table(sqvm);
@@ -682,14 +682,27 @@ SQInteger SqModules::sqRequire(HSQUIRRELVM vm) // arguments: fileName, mustExist
   if (self->beforeImportModuleCb && !self->beforeImportModuleCb(self, fileName))
     return sqstd_throwerrorf(vm, "Module '%s' is forbidden", fileName);
 
-  auto nativeIt = self->nativeModules.find(fileName);
+  bool searchNative = true, searchScript = true;
+  self->fileAccess->getSearchTargets(fileName, searchNative, searchScript);
+
+  auto nativeIt = searchNative ? self->nativeModules.find(fileName) : self->nativeModules.end();
   if (nativeIt != self->nativeModules.end())
   {
-    sq_pushobject(vm, nativeIt->second.GetObject());
+    sq_pushobject(vm, nativeIt->second);
     return 1;
   }
+  if (!searchScript)
+  {
+    if (!must_exist)
+    {
+      sq_pushnull(vm);
+      return 1;
+    }
+    else
+      return sqstd_throwerrorf(vm, "Script module '%s' not found", fileName);
+  }
 
-  Sqrat::Object exports;
+  Sqrat::Object exports(vm);
   string errMsg;
   if (!self->requireModule(fileName, must_exist, __fn__, exports, errMsg))
     return sq_throwerror(vm, errMsg.c_str());
