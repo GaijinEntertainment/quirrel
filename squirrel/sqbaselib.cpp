@@ -690,25 +690,27 @@ static SQInteger table_filter(HSQUIRRELVM v)
     SQInteger nArgs = get_allowed_args_count(closure, 4);
 
     SQObjectPtr ret(SQTable::Create(_ss(v),0));
-
+    SQObjectPtr temp;
     SQObjectPtr itr, key, val;
     SQInteger nitr;
     while((nitr = tbl->Next(false, itr, key, val)) != -1) {
         itr = (SQInteger)nitr;
 
-        v->Push(o);
+        v->PushNull();
         v->Push(val);
         if (nArgs >= 3)
             v->Push(key);
         if (nArgs >= 4)
             v->Push(o);
-        if(SQ_FAILED(sq_call(v,nArgs,SQTrue,SQ_BASELIB_INVOKE_CB_ERR_HANDLER))) {
+
+        bool callRes = v->Call(closure, nArgs, v->_top - nArgs, temp, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
+        v->Pop(nArgs);
+        if (!callRes)
             return SQ_ERROR;
-        }
-        if(!SQVM::IsFalse(v->GetUp(-1))) {
+
+        if (!SQVM::IsFalse(temp)) {
             _table(ret)->NewSlot(key, val);
         }
-        v->Pop();
     }
 
     v->Push(ret);
@@ -853,35 +855,35 @@ static SQInteger array_to_table(HSQUIRRELVM v)
 
 
 static SQInteger __map_table(SQTable *dest, SQTable *src, HSQUIRRELVM v) {
-    SQObjectPtr temp;
     const SQObjectPtr &closure = stack_get(v, 2);
-    v->Push(closure);
 
     SQInteger nArgs = get_allowed_args_count(closure, 4);
-
     SQObjectPtr itr, key, val;
     SQInteger nitr;
+    SQObjectPtr temp;
+    SQObjectPtr srcObj(src);
     while ((nitr = src->Next(false, itr, key, val)) != -1) {
         itr = (SQInteger)nitr;
-        SQObjectPtr srcObj(src);
 
-        v->Push(srcObj);
+        v->PushNull();
         v->Push(val);
         if (nArgs >= 3)
             v->Push(key);
         if (nArgs >= 4)
             v->Push(srcObj);
-        if (SQ_FAILED(sq_call(v, nArgs, SQTrue, SQ_BASELIB_INVOKE_CB_ERR_HANDLER))) {
+
+        bool callRes = v->Call(closure, nArgs, v->_top - nArgs, temp, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
+        v->Pop(nArgs);
+        if (!callRes) {
             if (sq_isnull(v->_lasterror))
                 continue;
-            return SQ_ERROR;
+            else
+                return SQ_ERROR;
         }
 
-        dest->NewSlot(key, v->GetUp(-1));
-        v->Pop();
+        dest->NewSlot(key, temp);
     }
 
-    v->Pop();
     return 0;
 }
 
@@ -921,8 +923,7 @@ static SQInteger table_reduce(HSQUIRRELVM v)
             accum = val;
             gotAccum = true;
         } else {
-            v->Push(closure);
-            v->Push(o);
+            v->PushNull();
             v->Push(accum);
             v->Push(val);
             if (nArgs >= 4)
@@ -930,12 +931,10 @@ static SQInteger table_reduce(HSQUIRRELVM v)
             if (nArgs >= 5)
                 v->Push(o);
 
-            if(SQ_FAILED(sq_call(v,nArgs,SQTrue,SQ_BASELIB_INVOKE_CB_ERR_HANDLER))) {
+            bool callRes = v->Call(closure, nArgs, v->_top - nArgs, accum, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
+            v->Pop(nArgs);
+            if (!callRes)
                 return SQ_ERROR;
-            }
-
-            accum = v->GetUp(-1);
-            v->Pop(2);
         }
     }
 
@@ -1130,30 +1129,31 @@ static SQInteger __map_array(SQArray *dest,SQArray *src,HSQUIRRELVM v, bool appe
     SQObjectPtr srcObj(src);
     SQInteger size = src->Size();
     const SQObjectPtr &closure = stack_get(v, 2);
-    v->Push(closure);
 
     SQInteger nArgs = get_allowed_args_count(closure, 4);
-
     for(SQInteger n = 0; n < size; n++) {
         src->Get(n,temp);
-        v->Push(srcObj);
+        v->PushNull();
         v->Push(temp);
         if (nArgs >= 3)
             v->Push(SQObjectPtr(n));
         if (nArgs >= 4)
             v->Push(srcObj);
-        if(SQ_FAILED(sq_call(v,nArgs,SQTrue,SQ_BASELIB_INVOKE_CB_ERR_HANDLER))) {
-            if (append && sq_isnull(v->_lasterror))
+
+        bool callRes = v->Call(closure, nArgs, v->_top - nArgs, temp, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
+        v->Pop(nArgs);
+        if (!callRes) {
+            if (append && sq_isnull(v->_lasterror)) {
                 continue;
+            }
             return SQ_ERROR;
         }
+
         if (append)
-            dest->Append(v->GetUp(-1));
+            dest->Append(temp);
         else
-            dest->Set(n,v->GetUp(-1));
-        v->Pop();
+            dest->Set(n, temp);
     }
-    v->Pop();
     return 0;
 }
 
@@ -1187,15 +1187,15 @@ static SQInteger array_reduce(HSQUIRRELVM v)
     const SQObjectPtr &o = stack_get(v,1);
     SQArray *a = _array(o);
     SQInteger size = a->Size();
-    SQObjectPtr res;
+    SQObjectPtr accum;
     SQInteger iterStart;
     if (sq_gettop(v)>2) {
-        res = stack_get(v,3);
+        accum = stack_get(v,3);
         iterStart = 0;
     } else if (size==0) {
         return 0;
     } else {
-        a->Get(0,res);
+        a->Get(0, accum);
         iterStart = 1;
     }
 
@@ -1204,25 +1204,23 @@ static SQInteger array_reduce(HSQUIRRELVM v)
 
     if (size > iterStart) {
         SQObjectPtr other;
-        v->Push(closure);
         for (SQInteger n = iterStart; n < size; n++) {
             a->Get(n,other);
-            v->Push(o);
-            v->Push(res);
+            v->PushNull();
+            v->Push(accum);
             v->Push(other);
             if (nArgs >= 4)
                 v->Push(SQObjectPtr(n));
             if (nArgs >= 5)
                 v->Push(o);
-            if(SQ_FAILED(sq_call(v,nArgs,SQTrue,SQ_BASELIB_INVOKE_CB_ERR_HANDLER))) {
+
+            bool callRes = v->Call(closure, nArgs, v->_top - nArgs, accum, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
+            v->Pop(nArgs);
+            if (!callRes)
                 return SQ_ERROR;
-            }
-            res = v->GetUp(-1);
-            v->Pop();
         }
-        v->Pop();
     }
-    v->Push(res);
+    v->Push(accum);
     return 1;
 }
 
@@ -1235,22 +1233,25 @@ static SQInteger array_filter(HSQUIRRELVM v)
 
     SQObjectPtr ret(SQArray::Create(_ss(v),0));
     SQInteger size = a->Size();
-    SQObjectPtr val;
+    SQObjectPtr val, temp;
+
     for(SQInteger n = 0; n < size; n++) {
         a->Get(n,val);
-        v->Push(o);
+        v->PushNull();
         v->Push(val);
         if (nArgs >= 3)
             v->Push(SQObjectPtr(n));
         if (nArgs >= 4)
             v->Push(o);
-        if(SQ_FAILED(sq_call(v,nArgs,SQTrue,SQ_BASELIB_INVOKE_CB_ERR_HANDLER))) {
+
+        bool callRes = v->Call(closure, nArgs, v->_top - nArgs, temp, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
+        v->Pop(nArgs);
+        if (!callRes)
             return SQ_ERROR;
-        }
-        if(!SQVM::IsFalse(v->GetUp(-1))) {
+
+        if(!SQVM::IsFalse(temp)) {
             _array(ret)->Append(val);
         }
-        v->Pop();
     }
     v->Push(ret);
     return 1;

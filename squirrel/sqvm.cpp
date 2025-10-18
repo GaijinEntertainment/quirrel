@@ -846,7 +846,7 @@ bool SQVM::IsFalse(const SQObject &o)
 extern SQInstructionDesc g_InstrDesc[];
 
 template <bool debughookPresent>
-bool SQVM::Execute(SQObjectPtr &closure, SQInteger nargs, SQInteger stackbase,SQObjectPtr &outres, SQBool invoke_err_handler,ExecutionType et)
+bool SQVM::Execute(const SQObjectPtr &closure, SQInteger nargs, SQInteger stackbase,SQObjectPtr &outres, SQBool invoke_err_handler,ExecutionType et)
 {
     ValidateThreadAccess();
 
@@ -1657,7 +1657,7 @@ bool SQVM::CreateClassInstance(SQClass *theclass, SQObjectPtr &__restrict out_in
     return true;
 }
 
-void SQVM::CallErrorHandler(SQObjectPtr &error)
+void SQVM::CallErrorHandler(const SQObjectPtr &error)
 {
   if (ci)
     ci->_ip--;
@@ -2249,7 +2249,7 @@ bool SQVM::DeleteSlot(const SQObjectPtr &self,const SQObjectPtr &key,SQObjectPtr
     return true;
 }
 
-bool SQVM::Call(SQObjectPtr &closure,SQInteger nparams,SQInteger stackbase,SQObjectPtr &outres,SQBool invoke_err_handler)
+bool SQVM::Call(const SQObjectPtr &closure,SQInteger nparams,SQInteger stackbase,SQObjectPtr &outres,SQBool invoke_err_handler)
 {
     switch(sq_type(closure)) {
     case OT_CLOSURE:
