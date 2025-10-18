@@ -4,6 +4,6 @@ testData/static_analyzer/w215.nut:7:10
 local flag = true
 local b = 10 + flag ? 1 : 2
           ^--------
-::print(b)
+print(b)
 
 

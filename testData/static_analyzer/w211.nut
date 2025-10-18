@@ -9,10 +9,10 @@ local MODE = {
 
 local x = 1
 switch(x) {
-  case MODE.MODE_1: ::print("1"); break;
-  case MODE.MODE_2: ::print("2"); break;
-  case MODE.MODE_1: ::print("3"); break;
+  case MODE.MODE_1: print("1"); break;
+  case MODE.MODE_2: print("2"); break;
+  case MODE.MODE_1: print("3"); break;
   default:
-    ::print("0")
+    print("0")
     break;
 }

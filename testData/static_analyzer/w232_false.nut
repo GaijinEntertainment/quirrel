@@ -4,4 +4,4 @@ local a = 1
   PARAM_A = 1
   PARAM_B = 2
 }
-::print(a == ::XEnum.PARAM_A && a == ::XEnum.PARAM_B)
+print(a == ::XEnum.PARAM_A && a == ::XEnum.PARAM_B)

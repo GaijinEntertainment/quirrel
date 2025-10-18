@@ -7,7 +7,7 @@ if (__name__ == "__analysis__")
 
 local uu = ::sys.gh("fff") ?? ""
 if ((uu ?? "") != "")
-  ::print($"x: {uu}")
+  print($"x: {uu}")
 
 
 local regions = ::unlock?.meta.regions ?? [::unlock?.meta.region] ?? []

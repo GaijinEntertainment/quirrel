@@ -4,6 +4,6 @@ testData/static_analyzer/w208.nut:3:0
 local x = { z = {y = 3}}
 x.z?.y <- 6
 ^-----
-::print(x.z.y)
+print(x.z.y)
 
 

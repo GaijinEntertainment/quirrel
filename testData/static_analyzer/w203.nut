@@ -8,6 +8,6 @@ local condition3 = ::z
 local condition4 = ::w
 
 if (condition1 || condition2 || condition3 | condition4)
-  ::print("ok")
+  print("ok")
 
 //-file:undefined-global

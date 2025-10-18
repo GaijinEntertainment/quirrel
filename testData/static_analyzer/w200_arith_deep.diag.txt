@@ -4,6 +4,6 @@ testData/static_analyzer/w200_arith_deep.nut:4:10
 local z = x?.y
 local a = z - 8
           ^
-::print(a)
+print(a)
 
 

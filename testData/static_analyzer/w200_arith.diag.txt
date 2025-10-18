@@ -4,6 +4,6 @@ testData/static_analyzer/w200_arith.nut:3:10
 local x = {y = 2}
 local a = x?.y - 8
           ^---
-::print(a)
+print(a)
 
 

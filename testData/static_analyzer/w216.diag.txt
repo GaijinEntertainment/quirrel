@@ -3,6 +3,6 @@ testData/static_analyzer/w216.nut:5:4
 
 if (a.x < a.x)
     ^--------
-  ::print("x < y")
+  print("x < y")
 
 

@@ -11,7 +11,7 @@ let b2 = false
 print(b1 > b2)
 
 if (B == x > y)
-  ::print("a")
+  print("a")
 
 if ((B == x) > y)
-  ::print("a")
+  print("a")

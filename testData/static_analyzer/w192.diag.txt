@@ -65,7 +65,7 @@ while (a > b)
 WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 15 and 19.
 testData/static_analyzer/w192.nut:19:0
 
-::print(a + b);
-^-------------
+print(a + b);
+^-----------
 
 
