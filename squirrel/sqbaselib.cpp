@@ -2025,7 +2025,7 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
         SET_SLOT("native", false);
         SET_SLOT("name", f->_name);
         SET_SLOT("src", f->_sourcename);
-        SET_SLOT("line", SQInteger(f->_lineinfos[0]._line));
+        SET_SLOT("line", SQInteger(f->_lineinfos->_first_line));
         SET_SLOT("parameters", params);
         SET_SLOT("varargs", f->_varparams);
         SET_SLOT("defparams", defparams);

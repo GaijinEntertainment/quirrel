@@ -6,19 +6,19 @@
 #include "sqfuncstate.h"
 #include "optimizer.h"
 
-SQOptimizer::SQOptimizer(SQFuncState & func_state) : fs(&func_state), jumps(func_state._lineinfos._alloc_ctx), codeChanged(false) {}
+SQOptimizer::SQOptimizer(SQFuncState & func_state) : fs(&func_state), jumps(func_state._full_line_infos._alloc_ctx), codeChanged(false) {}
 #undef _DEBUG_DUMP
 
 #ifdef _DEBUG_DUMP
  void SQOptimizer::debugPrintInstructionPos(const SQChar * message, int instructionIndex)
  {
-    for (int i = 0; i < fs->_lineinfos.size(); i++)
-        if (fs->_lineinfos[i]._op >= instructionIndex) {
-            printf(_SC("OPTIMIZER: %s  %s:%d\n"), message, _stringval(fs->_sourcename), fs->_lineinfos[i]._line);
+    for (int i = 0; i < fs->_full_line_infos.size(); i++)
+        if (fs->_full_line_infos[i]._op >= instructionIndex) {
+            printf(_SC("OPTIMIZER: %s  %s:%d\n"), message, _stringval(fs->_sourcename), fs->_full_line_infos[i]._line);
             return;
         }
-    if (fs->_lineinfos.size() > 0)
-        printf(_SC("OPTIMIZER: %s  %s:%d\n"), message, _stringval(fs->_sourcename), fs->_lineinfos.top()._line);
+    if (fs->_full_line_infos.size() > 0)
+        printf(_SC("OPTIMIZER: %s  %s:%d\n"), message, _stringval(fs->_sourcename), fs->_full_line_infos.top()._line);
  }
 #endif
 
@@ -90,9 +90,9 @@ void SQOptimizer::cutRange(int start, int old_count, int new_count)
         }
     }
 
-    for (int i = 0; i < fs->_lineinfos.size(); i++)
-        if (fs->_lineinfos[i]._op > tmpStart)
-            fs->_lineinfos[i]._op -= tmpCount;
+    for (int i = 0; i < fs->_full_line_infos.size(); i++)
+        if (fs->_full_line_infos[i]._op > tmpStart)
+            fs->_full_line_infos[i]._op -= tmpCount;
 
     codeChanged = true;
 }

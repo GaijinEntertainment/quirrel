@@ -242,7 +242,8 @@ const SQChar* SQFunctionProto::GetLocal(SQVM *vm,SQUnsignedInteger stackbase,SQU
 }
 
 
-SQInteger SQFunctionProto::GetLine(SQLineInfo* lineinfos, int nlineinfos, int instruction_index, int* hint, bool* is_dbg_step_point)
+template <typename T>
+inline SQInteger get_line_offset_impl(T* lineinfos, int nlineinfos, int instruction_index, int* hint, bool* is_dbg_step_point)
 {
     int pos = nlineinfos - 1;
     int low = 0;
@@ -251,25 +252,25 @@ SQInteger SQFunctionProto::GetLine(SQLineInfo* lineinfos, int nlineinfos, int in
 
     if (hint && unsigned(*hint) < unsigned(high)) {
         int h = *hint;
-        if (instruction_index >= lineinfos[h]._op && instruction_index < lineinfos[h + 1]._op) {
+        if (instruction_index >= (int)lineinfos[h]._op && instruction_index < (int)lineinfos[h + 1]._op) {
             if (is_dbg_step_point)
                 *is_dbg_step_point = lineinfos[h]._is_dbg_step_point;
-            return lineinfos[h]._line;
+            return lineinfos[h]._line_offset;
         }
-        else if (instruction_index >= lineinfos[h + 1]._op && instruction_index < lineinfos[h + 2]._op) {
+        else if (instruction_index >= (int)lineinfos[h + 1]._op && instruction_index < (int)lineinfos[h + 2]._op) {
             h++;
             *hint = h;
             if (is_dbg_step_point)
                 *is_dbg_step_point = lineinfos[h]._is_dbg_step_point;
-            return lineinfos[h]._line;
+            return lineinfos[h]._line_offset;
         }
         else if (instruction_index == 0) {
             for (int i = 0; i < nlineinfos - 1; i++)
-                if (instruction_index >= lineinfos[i]._op && instruction_index < lineinfos[i + 1]._op) {
+                if (instruction_index >= (int)lineinfos[i]._op && instruction_index < (int)lineinfos[i + 1]._op) {
                     *hint = i;
                     if (is_dbg_step_point)
                         *is_dbg_step_point = lineinfos[i]._is_dbg_step_point;
-                    return lineinfos[i]._line;
+                    return lineinfos[i]._line_offset;
                 }
         }
     }
@@ -277,9 +278,9 @@ SQInteger SQFunctionProto::GetLine(SQLineInfo* lineinfos, int nlineinfos, int in
     while (high >= low && --tryCount) {
         int mid = (high + low) / 2;
 
-        if (instruction_index < lineinfos[mid]._op)
+        if (instruction_index < (int)lineinfos[mid]._op)
             high = mid - 1;
-        else if (instruction_index >= lineinfos[mid + 1]._op)
+        else if (instruction_index >= (int)lineinfos[mid + 1]._op)
             low = mid + 1;
         else {
             pos = mid;
@@ -291,7 +292,7 @@ SQInteger SQFunctionProto::GetLine(SQLineInfo* lineinfos, int nlineinfos, int in
         // TODO: failsafe pass, to be reomved later
         assert(0);
         for (int i = 0; i < nlineinfos - 1; i++)
-            if (instruction_index >= lineinfos[i]._op && instruction_index < lineinfos[i + 1]._op) {
+            if (instruction_index >= (int)lineinfos[i]._op && instruction_index < (int)lineinfos[i + 1]._op) {
                 pos = i;
                 break;
             }
@@ -303,7 +304,16 @@ SQInteger SQFunctionProto::GetLine(SQLineInfo* lineinfos, int nlineinfos, int in
     if (hint)
         *hint = pos;
 
-    return lineinfos[pos]._line;
+    return lineinfos[pos]._line_offset;
+}
+
+
+SQInteger SQFunctionProto::GetLine(SQLineInfosHeader* lineinfos, int nlineinfos, int instruction_index, int* hint, bool* is_dbg_step_point)
+{
+    if (lineinfos->_is_compressed)
+        return get_line_offset_impl((SQCompressedLineInfo *)(void *)(lineinfos + 1), nlineinfos, instruction_index, hint, is_dbg_step_point) + lineinfos->_first_line;
+    else
+        return get_line_offset_impl((SQFullLineInfo *)(void *)(lineinfos + 1), nlineinfos, instruction_index, hint, is_dbg_step_point) + lineinfos->_first_line;
 }
 
 
@@ -458,6 +468,7 @@ bool SQFunctionProto::Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write)
     SQInteger nlineinfos=_nlineinfos,ninstructions = _ninstructions,nfunctions=_nfunctions;
     SQInteger ndefaultparams = _ndefaultparams;
     SQInteger nstaticmemos = _nstaticmemos;
+    bool compressedLineInfos = _lineinfos->_is_compressed;
     _CHECK_IO(WriteTag(v,write,up,SQ_CLOSURESTREAM_PART));
     _CHECK_IO(WriteObject(v,up,write,_sourcename));
     _CHECK_IO(WriteObject(v,up,write,_name));
@@ -468,6 +479,7 @@ bool SQFunctionProto::Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write)
     _CHECK_IO(SafeWrite(v,write,up,&noutervalues,sizeof(noutervalues)));
     _CHECK_IO(SafeWrite(v,write,up,&nlocalvarinfos,sizeof(nlocalvarinfos)));
     _CHECK_IO(SafeWrite(v,write,up,&nlineinfos,sizeof(nlineinfos)));
+    _CHECK_IO(SafeWrite(v,write,up,&compressedLineInfos,sizeof(compressedLineInfos)));
     _CHECK_IO(SafeWrite(v,write,up,&ndefaultparams,sizeof(ndefaultparams)));
     _CHECK_IO(SafeWrite(v,write,up,&ninstructions,sizeof(ninstructions)));
     _CHECK_IO(SafeWrite(v,write,up,&nfunctions,sizeof(nfunctions)));
@@ -501,7 +513,8 @@ bool SQFunctionProto::Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write)
     }
 
     _CHECK_IO(WriteTag(v,write,up,SQ_CLOSURESTREAM_PART));
-    _CHECK_IO(SafeWrite(v,write,up,_lineinfos,sizeof(SQLineInfo)*nlineinfos));
+    size_t lineinfosSize = (char *)_defaultparams - (char *)_lineinfos;
+    _CHECK_IO(SafeWrite(v,write,up,_lineinfos,lineinfosSize));
 
     _CHECK_IO(WriteTag(v,write,up,SQ_CLOSURESTREAM_PART));
     _CHECK_IO(SafeWrite(v,write,up,_defaultparams,sizeof(SQInteger)*ndefaultparams));
@@ -529,6 +542,7 @@ bool SQFunctionProto::Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr 
     SQInteger nstaticmemos;
     SQObjectPtr sourcename, name;
     SQObjectPtr o;
+    bool compressedLineInfos = false;
     _CHECK_IO(CheckTag(v,read,up,SQ_CLOSURESTREAM_PART));
     _CHECK_IO(ReadObject(v, up, read, sourcename));
     _CHECK_IO(ReadObject(v, up, read, name));
@@ -540,15 +554,16 @@ bool SQFunctionProto::Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr 
     _CHECK_IO(SafeRead(v,read,up, &noutervalues, sizeof(noutervalues)));
     _CHECK_IO(SafeRead(v,read,up, &nlocalvarinfos, sizeof(nlocalvarinfos)));
     _CHECK_IO(SafeRead(v,read,up, &nlineinfos, sizeof(nlineinfos)));
+    _CHECK_IO(SafeRead(v,read,up, &compressedLineInfos, sizeof(compressedLineInfos)));
     _CHECK_IO(SafeRead(v,read,up, &ndefaultparams, sizeof(ndefaultparams)));
     _CHECK_IO(SafeRead(v,read,up, &ninstructions, sizeof(ninstructions)));
     _CHECK_IO(SafeRead(v,read,up, &nfunctions, sizeof(nfunctions)));
     _CHECK_IO(SafeRead(v,read,up, &nstaticmemos, sizeof(nfunctions)));
 
-
     SQFunctionProto *f = SQFunctionProto::Create(_opt_ss(v), langFeatures,
             ninstructions,nliterals,nparameters,
-            nfunctions,noutervalues,nlineinfos,nlocalvarinfos,ndefaultparams,nstaticmemos);
+            nfunctions,noutervalues,nlineinfos,compressedLineInfos,
+            nlocalvarinfos,ndefaultparams,nstaticmemos);
     SQObjectPtr proto(f); //gets a ref in case of failure
     f->_sourcename = sourcename;
     f->_name = name;
@@ -588,7 +603,8 @@ bool SQFunctionProto::Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr 
         f->_localvarinfos[i] = lvi;
     }
     _CHECK_IO(CheckTag(v,read,up,SQ_CLOSURESTREAM_PART));
-    _CHECK_IO(SafeRead(v,read,up, f->_lineinfos, sizeof(SQLineInfo)*nlineinfos));
+    size_t lineinfosSize = (char *)f->_defaultparams - (char *)f->_lineinfos;
+    _CHECK_IO(SafeRead(v,read,up, f->_lineinfos, lineinfosSize));
 
     _CHECK_IO(CheckTag(v,read,up,SQ_CLOSURESTREAM_PART));
     _CHECK_IO(SafeRead(v,read,up, f->_defaultparams, sizeof(SQInteger)*ndefaultparams));

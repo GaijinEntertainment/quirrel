@@ -69,7 +69,7 @@ struct SQFuncState
     SQObjectPtr _name;
     SQObjectPtr _sourcename;
     SQInteger _nliterals;
-    SQLineInfoVec _lineinfos;
+    SQFullLineInfoVec _full_line_infos;
     SQFuncState *_parent;
     SQIntVec _breaktargets;
     SQIntVec _continuetargets;

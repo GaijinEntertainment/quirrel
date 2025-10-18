@@ -19,7 +19,7 @@ SQRESULT sq_getfunctioninfo(HSQUIRRELVM v,SQInteger level,SQFunctionInfo *fi)
             fi->funcid = proto;
             fi->name = sq_type(proto->_name) == OT_STRING?_stringval(proto->_name):_SC("unknown");
             fi->source = sq_type(proto->_sourcename) == OT_STRING?_stringval(proto->_sourcename):_SC("unknown");
-            fi->line = proto->_lineinfos[0]._line;
+            fi->line = proto->_lineinfos->_first_line;
             return SQ_OK;
         }
     }

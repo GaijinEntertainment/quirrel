@@ -87,7 +87,7 @@ SQFuncState::SQFuncState(SQSharedState *ss,SQFuncState *parent,SQCompilationCont
     _outervalues_nodes(ss->_alloc_ctx),
     _instructions(ss->_alloc_ctx),
     _localvarinfos(ss->_alloc_ctx),
-    _lineinfos(ss->_alloc_ctx),
+    _full_line_infos(ss->_alloc_ctx),
     _breaktargets(ss->_alloc_ctx),
     _continuetargets(ss->_alloc_ctx),
     _blockstacksizes(ss->_alloc_ctx),
@@ -127,7 +127,7 @@ static uint64_t GetUInt64FromPtr(const void *ptr)
     return res;
 }
 
-void DumpInstructions(OutputStream *stream, SQLineInfo * lineinfos, int nlineinfos, const SQInstruction *ii, SQInt32 i_count,
+void DumpInstructions(OutputStream *stream, SQLineInfosHeader *lineinfos, int nlineinfos, const SQInstruction *ii, SQInt32 i_count,
     const SQObjectPtr *_literals, SQInt32 _nliterals, int instruction_index)
 {
     SQInt32 n = 0;
@@ -369,12 +369,25 @@ static void DumpLocals(OutputStream *stream, const SQLocalVarInfo *_localvarinfo
     }
 }
 
-static void DumpLineInfo(OutputStream *stream, const SQLineInfo *_lineinfos, SQInt32 _nlineinfos)
+static void DumpLineInfo(OutputStream *stream, const SQLineInfosHeader *_lineinfos, SQInt32 _nlineinfos)
 {
     streamprintf(stream, _SC("-----LINE INFO\n"));
     for (SQInt32 i = 0; i < _nlineinfos; i++) {
-        SQLineInfo li = _lineinfos[i];
-        streamprintf(stream, _SC("op [%d] line [%d]%s\n"), (SQInt32)li._op, (SQInt32)li._line, li._is_dbg_step_point ? " dbgstep" : "");
+        int op = 0;
+        int line = 0;
+        bool isDbgStepPoint = false;
+        if (_lineinfos->_is_compressed) {
+            SQCompressedLineInfo li = ((SQCompressedLineInfo *)(void *)(_lineinfos + 1))[i];
+            op = li._op;
+            line = _lineinfos->_first_line + li._line_offset;
+            isDbgStepPoint = li._is_dbg_step_point;
+        } else {
+            SQFullLineInfo li = ((SQFullLineInfo *)(void *)(_lineinfos + 1))[i];
+            op = li._op;
+            line = _lineinfos->_first_line + li._line_offset;
+            isDbgStepPoint = li._is_dbg_step_point;
+        }
+        streamprintf(stream, _SC("op [%d] line [%d]%s\n"), op, line, isDbgStepPoint ? " dbgstep" : "");
     }
 }
 
@@ -415,33 +428,6 @@ void Dump(OutputStream *stream, SQFunctionProto *func, bool deep, int instructio
     streamprintf(stream, _SC("-----\n"));
     streamprintf(stream, _SC("stack size[%d]\n"), (SQInt32)func->_stacksize);
     streamprintf(stream, _SC("--------------------------------------------------------------------\n\n"));
-}
-
-void Dump(OutputStream *stream, const SQFuncState *fState, int instruction_index)
-{
-    streamprintf(stream, _SC("*****FUNCTION [%s]\n"), sq_type(fState->_name) == OT_STRING ? _stringval(fState->_name) : _SC("unknown"));
-    SQObjectPtrVec literals(fState->_sharedstate->_alloc_ctx);
-    literals.resize(_table(fState->_literals)->CountUsed());
-    {
-        SQObjectPtr refidx,key,val;
-        SQInteger idx;
-        while((idx=_table(fState->_literals)->Next(false,refidx,key,val))!=-1) {
-            literals[_integer(val)]=key;
-            refidx=idx;
-        }
-    }
-    DumpLiterals(stream, literals.begin(), literals.size());
-    DumpLocals(stream, fState->_localvarinfos.begin(), fState->_localvarinfos.size());
-    DumpLineInfo(stream, fState->_lineinfos.begin(), fState->_lineinfos.size());
-    streamprintf(stream, _SC("-----dump\n"));
-    DumpInstructions(stream, &fState->_lineinfos[0], fState->_lineinfos.size(),
-        fState->_instructions.begin(), fState->_instructions.size(), literals.begin(), literals.size(), instruction_index);
-}
-
-void Dump(const SQFuncState *fState)
-{
-    FileOutputStream fos(stdout);
-    Dump(&fos, fState, -1);
 }
 
 void ResetStaticMemos(SQFunctionProto *func, SQSharedState *ss)
@@ -709,11 +695,11 @@ void SQFuncState::AddLineInfos(SQInteger line, bool is_dbg_step_point, bool forc
 {
     if(_lastline!=line || force){
         if(_lastline!=line) {
-            SQLineInfo li;
+            SQFullLineInfo li;
             li._op = (GetCurrentPos()+1);
-            li._line = line;
+            li._line_offset = line;
             li._is_dbg_step_point = is_dbg_step_point;
-            _lineinfos.push_back(li);
+            _full_line_infos.push_back(li);
             if (is_dbg_step_point && _ctx.getVm()->_compile_line_hook)
                 _ctx.getVm()->_compile_line_hook(_ctx.getVm(), _ctx.sourceName(), line);
         }
@@ -948,9 +934,26 @@ void SQFuncState::CheckForPurity()
 
 SQFunctionProto *SQFuncState::BuildProto()
 {
+    bool useCompressedLineInfos = true;
+    int firstLine = INT_MAX;
+    int lastLine = 0;
+
+    for (SQUnsignedInteger ni = 0; ni < _full_line_infos.size(); ni++) {
+        int line = _full_line_infos[ni]._line_offset;
+        if (line < firstLine)
+            firstLine = line;
+        if (line > lastLine)
+            lastLine = line;
+        if (_full_line_infos[ni]._op > 255)
+            useCompressedLineInfos = false;
+    }
+
+    if (lastLine - firstLine > 127)
+        useCompressedLineInfos = false;
+
     SQFunctionProto *f=SQFunctionProto::Create(_ss,lang_features,_instructions.size(),
         _nliterals,_parameters.size(),_functions.size(),_outervalues.size(),
-        _lineinfos.size(),_localvarinfos.size(),_defaultparams.size(),
+        _full_line_infos.size(),useCompressedLineInfos,_localvarinfos.size(),_defaultparams.size(),
         _staticmemos_count);
 
     SQObjectPtr refidx,key,val;
@@ -972,7 +975,24 @@ SQFunctionProto *SQFuncState::BuildProto()
     for(SQUnsignedInteger np = 0; np < _parameters.size(); np++) f->_parameters[np] = _parameters[np];
     for(SQUnsignedInteger no = 0; no < _outervalues.size(); no++) f->_outervalues[no] = _outervalues[no];
     for(SQUnsignedInteger nl = 0; nl < _localvarinfos.size(); nl++) f->_localvarinfos[nl] = _localvarinfos[nl];
-    for(SQUnsignedInteger ni = 0; ni < _lineinfos.size(); ni++) f->_lineinfos[ni] = _lineinfos[ni];
+
+    f->_lineinfos->_is_compressed = useCompressedLineInfos;
+    f->_lineinfos->_first_line = firstLine;
+    if (useCompressedLineInfos) {
+        for(SQUnsignedInteger ni = 0; ni < _full_line_infos.size(); ni++) {
+            SQCompressedLineInfo *li = (SQCompressedLineInfo *)(void *)(f->_lineinfos + 1) + ni;
+            li->_op = _full_line_infos[ni]._op;
+            li->_line_offset = _full_line_infos[ni]._line_offset - (unsigned)firstLine;
+            li->_is_dbg_step_point = _full_line_infos[ni]._is_dbg_step_point;
+        }
+    } else {
+        for(SQUnsignedInteger ni = 0; ni < _full_line_infos.size(); ni++) {
+            SQFullLineInfo *li = (SQFullLineInfo *)(void *)(f->_lineinfos + 1) + ni;
+            *li = _full_line_infos[ni];
+            li->_line_offset -= firstLine;
+        }
+    }
+
     for(SQUnsignedInteger nd = 0; nd < _defaultparams.size(); nd++) f->_defaultparams[nd] = _defaultparams[nd];
 
     memcpy(f->_instructions,&_instructions[0],_instructions.size()*sizeof(SQInstruction));

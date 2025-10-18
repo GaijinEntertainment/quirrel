@@ -515,7 +515,7 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
             Raise_Error(_SC("wrong number of parameters passed to '%s' %s:%d (%d passed, at least %d required)"),
               sq_type(func->_name) == OT_STRING ? _stringval(func->_name) : _SC("unknown"),
               sq_type(func->_sourcename) == OT_STRING ? _stringval(func->_sourcename) : _SC("unknown"),
-              int(func->_nlineinfos > 0 ? func->_lineinfos[0]._line : 0),
+              int(func->_nlineinfos > 0 ? func->_lineinfos->_first_line : 0),
               (int)nargs, (int)paramssize);
             return false;
         }
@@ -545,7 +545,7 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
             Raise_Error(_SC("wrong number of parameters passed to '%s' %s:%d (%d passed, %d required)"),
               sq_type(func->_name) == OT_STRING ? _stringval(func->_name) : _SC("unknown"),
               sq_type(func->_sourcename) == OT_STRING ? _stringval(func->_sourcename) : _SC("unknown"),
-              int(func->_nlineinfos > 0 ? func->_lineinfos[0]._line : 0),
+              int(func->_nlineinfos > 0 ? func->_lineinfos->_first_line : 0),
               (int)nargs, (int)paramssize);
             return false;
         }
