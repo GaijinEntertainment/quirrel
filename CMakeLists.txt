@@ -30,6 +30,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 elseif(MSVC)
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+  add_compile_options(/wd4244 /wd4018 /wd4267) # disable type conversion warnings
 endif()
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
