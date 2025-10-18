@@ -2348,7 +2348,8 @@ enum SymbolKind {
   SK_ENUM_CONST,
   SK_PARAM,
   SK_FOREACH,
-  SK_EXTERNAL_BINDING
+  SK_EXTERNAL_BINDING,
+  SK_IMPORT
 };
 
 static const char *symbolContextName(enum SymbolKind k) {
@@ -2366,6 +2367,7 @@ static const char *symbolContextName(enum SymbolKind k) {
   case SK_PARAM: return "parameter";
   case SK_FOREACH: return "foreach var";
   case SK_EXTERNAL_BINDING: return "external binding";
+  case SK_IMPORT: return "import";
   default: return "<unknown>";
   }
 }
@@ -2426,6 +2428,12 @@ void FunctionInfo::addModifiable(const SQChar *name, const FunctionDecl *o) {
 
 struct VarScope;
 
+struct ImportInfo {
+  int line;
+  int column;
+  const SQChar *name;
+};
+
 static ValueRefState mergeMatrix[VRS_NUM_OF_STATES][VRS_NUM_OF_STATES] = {
  // VRS_UNDEFINED  VRS_EXPRESSION  VRS_INITIALIZED  VRS_MULTIPLE   VRS_UNKNOWN    VRS_PARTIALLY  VRS_DECLARED
   { VRS_UNDEFINED, VRS_PARTIALLY,  VRS_PARTIALLY,   VRS_PARTIALLY, VRS_PARTIALLY, VRS_PARTIALLY, VRS_PARTIALLY }, // VRS_UNDEFINED
@@ -2450,6 +2458,7 @@ struct SymbolInfo {
     const ConstDecl *c;
     const EnumConst *ec;
     const ExternalValueExpr *ev;
+    const ImportInfo *imp;
   } declarator;
 
   enum SymbolKind kind;
@@ -2495,6 +2504,8 @@ struct SymbolInfo {
       return declarator.p;
     case SK_EXTERNAL_BINDING:
       return declarator.ev;
+    case SK_IMPORT:
+      return nullptr; // Import slots don't have a Node representation
     default:
       assert(0);
       return nullptr;
@@ -2845,6 +2856,7 @@ class CheckerVisitor : public Visitor {
   bool isUpperCaseIdentifier(const Expr *expr);
 
   void report(const Node *n, int32_t id, ...);
+  void reportImportSlot(int line, int column, const SQChar *name);
 
   void checkKeyNameMismatch(const Expr *key, const Expr *expr);
 
@@ -3127,6 +3139,8 @@ public:
   void visitEnumDecl(EnumDecl *enm);
   void visitDestructuringDecl(DestructuringDecl *decl);
 
+  void visitImportStatement(ImportStmt *import);
+
   ValueRef* addExternalValue(const SQObject &val, const Node *location);
   void checkDestructuredVarDefault(VarDecl *var);
 
@@ -3149,8 +3163,14 @@ void VarScope::checkUnusedSymbols(CheckerVisitor *checker) {
       continue;
 
     if (!info->used && n[0] != '_') {
-      checker->report(info->extractPointedNode(), DiagnosticsId::DI_DECLARED_NEVER_USED, info->contextName(), n);
-      // TODO: add hint for param/exception name about silencing it with '_' prefix
+      if (info->kind == SK_IMPORT) {
+        const ImportInfo *import = info->declarator.imp;
+        checker->reportImportSlot(import->line, import->column, import->name);
+      }
+      else {
+        checker->report(info->extractPointedNode(), DiagnosticsId::DI_DECLARED_NEVER_USED, info->contextName(), n);
+        // TODO: add hint for param/exception name about silencing it with '_' prefix
+      }
     }
     else if (info->used && n[0] == '_') {
       if (info->kind == SK_PARAM || info->kind == SK_FOREACH)
@@ -3311,6 +3331,14 @@ void CheckerVisitor::report(const Node *n, int32_t id, ...) {
   _ctx.vreportDiagnostic((enum DiagnosticsId)id, n->lineStart(), n->columnStart(), n->columnEnd() - n->columnStart(), vargs); // -V522
 
   va_end(vargs);
+}
+
+void CheckerVisitor::reportImportSlot(int line, int column, const SQChar *name) {
+  if (effectsOnly)
+    return;
+
+  int width = (int)strlen(name);
+  _ctx.reportDiagnostic(DiagnosticsId::DI_IMPORTED_NEVER_USED, line, column, width, name);
 }
 
 bool CheckerVisitor::isUpperCaseIdentifier(const Expr *e) {
@@ -7994,6 +8022,47 @@ void CheckerVisitor::visitDestructuringDecl(DestructuringDecl *d) {
       // TODO: check array destructuring
     }
   }
+}
+
+void CheckerVisitor::visitImportStatement(ImportStmt *import) {
+  if (import->slots.empty()) {
+    // Handle whole-module imports
+    ImportInfo *importInfo = (ImportInfo *)arena->allocate(sizeof(ImportInfo));
+    importInfo->line = import->lineStart();
+    importInfo->column = import->moduleAlias ? import->aliasCol : import->nameCol;
+    importInfo->name = import->moduleAlias ? import->moduleAlias : import->moduleName;
+
+    SymbolInfo *info = makeSymbolInfo(SK_IMPORT);
+    ValueRef *v = makeValueRef(info);
+    v->state = VRS_DECLARED;
+    v->expression = nullptr;
+    info->declarator.imp = importInfo;
+    info->ownedScope = currentScope;
+
+    declareSymbol(importInfo->name, v);
+  }
+  else {
+    for (const SQModuleImportSlot &slot : import->slots) {
+      if (strcmp(slot.name, "*") == 0)
+        continue;
+
+      ImportInfo *importInfo = (ImportInfo *)arena->allocate(sizeof(ImportInfo));
+      importInfo->line = slot.line;
+      importInfo->column = slot.column;
+      importInfo->name = slot.alias ? slot.alias : slot.name;
+
+      SymbolInfo *info = makeSymbolInfo(SK_IMPORT);
+      ValueRef *v = makeValueRef(info);
+      v->state = VRS_DECLARED;
+      v->expression = nullptr;
+      info->declarator.imp = importInfo;
+      info->ownedScope = currentScope;
+
+      declareSymbol(importInfo->name, v);
+    }
+  }
+
+  Visitor::visitImportStatement(import);
 }
 
 ValueRef* CheckerVisitor::addExternalValue(const SQObject &val, const Node *location) {

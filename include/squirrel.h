@@ -276,7 +276,8 @@ typedef struct tagSQModuleImport {
     int numSlots;
     SQModuleImportSlot *slots;
     int line;
-    int column;
+    int nameColumn;
+    int aliasColumn;
 } SQModuleImport;
 
 

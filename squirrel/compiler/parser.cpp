@@ -1957,6 +1957,8 @@ ImportStmt* SQParser::parseImportStatement()
         Lex();
 
         importStmt = newNode<ImportStmt>(arena(), moduleName, nullptr);
+        importStmt->nameCol = column();
+        importStmt->aliasCol = column();
 
         // Parse import list: x, y, z as foo, *
         do {
@@ -1968,6 +1970,8 @@ ImportStmt* SQParser::parseImportStatement()
             bool isWildcard = (_token == '*');
 
             slot.name = copyString(isWildcard ? "*" : _lex._svalue);
+            slot.line = line();
+            slot.column = column();
             Lex();
 
             // Check for an alias
@@ -1981,8 +1985,6 @@ ImportStmt* SQParser::parseImportStatement()
                 Lex();
             }
 
-            slot.line = line();
-            slot.column = column();
             importStmt->slots.push_back(slot);
 
             if (_token == ',')
@@ -1999,6 +2001,7 @@ ImportStmt* SQParser::parseImportStatement()
             reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "module name string");
 
         const char *moduleName = copyString(_lex._svalue);
+        int nameCol = column(), aliasCol = column();
         Lex();
 
         const char *moduleAlias = nullptr;
@@ -2007,10 +2010,13 @@ ImportStmt* SQParser::parseImportStatement()
             if (_token != TK_IDENTIFIER)
                 reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "identifier");
             moduleAlias = copyString(_lex._svalue);
+            aliasCol = column();
             Lex();
         }
 
         importStmt = newNode<ImportStmt>(arena(), moduleName, moduleAlias);
+        importStmt->nameCol = nameCol;
+        importStmt->aliasCol = aliasCol;
     }
 
     if (importStmt) {

@@ -368,7 +368,7 @@ bool SqModules::importModules(const char *resolved_fn, Sqrat::Table &bindings_de
 
     if (beforeImportModuleCb && !beforeImportModuleCb(this, moduleFnStr.c_str()))
     {
-      out_err_msg = format_string("%s:%d:%d: Module '%s' is forbidden", resolved_fn, import.line, import.column, moduleFnStr.c_str());
+      out_err_msg = format_string("%s:%d:%d: Module '%s' is forbidden", resolved_fn, import.line, import.nameColumn, moduleFnStr.c_str());
       success = false;
       break;
     }
@@ -378,7 +378,7 @@ bool SqModules::importModules(const char *resolved_fn, Sqrat::Table &bindings_de
       exports = nativeIt->second;
     else if (!requireModule(moduleFnStr.c_str(), true, __fn__, exports, requireErrorMsg))
     {
-      out_err_msg = format_string("Import error at %s:%d:%d: %s", resolved_fn, import.line, import.column, requireErrorMsg.c_str());
+      out_err_msg = format_string("Import error at %s:%d:%d: %s", resolved_fn, import.line, import.nameColumn, requireErrorMsg.c_str());
       success = false;
       break;
     }
@@ -389,14 +389,14 @@ bool SqModules::importModules(const char *resolved_fn, Sqrat::Table &bindings_de
       if (!mergeBindings(bindings_dest, key, exports, mergeErrorMsg))
       {
         success = false;
-        out_err_msg = format_string("%s:%d:%d: %s", resolved_fn, import.line, import.column, mergeErrorMsg.c_str());
+        out_err_msg = format_string("%s:%d:%d: %s", resolved_fn, import.line, import.nameColumn, mergeErrorMsg.c_str());
       }
     }
     else // import fields
     {
       if (exports.GetType() != OT_TABLE && exports.GetType() != OT_CLASS)
       {
-        out_err_msg = format_string("%s:%d:%d: module '%s' export is not a table or class", resolved_fn, import.line, import.column,
+        out_err_msg = format_string("%s:%d:%d: module '%s' export is not a table or class", resolved_fn, import.line, import.nameColumn,
           moduleFnStr.c_str());
         success = false;
         break;

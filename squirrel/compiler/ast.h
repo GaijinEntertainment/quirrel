@@ -580,6 +580,8 @@ public:
     Arena *arena;
     const char *moduleName;
     const char *moduleAlias;
+    int nameCol = 0;
+    int aliasCol = 0;
     ArenaVector<SQModuleImportSlot> slots;
 };
 

@@ -25,6 +25,12 @@
 // Quick switch for debugging
 #define DUMP_PARSED_AST 0
 
+#if DUMP_PARSED_AST
+#include <iostream>
+#include "ast_dump.h"
+#endif
+
+
 namespace SQCompilation {
 
 static RootBlock *parseASTImpl(Arena *astArena, SQVM *vm, const char *sourceText, size_t sourceTextSize, const SQChar *sourcename, Comments *comments, bool raiseerror) {
@@ -144,7 +150,8 @@ bool AstGetImports(HSQUIRRELVM v, SQCompilation::SqASTData *astData, SQInteger *
         imp.numSlots = (int)numSlots;
         imp.slots = numSlots ? importStmt->slots.begin() : nullptr;
         imp.line = importStmt->lineStart();
-        imp.column = importStmt->columnStart();
+        imp.nameColumn = importStmt->nameCol;
+        imp.aliasColumn = importStmt->aliasCol;
 
         importIdx++;
     }
