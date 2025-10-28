@@ -144,14 +144,14 @@ public:
     /// Assigns a static class slot a value
     template<class V>
     Class& SetStaticValue(const SQChar* name, const V& val) {
-        BindValue<V>(name, val, true);
+        BindValue(name, static_cast<int>(strlen(name)), val, true);
         return *this;
     }
 
     /// Assigns a class slot a value
     template<class V>
     Class& SetValue(const SQChar* name, const V& val) {
-        BindValue<V>(name, val, false);
+        BindValue(name, static_cast<int>(strlen(name)), val, false);
         return *this;
     }
 

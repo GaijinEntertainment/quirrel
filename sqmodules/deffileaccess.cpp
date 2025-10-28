@@ -16,6 +16,14 @@ static const char *computeAbsolutePath(const char *resolved_fn, char *buffer, si
 {
   return _fullpath(buffer, resolved_fn, size);
 }
+#elif defined(__GNUC__)
+#include <linux/limits.h>
+#define MAX_PATH_LENGTH PATH_MAX
+static const char *computeAbsolutePath(const char *resolved_fn, char *buffer, size_t size)
+{
+  (void)size;
+  return realpath(resolved_fn, buffer);
+}
 #else // _WIN32
 #define MAX_PATH_LENGTH PATH_MAX
 static const char *computeAbsolutePath(const char *resolved_fn, char *buffer, size_t size)
