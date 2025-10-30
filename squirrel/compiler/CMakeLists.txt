@@ -15,6 +15,12 @@ set(COMPILER_SRC
 add_library(quirrel-compiler STATIC ${COMPILER_SRC})
 add_library(quirrel::compiler ALIAS quirrel-compiler)
 
+# The compiler needs exceptions for error handling (CompilerError)
+target_compile_options(quirrel-compiler PRIVATE
+  "$<$<CXX_COMPILER_ID:GNU,Clang>:-fexceptions>"
+  "$<$<CXX_COMPILER_ID:MSVC>:/EHsc>"
+)
+
 target_include_directories(quirrel-compiler PUBLIC
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"

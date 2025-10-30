@@ -6,6 +6,7 @@
 #  include <io.h>
 #else
 #  include <unistd.h>
+#  include <limits.h>
 #  define _access access
 #endif
 

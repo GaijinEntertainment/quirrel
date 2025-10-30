@@ -3,7 +3,7 @@ bin/
 lib/
 
 # CMake output
-build/
+build*/
 
 # Folders created at documentation generation
 doc/build/
