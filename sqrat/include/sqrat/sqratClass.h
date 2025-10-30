@@ -141,20 +141,6 @@ public:
 
 public:
 
-    /// Assigns a static class slot a value
-    template<class V>
-    Class& SetStaticValue(const SQChar* name, const V& val) {
-        BindValue<V>(name, val, true);
-        return *this;
-    }
-
-    /// Assigns a class slot a value
-    template<class V>
-    Class& SetValue(const SQChar* name, const V& val) {
-        BindValue<V>(name, val, false);
-        return *this;
-    }
-
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Binds a class variable of type <V>
     ///

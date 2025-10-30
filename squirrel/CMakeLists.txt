@@ -29,4 +29,5 @@ target_include_directories(squirrel PUBLIC
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
   PRIVATE
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/internal>"
+  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/squirrel>"
   )

@@ -2,8 +2,7 @@ add_executable(sq sq.cpp)
 
 target_link_libraries(sq squirrel sqstdlib sqmodules quirrel-compiler)
 target_include_directories(sq PRIVATE
-  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
-  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/sqmodules>"
+  # include/ and sqmodules/ are transitive from linked libraries
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/sqrat/include>"
-  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"
+  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>" # Needed for <squirrel/sqtypeparser.h>
   )
