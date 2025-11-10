@@ -1,13 +1,13 @@
 #include "sqtypeparser.h"
 #include <ctype.h> // for "tolower"
 
-struct RawTypeDecl
+struct SQRawTypeDecl
 {
     const SQChar * names[3]; // only [0] is valid, the rest are synonyms
-    SQInteger typeMask;
+    SQUnsignedInteger32 typeMask;
 };
 
-static RawTypeDecl rawTypeDecls[] = {
+static SQRawTypeDecl rawTypeDecls[] = {
     { { _SC("bool"), _SC("boolean"), NULL }, _RT_BOOL },
     { { _SC("number"), _SC("num"), NULL }, (_RT_FLOAT | _RT_INTEGER) },
     { { _SC("int"), _SC("integer"), NULL }, _RT_INTEGER },
@@ -24,7 +24,7 @@ static RawTypeDecl rawTypeDecls[] = {
     { { _SC("class"), NULL, NULL }, _RT_CLASS },
     { { _SC("weakref"), _SC("reference"), _SC("ref") }, _RT_WEAKREF },
     { { _SC("null"), _SC("nil"), _SC("none") }, _RT_NULL },
-    { { _SC("any"), NULL, NULL }, -1 },
+    { { _SC("any"), NULL, NULL }, ~0u },
     { { NULL, NULL, NULL }, 0 }
 };
 
@@ -78,7 +78,28 @@ static bool parse_identifier(SQVM* vm, const SQChar*& s, SQObjectPtr& res)
     return true;
 }
 
-static bool parse_type_mask(SQVM* vm, const SQChar*& s, SQInteger& mask, SQInteger& error_pos, SQObjectPtr& error_string)
+bool sq_type_string_to_mask(const SQChar* type_name, SQUnsignedInteger32& mask, const SQChar*& suggestion)
+{
+    bool found = false;
+    mask = 0;
+    suggestion = nullptr;
+    for (SQRawTypeDecl* decl = rawTypeDecls; decl->names[0]; decl++)
+    {
+        if (!strcmp(type_name, decl->names[0]))
+        {
+            mask |= decl->typeMask;
+            found = true;
+            break;
+        }
+
+        for (int syn = 0; syn < 3; syn++)
+            if (decl->names[syn] && is_str_equal_ignore_case(type_name, decl->names[syn]))
+                suggestion = decl->names[0];
+    }
+    return found;
+}
+
+static bool parse_type_mask(SQVM* vm, const SQChar*& s, SQUnsignedInteger32& mask, SQInteger& error_pos, SQObjectPtr& error_string)
 {
     mask = 0;
     const SQChar* p = skip_spaces(s);
@@ -101,37 +122,24 @@ static bool parse_type_mask(SQVM* vm, const SQChar*& s, SQInteger& mask, SQInteg
             return false;
         }
 
-        bool found = false;
-        for (RawTypeDecl* decl = rawTypeDecls; decl->names[0]; decl++)
-        {
-            if (!strcmp(_stringval(typeName), decl->names[0]))
-            {
-                mask |= decl->typeMask;
-                found = true;
-                break;
-            }
+        const SQChar* suggestion = nullptr;
+        SQUnsignedInteger32 currentTypeMask = 0;
 
-            for (int syn = 0; syn < 3; syn++)
-            {
-                if (decl->names[syn] && is_str_equal_ignore_case(_stringval(typeName), decl->names[syn]))
-                {
-                    error_pos = p - s;
-                    SQChar buf[256];
-                    scsprintf(buf, 256, _SC("Invalid type name '%s', did you mean '%s'?"), _stringval(typeName), decl->names[0]);
-                    error_string = SQString::Create(_ss(vm), buf);
-                    return false;
-                }
-            }
-        }
+        bool found = sq_type_string_to_mask(_stringval(typeName), currentTypeMask, suggestion);
 
         if (!found)
         {
             error_pos = p - s;
             SQChar buf[256];
-            scsprintf(buf, 256, _SC("Invalid type name '%s'"), _stringval(typeName));
+            if (suggestion)
+                scsprintf(buf, 256, _SC("Invalid type name '%s', did you mean '%s'?"), _stringval(typeName), suggestion);
+            else
+                scsprintf(buf, 256, _SC("Invalid type name '%s'"), _stringval(typeName));
             error_string = SQString::Create(_ss(vm), buf);
             return false;
         }
+
+        mask |= currentTypeMask;
 
         p = skip_spaces(p);
         if (*p == '|')
@@ -171,7 +179,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
     }
 
     const SQChar* p = skip_spaces(s);
-    res.objectTypeMask = -1;
+    res.objectTypeMask = ~0u;
     res.returnTypeMask = _RT_NULL;
     res.requiredArgs = 0;
     res.ellipsisArgTypeMask = 0;
@@ -231,7 +239,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
 
             const SQChar* typeStr = _stringval(identifier1);
             const SQChar* typeStrPtr = typeStr;
-            SQInteger objectTypeMask;
+            SQUnsignedInteger32 objectTypeMask;
             SQInteger error_pos_local;
             SQObjectPtr error_string_local;
 
@@ -358,7 +366,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
             }
             else
             {
-                res.ellipsisArgTypeMask = -1;
+                res.ellipsisArgTypeMask = ~0u;
             }
 
             p = skip_spaces(p);
@@ -390,7 +398,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
 
         argumentProcessed = true;
 
-        SQInteger argTypeMask = -1;
+        SQUnsignedInteger32 argTypeMask = ~0u;
         p = skip_spaces(p);
         if (*p == ':')
         {
@@ -610,6 +618,41 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
 }
 
 
+void sq_stringify_type_mask(SQChar* buffer, int buffer_length, SQUnsignedInteger32 mask)
+{
+    assert(buffer_length > 128);
+    SQChar* p = buffer;
+    SQChar* end = buffer + buffer_length - 1;
+
+    auto append = [&](const SQChar* str)
+    {
+        while (*str && p < end)
+            *p++ = *str++;
+    };
+
+    if (mask == ~0u)
+    {
+        append(_SC("any"));
+        *p = '\0';
+        return;
+    }
+
+    bool first = true;
+    for (const SQRawTypeDecl* decl = rawTypeDecls; decl->names[0]; decl++)
+        if ((mask & decl->typeMask) == decl->typeMask)
+        {
+            if (!first)
+                append(_SC("|"));
+
+            append(decl->names[0]);
+            first = false;
+            mask &= ~decl->typeMask;
+        }
+
+    *p = '\0';
+}
+
+
 SQObjectPtr sq_stringify_function_type(SQVM* vm, const SQFunctionType& ft)
 {
     const SQInteger bufferSize = 2048; // 2KB buffer
@@ -623,22 +666,23 @@ SQObjectPtr sq_stringify_function_type(SQVM* vm, const SQFunctionType& ft)
         return tmp;
     }
 
-    auto append = [&](const SQChar* str) {
+    auto append = [&](const SQChar* str)
+    {
         while (*str && p < end)
         {
             *p++ = *str++;
         }
     };
 
-    auto appendTypeMask = [&](SQInteger typeMask) {
-        if (typeMask == -1)
+    auto appendTypeMask = [&](SQUnsignedInteger32 typeMask) {
+        if (typeMask == ~0u)
         {
             append(_SC("any"));
             return;
         }
 
         bool first = true;
-        for (const RawTypeDecl* decl = rawTypeDecls; decl->names[0]; decl++)
+        for (const SQRawTypeDecl* decl = rawTypeDecls; decl->names[0]; decl++)
         {
             if ((typeMask & decl->typeMask) == decl->typeMask)
             {
@@ -653,10 +697,10 @@ SQObjectPtr sq_stringify_function_type(SQVM* vm, const SQFunctionType& ft)
         }
     };
 
-    if (ft.objectTypeMask != -1)
+    if (ft.objectTypeMask != ~0u)
     {
         bool isComplexType = true;
-        for (const RawTypeDecl* decl = rawTypeDecls; decl->names[0]; decl++)
+        for (const SQRawTypeDecl* decl = rawTypeDecls; decl->names[0]; decl++)
             if (ft.objectTypeMask == decl->typeMask)
             {
                 isComplexType = false;
@@ -694,7 +738,7 @@ SQObjectPtr sq_stringify_function_type(SQVM* vm, const SQFunctionType& ft)
 
         append(_stringval(ft.argNames[i]));
 
-        if (ft.argTypeMask[i] != -1)
+        if (ft.argTypeMask[i] != ~0u)
         {
             append(_SC(": "));
             appendTypeMask(ft.argTypeMask[i]);
@@ -722,7 +766,7 @@ SQObjectPtr sq_stringify_function_type(SQVM* vm, const SQFunctionType& ft)
             append(_SC(", "));
         }
         append(_SC("..."));
-        if (ft.ellipsisArgTypeMask != -1)
+        if (ft.ellipsisArgTypeMask != ~0u)
         {
             append(_SC(": "));
             appendTypeMask(ft.ellipsisArgTypeMask);

@@ -1,5 +1,5 @@
 
-AN ERROR HAS OCCURRED [the index 'w' does not exist]
+AN ERROR HAS OCCURRED [the index 'w' (type='string') does not exist]
 
 CALLSTACK
 *FUNCTION [__main__()] testData/static_analyzer/w248_chain.nut:7

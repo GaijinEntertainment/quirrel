@@ -1,8 +1,8 @@
 Block isRoot = 1, isBody = 0
-  VarDecl 'let' 'foo'
+  VarDecl 'let', name = 'foo', type = 'any'
     Initializer
       DeclExpr
-        FunctionDecl name = 'foo'
+        FunctionDecl name = 'foo', resultType = 'any'
         |-Parameters count = 0
         `-Body
             Block isRoot = 0, isBody = 1
@@ -15,14 +15,14 @@ Block isRoot = 1, isBody = 0
             |   `-Arguments
             |       Argument #1
             |         Id 'x'
-            |-VarDecl 'let' 'bar'
+            |-VarDecl 'let', name = 'bar', type = 'any'
             |   Initializer
             |     DeclExpr
-            |       FunctionDecl name = 'bar'
+            |       FunctionDecl name = 'bar', resultType = 'any'
             |       |-Parameters count = 0
             |       `-Body
             |           Block isRoot = 0, isBody = 1
-            |             VarDecl 'let' 'a'
+            |             VarDecl 'let', name = 'a', type = 'any'
             |               Initializer
             |                 Id 'x'
             `-ExprStatement

@@ -305,7 +305,7 @@ void SQOptimizer::optimizeConstFolding()
                         instr[targetInst].op = _OP_JCMPK;
                     } else if (operation._arg1 < -128 || operation._arg1 > 127) // we can't fit into JCMP(I|F) due to big jump distance
                     {
-                        const uint32_t constI = fs->GetConstant(SQObjectPtr(loadA.op == _OP_LOADFLOAT ? loadA._farg1 : (SQInteger)loadA._arg1), 255);
+                        const uint32_t constI = fs->GetConstant(loadA.op == _OP_LOADFLOAT ? SQObjectPtr(loadA._farg1) : SQObjectPtr((SQInteger)loadA._arg1), 255);
                         if (constI <= 255u)
                         {
                             instr[targetInst]._arg1 = operation._arg1;
@@ -396,7 +396,7 @@ void SQOptimizer::optimizeEmptyJumps()
     if (!instr.size())
         return;
 
-    for (int i = instr.size() - 1; i > 1; i--) {
+    for (int i = instr.size() - 1; i > 0; i--) {
         int op = instr[i].op;
         if (op == _OP_JMP && instr[i]._arg1 == 0) {
             codeChanged = true;
@@ -476,7 +476,7 @@ void SQOptimizer::optimize()
                         {
                             instr[jumps[i].instructionIndex]._arg0 = nextJumpVal; // still fit
                         } else if (instr[jumps[i].instructionIndex].op == _OP_JCMPF || instr[jumps[i].instructionIndex].op == _OP_JCMPI) {
-                            const uint32_t constI = fs->GetConstant(SQObjectPtr(instr[jumps[i].instructionIndex].op == _OP_JCMPF ? originalJump._farg1 : (SQInteger)originalJump._arg1), 255);
+                            const uint32_t constI = fs->GetConstant(instr[jumps[i].instructionIndex].op == _OP_JCMPF ? SQObjectPtr(originalJump._farg1) : SQObjectPtr((SQInteger)originalJump._arg1), 255);
                             if (constI <= 255u) // we still fit in const table
                             {
                               jumps[i].jumpArg = JumpArg::JUMP_ARG1;

@@ -1,32 +1,32 @@
 Block isRoot = 1, isBody = 0
-|-VarDecl 'local' 'z'
+|-VarDecl 'local', name = 'z', type = 'any'
 |   Initializer
 |     LiteralExpr LK_INT 0
-|-VarDecl 'let' '$ch0'
+|-VarDecl 'let', name = '$ch0', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = 'fff'
+|       FunctionDecl name = 'fff', resultType = 'any'
 |       |-Parameters count = 0
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |             ReturnStatement
 |               Id 'z'
-`-VarDecl 'let' 'foo'
+`-VarDecl 'let', name = 'foo', type = 'any'
     Initializer
       DeclExpr
-        FunctionDecl name = 'foo'
+        FunctionDecl name = 'foo', resultType = 'any'
         |-Parameters count = 2
-        | |-Parameter #1 name = 'x'
-        | `-Parameter #2 name = 'y'
+        | |-Parameter #1 name = 'x', type = 'any'
+        | `-Parameter #2 name = 'y', type = 'any'
         `-Body
             Block isRoot = 0, isBody = 1
-            |-VarDecl 'let' '$ch1'
+            |-VarDecl 'let', name = '$ch1', type = 'any'
             |   Initializer
             |     DeclExpr
-            |       FunctionDecl name = '(implicitChainedFuncs2.nut:10)'
+            |       FunctionDecl name = '(implicitChainedFuncs2.nut:10)', resultType = 'any'
             |       |-Parameters count = 2
-            |       | |-Parameter #1 name = 'f'
-            |       | `-Parameter #2 name = 'g'
+            |       | |-Parameter #1 name = 'f', type = 'any'
+            |       | `-Parameter #2 name = 'g', type = 'any'
             |       `-Body
             |           Block isRoot = 0, isBody = 1
             |             ReturnStatement
@@ -41,21 +41,21 @@ Block isRoot = 1, isBody = 0
             |                   Id 'x'
             `-ReturnStatement
                 DeclExpr
-                  FunctionDecl name = '(implicitChainedFuncs2.nut:4)'
+                  FunctionDecl name = '(implicitChainedFuncs2.nut:4)', resultType = 'any'
                   |-Parameters count = 2
-                  | |-Parameter #1 name = 'a'
-                  | `-Parameter #2 name = 'b'
+                  | |-Parameter #1 name = 'a', type = 'any'
+                  | `-Parameter #2 name = 'b', type = 'any'
                   `-Body
                       Block isRoot = 0, isBody = 1
-                      |-VarDecl 'let' 'fff'
+                      |-VarDecl 'let', name = 'fff', type = 'any'
                       |   Initializer
                       |     Id '$ch0'
                       `-ReturnStatement
                           DeclExpr
-                            FunctionDecl name = '(implicitChainedFuncs2.nut:8)'
+                            FunctionDecl name = '(implicitChainedFuncs2.nut:8)', resultType = 'any'
                             |-Parameters count = 2
-                            | |-Parameter #1 name = 'c'
-                            | `-Parameter #2 name = 'd'
+                            | |-Parameter #1 name = 'c', type = 'any'
+                            | `-Parameter #2 name = 'd', type = 'any'
                             `-Body
                                 Block isRoot = 0, isBody = 1
                                 |-ExprStatement

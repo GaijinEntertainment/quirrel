@@ -18,17 +18,10 @@
 #include "ast.h"
 #include "parser.h"
 #include "codegen.h"
+#include "sqtypeparser.h"
 #include "optimizations/closureHoisting.h"
 #include "compilationcontext.h"
 #include "static_analyzer/analyzer.h"
-
-// Quick switch for debugging
-#define DUMP_PARSED_AST 0
-
-#if DUMP_PARSED_AST
-#include <iostream>
-#include "ast_dump.h"
-#endif
 
 
 namespace SQCompilation {
@@ -39,10 +32,6 @@ static RootBlock *parseASTImpl(Arena *astArena, SQVM *vm, const char *sourceText
   SQParser p(vm, sourceText, sourceTextSize, sourcename, astArena, ctx, comments);
 
   RootBlock *r = p.parse();
-
-#if DUMP_PARSED_AST
-  std::cout << "Parsed AST:\n" << r << std::endl;
-#endif
 
   if (r) {
     ClosureHoistingOpt opt(_ss(vm), astArena);

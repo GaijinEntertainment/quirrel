@@ -21,6 +21,7 @@ enum SQLangFeature {
     LF_FORBID_GLOBAL_CONST_REWRITE = 0x000400,
     LF_FORBID_IMPLICIT_DEF_DELEGATE = 0x000800,
     LF_ALLOW_AUTO_FREEZE = 0x001000,
+    LF_ALLOW_COMPILER_INTERNALS = 0x002000,
 
     LF_STRICT = LF_FORBID_ROOT_TABLE |
                 LF_FORBID_DELETE_OP
@@ -105,11 +106,11 @@ typedef sqvector<SQFullLineInfo> SQFullLineInfoVec;
 #define SQ_ALIGN_TO(n, t) (((n) + alignof(t) - 1) & ~(alignof(t) - 1))
 
 #define _FUNC_SIZE(ni,nl,nparams,nfuncs,nouters,nlineinf,compressed,localinf,defparams,nstaticmemos) (sizeof(SQFunctionProto) \
-        +(((ni)-1)*sizeof(SQInstruction))+((nl)*sizeof(SQObjectPtr)) \
+        +SQ_ALIGN_TO(((ni)-1)*sizeof(SQInstruction), SQObjectPtr)+((nl)*sizeof(SQObjectPtr)) \
         +((nparams)*sizeof(SQObjectPtr))+((nfuncs)*sizeof(SQObjectPtr)) \
         +((nouters)*sizeof(SQOuterVar)) \
         +SQ_ALIGN_TO(sizeof(SQLineInfosHeader)+(nlineinf)*(compressed ? sizeof(SQCompressedLineInfo) : sizeof(SQFullLineInfo)), SQLocalVarInfo) \
-        +((localinf)*sizeof(SQLocalVarInfo))+((defparams)*sizeof(SQInteger)) \
+        +((localinf)*sizeof(SQLocalVarInfo))+((defparams)*sizeof(SQInt32))+((nparams)*sizeof(SQUnsignedInteger32)) \
         +((nstaticmemos)*sizeof(SQObjectPtr)))
 
 
@@ -137,10 +138,13 @@ public:
 
         new (f) SQFunctionProto(ss);
         char *ptr = (char *)f->_instructions;
+
+        f->_result_type_mask = ~0u;
+
         f->_alloc_ctx = ss->_alloc_ctx;
         f->lang_features = lang_features;
         f->_ninstructions = ninstructions;
-        ptr += ninstructions * sizeof(SQInstruction);
+        ptr += SQ_ALIGN_TO(ninstructions * sizeof(SQInstruction), SQLocalVarInfo);
 
         assert(size_t(ptr) % alignof(SQObjectPtr) == 0);
         f->_literals = (SQObjectPtr*)ptr;
@@ -174,10 +178,13 @@ public:
         f->_nlocalvarinfos = nlocalvarinfos;
         ptr += nlocalvarinfos * sizeof(SQLocalVarInfo);
 
-        assert(size_t(ptr) % alignof(SQInteger) == 0);
-        f->_defaultparams = (SQInteger *)ptr;
+        assert(size_t(ptr) % alignof(SQInt32) == 0);
+        f->_defaultparams = (SQInt32 *)ptr;
         f->_ndefaultparams = ndefaultparams;
-        ptr += ndefaultparams * sizeof(SQInteger);
+        ptr += ndefaultparams * sizeof(SQInt32);
+
+        f->_param_type_masks = (SQUnsignedInteger32 *)ptr;
+        ptr += nparameters * sizeof(SQUnsignedInteger32);
 
         assert(ptr - (char *)f == fnSize);
 
@@ -217,43 +224,49 @@ public:
     }
     SQObjectType GetType() {return OT_FUNCPROTO;}
 #endif
+    SQAllocContext _alloc_ctx;
     SQObjectPtr _sourcename;
     SQObjectPtr _name;
-    SQUnsignedInteger   lang_features;
-    SQInteger _stacksize;
-    SQInteger _hoistingLevel;
+    SQUnsignedInteger32 lang_features;
+    SQUnsignedInteger32 _result_type_mask;
+    bool _inside_hoisted_scope;
     bool _bgenerator;
     bool _purefunction;
-    SQInteger _varparams;
+    SQInt32 _stacksize;
+    SQInt32 _varparams;
 
-    SQAllocContext _alloc_ctx;
+    // Struct field order optimized for 64-bit platform memory alignment
+    // General principle: Group pointers (8-byte) together, then two integers (4-byte),
+    // to minimize padding and cache misses
 
-    SQInteger _nlocalvarinfos;
-    SQLocalVarInfo *_localvarinfos;
-
-    SQInteger _nlineinfos;
+    SQInt32 _nlineinfos;
     SQLineInfosHeader *_lineinfos;
 
-    SQInteger _nliterals;
+    SQObjectPtr* _staticmemos;
+    SQInt32 _nstaticmemos;
+
+    SQInt32 _nlocalvarinfos;
+    SQLocalVarInfo *_localvarinfos;
+
     SQObjectPtr *_literals;
+    SQInt32 _nliterals;
 
-    SQInteger _nstaticmemos;
-    SQObjectPtr *_staticmemos;
-
-    SQInteger _nparameters;
-    SQObjectPtr *_parameters;
-
-    SQInteger _nfunctions;
+    SQInt32 _nfunctions;
     SQObjectPtr *_functions;
 
-    SQInteger _noutervalues;
+    SQObjectPtr* _parameters;
+    SQInt32 _nparameters;
+
+    SQInt32 _noutervalues;
     SQOuterVar *_outervalues;
 
-    SQInteger _ndefaultparams;
-    SQInteger *_defaultparams;
+    SQUnsignedInteger32* _param_type_masks;
 
-    SQInteger _ninstructions;
-    SQInstruction _instructions[1];
+    SQInt32* _defaultparams;
+    SQInt32 _ndefaultparams;
+
+    SQInt32 _ninstructions;
+    alignas(8) SQInstruction _instructions[1];
 };
 
 void Dump(SQFunctionProto *func, int instruction_index = -1);

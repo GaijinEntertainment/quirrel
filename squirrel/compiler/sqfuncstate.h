@@ -32,7 +32,7 @@ struct SQFuncState
     SQInteger GetNumericConstant(const SQInteger cons);
     SQInteger GetNumericConstant(const SQFloat cons);
     SQInteger PushLocalVariable(const SQObject &name, char varFlags, Expr *node);
-    void AddParameter(const SQObject &name);
+    void AddParameter(const SQObject &name, SQUnsignedInteger32 type_mask);
     SQInteger GetLocalVariable(const SQObject &name, char &varFlags, Expr **node = nullptr);
     void MarkLocalAsOuter(SQInteger pos);
     SQInteger GetOuterVariable(const SQObject &name, char &varFlags, Expr **node = nullptr);
@@ -59,8 +59,11 @@ struct SQFuncState
     bool _purefunction;
     SQIntVec _unresolvedbreaks;
     SQIntVec _unresolvedcontinues;
+    SQIntVec _expr_block_results;
     SQObjectPtrVec _functions;
     SQObjectPtrVec _parameters;
+    sqvector<SQUnsignedInteger32> _param_type_masks;
+    SQUnsignedInteger32 _result_type_mask;
     SQOuterVarVec _outervalues;
     sqvector<Expr*> _outervalues_nodes; // compile time only
     SQInstructionVec _instructions;

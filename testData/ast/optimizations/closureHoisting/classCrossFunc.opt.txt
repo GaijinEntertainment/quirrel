@@ -1,20 +1,20 @@
 Block isRoot = 1, isBody = 0
-|-VarDecl 'local' 'z'
+|-VarDecl 'local', name = 'z', type = 'any'
 |   Initializer
 |     LiteralExpr LK_INT 0
-`-VarDecl 'let' 'foo'
+`-VarDecl 'let', name = 'foo', type = 'any'
     Initializer
       DeclExpr
-        FunctionDecl name = 'foo'
+        FunctionDecl name = 'foo', resultType = 'any'
         |-Parameters count = 2
-        | |-Parameter #1 name = 'x'
-        | `-Parameter #2 name = 'y'
+        | |-Parameter #1 name = 'x', type = 'any'
+        | `-Parameter #2 name = 'y', type = 'any'
         `-Body
             Block isRoot = 0, isBody = 1
-            |-VarDecl 'let' '$ch0'
+            |-VarDecl 'let', name = '$ch0', type = 'any'
             |   Initializer
             |     DeclExpr
-            |       FunctionDecl name = '(classCrossFunc.nut:7)'
+            |       FunctionDecl name = '(classCrossFunc.nut:7)', resultType = 'any'
             |       |-Parameters count = 0
             |       `-Body
             |           Block isRoot = 0, isBody = 1
@@ -26,11 +26,11 @@ Block isRoot = 1, isBody = 0
             |                   LiteralExpr LK_INT 10
             `-ReturnStatement
                 DeclExpr
-                  FunctionDecl name = '(classCrossFunc.nut:3)'
+                  FunctionDecl name = '(classCrossFunc.nut:3)', resultType = 'any'
                   |-Parameters count = 0
                   `-Body
                       Block isRoot = 0, isBody = 1
-                      |-VarDecl 'let' 'c'
+                      |-VarDecl 'let', name = 'c', type = 'any'
                       |   Initializer
                       |     DeclExpr
                       |       ClassDecl
@@ -38,7 +38,7 @@ Block isRoot = 1, isBody = 0
                       |       `-Members
                       |         |-LiteralExpr LK_INT 10
                       |         `-DeclExpr
-                      |             FunctionDecl name = 'zed'
+                      |             FunctionDecl name = 'zed', resultType = 'any'
                       |             |-Parameters count = 0
                       |             `-Body
                       |                 Block isRoot = 0, isBody = 1

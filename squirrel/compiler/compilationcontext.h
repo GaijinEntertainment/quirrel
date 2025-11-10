@@ -53,6 +53,8 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(GLOBAL_CONSTS_ONLY, ERROR, SYNTAX, -1, "", "global can be applied to const and enum only"), \
   DEF_DIAGNOSTIC(END_OF_STMT_EXPECTED, ERROR, SYNTAX, -1, "", "end of statement expected (; or lf)"), \
   DEF_DIAGNOSTIC(EXPECTED_TOKEN, ERROR, SYNTAX, -1, "", "expected '%s'"), \
+  DEF_DIAGNOSTIC(INVALID_TYPE_NAME_SUGGESTION, ERROR, SYNTAX, -1, "", "Invalid type name '%s', did your mean '%s'?"), \
+  DEF_DIAGNOSTIC(INVALID_TYPE_NAME, ERROR, SYNTAX, -1, "", "Invalid type name '%s'"), \
   DEF_DIAGNOSTIC(UNSUPPORTED_DIRECTIVE, ERROR, SYNTAX, -1, "", "unsupported directive '%s'"), \
   DEF_DIAGNOSTIC(EXPECTED_LINENUM, ERROR, SYNTAX, -1, "", "expected line number after #pos:"), \
   DEF_DIAGNOSTIC(EXPECTED_COLNUM, ERROR, SYNTAX, -1, "", "expected column number after #pos:<line>:"), \
@@ -62,7 +64,8 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(ASSIGN_INSIDE_FORBIDDEN, ERROR, SYNTAX, -1, "", "'=' inside '%s' is forbidden"), \
   DEF_DIAGNOSTIC(BROKEN_SLOT_DECLARATION, ERROR, SYNTAX, -1, "", "cannot break deref/or comma needed after [exp]=exp slot declaration"), \
   DEF_DIAGNOSTIC(ROOT_TABLE_FORBIDDEN, ERROR, SYNTAX, -1, "", "Access to root table is forbidden"), \
-  DEF_DIAGNOSTIC(DELETE_OP_FORBIDDEN, ERROR, SYNTAX, -1, "", "Usage of 'delete' operator if forbidden. Use 'o.rawdelete(\"key\")' instead"), \
+  DEF_DIAGNOSTIC(DELETE_OP_FORBIDDEN, ERROR, SYNTAX, -1, "", "Usage of 'delete' operator is forbidden. Use 'o.rawdelete(\"key\")' instead"), \
+  DEF_DIAGNOSTIC(COMPILER_INTERNALS_FORBIDDEN, ERROR, SYNTAX, -1, "", "Access to compiler internals is forbidden"), \
   DEF_DIAGNOSTIC(UNINITIALIZED_BINDING, ERROR, SEMA, -1, "", "Binding '%s' must be initialized"), \
   DEF_DIAGNOSTIC(SAME_FOREACH_KV_NAMES, ERROR, SEMA, -1, "", "foreach() key and value names are the same: '%s'"), \
   DEF_DIAGNOSTIC(SCALAR_EXPECTED, ERROR, SYNTAX, -1, "", "scalar expected : %s"), \

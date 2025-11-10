@@ -1,17 +1,17 @@
 Block isRoot = 1, isBody = 0
-|-VarDecl 'local' 'z'
+|-VarDecl 'local', name = 'z', type = 'any'
 |   Initializer
 |     LiteralExpr LK_INT 0
-|-VarDecl 'let' '$ch0'
+|-VarDecl 'let', name = '$ch0', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = 'fff'
+|       FunctionDecl name = 'fff', resultType = 'any'
 |       |-Parameters count = 2
-|       | |-Parameter #1 name = 'a'
-|       | `-Parameter #2 name = 'b'
+|       | |-Parameter #1 name = 'a', type = 'any'
+|       | `-Parameter #2 name = 'b', type = 'any'
 |       `-Body
 |           Block isRoot = 0, isBody = 1
-|           |-VarDecl 'let' 'c'
+|           |-VarDecl 'let', name = 'c', type = 'any'
 |           |   Initializer
 |           |     DeclExpr
 |           |       ClassDecl
@@ -19,7 +19,7 @@ Block isRoot = 1, isBody = 0
 |           |       `-Members
 |           |         |-LiteralExpr LK_INT 10
 |           |         `-DeclExpr
-|           |             FunctionDecl name = 'zed'
+|           |             FunctionDecl name = 'zed', resultType = 'any'
 |           |             |-Parameters count = 0
 |           |             `-Body
 |           |                 Block isRoot = 0, isBody = 1
@@ -39,21 +39,21 @@ Block isRoot = 1, isBody = 0
 |                       CallExpr
 |                         Callee
 |                           Id 'c'
-|-VarDecl 'let' '$ch1'
+|-VarDecl 'let', name = '$ch1', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = '(manyFuncs.nut:12)'
+|       FunctionDecl name = '(manyFuncs.nut:12)', resultType = 'any'
 |       |-Parameters count = 0
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |             ReturnStatement
 |               LiteralExpr LK_INT 10
-|-VarDecl 'let' '$ch2'
+|-VarDecl 'let', name = '$ch2', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl 'lambda' name = '(manyFuncs.nut:12)'
+|       FunctionDecl 'lambda' name = '(manyFuncs.nut:12)', resultType = 'any'
 |       |-Parameters count = 1
-|       |   Parameter #1 name = 'r'
+|       |   Parameter #1 name = 'r', type = 'any'
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |             ReturnStatement
@@ -62,16 +62,16 @@ Block isRoot = 1, isBody = 0
 |               |   Id 'r'
 |               `-Right
 |                   LiteralExpr LK_INT 2
-`-VarDecl 'let' 'foo'
+`-VarDecl 'let', name = 'foo', type = 'any'
     Initializer
       DeclExpr
-        FunctionDecl name = 'foo'
+        FunctionDecl name = 'foo', resultType = 'any'
         |-Parameters count = 2
-        | |-Parameter #1 name = 'x'
-        | `-Parameter #2 name = 'y'
+        | |-Parameter #1 name = 'x', type = 'any'
+        | `-Parameter #2 name = 'y', type = 'any'
         `-Body
             Block isRoot = 0, isBody = 1
-            |-VarDecl 'let' 'ar'
+            |-VarDecl 'let', name = 'ar', type = 'any'
             |   Initializer
             |     ArrayExpr
             |     |-Element #1

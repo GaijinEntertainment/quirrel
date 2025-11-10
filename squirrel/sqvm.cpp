@@ -524,7 +524,14 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
         SQInteger nvargs = nargs - paramssize;
         SQArray *arr = SQArray::Create(_ss(this),nvargs);
         SQInteger pbase = stackbase+paramssize;
+        SQUnsignedInteger32 mask = func->_param_type_masks ? func->_param_type_masks[paramssize] : ~0u;
+
         for(SQInteger n = 0; n < nvargs; n++) {
+            if (!check_typemask(sq_type(_stack._vals[pbase]), mask)) {
+                Raise_ParamTypeError(n + paramssize, mask, sq_type(_stack._vals[pbase]));
+                return false;
+            }
+
             arr->_values[n] = _stack._vals[pbase];
             _stack._vals[pbase].Null();
             pbase++;
@@ -550,6 +557,18 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
             return false;
         }
     }
+
+    if (SQUnsignedInteger32 *paramTypeMasks = func->_param_type_masks) {
+        SQInteger len = func->_varparams ? paramssize : nargs;
+        for (SQInteger i = 1; i < len; i++) {
+            SQUnsignedInteger32 mask = paramTypeMasks[i];
+            if (!check_typemask(sq_type(_stack._vals[stackbase + i]), paramTypeMasks[i])) {
+                Raise_ParamTypeError(i, paramTypeMasks[i], sq_type(_stack._vals[stackbase + i]));
+                return false;
+            }
+        }
+    }
+
 
     if(closure->_env) {
         _stack._vals[stackbase] = closure->_env->_obj;
@@ -2192,7 +2211,7 @@ bool SQVM::NewSlot(const SQObjectPtr &self,const SQObjectPtr &key,const SQObject
             }
             else {
                 SQObjectPtr oval(PrintObjVal(key));
-                Raise_Error(_SC("the property '%s' already exists"),_stringval(oval));
+                Raise_Error(_SC("the property %s already exists"),_stringval(oval));
                 return false;
             }
         }

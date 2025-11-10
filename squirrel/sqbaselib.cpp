@@ -259,7 +259,7 @@ static SQInteger base_compilestring(HSQUIRRELVM v)
 static SQInteger base_newthread(HSQUIRRELVM v)
 {
     SQObjectPtr &func = stack_get(v,2);
-    SQInteger stksize = (_closure(func)->_function->_stacksize << 1) +2;
+    SQInteger stksize = (_closure(func)->_function->_stacksize << 1) + 2; // -V629
     HSQUIRRELVM newv = sq_newthread(v, (stksize < MIN_STACK_OVERHEAD + 2)? MIN_STACK_OVERHEAD + 2 : stksize);
     sq_move(newv,v,-2);
     return 1;
@@ -514,22 +514,22 @@ static SQInteger container_each(HSQUIRRELVM v)
     const SQObjectPtr &o = stack_get(v,1);
     const SQObjectPtr &closure = stack_get(v, 2);
     SQInteger nArgs = get_allowed_args_count(closure, 4);
+    SQObjectPtr tmp;
 
     sq_pushnull(v);
     while (SQ_SUCCEEDED(sq_next(v, 1))) {
         SQInteger iterTop = sq_gettop(v);
-        v->Push(closure);
-        v->Push(o);
+        v->PushNull();
         v->Push(stack_get(v, iterTop));
         if (nArgs >= 3)
             v->Push(stack_get(v, iterTop-1));
         if (nArgs >= 4)
             v->Push(o);
 
-        if (SQ_FAILED(sq_call(v,nArgs,SQFalse,SQ_BASELIB_INVOKE_CB_ERR_HANDLER))) {
+        bool callRes = v->Call(closure, nArgs, v->_top-nArgs, tmp, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
+        v->Pop(2+nArgs);
+        if (!callRes)
             return SQ_ERROR;
-        }
-        v->Pop(3);
     }
     sq_pop(v, 1); // pops the iterator
 
@@ -542,26 +542,27 @@ static SQInteger container_findindex(HSQUIRRELVM v)
     const SQObjectPtr &o = stack_get(v,1);
     const SQObjectPtr &closure = stack_get(v, 2);
     SQInteger nArgs = get_allowed_args_count(closure, 4);
+    SQObjectPtr tmp;
 
     sq_pushnull(v);
     while (SQ_SUCCEEDED(sq_next(v, 1))) {
         SQInteger iterTop = sq_gettop(v);
-        v->Push(closure);
-        v->Push(o);
+        v->PushNull();
         v->Push(stack_get(v, iterTop));
         if (nArgs >= 3)
             v->Push(stack_get(v, iterTop-1));
         if (nArgs >= 4)
             v->Push(o);
 
-        if (SQ_FAILED(sq_call(v,nArgs,SQTrue,SQ_BASELIB_INVOKE_CB_ERR_HANDLER))) {
+        bool callRes = v->Call(closure, nArgs, v->_top-nArgs, tmp, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
+        if (!callRes)
             return SQ_ERROR;
-        }
-        if (!v->IsFalse(stack_get(v, -1))) {
+
+        if (!v->IsFalse(tmp)) {
             v->Push(stack_get(v, iterTop-1));
             return 1;
         }
-        v->Pop(4);
+        v->Pop(2+nArgs);
     }
     sq_pop(v, 1); // pops the iterator
 
@@ -576,27 +577,28 @@ static SQInteger container_findvalue(HSQUIRRELVM v)
     const SQObjectPtr &o = stack_get(v,1);
     const SQObjectPtr &closure = stack_get(v, 2);
     SQInteger nArgs = get_allowed_args_count(closure, 4);
+    SQObjectPtr tmp;
 
     sq_pushnull(v);
     while (SQ_SUCCEEDED(sq_next(v, 1))) {
         SQInteger iterTop = sq_gettop(v);
 
-        v->Push(closure);
-        v->Push(o);
+        v->PushNull();
         v->Push(stack_get(v, iterTop));
         if (nArgs >= 3)
             v->Push(stack_get(v, iterTop-1));
         if (nArgs >= 4)
             v->Push(o);
 
-        if (SQ_FAILED(sq_call(v,nArgs,SQTrue,SQ_BASELIB_INVOKE_CB_ERR_HANDLER))) {
+        bool callRes = v->Call(closure, nArgs, v->_top-nArgs, tmp, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
+        if (!callRes)
             return SQ_ERROR;
-        }
-        if (!v->IsFalse(stack_get(v, -1))) {
+
+        if (!v->IsFalse(tmp)) {
             v->Push(stack_get(v, iterTop));
             return 1;
         }
-        v->Pop(4);
+        v->Pop(2+nArgs);
     }
     sq_pop(v, 1); // pops the iterator
 
@@ -1303,25 +1305,28 @@ static SQInteger array_contains(HSQUIRRELVM v)
 }
 
 
-static bool _sort_compare(HSQUIRRELVM v, SQArray *arr, SQObjectPtr &a,SQObjectPtr &b,SQInteger func,SQInteger &ret)
+static bool _sort_compare(HSQUIRRELVM v, SQArray *arr, SQObjectPtr &a, SQObjectPtr &b,
+                          const SQObjectPtr &func, SQInteger &ret)
 {
-    if(func < 0) {
-        if(!v->ObjCmp(a,b,ret)) return false;
+    if (sq_isnull(func)) {
+        if (!v->ObjCmp(a,b,ret))
+            return false;
     }
     else {
         SQInteger top = sq_gettop(v);
-        sq_push(v, func);
-        sq_pushroottable(v);
+        v->PushNull();
         v->Push(a);
         v->Push(b);
         SQObjectPtr *valptr = arr->_values._vals;
         SQUnsignedInteger precallsize = arr->_values.size();
-        if(SQ_FAILED(sq_call(v, 3, SQTrue, SQFalse))) {
-            if(!sq_isstring( v->_lasterror))
+        SQObjectPtr out;
+        bool callSucceeded = v->Call(func, 3, v->_top-3, out, false);
+        if (!callSucceeded) {
+            if (!sq_isstring( v->_lasterror))
                 v->Raise_Error(_SC("compare func failed"));
             return false;
         }
-        if(SQ_FAILED(sq_getinteger(v, -1, &ret))) {
+        if (!sq_isnumeric(out)) {
             v->Raise_Error(_SC("numeric value expected as return value of the compare function"));
             return false;
         }
@@ -1329,13 +1334,14 @@ static bool _sort_compare(HSQUIRRELVM v, SQArray *arr, SQObjectPtr &a,SQObjectPt
             v->Raise_Error(_SC("array resized during sort operation"));
             return false;
         }
+        ret = tointeger(out);
         sq_settop(v, top);
         return true;
     }
     return true;
 }
 
-static bool _hsort_sift_down(HSQUIRRELVM v,SQArray *arr, SQInteger root, SQInteger bottom, SQInteger func)
+static bool _hsort_sift_down(HSQUIRRELVM v,SQArray *arr, SQInteger root, SQInteger bottom, const SQObjectPtr &func)
 {
     SQInteger maxChild;
     SQInteger done = 0;
@@ -1375,7 +1381,7 @@ static bool _hsort_sift_down(HSQUIRRELVM v,SQArray *arr, SQInteger root, SQInteg
     return true;
 }
 
-static bool _hsort(HSQUIRRELVM v,SQObjectPtr &arr, SQInteger SQ_UNUSED_ARG(l), SQInteger SQ_UNUSED_ARG(r),SQInteger func)
+static bool _hsort(HSQUIRRELVM v,SQObjectPtr &arr, SQInteger SQ_UNUSED_ARG(l), SQInteger SQ_UNUSED_ARG(r),const SQObjectPtr &func)
 {
     SQArray *a = _array(arr);
     SQInteger i;
@@ -1394,12 +1400,13 @@ static bool _hsort(HSQUIRRELVM v,SQObjectPtr &arr, SQInteger SQ_UNUSED_ARG(l), S
 
 static SQInteger array_sort(HSQUIRRELVM v)
 {
-    SQInteger func = -1;
+    SQObjectPtr func;
     SQObjectPtr &o = stack_get(v,1);
     SQ_CHECK_IMMUTABLE_OBJ(o);
 
-    if(_array(o)->Size() > 1) {
-        if(sq_gettop(v) == 2) func = 2;
+    if (_array(o)->Size() > 1) {
+        if(sq_gettop(v) == 2)
+            func = stack_get(v, 2);
         if(!_hsort(v, o, 0, _array(o)->Size()-1, func))
             return SQ_ERROR;
 

@@ -11,7 +11,6 @@
 #include "../sqfuncproto.h"
 #include "../sqclosure.h"
 #include <sqdirect.h>
-// #include "../sqast_dump.h"
 
 namespace SQCompilation {
 

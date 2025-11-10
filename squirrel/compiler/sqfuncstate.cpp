@@ -81,8 +81,10 @@ SQFuncState::SQFuncState(SQSharedState *ss,SQFuncState *parent,SQCompilationCont
     _targetstack(ss->_alloc_ctx),
     _unresolvedbreaks(ss->_alloc_ctx),
     _unresolvedcontinues(ss->_alloc_ctx),
+    _expr_block_results(ss->_alloc_ctx),
     _functions(ss->_alloc_ctx),
     _parameters(ss->_alloc_ctx),
+    _param_type_masks(ss->_alloc_ctx),
     _outervalues(ss->_alloc_ctx),
     _outervalues_nodes(ss->_alloc_ctx),
     _instructions(ss->_alloc_ctx),
@@ -111,6 +113,7 @@ SQFuncState::SQFuncState(SQSharedState *ss,SQFuncState *parent,SQCompilationCont
         _hoistLevel = 0;
         _staticmemos_count = 0;
         _ss = ss;
+        _result_type_mask = ~0u;
         lang_features = parent ? parent->lang_features : ss->defaultLangFeatures;
 }
 
@@ -410,6 +413,7 @@ void Dump(OutputStream *stream, SQFunctionProto *func, bool deep, int instructio
     streamprintf(stream, _SC("*****FUNCTION [%s]\n"), sq_type(func->_name) == OT_STRING ? _stringval(func->_name) : _SC("unknown"));
     DumpLiterals(stream, func->_literals, func->_nliterals);
     DumpStaticMemos(stream, func->_staticmemos, func->_nstaticmemos);
+    streamprintf(stream, _SC("-----RESULT TYPE MASK = 0x%X\n"), func->_result_type_mask);
     streamprintf(stream, _SC("-----PARAMS\n"));
     if (func->_varparams)
         streamprintf(stream, _SC("<<VARPARAMS>>\n"));
@@ -417,7 +421,7 @@ void Dump(OutputStream *stream, SQFunctionProto *func, bool deep, int instructio
     for (i = 0; i < func->_nparameters; i++) {
         streamprintf(stream, _SC("[%d] "), (SQInt32)n);
         DumpLiteral(stream, func->_parameters[i]);
-        streamprintf(stream, _SC("\n"));
+        streamprintf(stream, _SC(", type mask = 0x%X\n"), func->_param_type_masks[i]);
         n++;
     }
     DumpLocals(stream, func->_localvarinfos, func->_nlocalvarinfos);
@@ -685,10 +689,11 @@ SQInteger SQFuncState::GetOuterVariable(const SQObject &name, char &varFlags, Ex
     return -1;
 }
 
-void SQFuncState::AddParameter(const SQObject &name)
+void SQFuncState::AddParameter(const SQObject &name, SQUnsignedInteger32 type_mask)
 {
     PushLocalVariable(name, VF_PARAM | VF_ASSIGNABLE, nullptr);
     _parameters.push_back(SQObjectPtr(name));
+    _param_type_masks.push_back(type_mask);
 }
 
 void SQFuncState::AddLineInfos(SQInteger line, bool is_dbg_step_point, bool force)
@@ -964,7 +969,8 @@ SQFunctionProto *SQFuncState::BuildProto()
     f->_bgenerator = _bgenerator;
     f->_purefunction = _purefunction;
     f->_name = _name;
-    f->_hoistingLevel = _hoistLevel;
+    f->_inside_hoisted_scope = _hoistLevel > 0;
+    f->_result_type_mask = _result_type_mask;
 
     while((idx=_table(_literals)->Next(false,refidx,key,val))!=-1) {
         f->_literals[_integer(val)]=key;
@@ -972,9 +978,13 @@ SQFunctionProto *SQFuncState::BuildProto()
     }
 
     for(SQUnsignedInteger nf = 0; nf < _functions.size(); nf++) f->_functions[nf] = _functions[nf];
-    for(SQUnsignedInteger np = 0; np < _parameters.size(); np++) f->_parameters[np] = _parameters[np];
     for(SQUnsignedInteger no = 0; no < _outervalues.size(); no++) f->_outervalues[no] = _outervalues[no];
     for(SQUnsignedInteger nl = 0; nl < _localvarinfos.size(); nl++) f->_localvarinfos[nl] = _localvarinfos[nl];
+
+    for(SQUnsignedInteger np = 0; np < _parameters.size(); np++) {
+        f->_parameters[np] = _parameters[np];
+        f->_param_type_masks[np] = _param_type_masks[np];
+    }
 
     f->_lineinfos->_is_compressed = useCompressedLineInfos;
     f->_lineinfos->_first_line = firstLine;

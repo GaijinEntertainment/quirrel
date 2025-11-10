@@ -148,6 +148,7 @@ public:
     ForeachStatement* parseForEachStatement();
     SwitchStatement* parseSwitchStatement();
     Expr *parseStringTemplate();
+    unsigned parseTypeMask(bool eol_breaks_type_parsing);
     LiteralExpr* ExpectScalar();
     ConstDecl* parseConstStatement(bool global);
     EnumDecl* parseEnumStatement(bool global);

@@ -70,6 +70,7 @@
     DEF_TREE_OP(RESUME), \
     DEF_TREE_OP(CLONE), \
     DEF_TREE_OP(PAREN), \
+    DEF_TREE_OP(CODE_BLOCK_EXPR), \
     DEF_TREE_OP(DELETE), \
     DEF_TREE_OP(LITERAL), \
     DEF_TREE_OP(BASE), \
@@ -591,11 +592,14 @@ class VarDecl;
 
 class Decl : public Statement {
 protected:
-    Decl(enum TreeOp op) : Statement(op) {}
+    Decl(enum TreeOp op) : Statement(op), typeMask(~0u) {}
+    unsigned typeMask;
 public:
 
     ParamDecl *asParam() const { assert(op() == TO_PARAM); return (ParamDecl *)(this); }
     VarDecl *asVarDecl() const { assert(op() == TO_VAR); return (VarDecl *)(this); }
+    void setTypeMask(unsigned typeMask_) { typeMask = typeMask_; }
+    unsigned getTypeMask() const { return typeMask; }
 };
 
 class ValueDecl : public Decl {
@@ -699,9 +703,11 @@ class Block;
 
 class FunctionDecl : public Decl {
 protected:
-    FunctionDecl(enum TreeOp op, Arena *arena, const SQChar *name) : Decl(op), _arena(arena), _parameters(arena), _name(name), _vararg(false), _body(NULL), _lambda(false), _pure(false), _sourcename(NULL), _hoistingLevel(0) {}
+    FunctionDecl(enum TreeOp op, Arena *arena, const SQChar *name) : Decl(op), _arena(arena), _parameters(arena), _name(name),
+        _vararg(false), _body(NULL), _lambda(false), _pure(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
 public:
-    FunctionDecl(Arena *arena, const SQChar *name) : Decl(TO_FUNCTION), _arena(arena), _parameters(arena), _name(name), _vararg(false), _body(NULL), _lambda(false), _pure(false), _sourcename(NULL), _hoistingLevel(0) {}
+    FunctionDecl(Arena *arena, const SQChar *name) : Decl(TO_FUNCTION), _arena(arena), _parameters(arena), _name(name),
+        _vararg(false), _body(NULL), _lambda(false), _pure(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
 
     void addParameter(const SQChar *name, Expr *defaultVal = NULL) { _parameters.push_back(new (_arena) ParamDecl(name, defaultVal)); }
 
@@ -731,6 +737,9 @@ public:
     int hoistingLevel() const { return _hoistingLevel; }
     void hoistBy(int level) { _hoistingLevel += level; }
 
+    unsigned getResultTypeMask() const { return _resultTypeMask; }
+    void setResultTypeMask(unsigned resultTypeMask) { _resultTypeMask = resultTypeMask; }
+
     DocObject docObject;
 
 private:
@@ -738,13 +747,13 @@ private:
     const SQChar *_name;
     ArenaVector<ParamDecl *> _parameters;
     Block * _body;
+    unsigned _resultTypeMask;
     bool _vararg;
     bool _lambda;
     bool _pure;
 
     const SQChar *_sourcename;
     int _hoistingLevel;
-
 };
 
 class ConstructorDecl : public FunctionDecl {
@@ -847,7 +856,7 @@ private:
 
 class Block : public Statement {
 public:
-    Block(Arena *arena, bool is_root = false) : Statement(TO_BLOCK), _statements(arena), _is_root(is_root), _is_body(false) {}
+    Block(Arena *arena, bool is_root = false) : Statement(TO_BLOCK), _statements(arena), _is_root(is_root), _is_body(false), _is_expr_block(false) {}
 
     void addStatement(Statement *stmt) { assert(stmt); _statements.push_back(stmt); }
 
@@ -862,15 +871,35 @@ public:
     bool isBody() const { return _is_body; }
     void setIsBody() { _is_body = true; }
 
+    bool isExprBlock() { return _is_expr_block; }
+    void setIsExprBlock() { _is_expr_block = true; }
+
 private:
     bool _is_root;
     bool _is_body;
+    bool _is_expr_block;
     ArenaVector<Statement *> _statements;
 };
 
 class RootBlock : public Block {
 public:
     RootBlock(Arena *arena) : Block(arena, true) {}
+};
+
+class CodeBlockExpr : public Expr {
+public:
+    CodeBlockExpr(Block *block): Expr(TO_CODE_BLOCK_EXPR), _block(block) {
+      setLineEndPos(block->lineEnd());
+      setColumnEndPos(block->columnEnd());
+    }
+
+    void visitChildren(Visitor *visitor);
+    void transformChildren(Transformer *transformer);
+
+    Block *block() const { return _block; }
+
+private:
+    Block *_block;
 };
 
 class IfStatement : public Statement {
@@ -1106,6 +1135,7 @@ public:
 
     virtual void visitExpr(Expr *expr) { visitNode(expr); }
     virtual void visitUnExpr(UnExpr *expr) { visitExpr(expr); }
+    virtual void visitCodeBlockExpr(CodeBlockExpr *expr) { visitExpr(expr); }
     virtual void visitBinExpr(BinExpr *expr) { visitExpr(expr); }
     virtual void visitTerExpr(TerExpr *expr) { visitExpr(expr); }
     virtual void visitCallExpr(CallExpr *expr) { visitExpr(expr); }
@@ -1170,6 +1200,7 @@ public:
 
   virtual Node *transformExpr(Expr *expr) { return transformNode(expr); }
   virtual Node *transformUnExpr(UnExpr *expr) { return transformExpr(expr); }
+  virtual Node *transformCodeBlockExpr(CodeBlockExpr *expr) { return transformExpr(expr); }
   virtual Node *transformBinExpr(BinExpr *expr) { return transformExpr(expr); }
   virtual Node *transformTerExpr(TerExpr *expr) { return transformExpr(expr); }
   virtual Node *transformCallExpr(CallExpr *expr) { return transformExpr(expr); }
@@ -1285,6 +1316,8 @@ void Node::visit(V *visitor) {
     case TO_STATIC_MEMO:
     case TO_INLINE_CONST:
         visitor->visitUnExpr(static_cast<UnExpr *>(this)); return;
+    case TO_CODE_BLOCK_EXPR:
+        visitor->visitCodeBlockExpr(static_cast<CodeBlockExpr *>(this)); return;
     case TO_LITERAL:
         visitor->visitLiteralExpr(static_cast<LiteralExpr *>(this)); return;
     case TO_BASE:
@@ -1405,6 +1438,8 @@ Node *Node::transform(T *transformer) {
   case TO_STATIC_MEMO:
   case TO_INLINE_CONST:
     return transformer->transformUnExpr(static_cast<UnExpr *>(this));
+  case TO_CODE_BLOCK_EXPR:
+    return transformer->transformCodeBlockExpr(static_cast<CodeBlockExpr *>(this));
   case TO_LITERAL:
     return transformer->transformLiteralExpr(static_cast<LiteralExpr *>(this));
   case TO_BASE:

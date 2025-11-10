@@ -1,5 +1,5 @@
 
-AN ERROR HAS OCCURRED [the index 'null' does not exist]
+AN ERROR HAS OCCURRED [the index null does not exist]
 
 CALLSTACK
 *FUNCTION [__main__()] testData/static_analyzer/w301_closure.nut:8

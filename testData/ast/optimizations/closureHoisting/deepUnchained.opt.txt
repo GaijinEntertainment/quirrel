@@ -1,14 +1,14 @@
 Block isRoot = 1, isBody = 0
-|-VarDecl 'local' 'z'
+|-VarDecl 'local', name = 'z', type = 'any'
 |   Initializer
 |     LiteralExpr LK_INT 0
-|-VarDecl 'let' '$ch0'
+|-VarDecl 'let', name = '$ch0', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = '(deepUnchained.nut:9)'
+|       FunctionDecl name = '(deepUnchained.nut:9)', resultType = 'any'
 |       |-Parameters count = 2
-|       | |-Parameter #1 name = 'g'
-|       | `-Parameter #2 name = 'h'
+|       | |-Parameter #1 name = 'g', type = 'any'
+|       | `-Parameter #2 name = 'h', type = 'any'
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |             ReturnStatement
@@ -17,13 +17,13 @@ Block isRoot = 1, isBody = 0
 |               |   Id 'g'
 |               `-Right
 |                   Id 'h'
-|-VarDecl 'let' '$ch1'
+|-VarDecl 'let', name = '$ch1', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = '(deepUnchained.nut:7)'
+|       FunctionDecl name = '(deepUnchained.nut:7)', resultType = 'any'
 |       |-Parameters count = 2
-|       | |-Parameter #1 name = 'e'
-|       | `-Parameter #2 name = 'f'
+|       | |-Parameter #1 name = 'e', type = 'any'
+|       | `-Parameter #2 name = 'f', type = 'any'
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |           |-ExprStatement
@@ -38,13 +38,13 @@ Block isRoot = 1, isBody = 0
 |           |           Id 'f'
 |           `-ReturnStatement
 |               Id '$ch0'
-|-VarDecl 'let' '$ch2'
+|-VarDecl 'let', name = '$ch2', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = '(deepUnchained.nut:5)'
+|       FunctionDecl name = '(deepUnchained.nut:5)', resultType = 'any'
 |       |-Parameters count = 2
-|       | |-Parameter #1 name = 'c'
-|       | `-Parameter #2 name = 'd'
+|       | |-Parameter #1 name = 'c', type = 'any'
+|       | `-Parameter #2 name = 'd', type = 'any'
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |           |-ExprStatement
@@ -59,13 +59,13 @@ Block isRoot = 1, isBody = 0
 |           |           Id 'd'
 |           `-ReturnStatement
 |               Id '$ch1'
-|-VarDecl 'let' '$ch3'
+|-VarDecl 'let', name = '$ch3', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = '(deepUnchained.nut:3)'
+|       FunctionDecl name = '(deepUnchained.nut:3)', resultType = 'any'
 |       |-Parameters count = 2
-|       | |-Parameter #1 name = 'a'
-|       | `-Parameter #2 name = 'b'
+|       | |-Parameter #1 name = 'a', type = 'any'
+|       | `-Parameter #2 name = 'b', type = 'any'
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |           |-ExprStatement
@@ -80,13 +80,13 @@ Block isRoot = 1, isBody = 0
 |           |           Id 'b'
 |           `-ReturnStatement
 |               Id '$ch2'
-`-VarDecl 'let' 'foo'
+`-VarDecl 'let', name = 'foo', type = 'any'
     Initializer
       DeclExpr
-        FunctionDecl name = 'foo'
+        FunctionDecl name = 'foo', resultType = 'any'
         |-Parameters count = 2
-        | |-Parameter #1 name = 'x'
-        | `-Parameter #2 name = 'y'
+        | |-Parameter #1 name = 'x', type = 'any'
+        | `-Parameter #2 name = 'y', type = 'any'
         `-Body
             Block isRoot = 0, isBody = 1
               ReturnStatement

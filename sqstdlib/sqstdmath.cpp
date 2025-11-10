@@ -8,6 +8,7 @@
 #include <squirrel/sqvm.h>
 #include <squirrel/sqstate.h>
 #include <chrono>
+#include "sqstdhash.h"
 
 #define SINGLE_ARG_FUNC(_funcname) static SQInteger math_##_funcname(HSQUIRRELVM v){ \
     SQFloat f; \
@@ -202,6 +203,8 @@ static const SQRegFunctionFromStr mathlib_funcs[] = {
     { math_min,    "pure min(x: number, y: number, ...: number): number", "Returns the minimum value from the arguments" },
     { math_max,    "pure max(x: number, y: number, ...: number): number", "Returns the maximum value from the arguments" },
     { math_clamp,  "pure clamp(x: number, min: number, max: number): number", "Clamps x to the range [min, max]" },
+    { sq_math_hash, "pure hash(obj): int",           "Returns a hash value for the given object" },
+    { sq_math_deep_hash, "pure deep_hash(obj, [depth: int]): int", "Returns a hash value for the given object, hashing nested objects up to the specified depth" },
     { NULL, NULL, NULL }
 };
 

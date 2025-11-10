@@ -6,6 +6,7 @@
 #include "parser.h"
 #include "compiler.h"
 #include "compilationcontext.h"
+#include "sqtypeparser.h"
 #include <stdarg.h>
 
 namespace SQCompilation {
@@ -102,6 +103,8 @@ static const SQPragmaDescriptor pragmaDescriptors[] = {
   { "allow-implicit-default-delegates", 0, LF_FORBID_IMPLICIT_DEF_DELEGATE },
   { "forbid-auto-freeze", 0, LF_ALLOW_AUTO_FREEZE },
   { "allow-auto-freeze", LF_ALLOW_AUTO_FREEZE, 0 },
+  { "forbid-compiler-internals", 0, LF_ALLOW_COMPILER_INTERNALS },
+  { "allow-compiler-internals", LF_ALLOW_COMPILER_INTERNALS, 0 },
 };
 
 Statement* SQParser::parseDirectiveStatement()
@@ -1093,6 +1096,21 @@ Expr* SQParser::Factor(SQInteger &pos)
         r = setCoordinates(newNode<UnExpr>(TO_PAREN, Expression(_expression_context)), l, c);
         Expect(_SC(')'));
         break;
+    case TK_CODE_BLOCK_EXPR: {
+        if ((_lang_features & LF_ALLOW_COMPILER_INTERNALS) == 0)
+            reportDiagnostic(DiagnosticsId::DI_COMPILER_INTERNALS_FORBIDDEN);
+        SQExpressionContext saved_expression_context = _expression_context;
+        _expression_context = SQE_REGULAR;
+        SQUnsignedInteger savedLangFeatures = _lang_features;
+        Lex();
+        Block * blk = parseStatements();
+        blk->setIsExprBlock();
+        r = setCoordinates(newNode<CodeBlockExpr>(blk), l, c);
+        Expect(_SC('}'));
+        _lang_features = savedLangFeatures;
+        _expression_context = saved_expression_context;
+        break;
+    }
     case TK___LINE__:
         r = setCoordinates(newNode<LiteralExpr>(_lex._currentline), l, c);
         Lex();
@@ -1266,6 +1284,8 @@ Decl* SQParser::parseLocalDeclStatement()
         Id *varname = (Id *)setCoordinates(Expect(TK_IDENTIFIER), l, c);
         assert(varname);
         VarDecl *cur = NULL;
+        unsigned typeMask = _token == _SC(':') ? parseTypeMask(destructurer == 0) : ~0u;
+
         if(_token == _SC('=')) {
             Lex();
             Expr *expr = Expression(SQE_REGULAR);
@@ -1283,6 +1303,7 @@ Decl* SQParser::parseLocalDeclStatement()
             cur = newNode<VarDecl>(varname->name(), nullptr, assignable, destructurer != 0);
         }
 
+        cur->setTypeMask(typeMask);
         setCoordinates(cur, l, c);
 
         if (decls) {
@@ -1841,6 +1862,63 @@ Expr* SQParser::PrefixIncDec(SQInteger token)
 }
 
 
+static bool can_be_type_name(int token)
+{
+    return token == TK_IDENTIFIER || token == TK_NULL || token == TK_FUNCTION || token == TK_CLASS;
+}
+
+unsigned SQParser::parseTypeMask(bool eol_breaks_type_parsing)
+{
+    unsigned typeMask = 0;
+    Lex();
+    bool requireParen = false;
+    if (_token == _SC('(')) {
+        requireParen = true;
+        Lex();
+    }
+
+    if (!can_be_type_name(_token))
+        reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "TYPE_NAME");
+
+    while (can_be_type_name(_token)) {
+        const SQChar* suggestion = nullptr;
+        SQUnsignedInteger32 currentMask = 0;
+
+        const SQChar* name = (_token == TK_IDENTIFIER) ? _lex._svalue :
+            (_token == TK_NULL) ? _SC("null") :
+            (_token == TK_FUNCTION) ? _SC("function") :
+            (_token == TK_CLASS) ? _SC("class") :
+            _SC("<not-implemented>");
+
+        bool found = sq_type_string_to_mask(name, currentMask, suggestion);
+        if (!found) {
+           if (suggestion)
+               reportDiagnostic(DiagnosticsId::DI_INVALID_TYPE_NAME_SUGGESTION, name, suggestion);
+           else
+               reportDiagnostic(DiagnosticsId::DI_INVALID_TYPE_NAME, name);
+        }
+        typeMask |= currentMask;
+        Lex();
+
+        if (_lex._prevtoken == _SC('\n') && eol_breaks_type_parsing && !requireParen)
+            break;
+
+        if (_token == _SC('|'))
+            Lex();
+        else
+            break;
+
+        if (!can_be_type_name(_token))
+            reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "TYPE_NAME");
+    }
+
+    if (requireParen)
+        Expect(_SC(')'));
+
+    return typeMask;
+}
+
+
 FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
 {
     NestingChecker nc(this);
@@ -1860,12 +1938,16 @@ FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
             f->setVararg(true);
             params.back()->setVararg();
             Lex();
+            unsigned typeMask = _token == _SC(':') ? parseTypeMask(false) : ~0u;
+            params.back()->setTypeMask(typeMask);
             if(_token != _SC(')'))
                 reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, ")");
             break;
         }
         else {
             Id *paramname = (Id *)Expect(TK_IDENTIFIER);
+            unsigned typeMask = _token == _SC(':') ? parseTypeMask(false) : ~0u;
+
             Expr *defVal = NULL;
             if (_token == _SC('=')) {
                 Lex();
@@ -1881,6 +1963,7 @@ FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
             ParamDecl *p = params.back();
             p->setLineStartPos(l); p->setColumnStartPos(c);
             p->setLineEndPos(_lex._currentline); p->setColumnEndPos(_lex._currentcolumn - 1);
+            p->setTypeMask(typeMask);
 
             if(_token == _SC(',')) Lex();
             else if(_token != _SC(')'))
@@ -1889,6 +1972,7 @@ FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
     }
 
     Expect(_SC(')'));
+    unsigned resultTypeMask = _token == _SC(':') ? parseTypeMask(false) : ~0u;
 
     Block *body = NULL;
 
@@ -1920,6 +2004,7 @@ FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
 
     f->setSourceName(_sourcename);
     f->setLambda(lambda);
+    f->setResultTypeMask(resultTypeMask);
 
     f->setLineEndPos(line2);
     f->setColumnEndPos(column2);

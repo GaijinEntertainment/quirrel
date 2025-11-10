@@ -6,7 +6,7 @@ Block isRoot = 1, isBody = 0
 |   '*'
 |-ImportStmt module 'datetime'
 |-ImportStmt module 'debug' as 'Debug'
-|-DestructuringDecl, type = 'table'
+|-DestructuringDecl type = 'table'
 | |-Initializer
 | |   CallExpr
 | |   |-Callee
@@ -14,8 +14,8 @@ Block isRoot = 1, isBody = 0
 | |   `-Arguments
 | |       Argument #1
 | |         LiteralExpr LK_STRING "debug"
-| |-VarDecl 'let' 'getlocals'
-| `-VarDecl 'let' 'doc'
+| |-VarDecl 'let', name = 'getlocals', type = 'any'
+| `-VarDecl 'let', name = 'doc', type = 'any'
 |-Block isRoot = 0, isBody = 0
 | |-ExprStatement
 | |   LiteralExpr LK_NULL
@@ -38,7 +38,7 @@ Block isRoot = 1, isBody = 0
 |   CallExpr
 |     Callee
 |       Id 'println'
-|-VarDecl 'local' 'tab'
+|-VarDecl 'local', name = 'tab', type = 'any'
 |   Initializer
 |     DeclExpr
 |       TableDecl
@@ -103,45 +103,45 @@ Block isRoot = 1, isBody = 0
 |           LiteralExpr LK_STRING "const_str4"
 |-ConstDecl name = 'cn4', isGlobal = 1
 |   LiteralExpr LK_BOOL true
-|-VarDecl 'local' 'a0'
+|-VarDecl 'local', name = 'a0', type = 'any'
 |-DeclGroup
-| |-VarDecl 'local' 'm0'
-| `-VarDecl 'local' 'm1'
-|-VarDecl 'local' 'a1'
+| |-VarDecl 'local', name = 'm0', type = 'any'
+| `-VarDecl 'local', name = 'm1', type = 'any'
+|-VarDecl 'local', name = 'a1', type = 'any'
 |   Initializer
 |     LiteralExpr LK_NULL
-|-VarDecl 'local' 'a2'
+|-VarDecl 'local', name = 'a2', type = 'any'
 |   Initializer
 |     LiteralExpr LK_INT 123456
-|-VarDecl 'local' 'a3'
+|-VarDecl 'local', name = 'a3', type = 'any'
 |   Initializer
 |     LiteralExpr LK_FLOAT 123.250000
-|-VarDecl 'local' 'a4'
+|-VarDecl 'local', name = 'a4', type = 'any'
 |   Initializer
 |     LiteralExpr LK_FLOAT 3499999887360.000000
-|-VarDecl 'local' 'a5'
+|-VarDecl 'local', name = 'a5', type = 'any'
 |   Initializer
 |     LiteralExpr LK_FLOAT 3499999887360.000000
-|-VarDecl 'local' 'a6'
+|-VarDecl 'local', name = 'a6', type = 'any'
 |   Initializer
 |     LiteralExpr LK_FLOAT 0.000000
-|-VarDecl 'local' 'a7'
+|-VarDecl 'local', name = 'a7', type = 'any'
 |   Initializer
 |     LiteralExpr LK_FLOAT -0.000000
-|-VarDecl 'local' 'a8'
+|-VarDecl 'local', name = 'a8', type = 'any'
 |   Initializer
 |     LiteralExpr LK_BOOL true
-|-VarDecl 'local' 'a9'
+|-VarDecl 'local', name = 'a9', type = 'any'
 |   Initializer
 |     LiteralExpr LK_BOOL false
-|-VarDecl 'local' 'a10'
+|-VarDecl 'local', name = 'a10', type = 'any'
 |   Initializer
 |     LiteralExpr LK_STRING "	local_str1ﷰ"
-|-VarDecl 'local' 'a11'
+|-VarDecl 'local', name = 'a11', type = 'any'
 |   Initializer
 |     LiteralExpr LK_STRING "local_str2
 local_str3"
-|-VarDecl 'local' 'a12'
+|-VarDecl 'local', name = 'a12', type = 'any'
 |   Initializer
 |     CallExpr
 |     |-Callee
@@ -151,7 +151,7 @@ local_str3"
 |     `-Arguments
 |         Argument #1
 |           Id 'a9'
-|-VarDecl 'local' 'a13'
+|-VarDecl 'local', name = 'a13', type = 'any'
 |   Initializer
 |     CallExpr
 |       Callee
@@ -159,7 +159,7 @@ local_str3"
 |           Receiver
 |             UnExpr '('
 |               LiteralExpr LK_INT 123458
-|-VarDecl 'local' 'a14'
+|-VarDecl 'local', name = 'a14', type = 'any'
 |   Initializer
 |     CallExpr
 |       Callee
@@ -168,96 +168,96 @@ local_str3"
 |             UnExpr '('
 |               LiteralExpr LK_FLOAT 12.450000
 |-DeclGroup
-| |-VarDecl 'local' 'm3'
+| |-VarDecl 'local', name = 'm3', type = 'any'
 | |   Initializer
 | |     LiteralExpr LK_INT 301
-| `-VarDecl 'local' 'm4'
+| `-VarDecl 'local', name = 'm4', type = 'any'
 |     Initializer
 |       LiteralExpr LK_INT 302
-|-VarDecl 'local' 'a15'
+|-VarDecl 'local', name = 'a15', type = 'any'
 |   Initializer
 |     GetFieldExpr '.' fieldName = 'AA'
 |       Receiver
 |         Id 'Enum9'
-|-VarDecl 'local' 'a16'
+|-VarDecl 'local', name = 'a16', type = 'any'
 |   Initializer
 |     BinExpr '='
 |     |-Left
 |     |   Id 'm4'
 |     `-Right
 |         LiteralExpr LK_INT 303
-|-VarDecl 'let' 'b0'
+|-VarDecl 'let', name = 'b0', type = 'any'
 |   Initializer
 |     LiteralExpr LK_INT 1025
-|-VarDecl 'let' 'b1'
+|-VarDecl 'let', name = 'b1', type = 'any'
 |   Initializer
 |     LiteralExpr LK_INT 67305386
-|-VarDecl 'let' 'b2'
+|-VarDecl 'let', name = 'b2', type = 'any'
 |   Initializer
 |     LiteralExpr LK_INT 66
-|-VarDecl 'let' 'b3'
+|-VarDecl 'let', name = 'b3', type = 'any'
 |   Initializer
 |     LiteralExpr LK_INT 10
-|-VarDecl 'let' 'b4'
+|-VarDecl 'let', name = 'b4', type = 'any'
 |   Initializer
 |     CallExpr
 |       Callee
 |         GetFieldExpr '.' fieldName = 'tochar'
 |           Receiver
 |             LiteralExpr LK_INT 9
-|-VarDecl 'let' 'e0'
+|-VarDecl 'let', name = 'e0', type = 'any'
 |   Initializer
 |     ArrayExpr
-|-VarDecl 'let' 'e1'
+|-VarDecl 'let', name = 'e1', type = 'any'
 |   Initializer
 |     ArrayExpr
 |       Element #1
 |         LiteralExpr LK_INT 501
-|-VarDecl 'let' 'e2'
+|-VarDecl 'let', name = 'e2', type = 'any'
 |   Initializer
 |     ArrayExpr
 |       Element #1
 |         LiteralExpr LK_INT 502
-|-VarDecl 'let' 'e3'
+|-VarDecl 'let', name = 'e3', type = 'any'
 |   Initializer
 |     ArrayExpr
 |     |-Element #1
 |     |   LiteralExpr LK_INT 503
 |     `-Element #2
 |         LiteralExpr LK_INT 504
-|-VarDecl 'let' 'e4'
+|-VarDecl 'let', name = 'e4', type = 'any'
 |   Initializer
 |     ArrayExpr
 |     |-Element #1
 |     |   LiteralExpr LK_INT 505
 |     `-Element #2
 |         LiteralExpr LK_INT 506
-|-VarDecl 'let' 'e5'
+|-VarDecl 'let', name = 'e5', type = 'any'
 |   Initializer
 |     ArrayExpr
 |     |-Element #1
 |     |   LiteralExpr LK_INT 507
 |     `-Element #2
 |         LiteralExpr LK_INT 508
-|-VarDecl 'let' 'e6'
+|-VarDecl 'let', name = 'e6', type = 'any'
 |   Initializer
 |     ArrayExpr
 |     |-Element #1
 |     |   LiteralExpr LK_INT 509
 |     `-Element #2
 |         LiteralExpr LK_INT 510
-|-VarDecl 'let' 'e7'
+|-VarDecl 'let', name = 'e7', type = 'any'
 |   Initializer
 |     ArrayExpr
 |     |-Element #1
 |     |   LiteralExpr LK_INT 511
 |     `-Element #2
 |         LiteralExpr LK_INT 512
-|-VarDecl 'let' 't0'
+|-VarDecl 'let', name = 't0', type = 'any'
 |   Initializer
 |     DeclExpr
 |       TableDecl
-|-VarDecl 'let' 't1'
+|-VarDecl 'let', name = 't1', type = 'any'
 |   Initializer
 |     DeclExpr
 |       TableDecl
@@ -266,7 +266,7 @@ local_str3"
 |         |   LiteralExpr LK_STRING "x"
 |         `-Value
 |             LiteralExpr LK_INT 601
-|-VarDecl 'let' 't2'
+|-VarDecl 'let', name = 't2', type = 'any'
 |   Initializer
 |     DeclExpr
 |       TableDecl
@@ -275,7 +275,7 @@ local_str3"
 |         |   LiteralExpr LK_STRING "x"
 |         `-Value
 |             LiteralExpr LK_INT 602
-|-VarDecl 'let' 't3'
+|-VarDecl 'let', name = 't3', type = 'any'
 |   Initializer
 |     DeclExpr
 |       TableDecl
@@ -284,7 +284,7 @@ local_str3"
 |         |   LiteralExpr LK_STRING "x"
 |         `-Value
 |             LiteralExpr LK_INT 603
-|-VarDecl 'let' 't4'
+|-VarDecl 'let', name = 't4', type = 'any'
 |   Initializer
 |     DeclExpr
 |       TableDecl
@@ -293,7 +293,7 @@ local_str3"
 |         |   LiteralExpr LK_NULL
 |         `-Value
 |             LiteralExpr LK_INT 604
-|-VarDecl 'let' 't5'
+|-VarDecl 'let', name = 't5', type = 'any'
 |   Initializer
 |     DeclExpr
 |       TableDecl
@@ -309,7 +309,7 @@ local_str3"
 |         |             LiteralExpr LK_INT 605
 |         `-Value
 |             LiteralExpr LK_INT 606
-|-VarDecl 'let' 't6'
+|-VarDecl 'let', name = 't6', type = 'any'
 |   Initializer
 |     DeclExpr
 |       TableDecl
@@ -318,7 +318,7 @@ local_str3"
 |         |   LiteralExpr LK_STRING "a2"
 |         `-Value
 |             Id 'a2'
-|-VarDecl 'let' 't7'
+|-VarDecl 'let', name = 't7', type = 'any'
 |   Initializer
 |     DeclExpr
 |       TableDecl
@@ -332,7 +332,7 @@ local_str3"
 |         |   LiteralExpr LK_STRING "a8"
 |         `-Value
 |             Id 'a8'
-|-VarDecl 'let' 't8'
+|-VarDecl 'let', name = 't8', type = 'any'
 |   Initializer
 |     CallExpr
 |     |-Callee
@@ -354,7 +354,7 @@ local_str3"
 |               |   LiteralExpr LK_STRING "y"
 |               `-Value
 |                   LiteralExpr LK_INT 607
-|-VarDecl 'let' 't9'
+|-VarDecl 'let', name = 't9', type = 'any'
 |   Initializer
 |     UnExpr 'CLONE'
 |       DeclExpr
@@ -382,23 +382,23 @@ local_str3"
 |   |       LiteralExpr LK_STRING "y"
 |   `-Right
 |       LiteralExpr LK_STRING "new_slot_str2"
-|-DestructuringDecl, type = 'table'
+|-DestructuringDecl type = 'table'
 | |-Initializer
 | |   Id 'cn3'
-| `-VarDecl 'local' 'abc'
+| `-VarDecl 'local', name = 'abc', type = 'any'
 |-Block isRoot = 0, isBody = 0
-|   DestructuringDecl, type = 'table'
+|   DestructuringDecl type = 'table'
 |   |-Initializer
 |   |   Id 't8'
-|   `-VarDecl 'local' 'y'
+|   `-VarDecl 'local', name = 'y', type = 'any'
 |-Block isRoot = 0, isBody = 0
-| |-DestructuringDecl, type = 'table'
+| |-DestructuringDecl type = 'table'
 | | |-Initializer
 | | |   Id 't2'
-| | |-VarDecl 'local' 'y'
+| | |-VarDecl 'local', name = 'y', type = 'any'
 | | |   Initializer
 | | |     LiteralExpr LK_INT 609
-| | `-VarDecl 'local' 'x'
+| | `-VarDecl 'local', name = 'x', type = 'any'
 | `-ExprStatement
 |     CallExpr
 |     |-Callee
@@ -406,50 +406,178 @@ local_str3"
 |     `-Arguments
 |         Argument #1
 |           Id 'x'
-|-DestructuringDecl, type = 'array'
+|-Block isRoot = 0, isBody = 0
+| |-DestructuringDecl type = 'table'
+| | |-Initializer
+| | |   Id 't2'
+| | |-VarDecl 'local', name = 'y', type = 'int'
+| | |   Initializer
+| | |     LiteralExpr LK_INT 609
+| | `-VarDecl 'local', name = 'x', type = 'string|null'
+| `-ExprStatement
+|     CallExpr
+|     |-Callee
+|     |   Id 'println'
+|     `-Arguments
+|         Argument #1
+|           Id 'x'
+|-DestructuringDecl type = 'array'
 | |-Initializer
 | |   Id 'e3'
-| |-VarDecl 'local' 'd1'
-| `-VarDecl 'local' 'd2'
-|-VarDecl 'let' 'c0'
+| |-VarDecl 'local', name = 'd1', type = 'any'
+| `-VarDecl 'local', name = 'd2', type = 'any'
+|-DestructuringDecl type = 'array'
+| |-Initializer
+| |   Id 'e3'
+| |-VarDecl 'local', name = 'd11', type = 'int'
+| `-VarDecl 'local', name = 'd12', type = 'int|null'
+|-DestructuringDecl type = 'array'
+| |-Initializer
+| |   Id 'e3'
+| |-VarDecl 'local', name = 'd21', type = 'any'
+| `-VarDecl 'local', name = 'd22', type = 'int|null'
+|-DestructuringDecl type = 'array'
+| |-Initializer
+| |   Id 'e3'
+| |-VarDecl 'local', name = 'd31', type = 'int'
+| `-VarDecl 'local', name = 'd32', type = 'any'
+|-VarDecl 'let', name = 'type_test1', type = 'any'
 |   Initializer
 |     DeclExpr
-|       ClassDecl
-|       |-Key: <anonymous>
-|       `-Members
-|-VarDecl 'let' 'c1'
+|       FunctionDecl name = 'type_test1', resultType = 'int'
+|       |-Parameters count = 1
+|       |   Parameter #1 name = 'x', type = 'int'
+|       `-Body
+|           Block isRoot = 0, isBody = 1
+|             ReturnStatement
+|               BinExpr '+'
+|               |-Left
+|               |   LiteralExpr LK_INT 1
+|               `-Right
+|                   Id 'x'
+|-VarDecl 'let', name = 'type_test2', type = 'any'
 |   Initializer
 |     DeclExpr
-|       ClassDecl
-|       |-Key: <anonymous>
-|       `-Members
-|           DeclExpr
-|             ConstructorDecl name = 'constructor'
-|             |-Parameters count = 0
-|             `-Body
-|                 Block isRoot = 0, isBody = 1
-|-VarDecl 'let' 'C2'
+|       FunctionDecl name = 'type_test2', resultType = 'int'
+|       |-Parameters count = 2
+|       | |-Parameter #1 name = 'x', type = 'int'
+|       | |-Parameter #2 name = 'vargv', type = 'float'  (vararg)
+|       | `-Vararg...
+|       `-Body
+|           Block isRoot = 0, isBody = 1
+|             ReturnStatement
+|               BinExpr '+'
+|               |-Left
+|               |   LiteralExpr LK_INT 1
+|               `-Right
+|                   Id 'x'
+|-VarDecl 'let', name = 'type_test3', type = 'any'
 |   Initializer
 |     DeclExpr
-|       ClassDecl
-|       |-Key: <anonymous>
-|       `-Members
-|-VarDecl 'let' 'C3'
+|       FunctionDecl name = 'type_test3', resultType = 'number|null'
+|       |-Parameters count = 1
+|       |   Parameter #1 name = 'x', type = 'number|null'
+|       `-Body
+|           Block isRoot = 0, isBody = 1
+|             ReturnStatement
+|               BinExpr '+'
+|               |-Left
+|               |   LiteralExpr LK_FLOAT 1.000000
+|               `-Right
+|                   UnExpr '('
+|                     BinExpr '??'
+|                     |-Left
+|                     |   Id 'x'
+|                     `-Right
+|                         LiteralExpr LK_INT 5
+|-VarDecl 'let', name = 'type_test4', type = 'any'
 |   Initializer
 |     DeclExpr
-|       ClassDecl
-|       |-Key: <anonymous>
-|       |-Base
-|       |   Id 'c0'
-|       `-Members
-|           DeclExpr
-|             ConstructorDecl name = 'constructor'
-|             |-Parameters count = 1
-|             | |-Parameter #1 name = 'vargv' (vararg)
-|             | `-Vararg...
-|             `-Body
-|                 Block isRoot = 0, isBody = 1
-|-VarDecl 'let' 'C4'
+|       FunctionDecl name = 'type_test4', resultType = 'number|null'
+|       |-Parameters count = 1
+|       |   Parameter #1 name = 'x', type = 'number|null'  (has default)
+|       |     DefaultValue
+|       |       LiteralExpr LK_NULL
+|       `-Body
+|           Block isRoot = 0, isBody = 1
+|             ReturnStatement
+|               BinExpr '+'
+|               |-Left
+|               |   LiteralExpr LK_FLOAT 1.000000
+|               `-Right
+|                   UnExpr '('
+|                     BinExpr '??'
+|                     |-Left
+|                     |   Id 'x'
+|                     `-Right
+|                         LiteralExpr LK_INT 6
+|-VarDecl 'let', name = 'type_test5', type = 'any'
+|   Initializer
+|     DeclExpr
+|       FunctionDecl name = 'type_test5', resultType = 'number|null'
+|       |-Parameters count = 1
+|       |   Parameter #1 name = 'x', type = 'number|null'
+|       `-Body
+|           Block isRoot = 0, isBody = 1
+|             ReturnStatement
+|               BinExpr '+'
+|               |-Left
+|               |   LiteralExpr LK_FLOAT 1.000000
+|               `-Right
+|                   UnExpr '('
+|                     BinExpr '??'
+|                     |-Left
+|                     |   Id 'x'
+|                     `-Right
+|                         LiteralExpr LK_INT 5
+|-VarDecl 'let', name = 'type_test6', type = 'any'
+|   Initializer
+|     DeclExpr
+|       FunctionDecl name = 'type_test6', resultType = 'number'
+|       |-Parameters count = 1
+|       |   Parameter #1 name = 'x', type = 'number|null'  (has default)
+|       |     DefaultValue
+|       |       LiteralExpr LK_NULL
+|       `-Body
+|           Block isRoot = 0, isBody = 1
+|             ReturnStatement
+|               BinExpr '+'
+|               |-Left
+|               |   LiteralExpr LK_FLOAT 1.000000
+|               `-Right
+|                   UnExpr '('
+|                     BinExpr '??'
+|                     |-Left
+|                     |   Id 'x'
+|                     `-Right
+|                         LiteralExpr LK_INT 6
+|-VarDecl 'let', name = 'type_test7', type = 'any'
+|   Initializer
+|     DeclExpr
+|       FunctionDecl name = 'type_test7', resultType = 'any'
+|       |-Parameters count = 2
+|       | |-Parameter #1 name = 'x', type = 'bool|number|string|table|array|userdata|function|generator|userpointer|thread|instance|class|weakref|null'
+|       | `-Parameter #2 name = 'y', type = 'any'
+|       `-Body
+|           Block isRoot = 0, isBody = 1
+|             ReturnStatement
+|               BinExpr '+'
+|               |-Left
+|               |   Id 'x'
+|               `-Right
+|                   Id 'y'
+|-VarDecl 'let', name = 'x901', type = 'int'
+|   Initializer
+|     LiteralExpr LK_INT 5
+|-VarDecl 'local', name = 't902', type = 'table'
+|   Initializer
+|     DeclExpr
+|       TableDecl
+|-VarDecl 'local', name = 't903', type = 'table|array'
+|   Initializer
+|     DeclExpr
+|       TableDecl
+|-VarDecl 'let', name = 'C4', type = 'any'
 |   Initializer
 |     DeclExpr
 |       ClassDecl
@@ -458,28 +586,17 @@ local_str3"
 |         |-LiteralExpr LK_BOOL true
 |         |-LiteralExpr LK_BOOL false
 |         |-DeclExpr
-|         |   ConstructorDecl name = 'constructor'
+|         |   ConstructorDecl name = 'constructor', resultType = 'any'
 |         |   |-Parameters count = 0
 |         |   `-Body
 |         |       Block isRoot = 0, isBody = 1
 |         |-DeclExpr
-|         |   FunctionDecl name = 'fn1'
+|         |   FunctionDecl name = 'fn1', resultType = 'any'
 |         |   |-Parameters count = 0
 |         |   `-Body
 |         |       Block isRoot = 0, isBody = 1
 |         |-DeclExpr
-|         |   FunctionDecl name = '(all_syntax.nut:126)'
-|         |   |-Parameters count = 0
-|         |   `-Body
-|         |       Block isRoot = 0, isBody = 1
-|         |         ExprStatement
-|         |           CallExpr
-|         |             Callee
-|         |               GetFieldExpr '.' fieldName = 'fn1'
-|         |                 Receiver
-|         |                   Id 'this'
-|         |-DeclExpr
-|         |   FunctionDecl name = 'fn3'
+|         |   FunctionDecl name = '(all_syntax.nut:161)', resultType = 'any'
 |         |   |-Parameters count = 0
 |         |   `-Body
 |         |       Block isRoot = 0, isBody = 1
@@ -490,23 +607,34 @@ local_str3"
 |         |                 Receiver
 |         |                   Id 'this'
 |         |-DeclExpr
-|         |   FunctionDecl 'lambda' name = '(all_syntax.nut:128)'
+|         |   FunctionDecl name = 'fn3', resultType = 'any'
+|         |   |-Parameters count = 0
+|         |   `-Body
+|         |       Block isRoot = 0, isBody = 1
+|         |         ExprStatement
+|         |           CallExpr
+|         |             Callee
+|         |               GetFieldExpr '.' fieldName = 'fn1'
+|         |                 Receiver
+|         |                   Id 'this'
+|         |-DeclExpr
+|         |   FunctionDecl 'lambda' name = '(all_syntax.nut:163)', resultType = 'any'
 |         |   |-Parameters count = 0
 |         |   `-Body
 |         |       Block isRoot = 0, isBody = 1
 |         |         ReturnStatement
 |         |           LiteralExpr LK_STRING "class_str1"
 |         |-DeclExpr
-|         |   FunctionDecl 'lambda' name = 'fn5'
+|         |   FunctionDecl 'lambda' name = 'fn5', resultType = 'any'
 |         |   |-Parameters count = 0
 |         |   `-Body
 |         |       Block isRoot = 0, isBody = 1
 |         |         ReturnStatement
 |         |           LiteralExpr LK_STRING "class_str2"
 |         `-DeclExpr
-|             FunctionDecl name = '(all_syntax.nut:130)'
+|             FunctionDecl name = '(all_syntax.nut:165)', resultType = 'any'
 |             |-Parameters count = 1
-|             |   Parameter #1 name = 'name'
+|             |   Parameter #1 name = 'name', type = 'any'
 |             `-Body
 |                 Block isRoot = 0, isBody = 1
 |                 |-ExprStatement
@@ -533,7 +661,7 @@ local_str3"
 |                     |           RootTableAccessExpr
 |                     `-Right
 |                         LiteralExpr LK_INT 610
-|-VarDecl 'let' 'instance'
+|-VarDecl 'let', name = 'instance', type = 'any'
 |   Initializer
 |     CallExpr
 |       Callee
@@ -580,30 +708,17 @@ local_str3"
 |         `-Arguments
 |             Argument #1
 |               LiteralExpr LK_STRING "instance instanceof C4"
-|-VarDecl 'let' 'gfn1'
+|-VarDecl 'let', name = 'gfn1', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = 'gfn1'
+|       FunctionDecl name = 'gfn1', resultType = 'any'
 |       |-Parameters count = 0
 |       `-Body
 |           Block isRoot = 0, isBody = 1
-|-VarDecl 'local' 'gfn2'
+|-VarDecl 'local', name = 'gfn2', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = '(all_syntax.nut:148)'
-|       |-Parameters count = 0
-|       `-Body
-|           Block isRoot = 0, isBody = 1
-|             ExprStatement
-|               CallExpr
-|                 Callee
-|                   GetFieldExpr '.' fieldName = 'gfn1'
-|                     Receiver
-|                       Id 'this'
-|-VarDecl 'let' 'gfn3'
-|   Initializer
-|     DeclExpr
-|       FunctionDecl name = 'gfn3'
+|       FunctionDecl name = '(all_syntax.nut:183)', resultType = 'any'
 |       |-Parameters count = 0
 |       `-Body
 |           Block isRoot = 0, isBody = 1
@@ -613,30 +728,43 @@ local_str3"
 |                   GetFieldExpr '.' fieldName = 'gfn1'
 |                     Receiver
 |                       Id 'this'
-|-VarDecl 'local' 'gfn4'
+|-VarDecl 'let', name = 'gfn3', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl 'lambda' name = '(all_syntax.nut:150)'
+|       FunctionDecl name = 'gfn3', resultType = 'any'
+|       |-Parameters count = 0
+|       `-Body
+|           Block isRoot = 0, isBody = 1
+|             ExprStatement
+|               CallExpr
+|                 Callee
+|                   GetFieldExpr '.' fieldName = 'gfn1'
+|                     Receiver
+|                       Id 'this'
+|-VarDecl 'local', name = 'gfn4', type = 'any'
+|   Initializer
+|     DeclExpr
+|       FunctionDecl 'lambda' name = '(all_syntax.nut:185)', resultType = 'any'
 |       |-Parameters count = 0
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |             ReturnStatement
 |               LiteralExpr LK_STRING "lambda_str1"
-|-VarDecl 'let' 'gfn5'
+|-VarDecl 'let', name = 'gfn5', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl 'lambda' name = 'gfn5'
+|       FunctionDecl 'lambda' name = 'gfn5', resultType = 'any'
 |       |-Parameters count = 0
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |             ReturnStatement
 |               LiteralExpr LK_STRING "lambda_str2"
-|-VarDecl 'local' '_call'
+|-VarDecl 'local', name = '_call', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = '(all_syntax.nut:152)'
+|       FunctionDecl name = '(all_syntax.nut:187)', resultType = 'any'
 |       |-Parameters count = 1
-|       |   Parameter #1 name = 'name'
+|       |   Parameter #1 name = 'name', type = 'any'
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |             ExprStatement
@@ -647,32 +775,32 @@ local_str3"
 |                   |   Id 'this'
 |                   `-Key
 |                       Id 'name'
-|-VarDecl 'let' 'gfn_pure'
+|-VarDecl 'let', name = 'gfn_pure', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl 'lambda' name = 'gfn5'
+|       FunctionDecl 'lambda' name = 'gfn5', resultType = 'any'
 |       |-Parameters count = 0
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |             ReturnStatement
 |               LiteralExpr LK_STRING "lambda_str3"
-|-VarDecl 'let' 'fa1'
+|-VarDecl 'let', name = 'fa1', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = 'fa1'
+|       FunctionDecl name = 'fa1', resultType = 'any'
 |       |-Parameters count = 1
-|       |   Parameter #1 name = 'x'
+|       |   Parameter #1 name = 'x', type = 'any'
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |             ReturnStatement
 |               Id 'x'
-|-VarDecl 'let' 'fa2'
+|-VarDecl 'let', name = 'fa2', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = 'fa2'
+|       FunctionDecl name = 'fa2', resultType = 'any'
 |       |-Parameters count = 2
-|       | |-Parameter #1 name = 'x'
-|       | `-Parameter #2 name = 'y'
+|       | |-Parameter #1 name = 'x', type = 'any'
+|       | `-Parameter #2 name = 'y', type = 'any'
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |             ReturnStatement
@@ -681,14 +809,14 @@ local_str3"
 |               |   Id 'x'
 |               `-Right
 |                   Id 'y'
-|-VarDecl 'let' 'fa3'
+|-VarDecl 'let', name = 'fa3', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = 'fa3'
+|       FunctionDecl name = 'fa3', resultType = 'any'
 |       |-Parameters count = 3
-|       | |-Parameter #1 name = 'x'
-|       | |-Parameter #2 name = 'y'
-|       | `-Parameter #3 name = 'z'
+|       | |-Parameter #1 name = 'x', type = 'any'
+|       | |-Parameter #2 name = 'y', type = 'any'
+|       | `-Parameter #3 name = 'z', type = 'any'
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |             ReturnStatement
@@ -701,13 +829,13 @@ local_str3"
 |                   |   Id 'y'
 |                   `-Right
 |                       Id 'z'
-|-VarDecl 'let' 'fa4'
+|-VarDecl 'let', name = 'fa4', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = 'fa4'
+|       FunctionDecl name = 'fa4', resultType = 'any'
 |       |-Parameters count = 2
-|       | |-Parameter #1 name = 'x'
-|       | |-Parameter #2 name = 'vargv' (vararg)
+|       | |-Parameter #1 name = 'x', type = 'any'
+|       | |-Parameter #2 name = 'vargv', type = 'any'  (vararg)
 |       | `-Vararg...
 |       `-Body
 |           Block isRoot = 0, isBody = 1
@@ -721,12 +849,12 @@ local_str3"
 |                       GetFieldExpr '.' fieldName = 'len'
 |                         Receiver
 |                           Id 'vargv'
-|-VarDecl 'let' 'fa5'
+|-VarDecl 'let', name = 'fa5', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = 'fa5'
+|       FunctionDecl name = 'fa5', resultType = 'any'
 |       |-Parameters count = 1
-|       |   Parameter #1 name = 'x' (has default)
+|       |   Parameter #1 name = 'x', type = 'any'  (has default)
 |       |     DefaultValue
 |       |       ArrayExpr
 |       |       |-Element #1
@@ -741,26 +869,26 @@ local_str3"
 |               |   Id 'x'
 |               `-Key
 |                   LiteralExpr LK_INT 1
-|-VarDecl 'let' 'fa6'
+|-VarDecl 'let', name = 'fa6', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = 'fa6'
+|       FunctionDecl name = 'fa6', resultType = 'any'
 |       |-Parameters count = 2
-|       | |-Parameter #1 name = 'x'
-|       | `-Parameter #2 name = 'y' (has default)
+|       | |-Parameter #1 name = 'x', type = 'any'
+|       | `-Parameter #2 name = 'y', type = 'any'  (has default)
 |       |     DefaultValue
 |       |       LiteralExpr LK_NULL
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |             ReturnStatement
 |               Id 'y'
-|-VarDecl 'let' 'fa7'
+|-VarDecl 'let', name = 'fa7', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = 'fa7'
+|       FunctionDecl name = 'fa7', resultType = 'any'
 |       |-Parameters count = 2
-|       | |-Parameter #1 name = 'x'
-|       | `-Parameter #2 name = 'y' (has default)
+|       | |-Parameter #1 name = 'x', type = 'any'
+|       | `-Parameter #2 name = 'y', type = 'any'  (has default)
 |       |     DefaultValue
 |       |       DeclExpr
 |       |         TableDecl
@@ -773,13 +901,13 @@ local_str3"
 |           Block isRoot = 0, isBody = 1
 |             ReturnStatement
 |               Id 'y'
-|-VarDecl 'let' 'fa8'
+|-VarDecl 'let', name = 'fa8', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = 'fa8'
+|       FunctionDecl name = 'fa8', resultType = 'any'
 |       |-Parameters count = 2
-|       | |-Parameter #1 name = 'x'
-|       | `-Parameter #2 name = 'y' (has default)
+|       | |-Parameter #1 name = 'x', type = 'any'
+|       | `-Parameter #2 name = 'y', type = 'any'  (has default)
 |       |     DefaultValue
 |       |       DeclExpr
 |       |         TableDecl
@@ -792,12 +920,12 @@ local_str3"
 |           Block isRoot = 0, isBody = 1
 |             ReturnStatement
 |               Id 'y'
-|-VarDecl 'let' 'pure_fn'
+|-VarDecl 'let', name = 'pure_fn', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = 'pure_fn'
+|       FunctionDecl name = 'pure_fn', resultType = 'any'
 |       |-Parameters count = 1
-|       |   Parameter #1 name = 'x'
+|       |   Parameter #1 name = 'x', type = 'any'
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |             ReturnStatement
@@ -806,10 +934,10 @@ local_str3"
 |               |   Id 'x'
 |               `-Right
 |                   Id 'x'
-|-VarDecl 'let' 'coroutine_fn'
+|-VarDecl 'let', name = 'coroutine_fn', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = 'coroutine_fn'
+|       FunctionDecl name = 'coroutine_fn', resultType = 'any'
 |       |-Parameters count = 0
 |       `-Body
 |           Block isRoot = 0, isBody = 1
@@ -827,153 +955,153 @@ local_str3"
 |           CallExpr
 |             Callee
 |               Id 'coroutine_fn'
-|-VarDecl 'let' 'i0'
+|-VarDecl 'let', name = 'i0', type = 'any'
 |   Initializer
 |     BinExpr '+'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i1'
+|-VarDecl 'let', name = 'i1', type = 'any'
 |   Initializer
 |     BinExpr '-'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i2'
+|-VarDecl 'let', name = 'i2', type = 'any'
 |   Initializer
 |     BinExpr '*'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i3'
+|-VarDecl 'let', name = 'i3', type = 'any'
 |   Initializer
 |     BinExpr '/'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i4'
+|-VarDecl 'let', name = 'i4', type = 'any'
 |   Initializer
 |     BinExpr '%'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i5'
+|-VarDecl 'let', name = 'i5', type = 'any'
 |   Initializer
 |     BinExpr '^'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i6'
+|-VarDecl 'let', name = 'i6', type = 'any'
 |   Initializer
 |     BinExpr '&'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i7'
+|-VarDecl 'let', name = 'i7', type = 'any'
 |   Initializer
 |     BinExpr '|'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i8'
+|-VarDecl 'let', name = 'i8', type = 'any'
 |   Initializer
 |     BinExpr '||'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i9'
+|-VarDecl 'let', name = 'i9', type = 'any'
 |   Initializer
 |     BinExpr '&&'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i10'
+|-VarDecl 'let', name = 'i10', type = 'any'
 |   Initializer
 |     BinExpr '=='
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i11'
+|-VarDecl 'let', name = 'i11', type = 'any'
 |   Initializer
 |     BinExpr '!='
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i12'
+|-VarDecl 'let', name = 'i12', type = 'any'
 |   Initializer
 |     BinExpr '<'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i13'
+|-VarDecl 'let', name = 'i13', type = 'any'
 |   Initializer
 |     BinExpr '>'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i14'
+|-VarDecl 'let', name = 'i14', type = 'any'
 |   Initializer
 |     BinExpr '<='
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i15'
+|-VarDecl 'let', name = 'i15', type = 'any'
 |   Initializer
 |     BinExpr '>='
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i16'
+|-VarDecl 'let', name = 'i16', type = 'any'
 |   Initializer
 |     BinExpr '<=>'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i17'
+|-VarDecl 'let', name = 'i17', type = 'any'
 |   Initializer
 |     UnExpr '-'
 |       UnExpr '('
 |         LiteralExpr LK_INT 123
-|-VarDecl 'let' 'i18'
+|-VarDecl 'let', name = 'i18', type = 'any'
 |   Initializer
 |     UnExpr '~'
 |       UnExpr '('
 |         LiteralExpr LK_INT 123
-|-VarDecl 'let' 'i19'
+|-VarDecl 'let', name = 'i19', type = 'any'
 |   Initializer
 |     UnExpr '!'
 |       UnExpr '('
 |         LiteralExpr LK_INT 123
-|-VarDecl 'let' 'i20'
+|-VarDecl 'let', name = 'i20', type = 'any'
 |   Initializer
 |     UnExpr 'TYPEOF'
 |       LiteralExpr LK_INT 123
-|-VarDecl 'let' 'i21'
+|-VarDecl 'let', name = 'i21', type = 'any'
 |   Initializer
 |     UnExpr 'INLINE_CONST'
 |       LiteralExpr LK_INT 123
-|-VarDecl 'let' 'i22'
+|-VarDecl 'let', name = 'i22', type = 'any'
 |   Initializer
 |     UnExpr 'STATIC_MEMO'
 |       LiteralExpr LK_INT 123
-|-VarDecl 'let' 'i23'
+|-VarDecl 'let', name = 'i23', type = 'any'
 |   Initializer
 |     BinExpr 'IN'
 |     |-Left
@@ -986,7 +1114,7 @@ local_str3"
 |             |   LiteralExpr LK_STRING "x"
 |             `-Value
 |                 LiteralExpr LK_INT 5
-|-VarDecl 'let' 'i24'
+|-VarDecl 'let', name = 'i24', type = 'any'
 |   Initializer
 |     UnExpr '!'
 |       BinExpr 'IN'
@@ -1000,35 +1128,35 @@ local_str3"
 |               |   LiteralExpr LK_STRING "x"
 |               `-Value
 |                   LiteralExpr LK_INT 6
-|-VarDecl 'let' 'i25'
+|-VarDecl 'let', name = 'i25', type = 'any'
 |   Initializer
 |     BinExpr '>>'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i26'
+|-VarDecl 'let', name = 'i26', type = 'any'
 |   Initializer
 |     BinExpr '<<'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i27'
+|-VarDecl 'let', name = 'i27', type = 'any'
 |   Initializer
 |     BinExpr '>>>'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'let' 'i28'
+|-VarDecl 'let', name = 'i28', type = 'any'
 |   Initializer
 |     BinExpr '??'
 |     |-Left
 |     |   LiteralExpr LK_INT 1
 |     `-Right
 |         LiteralExpr LK_INT 2
-|-VarDecl 'local' 'iv'
+|-VarDecl 'local', name = 'iv', type = 'any'
 |   Initializer
 |     LiteralExpr LK_INT 123
 |-ExprStatement
@@ -1214,7 +1342,7 @@ local_str3"
 |         LiteralExpr LK_INT 3
 |-ForeachStatement
 | |-ValueVariable
-| |   VarDecl 'let' 'i'
+| |   VarDecl 'let', name = 'i', type = 'any'
 | |-Container
 | |   Id 'e1'
 | `-Body
@@ -1228,9 +1356,9 @@ local_str3"
 |               Id 'i'
 |-ForeachStatement
 | |-IndexVariable
-| |   VarDecl 'let' 'k'
+| |   VarDecl 'let', name = 'k', type = 'any'
 | |-ValueVariable
-| |   VarDecl 'let' 'v'
+| |   VarDecl 'let', name = 'v', type = 'any'
 | |-Container
 | |   Id 't7'
 | `-Body
@@ -1250,7 +1378,7 @@ local_str3"
 |       BreakStatement
 |-ForStatement
 | |-Initializer
-| |   VarDecl 'local' 'iter'
+| |   VarDecl 'local', name = 'iter', type = 'any'
 | |     Initializer
 | |       LiteralExpr LK_INT 0
 | |-Condition
@@ -1267,7 +1395,7 @@ local_str3"
 |       ContinueStatement
 |-ForStatement
 | |-Initializer
-| |   VarDecl 'local' 'iter'
+| |   VarDecl 'local', name = 'iter', type = 'any'
 | |     Initializer
 | |       LiteralExpr LK_INT 0
 | |-Condition
@@ -1320,19 +1448,19 @@ local_str3"
 |           Argument #1
 |             LiteralExpr LK_INT 718
 |-DirectiveStmt
-|-VarDecl 'local' 'w'
+|-VarDecl 'local', name = 'w', type = 'any'
 |   Initializer
 |     CallExpr
 |       Callee
 |         Id 'getlocals'
-|-VarDecl 'local' 'res'
+|-VarDecl 'local', name = 'res', type = 'any'
 |   Initializer
 |     ArrayExpr
 |-ForeachStatement
 | |-IndexVariable
-| |   VarDecl 'let' 'k'
+| |   VarDecl 'let', name = 'k', type = 'any'
 | |-ValueVariable
-| |   VarDecl 'let' 'v'
+| |   VarDecl 'let', name = 'v', type = 'any'
 | |-Container
 | |   Id 'w'
 | `-Body
@@ -1398,9 +1526,9 @@ local_str3"
 |           Id 'res'
 |-ForeachStatement
 | |-IndexVariable
-| |   VarDecl 'let' '_'
+| |   VarDecl 'let', name = '_', type = 'any'
 | |-ValueVariable
-| |   VarDecl 'let' 'v'
+| |   VarDecl 'let', name = 'v', type = 'any'
 | |-Container
 | |   Id 'res'
 | `-Body
@@ -1412,38 +1540,38 @@ local_str3"
 |         `-Arguments
 |             Argument #1
 |               Id 'v'
-|-VarDecl 'let' 'A'
+|-VarDecl 'let', name = 'A', type = 'any'
 |   Initializer
 |     DeclExpr
 |       ClassDecl
 |       |-Key: <anonymous>
 |       `-Members
 |           DeclExpr
-|             FunctionDecl name = 'x'
+|             FunctionDecl name = 'x', resultType = 'any'
 |             |-Parameters count = 0
 |             `-Body
 |                 Block isRoot = 0, isBody = 1
 |                   ReturnStatement
 |                     LiteralExpr LK_INT 0
-|-VarDecl 'let' 'instance_a'
+|-VarDecl 'let', name = 'instance_a', type = 'any'
 |   Initializer
 |     CallExpr
 |       Callee
 |         Id 'A'
-|-VarDecl 'let' '$ch0'
+|-VarDecl 'let', name = '$ch0', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = '(all_syntax.nut:311)'
+|       FunctionDecl name = '(all_syntax.nut:346)', resultType = 'any'
 |       |-Parameters count = 0
 |       `-Body
 |           Block isRoot = 0, isBody = 1
 |           |-EmptyStatement
 |           `-ReturnStatement
 |               LiteralExpr LK_INT 1234
-|-VarDecl 'let' 'test'
+|-VarDecl 'let', name = 'test', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = 'test'
+|       FunctionDecl name = 'test', resultType = 'any'
 |       |-Parameters count = 0
 |       `-Body
 |           Block isRoot = 0, isBody = 1

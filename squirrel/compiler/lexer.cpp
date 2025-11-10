@@ -272,6 +272,15 @@ SQInteger SQLexer::LexSingleToken()
             if (CUR_CHAR == _SC('"')) {
                 RETURN_TOKEN(TK_TEMPLATE_OP);
             }
+            else if (CUR_CHAR == _SC('$')) {  // $$
+                NEXT();
+                if (CUR_CHAR == _SC('{')) {  // $${
+                    NEXT();
+                    RETURN_TOKEN(TK_CODE_BLOCK_EXPR);
+                }
+                else
+                    RETURN_TOKEN('$');
+            }
             else {
                 RETURN_TOKEN('$');
             }

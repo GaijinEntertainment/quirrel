@@ -1,5 +1,6 @@
 #include <squirrel.h>
 #include <sqstddebug.h>
+#include <sqstdaux.h>
 #include <string.h>
 #include <assert.h>
 #include <squirrel/sqvm.h>
@@ -141,10 +142,17 @@ static SQInteger debug_doc(HSQUIRRELVM v)
     return 1;
 }
 
+static SQInteger format_call_stack_string(HSQUIRRELVM v)
+{
+  SQRESULT r = sqstd_formatcallstackstring(v);
+  return SQ_SUCCEEDED(r) ? 1 : SQ_ERROR;
+}
+
 static const SQRegFunction debuglib_funcs[] = {
     {_SC("seterrorhandler"),debug_seterrorhandler,2, NULL},
     {_SC("setdebughook"),debug_setdebughook,2, NULL},
     {_SC("getstackinfos"),debug_getstackinfos,2, _SC(".n")},
+    {_SC("format_call_stack_string"), format_call_stack_string, 1, NULL},
     {_SC("getlocals"),debug_getlocals,-1, _SC(".nb")},
     {_SC("get_stack_top"),debug_get_stack_top,0, NULL},
     {_SC("doc"),debug_doc,2, _SC(".t|c|x|y"), _SC("Returns a documentation string for a function, class, or table")},

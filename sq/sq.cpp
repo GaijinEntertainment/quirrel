@@ -23,7 +23,7 @@
 #include <sqmodules.h>
 #include <sqio.h>
 #include <sqstddebug.h>
-#include <squirrel/sqtypeparser.h>
+#include <compiler/sqtypeparser.h>
 
 #define scvprintf vfprintf
 
@@ -73,6 +73,7 @@ void PrintUsage()
         _SC("  -c                        compiles the file to bytecode (default output 'out.cnut')\n")
         _SC("  -o <out-file>             specifies output file for the -c option\n")
         _SC("  -ast-dump [out-file]      dump AST into console or file if specified\n")
+        _SC("  -nodes-location           print AST nodes locations\n")
         _SC("  -absolute-path            use absolute path when print diangostics\n")
         _SC("  -bytecode-dump [out-file] dump SQ bytecode into console or file if specified\n")
         _SC("  -diag-file file           write diagnostics into specified file\n")
@@ -149,6 +150,7 @@ static bool check_stack(HSQUIRRELVM v, int expected_top)
 struct DumpOptions {
   bool astDump;
   bool bytecodeDump;
+  bool nodesLocation;
 
   const char *astDumpFileName;
   const char *bytecodeDumpFileName;
@@ -166,7 +168,7 @@ static void dumpAst_callback(HSQUIRRELVM vm, SQCompilation::SqASTData *astData, 
             FileOutputStream fos(dumpOpt->astDumpFileName);
             if (fos.valid())
             {
-                sq_dumpast(vm, astData, &fos);
+                sq_dumpast(vm, astData, dumpOpt->nodesLocation, &fos);
             }
             else
             {
@@ -176,7 +178,7 @@ static void dumpAst_callback(HSQUIRRELVM vm, SQCompilation::SqASTData *astData, 
         else
         {
             FileOutputStream fos(stdout);
-            sq_dumpast(vm, astData, &fos);
+            sq_dumpast(vm, astData, dumpOpt->nodesLocation, &fos);
         }
     }
 }
@@ -378,6 +380,10 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 dumpOpt.astDump = true;
                 if ((index + 1) < argc && argv[index + 1][0] != '-' && !ends_with(argv[index + 1], ".nut"))
                     dumpOpt.astDumpFileName = argv[++index];
+            }
+            else if (strcmp("-nodes-location", arg) == 0)
+            {
+                dumpOpt.nodesLocation = true;
             }
             else if (strcmp("-absolute-path", arg) == 0)
             {
@@ -660,24 +666,11 @@ void Interactive(HSQUIRRELVM v)
 
 int main(int argc, char* argv[])
 {
-    HSQUIRRELVM v;
     SQInteger retval = 0;
 
-    v=sq_open(1024);
+    HSQUIRRELVM v = sq_open(1024);
     sq_setprintfunc(v,printfunc,errorfunc);
 
-    sq_pushroottable(v);
-
-    sqstd_register_bloblib(v);
-    sqstd_register_iolib(v);
-    sqstd_register_systemlib(v);
-    sqstd_register_datetimelib(v);
-    sqstd_register_mathlib(v);
-    sqstd_register_stringlib(v);
-    sqstd_register_debuglib(v);
-
-    //aux library
-    //sets error handlers
     sqstd_seterrorhandlers(v);
 
     module_mgr = new SqModules(v, &file_access);

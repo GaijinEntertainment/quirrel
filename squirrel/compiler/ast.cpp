@@ -73,6 +73,8 @@ void Node::visitChildren(Visitor *visitor) {
     case TO_STATIC_MEMO:
     case TO_INLINE_CONST:
         static_cast<UnExpr *>(this)->visitChildren(visitor); return;
+    case TO_CODE_BLOCK_EXPR:
+        static_cast<CodeBlockExpr *>(this)->visitChildren(visitor); return;
     case TO_LITERAL:
         static_cast<LiteralExpr *>(this)->visitChildren(visitor); return;
     case TO_BASE:
@@ -186,6 +188,8 @@ void Node::transformChildren(Transformer *transformer) {
   case TO_STATIC_MEMO:
   case TO_INLINE_CONST:
     static_cast<UnExpr *>(this)->transformChildren(transformer); return;
+  case TO_CODE_BLOCK_EXPR:
+    static_cast<CodeBlockExpr *>(this)->transformChildren(transformer); return;
   case TO_LITERAL:
     static_cast<LiteralExpr *>(this)->transformChildren(transformer); return;
   case TO_BASE:
@@ -240,6 +244,13 @@ void UnExpr::visitChildren(Visitor *visitor) { _arg->visit(visitor); }
 
 void UnExpr::transformChildren(Transformer *transformer) {
   _arg = _arg->transform(transformer)->asExpression();
+}
+
+void CodeBlockExpr::visitChildren(Visitor *visitor) { _block->visit(visitor); }
+
+void CodeBlockExpr::transformChildren(Transformer *transformer) {
+  _block = static_cast<Block *>(_block->transform(transformer));
+  assert(_block->op() == TO_BLOCK);
 }
 
 void BinExpr::visitChildren(Visitor *visitor) {

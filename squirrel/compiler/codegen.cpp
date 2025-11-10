@@ -114,8 +114,8 @@ bool CodeGenVisitor::generate(RootBlock *root, SQObjectPtr &out) {
         _childFs = NULL;
 
         _fs->_name = SQString::Create(_ss(_vm), _SC("__main__"));
-        _fs->AddParameter(_fs->CreateString(_SC("this")));
-        _fs->AddParameter(_fs->CreateString(_SC("vargv")));
+        _fs->AddParameter(_fs->CreateString(_SC("this")), _RT_NULL);
+        _fs->AddParameter(_fs->CreateString(_SC("vargv")), _RT_ARRAY);
         _fs->_varparams = true;
         _fs->_sourcename = SQString::Create(_ss(_vm), _sourceName);
 
@@ -635,12 +635,24 @@ void CodeGenVisitor::visitReturnStatement(ReturnStatement *retStmt) {
     }
 
     if (retStmt->argument()) {
-        _fs->_returnexp = retexp;
-        _fs->AddInstruction(_OP_RETURN, 1, _fs->PopTarget());
+        if (!_fs->_expr_block_results.empty()) {
+            _fs->AddInstruction(_OP_MOVE, _fs->_expr_block_results.back(), _fs->PopTarget());
+            _fs->AddInstruction(_OP_JMP, 0, -1234);
+            _fs->_unresolvedbreaks.push_back(_fs->GetCurrentPos());
+        } else {
+            _fs->_returnexp = retexp;
+            _fs->AddInstruction(_OP_RETURN, 1, _fs->PopTarget());
+        }
     }
     else {
-        _fs->_returnexp = -1;
-        _fs->AddInstruction(_OP_RETURN, 0xFF, 0);
+        if (!_fs->_expr_block_results.empty()) {
+            _fs->AddInstruction(_OP_LOADNULLS, _fs->_expr_block_results.back(), 1);
+            _fs->AddInstruction(_OP_JMP, 0, -1234);
+            _fs->_unresolvedbreaks.push_back(_fs->GetCurrentPos());
+        } else {
+            _fs->_returnexp = -1;
+            _fs->AddInstruction(_OP_RETURN, 0xFF, 0);
+        }
     }
 }
 
@@ -1156,6 +1168,35 @@ int CodeGenVisitor::getSubtreeConstScoreImpl(Node *node) {
     }
 }
 
+void CodeGenVisitor::visitCodeBlockExpr(CodeBlockExpr *expr) {
+    maybeAddInExprLine(expr);
+    SQInteger resultTarget = _fs->PushTarget();
+    BEGIN_SCOPE();
+
+    SQInteger nbreaks = _fs->_unresolvedbreaks.size();
+    SQInteger ncontinues = _fs->_unresolvedcontinues.size();
+    _fs->_breaktargets.push_back(0);
+    _fs->_continuetargets.push_back(0);
+    _fs->_blockstacksizes.push_back(_scope.stacksize);
+
+    _fs->_expr_block_results.push_back(resultTarget);
+
+    expr->block()->visit(this);
+
+    //_fs->AddInstruction(_OP_LOADNULLS, resultTarget, 1);
+
+    SQInteger endpos = _fs->GetCurrentPos();
+    nbreaks = _fs->_unresolvedbreaks.size() - nbreaks;
+    if (nbreaks > 0)
+        ResolveBreaks(_fs, nbreaks);
+    _fs->_expr_block_results.pop_back();
+    _fs->_breaktargets.pop_back();
+    _fs->_continuetargets.pop_back();
+    _fs->_blockstacksizes.pop_back();
+
+    END_SCOPE();
+}
+
 
 void CodeGenVisitor::visitExprStatement(ExprStatement *stmt) {
     addLineNumber(stmt);
@@ -1394,7 +1435,7 @@ void CodeGenVisitor::visitDestructuringDecl(DestructuringDecl *destruct) {
 }
 
 void CodeGenVisitor::visitParamDecl(ParamDecl *param) {
-    _childFs->AddParameter(_fs->CreateString(param->name()));
+    _childFs->AddParameter(_fs->CreateString(param->name()), param->getTypeMask());
     if (param->hasDefaultValue()) {
         visitForValueMaybeStaticMemo(param->defaultValue());
     }
@@ -1414,10 +1455,11 @@ void CodeGenVisitor::visitFunctionDecl(FunctionDecl *funcDecl) {
     _childFs->_sourcename = _fs->_sourcename = SQString::Create(_ss(_vm), funcDecl->sourceName());
     _childFs->_varparams = funcDecl->isVararg();
     _childFs->_purefunction = funcDecl->isPure();
+    _childFs->_result_type_mask = funcDecl->getResultTypeMask();
 
     SQInteger defparams = 0;
 
-    _childFs->AddParameter(_fs->CreateString("this"));
+    _childFs->AddParameter(_fs->CreateString("this"), _RT_INSTANCE | _RT_TABLE | _RT_CLASS | _RT_USERDATA | _RT_NULL);
 
     for (auto param : funcDecl->parameters()) {
         param->visit(this);

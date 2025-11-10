@@ -108,15 +108,50 @@ local { abc } = cn3
   println(x)
 }
 
-local [d1, d2] = e3
-
-
-let c0 = class {}
-let c1 = class { constructor() {} }
-class C2 {}
-class C3(c0) {
-  constructor(...) {}
+{
+  local { y: int = 609, x: string|null } = t2
+  println(x)
 }
+
+local [d1, d2] = e3
+local [d11: int, d12: (int | null)] = e3
+local [d21, d22: (int | null)] = e3
+local [d31: int, d32] = e3
+
+function type_test1(x: int): int {
+  return 1 + x
+}
+
+function type_test2(x: int, ...: float): int {
+  return 1 + x
+}
+
+function type_test3(x: number|null): null|number {
+  return 1.0 + (x ?? 5)
+}
+
+function type_test4(x: number|null = null): null|number {
+  return 1.0 + (x ?? 6)
+}
+
+function type_test5(x: (number |
+                        null)): (null
+                                 | number) {
+  return 1.0 + (x ?? 5)
+}
+
+function type_test6(x: (number|null) = null): (int|float) {
+  return 1.0 + (x ?? 6)
+}
+
+function type_test7(x: bool|number|int|float|string|table|array|userdata|function|generator|userpointer|thread|instance|class|weakref|null, y: any): any {
+  return x + y
+}
+
+let x901: int = 5
+local t902: table = {}
+local t903: table|array = {}
+
 
 class C4 {
   static x = true

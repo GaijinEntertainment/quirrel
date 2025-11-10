@@ -122,6 +122,7 @@ private:
 public:
 
     void visitBlock(Block *block) override;
+    void visitCodeBlockExpr(CodeBlockExpr *expr) override;
     void visitIfStatement(IfStatement *ifStmt) override;
     void visitWhileStatement(WhileStatement *whileLoop) override;
     void visitDoWhileStatement(DoWhileStatement *doWhileLoop) override;

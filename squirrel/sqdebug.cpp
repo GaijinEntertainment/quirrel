@@ -74,13 +74,15 @@ void SQVM::Raise_Error(const SQObjectPtr &desc)
 SQString *SQVM::PrintObjVal(const SQObject &o)
 {
     switch(sq_type(o)) {
-    case OT_STRING: return _string(o);
+    case OT_STRING:
+        scsprintf(_sp(NUMBER_MAX_CHAR+1),NUMBER_MAX_CHAR, _SC("'%s' (type='%s')"), _stringval(o), GetTypeName(o));
+        return SQString::Create(_ss(this), _spval);
     case OT_INTEGER:
-        scsprintf(_sp(NUMBER_MAX_CHAR+1),NUMBER_MAX_CHAR, _PRINT_INT_FMT, _integer(o));
+        scsprintf(_sp(NUMBER_MAX_CHAR+1),NUMBER_MAX_CHAR, _SC("'") _PRINT_INT_FMT _SC("' (type='%s')"), _integer(o), GetTypeName(o));
         return SQString::Create(_ss(this), _spval);
         break;
     case OT_FLOAT:
-        scsprintf(_sp(NUMBER_MAX_CHAR+1), NUMBER_MAX_CHAR, _SC("%.14g"), _float(o));
+        scsprintf(_sp(NUMBER_MAX_CHAR+1), NUMBER_MAX_CHAR, _SC("'%.14g' (type='%s')"),  _float(o), GetTypeName(o));
         return SQString::Create(_ss(this), _spval);
         break;
     default:
@@ -91,13 +93,13 @@ SQString *SQVM::PrintObjVal(const SQObject &o)
 void SQVM::Raise_IdxError(const SQObjectPtr &o)
 {
     SQObjectPtr oval(PrintObjVal(o));
-    Raise_Error(_SC("the index '%.50s' does not exist"), _stringval(oval));
+    Raise_Error(_SC("the index %.50s does not exist"), _stringval(oval));
 }
 
 void SQVM::Raise_CompareError(const SQObject &o1, const SQObject &o2)
 {
     SQObjectPtr oval1(PrintObjVal(o1)), oval2(PrintObjVal(o2));
-    Raise_Error(_SC("comparison between '%.50s' and '%.50s'"), _stringval(oval1), _stringval(oval2));
+    Raise_Error(_SC("comparison between %.50s and %.50s"), _stringval(oval1), _stringval(oval2));
 }
 
 

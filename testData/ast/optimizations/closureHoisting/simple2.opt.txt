@@ -1,30 +1,30 @@
 Block isRoot = 1, isBody = 0
-|-VarDecl 'local' 'z'
+|-VarDecl 'local', name = 'z', type = 'any'
 |   Initializer
 |     LiteralExpr LK_INT 0
-`-VarDecl 'let' 'foo'
+`-VarDecl 'let', name = 'foo', type = 'any'
     Initializer
       DeclExpr
-        FunctionDecl name = 'foo'
+        FunctionDecl name = 'foo', resultType = 'any'
         |-Parameters count = 2
-        | |-Parameter #1 name = 'x'
-        | `-Parameter #2 name = 'y'
+        | |-Parameter #1 name = 'x', type = 'any'
+        | `-Parameter #2 name = 'y', type = 'any'
         `-Body
             Block isRoot = 0, isBody = 1
-              VarDecl 'let' 'f1'
+              VarDecl 'let', name = 'f1', type = 'any'
                 Initializer
                   DeclExpr
-                    FunctionDecl name = 'f1'
+                    FunctionDecl name = 'f1', resultType = 'any'
                     |-Parameters count = 1
-                    |   Parameter #1 name = 'a'
+                    |   Parameter #1 name = 'a', type = 'any'
                     `-Body
                         Block isRoot = 0, isBody = 1
-                        |-VarDecl 'let' '$ch0'
+                        |-VarDecl 'let', name = '$ch0', type = 'any'
                         |   Initializer
                         |     DeclExpr
-                        |       FunctionDecl name = 'f3'
+                        |       FunctionDecl name = 'f3', resultType = 'any'
                         |       |-Parameters count = 1
-                        |       |   Parameter #1 name = 'c'
+                        |       |   Parameter #1 name = 'c', type = 'any'
                         |       `-Body
                         |           Block isRoot = 0, isBody = 1
                         |             ReturnStatement
@@ -33,15 +33,15 @@ Block isRoot = 1, isBody = 0
                         |               |   Id 'a'
                         |               `-Right
                         |                   Id 'c'
-                        `-VarDecl 'let' 'f2'
+                        `-VarDecl 'let', name = 'f2', type = 'any'
                             Initializer
                               DeclExpr
-                                FunctionDecl name = 'f2'
+                                FunctionDecl name = 'f2', resultType = 'any'
                                 |-Parameters count = 1
-                                |   Parameter #1 name = 'x'
+                                |   Parameter #1 name = 'x', type = 'any'
                                 `-Body
                                     Block isRoot = 0, isBody = 1
-                                    |-VarDecl 'let' 'f3'
+                                    |-VarDecl 'let', name = 'f3', type = 'any'
                                     |   Initializer
                                     |     Id '$ch0'
                                     `-ReturnStatement

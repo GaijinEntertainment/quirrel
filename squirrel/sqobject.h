@@ -224,6 +224,9 @@ struct SQObjectPtr : public SQObject
     _REF_TYPE_DECL(OT_FUNCPROTO,SQFunctionProto,pFunctionProto)
 
     _SCALAR_TYPE_DECL(OT_INTEGER,SQInteger,nInteger)
+#ifdef _SQ64
+    _SCALAR_TYPE_DECL(OT_INTEGER,SQInt32,nInteger)
+#endif
     _SCALAR_TYPE_DECL(OT_FLOAT,SQFloat,fFloat)
     _SCALAR_TYPE_DECL(OT_USERPOINTER,SQUserPointer,pUserPointer)
 

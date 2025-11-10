@@ -452,7 +452,7 @@ SQFunctionProto::SQFunctionProto(SQSharedState *ss)
     _stacksize=0;
     _bgenerator=false;
     _purefunction=false;
-    _hoistingLevel=0;
+    _inside_hoisted_scope=false;
     INIT_CHAIN();ADD_TO_CHAIN(&_ss(this)->_gc_chain,this);
 }
 

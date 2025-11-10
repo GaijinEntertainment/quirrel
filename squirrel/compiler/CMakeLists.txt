@@ -9,6 +9,7 @@ set(COMPILER_SRC
     sqfuncstate.cpp
     optimizer.cpp
     lexer.cpp
+    sqtypeparser.cpp
     optimizations/closureHoisting.cpp
     static_analyzer/analyzer.cpp)
 

@@ -77,8 +77,8 @@ namespace SQCompilation
 #include <stdio.h>
 
 #define SQUIRREL_VERSION_NUMBER_MAJOR 4
-#define SQUIRREL_VERSION_NUMBER_MINOR 9
-#define SQUIRREL_VERSION_NUMBER_PATCH 3
+#define SQUIRREL_VERSION_NUMBER_MINOR 10
+#define SQUIRREL_VERSION_NUMBER_PATCH 0
 
 #define SQ_STRINGIFY_HELPER(x) #x
 #define SQ_STRINGIFY(x) SQ_STRINGIFY_HELPER(x)
@@ -314,7 +314,7 @@ SQUIRREL_API SQRESULT sq_getimports(HSQUIRRELVM v, SQCompilation::SqASTData *ast
 SQUIRREL_API void sq_freeimports(HSQUIRRELVM v, SQInteger num, SQModuleImport *imports);
 
 
-SQUIRREL_API void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, OutputStream *s);
+SQUIRREL_API void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, bool nodesLocation, OutputStream *s);
 SQUIRREL_API void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, OutputStream *s, int instruction_index = -1);
 
 SQUIRREL_API void sq_reset_static_memos(HSQUIRRELVM v, HSQOBJECT func);

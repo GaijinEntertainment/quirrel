@@ -9,7 +9,6 @@ set(SQUIRREL_SRC sqapi.cpp
                  sqvm.cpp
                  sqdedupshrinker.cpp
                  sqstringlib.cpp
-                 sqtypeparser.cpp
                  sqext.cpp
                  sqdirect.cpp)
 

@@ -10,13 +10,12 @@
 #include "sqclosure.h"
 #include "squserdata.h"
 #include "sqclass.h"
-#include "sqtypeparser.h"
+#include "compiler/sqtypeparser.h"
 #include "compiler/compiler.h"
 #include "compiler/sqfuncstate.h"
 #include "compiler/arena.h"
 #include "compiler/ast.h"
-#include "compiler/ast_render.h"
-#include "compiler/ast_indent_render.h"
+#include "ast_tools/ast_indent_render.h"
 #include "compiler/static_analyzer/analyzer.h"
 
 SQUIRREL_API SQBool sq_tracevar(HSQUIRRELVM v, const HSQOBJECT *container, const HSQOBJECT * key, SQChar * buf, int buf_size)
@@ -1748,13 +1747,11 @@ SQCompilation::SqASTData *sq_parsetoast(HSQUIRRELVM v, const SQChar *s, SQIntege
     return ParseToAST(v, s, size, sourcename, preserveComments, raiseerror);
 }
 
-void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, OutputStream *s)
+void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, bool nodesLocation, OutputStream *s)
 {
     IndentedTreeRenderer rv(s);
+    rv.printNodesLocation = nodesLocation;
     rv.render(astData->root);
-
-//    RenderVisitor rv(s);
-//    rv.render(astData->root);
 }
 
 void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, OutputStream *s, int instruction_index)

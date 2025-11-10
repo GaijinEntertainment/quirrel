@@ -1,5 +1,5 @@
 
-AN ERROR HAS OCCURRED [the index '0' does not exist]
+AN ERROR HAS OCCURRED [the index '0' (type='integer') does not exist]
 
 CALLSTACK
 *FUNCTION [__main__()] testData/static_analyzer/w233_inc.nut:17
