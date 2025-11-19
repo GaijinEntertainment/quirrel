@@ -240,10 +240,13 @@ SQRESULT sqstd_formatcallstackstring(HSQUIRRELVM v)
     collect_stack_string(v, [alloc_ctx, &mem, &dst, &memlen](HSQUIRRELVM, const SQChar *fmt, ...) {
         const int appendBlock = 128;
         va_list args;
+        va_list argsCopy;
 
         va_start(args, fmt);
-        int nappend = vsnprintf(0, 0, fmt, args);
-        va_end(args);
+        va_copy(argsCopy, args);
+
+        int nappend = vsnprintf(0, 0, fmt, argsCopy) + 1;
+        va_end(argsCopy);
 
         int poffset = int(dst - mem);
         int memleft = memlen - poffset;
@@ -258,7 +261,6 @@ SQRESULT sqstd_formatcallstackstring(HSQUIRRELVM v)
             dst = mem + poffset;
         }
 
-        va_start(args, fmt);
         dst += vsnprintf(dst, memlen - poffset, fmt, args);
         va_end(args);
     });
