@@ -10,18 +10,18 @@
 
 
 
-SQClass::SQClass(SQVM *v, SQClass *base) :
-    _defaultvalues(_ss(v)->_alloc_ctx),
-    _methods(_ss(v)->_alloc_ctx)
+SQClass::SQClass(SQSharedState *ss, SQClass *base) :
+    _defaultvalues(ss->_alloc_ctx),
+    _methods(ss->_alloc_ctx)
 {
-    SQSharedState *ss = _ss(v);
-
     _base = base;
     _typetag = 0;
     _hook = NULL;
     _udsize = 0;
     _constructoridx = -1;
     _lockedTypeId = 0;
+    _is_builtin_type = false;
+    _builtin_type_id = OT_NULL;
     if(_base) {
         _constructoridx = _base->_constructoridx;
         _udsize = _base->_udsize;
@@ -56,13 +56,20 @@ SQClass::~SQClass()
 
 SQClass* SQClass::Create(SQVM *v,SQClass *base)
 {
-    if (base && !base->isLocked()) {
-        if (!base->Lock(v))
+    if (base) {
+        if (base->_is_builtin_type) {
+            v->Raise_Error("Cannot inherit from built-in type '%s'", IdType2Name(base->_builtin_type_id));
             return nullptr;
+        }
+
+        if (!base->isLocked()) {
+            if (!base->Lock(v))
+                return nullptr;
+        }
     }
 
     SQClass *newclass = (SQClass *)SQ_MALLOC(_ss(v)->_alloc_ctx, sizeof(SQClass));
-    new (newclass) SQClass(v, base);
+    new (newclass) SQClass(_ss(v), base);
     return newclass;
 }
 

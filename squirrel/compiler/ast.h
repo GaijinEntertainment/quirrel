@@ -704,10 +704,10 @@ class Block;
 class FunctionDecl : public Decl {
 protected:
     FunctionDecl(enum TreeOp op, Arena *arena, const SQChar *name) : Decl(op), _arena(arena), _parameters(arena), _name(name),
-        _vararg(false), _body(NULL), _lambda(false), _pure(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
+        _vararg(false), _body(NULL), _lambda(false), _pure(false), _nodiscard(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
 public:
     FunctionDecl(Arena *arena, const SQChar *name) : Decl(TO_FUNCTION), _arena(arena), _parameters(arena), _name(name),
-        _vararg(false), _body(NULL), _lambda(false), _pure(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
+        _vararg(false), _body(NULL), _lambda(false), _pure(false), _nodiscard(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
 
     void addParameter(const SQChar *name, Expr *defaultVal = NULL) { _parameters.push_back(new (_arena) ParamDecl(name, defaultVal)); }
 
@@ -734,6 +734,9 @@ public:
     void setPure(bool v) { _pure = v; }
     bool isPure() const { return _pure; }
 
+    void setNodiscard(bool v) { _nodiscard = v; }
+    bool isNodiscard() const { return _nodiscard; }
+
     int hoistingLevel() const { return _hoistingLevel; }
     void hoistBy(int level) { _hoistingLevel += level; }
 
@@ -751,6 +754,7 @@ private:
     bool _vararg;
     bool _lambda;
     bool _pure;
+    bool _nodiscard;
 
     const SQChar *_sourcename;
     int _hoistingLevel;

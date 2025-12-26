@@ -27,13 +27,27 @@ typedef sqvector<SQClassMember> SQClassMemberVec;
 
 struct SQClass : public CHAINABLE_OBJ
 {
-    SQClass(SQVM *v,SQClass *base);
+    SQClass(SQSharedState *ss, SQClass *base);
 public:
     static SQClass* Create(SQVM *v,SQClass *base);
     ~SQClass();
     bool NewSlot(SQSharedState *ss, const SQObjectPtr &key,const SQObjectPtr &val,bool bstatic);
     bool Get(const SQObjectPtr &key,SQObjectPtr &val) const {
         if(_members->Get(key,val)) {
+            if(_isfield(val)) {
+                SQObjectPtr &o = _defaultvalues[_member_idx(val)].val;
+                val = _realval(o);
+            }
+            else {
+                val = _methods[_member_idx(val)].val;
+            }
+            return true;
+        }
+        return false;
+    }
+    // for compiler use
+    bool GetStr(const char *key, int keylen, SQObjectPtr &val) const {
+        if(_members->GetStr(key, keylen, val)) {
             if(_isfield(val)) {
                 SQObjectPtr &o = _defaultvalues[_member_idx(val)].val;
                 val = _realval(o);
@@ -90,6 +104,8 @@ public:
     SQInteger _constructoridx;
     SQInteger _udsize;
     uint64_t _lockedTypeId;
+    bool _is_builtin_type;
+    SQObjectType _builtin_type_id;  // only valid if _is_builtin_type is true
 };
 
 #define calcinstancesize(_theclass_) \

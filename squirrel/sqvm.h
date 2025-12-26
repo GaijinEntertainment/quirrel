@@ -81,6 +81,7 @@ public:
     bool Get(const SQObjectPtr &self, const SQObjectPtr &key, SQObjectPtr &dest, SQUnsignedInteger getflags);
     SQInteger FallBackGet(const SQObjectPtr &self,const SQObjectPtr &key,SQObjectPtr &dest);
     bool InvokeDefaultDelegate(const SQObjectPtr &self,const SQObjectPtr &key,SQObjectPtr &dest);
+    SQClass* GetBuiltInClassForType(SQObjectType type);
     bool Set(const SQObjectPtr &self, const SQObjectPtr &key, const SQObjectPtr &val);
     SQInteger FallBackSet(const SQObjectPtr &self,const SQObjectPtr &key,const SQObjectPtr &val);
     bool NewSlot(const SQObjectPtr &self, const SQObjectPtr &key, const SQObjectPtr &val,bool bstatic);
@@ -190,6 +191,7 @@ public:
     SQGETTHREAD _get_current_thread_id_func;
     SQCOMPILELINEHOOK _compile_line_hook;
     SQSQCALLHOOK _sq_call_hook;
+    SQWATCHDOGHOOK _watchdog_hook;
 
     SQObjectPtr temp_reg;
 

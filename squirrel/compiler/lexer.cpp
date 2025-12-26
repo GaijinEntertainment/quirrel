@@ -2,13 +2,13 @@
     see copyright notice in squirrel.h
 */
 #include "sqpcheader.h"
-#include <ctype.h>
 #include <stdlib.h>
 #include <float.h>
 #include "sqtable.h"
 #include "sqstring.h"
 #include "lexer.h"
 #include "lex_tokens.h"
+#include <sq_char_class.h>
 
 #define CUR_CHAR (_currdata)
 #define RETURN_TOKEN(t) { _prevtoken = _curtoken; _prevflags = _flags; _flags = 0; _curtoken = t; return t;}
@@ -379,11 +379,11 @@ SQInteger SQLexer::LexSingleToken()
         case SQUIRREL_EOB:
             return 0;
         default:{
-                if (isdigit(CUR_CHAR)) {
+                if (sq_isdigit(CUR_CHAR)) {
                     SQInteger ret = ReadNumber();
                     RETURN_TOKEN(ret);
                 }
-                else if (isalpha(CUR_CHAR) || CUR_CHAR == _SC('_')) {
+                else if (sq_isalpha(CUR_CHAR) || CUR_CHAR == _SC('_')) {
                     SQInteger t = ReadID();
                     RETURN_TOKEN(t);
                 }
@@ -439,10 +439,10 @@ SQInteger SQLexer::AddUTF8(SQUnsignedInteger ch)
 SQInteger SQLexer::ProcessStringHexEscape(SQChar *dest, SQInteger maxdigits)
 {
     NEXT();
-    if (!isxdigit(CUR_CHAR))
+    if (!sq_isxdigit(CUR_CHAR))
         _ctx.reportDiagnostic(DiagnosticsId::DI_HEX_NUMBERS_EXPECTED, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
     SQInteger n = 0;
-    while (isxdigit(CUR_CHAR) && n < maxdigits) {
+    while (sq_isxdigit(CUR_CHAR) && n < maxdigits) {
         dest[n] = CUR_CHAR;
         n++;
         NEXT();
@@ -571,8 +571,8 @@ static void LexHexadecimal(const SQChar *s,SQUnsignedInteger *res)
     *res = 0;
     while(*s != 0)
     {
-        if(isdigit(*s)) *res = (*res)*16+((*s++)-'0');
-        else if(isxdigit(*s)) *res = (*res)*16+(toupper(*s++)-'A'+10);
+        if(sq_isdigit(*s)) *res = (*res)*16+((*s++)-'0');
+        else if(sq_isxdigit(*s)) *res = (*res)*16+(toupper(*s++)-'A'+10);
         else { assert(0); }
     }
 }
@@ -612,12 +612,12 @@ SQInteger SQLexer::ReadNumber()
     volatile SQFloat value;
     INIT_TEMP_STRING();
     NUM_NEXT();
-    if(firstchar == _SC('0') && isdigit(CUR_CHAR))
+    if(firstchar == _SC('0') && sq_isdigit(CUR_CHAR))
         _ctx.reportDiagnostic(DiagnosticsId::DI_OCTAL_NOT_SUPPORTED, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
     if(firstchar == _SC('0') && (toupper(CUR_CHAR) == _SC('X')) ) {
         NUM_NEXT();
         type = THEX;
-        while(isxdigit(CUR_CHAR)) {
+        while(sq_isxdigit(CUR_CHAR)) {
             APPEND_CHAR(CUR_CHAR);
             NUM_NEXT();
         }
@@ -630,7 +630,7 @@ SQInteger SQLexer::ReadNumber()
         APPEND_CHAR((SQChar)firstchar);
         bool hasExp = false;
         bool hasDot = false;
-        while (CUR_CHAR == _SC('.') || isalnum(CUR_CHAR)) {
+        while (CUR_CHAR == _SC('.') || sq_isalnum(CUR_CHAR)) {
             if(CUR_CHAR == _SC('.')) {
                 if(hasDot || hasExp)
                     _ctx.reportDiagnostic(DiagnosticsId::DI_MALFORMED_NUMBER, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
@@ -648,10 +648,10 @@ SQInteger SQLexer::ReadNumber()
                     APPEND_CHAR(CUR_CHAR);
                     NEXT();
                 }
-                if(!isdigit(CUR_CHAR))
+                if(!sq_isdigit(CUR_CHAR))
                     _ctx.reportDiagnostic(DiagnosticsId::DI_FP_EXP_EXPECTED, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
             }
-            if(!isdigit(CUR_CHAR) && !isexponent(CUR_CHAR) && CUR_CHAR != '.')
+            if(!sq_isdigit(CUR_CHAR) && !isexponent(CUR_CHAR) && CUR_CHAR != '.')
                 _ctx.reportDiagnostic(DiagnosticsId::DI_MALFORMED_NUMBER, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
 
             APPEND_CHAR(CUR_CHAR);
@@ -721,7 +721,7 @@ SQInteger SQLexer::ReadID()
     do {
         APPEND_CHAR(CUR_CHAR);
         NEXT();
-    } while(isalnum(CUR_CHAR) || CUR_CHAR == _SC('_'));
+    } while(sq_isalnum(CUR_CHAR) || CUR_CHAR == _SC('_'));
     TERMINATE_BUFFER();
     res = GetIDType(&_longstr[0],_longstr.size() - 1);
     if(res == TK_IDENTIFIER || res == TK_CONSTRUCTOR) {
@@ -736,7 +736,7 @@ SQInteger SQLexer::ReadDirective()
     do {
         APPEND_CHAR(CUR_CHAR);
         NEXT();
-    } while(isalnum(CUR_CHAR) || CUR_CHAR == _SC('_') || CUR_CHAR == _SC('-') || CUR_CHAR == _SC(':'));
+    } while(sq_isalnum(CUR_CHAR) || CUR_CHAR == _SC('_') || CUR_CHAR == _SC('-') || CUR_CHAR == _SC(':'));
     TERMINATE_BUFFER();
     if (!_longstr[0])
         return -1;

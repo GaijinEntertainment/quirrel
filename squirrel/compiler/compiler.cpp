@@ -4,7 +4,6 @@
 #include "sqpcheader.h"
 #ifndef NO_COMPILER
 #include <stdarg.h>
-#include <ctype.h>
 #include <algorithm>
 #include "opcodes.h"
 #include "sqstring.h"

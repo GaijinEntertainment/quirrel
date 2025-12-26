@@ -1,0 +1,11 @@
+
+AN ERROR HAS OCCURRED [type 'string' differs from the declared type 'table']
+
+CALLSTACK
+*FUNCTION [__main__()] testData/exec/runtime_type_check/assign_wrong_type_09.nut:2
+
+LOCALS
+[arr] ARRAY=[4]
+[vargv] ARRAY=[]
+[this] NULL
+Error [Failed to run script testData\exec\runtime_type_check\assign_wrong_type_09.nut (testData/exec/runtime_type_check/assign_wrong_type_09.nut)]

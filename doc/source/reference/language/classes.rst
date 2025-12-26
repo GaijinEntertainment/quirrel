@@ -13,6 +13,11 @@ however because of its dynamic nature it differs in several aspects.
 Classes are first class objects like integer or strings and can be stored in
 table slots local variables, arrays and passed as function parameters.
 
+All Quirrel values are instances of classes. Fundamental types (integers, floats, strings, arrays, tables, etc.)
+have built-in type classes (``Integer``, ``Float``, ``String``, ``Array``, ``Table``, etc.) available through
+the ``types`` module. These can be used with ``instanceof`` just like user-defined classes.
+See :ref:`Built-in Type Classes <builtin_type_classes>` for details.
+
 -----------------
 Class Declaration
 -----------------

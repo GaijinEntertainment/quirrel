@@ -1,0 +1,15 @@
+
+AN ERROR HAS OCCURRED [type 'table' differs from the declared type 'array']
+
+CALLSTACK
+*FUNCTION [fn()] testData/exec/runtime_type_check/assign_wrong_type_05.nut:5
+*FUNCTION [__main__()] testData/exec/runtime_type_check/assign_wrong_type_05.nut:10
+
+LOCALS
+[y] TABLE={}
+[this] NULL
+[fn] CLOSURE=FN:fn
+[y] TABLE={}
+[vargv] ARRAY=[]
+[this] NULL
+Error [Failed to run script testData\exec\runtime_type_check\assign_wrong_type_05.nut (testData/exec/runtime_type_check/assign_wrong_type_05.nut)]

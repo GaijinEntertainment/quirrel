@@ -163,7 +163,7 @@ Note: 'key' should not be separated from '?.' or '.' by space[s] or new line.
     exp := value '?.$' key
 
 
-If 'key' exists in value's type built-in methods (default delegates) returns method's closure, else returns null in case of '?.$' or throws an error if '.$'
+If 'key' exists in value's type methods returns method's closure, else returns null in case of '?.$' or throws an error if '.$'
 
 Note: 'key' should not be separated from '.$' and '?.$' by space[s] or new line.
 

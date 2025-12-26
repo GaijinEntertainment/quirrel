@@ -29,6 +29,8 @@ SQSharedState::SQSharedState(SQAllocContext allocctx) :
     compilationOptions = 0;
     doc_object_index = 1;
     rand_seed = 0;
+    watchdog_last_alive_time_msec = 0;
+    watchdog_threshold_msec = 0;
 }
 
 
@@ -73,30 +75,44 @@ bool CompileTypemask(SQIntVec &res,const SQChar *typemask)
     return true;
 }
 
-SQTable *CreateDefaultDelegate(SQSharedState *ss,const SQRegFunction *funcz)
+static SQClass *CreateBuiltInTypeClass(SQSharedState *ss, const SQChar *name, const SQRegFunction *funcz, SQObjectType type_id)
 {
-    SQInteger i=0;
-    SQTable *t=SQTable::Create(ss,0);
-    while(funcz[i].name!=0){
-        SQNativeClosure *nc = SQNativeClosure::Create(ss,funcz[i].f,0);
-        nc->_nparamscheck = funcz[i].nparamscheck;
-        nc->_name = SQString::Create(ss,funcz[i].name);
-        if(funcz[i].typemask && !CompileTypemask(nc->_typecheck,funcz[i].typemask))
-            return NULL;
-        if (funcz[i].pure)
-            nc->_purefunction = true;
-        if (funcz[i].docstring) {
-            SQObjectPtr docValue(SQString::Create(ss, funcz[i].docstring));
-            SQObjectPtr docKey;
-            docKey._type = OT_USERPOINTER;
-            docKey._unVal.pUserPointer = (void *)nc->_function;
-            _table(ss->doc_objects)->NewSlot(docKey, docValue);
-        }
+    SQClass *cls = (SQClass *)SQ_MALLOC(ss->_alloc_ctx, sizeof(SQClass));
+    new (cls) SQClass(ss, NULL);
 
-        t->NewSlot(nc->_name, SQObjectPtr(nc));
-        i++;
+    cls->_is_builtin_type = true;
+    cls->_builtin_type_id = type_id;
+
+    if (funcz) {
+        SQInteger i = 0;
+        while (funcz[i].name != 0) {
+            SQNativeClosure *nc = SQNativeClosure::Create(ss, funcz[i].f, 0);
+            nc->_nparamscheck = funcz[i].nparamscheck;
+            nc->_name = SQString::Create(ss, funcz[i].name);
+            if (funcz[i].typemask && !CompileTypemask(nc->_typecheck, funcz[i].typemask))
+                return NULL;
+            if (funcz[i].pure)
+                nc->_purefunction = true;
+            if (funcz[i].nodiscard)
+                nc->_nodiscard = true;
+            if (funcz[i].docstring) {
+                SQObjectPtr docValue(SQString::Create(ss, funcz[i].docstring));
+                SQObjectPtr docKey;
+                docKey._type = OT_USERPOINTER;
+                docKey._unVal.pUserPointer = (void *)nc->_function;
+                _table(ss->doc_objects)->NewSlot(docKey, docValue);
+            }
+
+            cls->NewSlot(ss, SQObjectPtr(nc->_name), SQObjectPtr(nc), /*static*/ true);
+            i++;
+        }
     }
-    return t;
+
+    // Lock manually
+    assert(cls->_lockedTypeId == 0);
+    cls->_lockedTypeId = cls->currentHint();
+
+    return cls;
 }
 
 void SQSharedState::Init()
@@ -151,17 +167,21 @@ void SQSharedState::Init()
     _registry = SQTable::Create(this,0);
     _consts = SQTable::Create(this,0);
     doc_objects = SQTable::Create(this,0);
-    _table_default_delegate = CreateDefaultDelegate(this,_table_default_delegate_funcz);
-    _array_default_delegate = CreateDefaultDelegate(this,_array_default_delegate_funcz);
-    _string_default_delegate = CreateDefaultDelegate(this,_string_default_delegate_funcz);
-    _number_default_delegate = CreateDefaultDelegate(this,_number_default_delegate_funcz);
-    _closure_default_delegate = CreateDefaultDelegate(this,_closure_default_delegate_funcz);
-    _generator_default_delegate = CreateDefaultDelegate(this,_generator_default_delegate_funcz);
-    _thread_default_delegate = CreateDefaultDelegate(this,_thread_default_delegate_funcz);
-    _class_default_delegate = CreateDefaultDelegate(this,_class_default_delegate_funcz);
-    _instance_default_delegate = CreateDefaultDelegate(this,_instance_default_delegate_funcz);
-    _weakref_default_delegate = CreateDefaultDelegate(this,_weakref_default_delegate_funcz);
-    _userdata_default_delegate = CreateDefaultDelegate(this,_userdata_default_delegate_funcz);
+
+    _null_class     = CreateBuiltInTypeClass(this, "Null", _null_default_delegate_funcz, OT_NULL);
+    _integer_class  = CreateBuiltInTypeClass(this, "Integer", _integer_default_delegate_funcz, OT_INTEGER);
+    _float_class    = CreateBuiltInTypeClass(this, "Float", _float_default_delegate_funcz, OT_FLOAT);
+    _bool_class     = CreateBuiltInTypeClass(this, "Bool", _bool_default_delegate_funcz, OT_BOOL);
+    _string_class   = CreateBuiltInTypeClass(this, "String", _string_default_delegate_funcz, OT_STRING);
+    _array_class    = CreateBuiltInTypeClass(this, "Array", _array_default_delegate_funcz, OT_ARRAY);
+    _table_class    = CreateBuiltInTypeClass(this, "Table", _table_default_delegate_funcz, OT_TABLE);
+    _function_class = CreateBuiltInTypeClass(this, "Function", _closure_default_delegate_funcz, OT_CLOSURE);
+    _generator_class= CreateBuiltInTypeClass(this, "Generator", _generator_default_delegate_funcz, OT_GENERATOR);
+    _thread_class   = CreateBuiltInTypeClass(this, "Thread", _thread_default_delegate_funcz, OT_THREAD);
+    _class_class    = CreateBuiltInTypeClass(this, "Class", _class_default_delegate_funcz, OT_CLASS);
+    _instance_class = CreateBuiltInTypeClass(this, "Instance", _instance_default_delegate_funcz, OT_INSTANCE);
+    _weakref_class  = CreateBuiltInTypeClass(this, "WeakRef", _weakref_default_delegate_funcz, OT_WEAKREF);
+    _userdata_class = CreateBuiltInTypeClass(this, "UserData", _userdata_default_delegate_funcz, OT_USERDATA);
 }
 
 SQSharedState::~SQSharedState()
@@ -182,17 +202,22 @@ SQSharedState::~SQSharedState()
     }
     _thread(_root_vm)->Finalize();
     _root_vm.Null();
-    _table_default_delegate.Null();
-    _array_default_delegate.Null();
-    _string_default_delegate.Null();
-    _number_default_delegate.Null();
-    _closure_default_delegate.Null();
-    _generator_default_delegate.Null();
-    _thread_default_delegate.Null();
-    _class_default_delegate.Null();
-    _instance_default_delegate.Null();
-    _weakref_default_delegate.Null();
-    _userdata_default_delegate.Null();
+
+    _null_class.Null();
+    _integer_class.Null();
+    _float_class.Null();
+    _bool_class.Null();
+    _string_class.Null();
+    _array_class.Null();
+    _table_class.Null();
+    _function_class.Null();
+    _generator_class.Null();
+    _thread_class.Null();
+    _class_class.Null();
+    _instance_class.Null();
+    _weakref_class.Null();
+    _userdata_class.Null();
+
     _refs_table.Finalize();
 #ifndef NO_GARBAGE_COLLECTOR
     SQCollectable *t = _gc_chain;
@@ -264,17 +289,22 @@ void SQSharedState::RunMark(SQVM* SQ_UNUSED_ARG(vm),SQCollectable **tchain)
     MarkObject(_registry,tchain);
     MarkObject(_consts,tchain);
     MarkObject(_metamethodsmap,tchain);
-    MarkObject(_table_default_delegate,tchain);
-    MarkObject(_array_default_delegate,tchain);
-    MarkObject(_string_default_delegate,tchain);
-    MarkObject(_number_default_delegate,tchain);
-    MarkObject(_generator_default_delegate,tchain);
-    MarkObject(_thread_default_delegate,tchain);
-    MarkObject(_closure_default_delegate,tchain);
-    MarkObject(_class_default_delegate,tchain);
-    MarkObject(_instance_default_delegate,tchain);
-    MarkObject(_weakref_default_delegate,tchain);
-    MarkObject(_userdata_default_delegate,tchain);
+
+    MarkObject(_null_class,tchain);
+    MarkObject(_integer_class,tchain);
+    MarkObject(_float_class,tchain);
+    MarkObject(_bool_class,tchain);
+    MarkObject(_string_class,tchain);
+    MarkObject(_array_class,tchain);
+    MarkObject(_table_class,tchain);
+    MarkObject(_function_class,tchain);
+    MarkObject(_generator_class,tchain);
+    MarkObject(_thread_class,tchain);
+    MarkObject(_class_class,tchain);
+    MarkObject(_instance_class,tchain);
+    MarkObject(_weakref_class,tchain);
+    MarkObject(_userdata_class,tchain);
+
     MarkObject(doc_objects,tchain);
 }
 

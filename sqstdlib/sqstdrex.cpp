@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <setjmp.h>
 #include <sqstdstring.h>
+#include <sq_char_class.h>
 
 #define SQREX_DEBUG 0
 
@@ -114,7 +115,7 @@ static SQChar sqstd_rex_escapechar(SQRex *exp)
         case 'f': exp->_p++; return '\f';
         default: return (*exp->_p++);
         }
-    } else if(!isprint(*exp->_p)) sqstd_rex_error(exp,_SC("letter expected"));
+    } else if(!sq_isprint(*exp->_p)) sqstd_rex_error(exp,_SC("letter expected"));
     return (*exp->_p++);
 }
 
@@ -172,7 +173,7 @@ static SQInteger sqstd_rex_charnode(SQRex *exp,SQBool isclass)
                 return sqstd_rex_newnode(exp,t);
         }
     }
-    else if(!isprint(*exp->_p)) {
+    else if(!sq_isprint(*exp->_p)) {
 
         sqstd_rex_error(exp,_SC("letter expected"));
     }
@@ -231,7 +232,7 @@ static SQInteger sqstd_rex_parsenumber(SQRex *exp)
     SQInteger ret = *exp->_p-'0';
     SQInteger positions = 10;
     exp->_p++;
-    while(isdigit(*exp->_p)) {
+    while(sq_isdigit(*exp->_p)) {
         ret = ret*10+(*exp->_p++-'0');
         if(positions==1000000000) sqstd_rex_error(exp,_SC("overflow in numeric constant"));
         positions *= 10;
@@ -283,7 +284,7 @@ static SQInteger sqstd_rex_element(SQRex *exp)
         case SQREX_SYMBOL_GREEDY_ZERO_OR_ONE: p0 = 0; p1 = 1; exp->_p++; isgreedy = SQTrue; break;
         case '{':
             exp->_p++;
-            if(!isdigit(*exp->_p)) sqstd_rex_error(exp,_SC("number expected"));
+            if(!sq_isdigit(*exp->_p)) sqstd_rex_error(exp,_SC("number expected"));
             p0 = (unsigned short)sqstd_rex_parsenumber(exp);
             /*******************************/
             switch(*exp->_p) {
@@ -293,7 +294,7 @@ static SQInteger sqstd_rex_element(SQRex *exp)
         case ',':
             exp->_p++;
             p1 = 0xFFFF;
-            if(isdigit(*exp->_p)){
+            if(sq_isdigit(*exp->_p)){
                 p1 = (unsigned short)sqstd_rex_parsenumber(exp);
             }
             sqstd_rex_expect(exp,'}');
@@ -349,22 +350,22 @@ static SQInteger sqstd_rex_list(SQRex *exp)
 static SQBool sqstd_rex_matchcclass(SQInteger cclass,SQChar c)
 {
     switch(cclass) {
-    case 'a': return isalpha(c)?SQTrue:SQFalse;
-    case 'A': return !isalpha(c)?SQTrue:SQFalse;
-    case 'w': return (isalnum(c) || c == '_')?SQTrue:SQFalse;
-    case 'W': return (!isalnum(c) && c != '_')?SQTrue:SQFalse;
-    case 's': return isspace(c)?SQTrue:SQFalse;
-    case 'S': return !isspace(c)?SQTrue:SQFalse;
-    case 'd': return isdigit(c)?SQTrue:SQFalse;
-    case 'D': return !isdigit(c)?SQTrue:SQFalse;
-    case 'x': return isxdigit(c)?SQTrue:SQFalse;
-    case 'X': return !isxdigit(c)?SQTrue:SQFalse;
-    case 'c': return iscntrl(c)?SQTrue:SQFalse;
-    case 'C': return !iscntrl(c)?SQTrue:SQFalse;
-    case 'p': return ispunct(c)?SQTrue:SQFalse;
-    case 'P': return !ispunct(c)?SQTrue:SQFalse;
-    case 'l': return islower(c)?SQTrue:SQFalse;
-    case 'u': return isupper(c)?SQTrue:SQFalse;
+    case 'a': return sq_isalpha(c)?SQTrue:SQFalse;
+    case 'A': return !sq_isalpha(c)?SQTrue:SQFalse;
+    case 'w': return (sq_isalnum(c) || c == '_')?SQTrue:SQFalse;
+    case 'W': return (!sq_isalnum(c) && c != '_')?SQTrue:SQFalse;
+    case 's': return sq_isspace(c)?SQTrue:SQFalse;
+    case 'S': return !sq_isspace(c)?SQTrue:SQFalse;
+    case 'd': return sq_isdigit(c)?SQTrue:SQFalse;
+    case 'D': return !sq_isdigit(c)?SQTrue:SQFalse;
+    case 'x': return sq_isxdigit(c)?SQTrue:SQFalse;
+    case 'X': return !sq_isxdigit(c)?SQTrue:SQFalse;
+    case 'c': return sq_iscntrl(c)?SQTrue:SQFalse;
+    case 'C': return !sq_iscntrl(c)?SQTrue:SQFalse;
+    case 'p': return sq_ispunct(c)?SQTrue:SQFalse;
+    case 'P': return !sq_ispunct(c)?SQTrue:SQFalse;
+    case 'l': return sq_islower(c)?SQTrue:SQFalse;
+    case 'u': return sq_isupper(c)?SQTrue:SQFalse;
     }
     return SQFalse; /*cannot happen*/
 }
@@ -493,10 +494,10 @@ static const SQChar *sqstd_rex_matchnode(SQRex* exp,SQRexNode *node,const SQChar
             return cur;
     }
     case OP_WB:
-        if((str == exp->_bol && !isspace(*str))
-         || (str == exp->_eol && !isspace(*(str-1)))
-         || (!isspace(*str) && isspace(*(str+1)))
-         || (isspace(*str) && !isspace(*(str+1))) ) {
+        if((str == exp->_bol && !sq_isspace(*str))
+         || (str == exp->_eol && !sq_isspace(*(str-1)))
+         || (!sq_isspace(*str) && sq_isspace(*(str+1)))
+         || (sq_isspace(*str) && !sq_isspace(*(str+1))) ) {
             return (node->left == 'b')?str:NULL;
         }
         return (node->left == 'b')?NULL:str;

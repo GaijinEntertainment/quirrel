@@ -117,6 +117,7 @@ enum AppendArrayType {
     SQ_OPCODE(_OP_LOAD_STATIC_MEMO) \
     SQ_OPCODE(_OP_SAVE_STATIC_MEMO) \
     SQ_OPCODE(_OP_FREEZE) \
+    SQ_OPCODE(_OP_CHECK_TYPE) \
 
 
 #define SQ_OPCODE(id) id,

@@ -1,5 +1,5 @@
 WARNING: w281 (unwanted-modification) Function 'extend' modifies object. You probably didn't want to modify the object here.
-testData/static_analyzer/w281.nut:12:9
+testData/static_analyzer/w281.nut:13:9
 
 function fn(arr) {
   return (arr ?? []).extend(x)
@@ -8,7 +8,7 @@ function fn(arr) {
 
 
 WARNING: w281 (unwanted-modification) Function 'extend' modifies object. You probably didn't want to modify the object here.
-testData/static_analyzer/w281.nut:17:12
+testData/static_analyzer/w281.nut:18:12
 
 local tab = {
     watch = (::alertWatched ? ::alertWatched : []).extend(::titleWatched ? ::titleWatched : [])
@@ -17,7 +17,7 @@ local tab = {
 
 
 WARNING: w281 (unwanted-modification) Function 'extend' modifies object. You probably didn't want to modify the object here.
-testData/static_analyzer/w281.nut:20:36
+testData/static_analyzer/w281.nut:21:36
 
 local getSeasonMainPrizesData = @() (::premiumUnlock.value?.meta.promo ?? [])
                                     ^-----------

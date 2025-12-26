@@ -86,6 +86,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(CANNOT_DELETE, ERROR, SEMA, -1, "", "can't delete %s"), \
   DEF_DIAGNOSTIC(CONFLICTS_WITH, ERROR, SEMA, -1, "", "%s name '%s' conflicts with %s"), \
   DEF_DIAGNOSTIC(INC_DEC_NOT_ASSIGNABLE, ERROR, SEMA, -1, "", "argument of inc/dec operation is not assignable"), \
+  DEF_DIAGNOSTIC(TYPE_DIFFERS, ERROR, SEMA, -1, "", "%s type differs from the declared type"), \
   DEF_DIAGNOSTIC(SPACE_SEP_FIELD_NAME, ERROR, SEMA, -1, "", "Separate access operator '%s' with it's following name is forbidden"), \
   DEF_DIAGNOSTIC(TOO_MANY_SYMBOLS, ERROR, SEMA, -1, "", "internal compiler error: too many %s"), \
   DEF_DIAGNOSTIC(NOT_ALLOWED_IN_CONST, ERROR, SEMA, -1, "", "%s is not allowed in constant"), \
@@ -132,7 +133,6 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(NULL_COALESCING_PRIORITY, WARNING, SEMA, 240, "null-coalescing-priority", "The '??""' operator has a lower priority than the '%s' operator (a??b > c == a??""(b > c)). Perhaps the '??""' operator works in a different way than it was expected."), \
   DEF_DIAGNOSTIC(ALREADY_REQUIRED, WARNING, SEMA, 241, "already-required", "Module '%s' has been required already."), \
   DEF_DIAGNOSTIC(USED_FROM_STATIC, WARNING, SEMA, 244, "used-from-static", "Access 'this.%s' from %s function."), \
-  DEF_DIAGNOSTIC(FUNC_CAN_RET_NULL, WARNING, SEMA, 247, "func-can-return-null", "Function '%s' can return null, but its result is used here."), \
   DEF_DIAGNOSTIC(ACCESS_POT_NULLABLE, WARNING, SEMA, 248, "access-potentially-nulled", "'%s' can be null, but is used as a %s without checking."), \
   DEF_DIAGNOSTIC(CMP_WITH_CONTAINER, WARNING, SEMA, 250, "cmp-with-container", "Comparison with a %s."), \
   DEF_DIAGNOSTIC(BOOL_PASSED_TO_STRANGE, WARNING, SEMA, 254, "bool-passed-to-strange", "Boolean passed to '%s' operator."), \
@@ -273,28 +273,6 @@ public:
   static void switchSyntaxWarningsState(bool state);
 
   Arena *arena() const { return _arena; }
-
-  static void resetConfig();
-  static bool loadConfigFile(const KeyValueFile &configBlk);
-  static bool loadConfigFile(const char *configFile);
-
-  static bool do_report_missing_modules;
-
-  static std::vector<std::string> function_can_return_string;
-  static std::vector<std::string> function_should_return_bool_prefix;
-  static std::vector<std::string> function_should_return_something_prefix;
-  static std::vector<std::string> function_result_must_be_utilized;
-  static std::vector<std::string> function_can_return_null;
-  static std::vector<std::string> function_calls_lambda_inplace;
-  static std::vector<std::string> function_takes_boolean_lambda;
-  static std::vector<std::string> format_function_name;
-  static std::vector<std::string> function_forbidden;
-  static std::vector<std::string> function_forbidden_parent_dir;
-  static std::vector<std::string> function_modifies_object;
-  static std::vector<std::string> function_must_be_called_from_root;
-
-  static std::vector<std::string> std_identifier;
-  static std::vector<std::string> std_function;
 
 private:
 

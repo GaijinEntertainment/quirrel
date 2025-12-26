@@ -101,6 +101,7 @@ SqModules::SqModules(HSQUIRRELVM vm, ISqModulesFileAccess *file_access)
 
   sq_enablesyntaxwarnings(false);
 
+  registerTypesLib();
   registerModulesLib();
 }
 
@@ -724,6 +725,8 @@ void SqModules::registerStdLibNativeModule(const char *name, RegFunc reg_func)
   sq_pop(sqvm, 1);
 }
 
+
+void SqModules::registerTypesLib() { registerStdLibNativeModule("types", sq_registertypeslib); }
 
 void SqModules::registerMathLib() { registerStdLibNativeModule("math", sqstd_register_mathlib); }
 

@@ -22,4 +22,12 @@
 #define SQ_USE_STD_FROM_CHARS 1
 #endif
 
+#ifndef SQ_RUNTIME_TYPE_CHECK
+#define SQ_RUNTIME_TYPE_CHECK 1
+#endif
+
+#ifndef SQ_WATCHDOG_ENABLED
+#define SQ_WATCHDOG_ENABLED 0
+#endif
+
 #endif //_SQPCHEADER_H_

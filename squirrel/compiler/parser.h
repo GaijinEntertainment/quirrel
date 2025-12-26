@@ -2,7 +2,6 @@
 
 #include "sqpcheader.h"
 #ifndef NO_COMPILER
-#include <ctype.h>
 #include <algorithm>
 #include "lexer.h"
 #include "lex_tokens.h"
@@ -27,6 +26,7 @@ class SQParser
     using FuncAttrFlagsType = uint8_t;
     enum FuncAttribute : FuncAttrFlagsType {
         FATTR_PURE = 0x01,
+        FATTR_NODISCARD = 0x02,
     };
 
     Arena *_astArena;
@@ -151,6 +151,7 @@ public:
     unsigned parseTypeMask(bool eol_breaks_type_parsing);
     LiteralExpr* ExpectScalar();
     ConstDecl* parseConstStatement(bool global);
+    ConstDecl* parseConstFunctionDeclStmt(bool global);
     EnumDecl* parseEnumStatement(bool global);
     TryStatement* parseTryCatchStatement();
     Id* generateSurrogateFunctionName();

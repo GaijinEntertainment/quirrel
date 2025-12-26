@@ -1,0 +1,10 @@
+
+AN ERROR HAS OCCURRED [type 'integer' differs from the declared type 'table|null']
+
+CALLSTACK
+*FUNCTION [__main__()] testData/exec/runtime_type_check/assign_wrong_type_02.nut:1
+
+LOCALS
+[vargv] ARRAY=[]
+[this] NULL
+Error [Failed to run script testData\exec\runtime_type_check\assign_wrong_type_02.nut (testData/exec/runtime_type_check/assign_wrong_type_02.nut)]

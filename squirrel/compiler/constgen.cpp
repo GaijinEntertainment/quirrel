@@ -407,6 +407,13 @@ void ConstGenVisitor::visitTerExpr(TerExpr *expr)
     resBranch->visit(this);
 }
 
+
+void ConstGenVisitor::visitFunctionDecl(FunctionDecl *funcDecl)
+{
+    _call_target.Null();
+    _result = _codegen.compileConstFunc(funcDecl);
+}
+
 }
 
 #endif

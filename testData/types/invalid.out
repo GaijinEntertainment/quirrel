@@ -146,3 +146,16 @@ function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...(
 ERROR: Expected ')' after ellipsis argument
 at testData\types\invalid.nut.txt:37:75
 
+pure_ function_name()
+ERROR: Expected '(' after function name
+at testData\types\invalid.nut.txt:38:7
+
+nodiscard_ function_name()
+ERROR: Expected '(' after function name
+at testData\types\invalid.nut.txt:39:12
+
+pure nodiscard_ function_name()
+
+ERROR: Expected '(' after function name
+at testData\types\invalid.nut.txt:40:17
+

@@ -2,13 +2,12 @@
 #include <squirrel.h>
 #include <string.h>
 #include <stdio.h>
-#include <ctype.h>
-
+#include <sq_char_class.h>
 
 static void __strip_l(const SQChar *str,const SQChar **start)
 {
     const SQChar *t = str;
-    while(((*t) != '\0') && isspace(*t)){ t++; }
+    while(((*t) != '\0') && sq_isspace(*t)){ t++; }
     *start = t;
 }
 
@@ -19,7 +18,7 @@ static void __strip_r(const SQChar *str,SQInteger len,const SQChar **end)
         return;
     }
     const SQChar *t = &str[len-1];
-    while(t >= str && isspace(*t)) { t--; }
+    while(t >= str && sq_isspace(*t)) { t--; }
     *end = t + 1;
 }
 
@@ -114,7 +113,7 @@ SQInteger _sq_string_escape_impl(HSQUIRRELVM v, SQInteger arg_stack_start)
     for(int n = 0; n < size; n++){
         c = *str++;
         escch = 0;
-        if(isprint(c) || c == 0) {
+        if(sq_isprint(c) || c == 0) {
             switch(c) {
             case '\a': escch = 'a'; break;
             case '\b': escch = 'b'; break;

@@ -103,6 +103,7 @@ public:
 
   bool addNativeModule(const char *module_name, const Sqrat::Object &exports, const char *module_doc_string = nullptr);
 
+  void registerTypesLib();
   void registerMathLib();
   void registerStringLib();
   void registerSystemLib();

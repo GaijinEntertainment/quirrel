@@ -92,22 +92,6 @@ pushes the name of the closure at position idx in the stack. Note that the name 
 
 
 
-
-
-.. _sq_getclosureroot:
-
-.. c:function:: SQRESULT sq_getclosureroot(HSQUIRRELVM v, SQInteger idx)
-
-    :param HSQUIRRELVM v: the target VM
-    :param SQInteger idx: index of the target closure
-    :returns: an SQRESULT
-
-pushes the root table of the closure at position idx in the stack
-
-
-
-
-
 .. _sq_getfloat:
 
 .. c:function:: SQRESULT sq_getfloat(HSQUIRRELVM v, SQInteger idx, SQFloat * f)
@@ -517,21 +501,6 @@ pops a value from the stack and sets it to a class or instance member using a me
     :returns: a SQRESULT
 
 Sets the user data size of a class. If a class 'user data size' is greater than 0. When an instance of the class is created additional space will be reserved at the end of the memory chunk where the instance is stored. The userpointer of the instance will also be automatically set to this memory area. This allows you to minimize allocations in applications that have to carry data along with the class instance.
-
-
-
-
-
-.. _sq_setclosureroot:
-
-.. c:function:: SQRESULT sq_setclosureroot(HSQUIRRELVM v, SQInteger idx)
-
-    :param HSQUIRRELVM v: the target VM
-    :param SQInteger idx: index of the target closure
-    :returns: an SQRESULT
-
-pops a table from the stack and sets it as root of the closure at position idx in the stack
-
 
 
 

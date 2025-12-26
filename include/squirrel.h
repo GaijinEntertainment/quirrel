@@ -77,7 +77,7 @@ namespace SQCompilation
 #include <stdio.h>
 
 #define SQUIRREL_VERSION_NUMBER_MAJOR 4
-#define SQUIRREL_VERSION_NUMBER_MINOR 10
+#define SQUIRREL_VERSION_NUMBER_MINOR 13
 #define SQUIRREL_VERSION_NUMBER_PATCH 0
 
 #define SQ_STRINGIFY_HELPER(x) #x
@@ -217,6 +217,7 @@ typedef SQInteger (*SQWRITEFUNC)(SQUserPointer,SQUserPointer,SQInteger);
 typedef SQInteger (*SQREADFUNC)(SQUserPointer,SQUserPointer,SQInteger);
 typedef SQInteger (*SQGETTHREAD)();
 typedef void (*SQSQCALLHOOK)(HSQUIRRELVM);
+typedef bool (*SQWATCHDOGHOOK)(HSQUIRRELVM, bool kick);
 
 typedef SQInteger (*SQLEXREADFUNC)(SQUserPointer);
 
@@ -227,6 +228,7 @@ typedef struct tagSQRegFunction{
     const SQChar *typemask;
     const SQChar *docstring;
     bool pure;
+    bool nodiscard;
 }SQRegFunction;
 
 typedef struct tagSQRegFunctionFromStr{
@@ -302,6 +304,7 @@ SQUIRREL_API SQRESULT sq_suspendvm(HSQUIRRELVM v);
 SQUIRREL_API SQRESULT sq_wakeupvm(HSQUIRRELVM v,SQBool resumedret,SQBool retval,SQBool invoke_err_handler,SQBool throwerror);
 SQUIRREL_API SQInteger sq_getvmstate(HSQUIRRELVM v);
 SQUIRREL_API SQRESULT sq_registerbaselib(HSQUIRRELVM v);
+SQUIRREL_API SQRESULT sq_registertypeslib(HSQUIRRELVM v);
 
 /*compiler*/
 SQUIRREL_API SQRESULT sq_compile(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, const HSQOBJECT *bindings = nullptr);
@@ -394,7 +397,6 @@ SQUIRREL_API SQRESULT sq_newclass(HSQUIRRELVM v,SQBool hasbase);
 SQUIRREL_API SQRESULT sq_createinstance(HSQUIRRELVM v,SQInteger idx);
 SQUIRREL_API SQRESULT sq_getclass(HSQUIRRELVM v,SQInteger idx);
 SQUIRREL_API void sq_weakref(HSQUIRRELVM v,SQInteger idx);
-SQUIRREL_API SQRESULT sq_getdefaultdelegate(HSQUIRRELVM v,SQObjectType t);
 SQUIRREL_API SQRESULT sq_getmemberhandle(HSQUIRRELVM v,SQInteger idx,HSQMEMBERHANDLE *handle);
 SQUIRREL_API SQRESULT sq_getbyhandle(HSQUIRRELVM v,SQInteger idx,const HSQMEMBERHANDLE *handle);
 SQUIRREL_API SQRESULT sq_setbyhandle(HSQUIRRELVM v,SQInteger idx,const HSQMEMBERHANDLE *handle);
@@ -496,6 +498,11 @@ SQUIRREL_API SQGETTHREAD sq_set_thread_id_function(HSQUIRRELVM v, SQGETTHREAD fu
 SQUIRREL_API SQSQCALLHOOK sq_set_sq_call_hook(HSQUIRRELVM v, SQSQCALLHOOK hook);
 SQUIRREL_API SQCOMPILELINEHOOK sq_set_compile_line_hook(HSQUIRRELVM v, SQCOMPILELINEHOOK hook);
 SQUIRREL_API void sq_forbidglobalconstrewrite(HSQUIRRELVM v, SQBool on);
+
+/*watchdog*/
+SQUIRREL_API SQWATCHDOGHOOK sq_set_watchdog_hook(HSQUIRRELVM v, SQWATCHDOGHOOK hook);
+SQUIRREL_API void sq_kick_watchdog(HSQUIRRELVM v);
+SQUIRREL_API SQInteger sq_set_watchdog_timeout_msec(HSQUIRRELVM v, SQInteger timeout);
 
 /*static analysis*/
 SQUIRREL_API void sq_resetanalyzerconfig();

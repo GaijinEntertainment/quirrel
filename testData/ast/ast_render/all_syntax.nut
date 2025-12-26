@@ -186,6 +186,8 @@ local gfn4 = @() "lambda_str1"
 let gfn5 = @gfn5() "lambda_str2"
 local _call = function (name) { this[name]() }
 let gfn_pure = @[pure] gfn5() "lambda_str3"
+let gfn_nodiscard = @[nodiscard] gfn6() "lambda_str4"
+let gfn_pure_nodiscard = @[pure, nodiscard] gfn7() "lambda_str5"
 
 function fa1(x) { return x }
 function fa2(x, y) { return x + y; }
@@ -196,6 +198,7 @@ function fa6(x, y = null) { return y; }
 function fa7(x, y = {a = 4}, ) { return y; }
 function fa8(x, y = {a = 5}) { return y; }
 function [pure,] pure_fn(x) {return x * x}
+function [nodiscard,pure,] pure_nodiscard_fn(x) {return x * x}
 function coroutine_fn() {
   yield 1100;
   yield 1200;

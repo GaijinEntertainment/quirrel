@@ -111,7 +111,7 @@ def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs,
     if verbose:
         xprint(compilationCommand)
 
-    proc = Popen(compilationCommand, stdout=outredirect, stderr=subprocess.PIPE)
+    proc = Popen(compilationCommand, stdout=outredirect, stderr=outredirect)
 
     outs = None
     errs = None
@@ -201,7 +201,11 @@ def walkDirectory(path, indent, block):
 
 def checkCompiler(compiler):
     try:
-        compProc = Popen([compiler, '-v'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if not path.exists(compiler):
+            xprint('FAIL: compiler executable \'{0}\' not found'.format(compiler))
+            exit(1)
+
+        compProc = Popen([compiler, '-v'])
         compProc.communicate()
         if compProc.returncode != 0:
             xprint('FAIL: {0} is not an sq compiler'.format(compiler))
@@ -228,6 +232,9 @@ def main():
     workingDir = args.working_dir
     verbose = args.verbose
     ciRun = args.continious_integration
+
+    if platform.system() == 'Windows' and not compiler.endswith('.exe'):
+        compiler += '.exe'
 
     checkCompiler(compiler)
 

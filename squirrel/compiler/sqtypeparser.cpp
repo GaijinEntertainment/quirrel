@@ -1,5 +1,6 @@
 #include "sqtypeparser.h"
-#include <ctype.h> // for "tolower"
+#include <sq_char_class.h>
+
 
 struct SQRawTypeDecl
 {
@@ -28,36 +29,16 @@ static SQRawTypeDecl rawTypeDecls[] = {
     { { NULL, NULL, NULL }, 0 }
 };
 
-static bool is_space(SQChar c)
-{
-    return c == _SC(' ') || c == _SC('\t') || c == _SC('\r') || c == _SC('\n');
-}
-
-static bool is_alpha(SQChar c)
-{
-    return (c >= _SC('a') && c <= _SC('z')) || (c >= _SC('A') && c <= _SC('Z'));
-}
-
-static bool is_digit(SQChar c)
-{
-    return c >= _SC('0') && c <= _SC('9');
-}
-
-static bool is_alnum(SQChar c)
-{
-    return is_alpha(c) || is_digit(c);
-}
-
 static const SQChar* skip_spaces(const SQChar* s)
 {
-    while (*s && is_space(*s))
+    while (*s && sq_isspace(*s))
         s++;
     return s;
 }
 
 static bool is_str_equal_ignore_case(const SQChar* str1, const SQChar* str2)
 {
-    while (*str1 && *str2 && tolower(*str1) == tolower(*str2))
+    while (*str1 && *str2 && sq_tolower(*str1) == sq_tolower(*str2))
     {
         str1++;
         str2++;
@@ -68,10 +49,10 @@ static bool is_str_equal_ignore_case(const SQChar* str1, const SQChar* str2)
 static bool parse_identifier(SQVM* vm, const SQChar*& s, SQObjectPtr& res)
 {
     const SQChar* p = s;
-    if (!is_alpha(*p) && *p != _SC('_'))
+    if (!sq_isalpha(*p) && *p != _SC('_'))
         return false;
     p++;
-    while (is_alnum(*p) || *p == _SC('_'))
+    while (sq_isalnum(*p) || *p == _SC('_'))
         p++;
     res = SQString::Create(_ss(vm), s, p - s);
     s = p;
@@ -186,10 +167,20 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
     res.argNames.clear();
     res.argTypeMask.clear();
 
-    if (strncmp(p, "pure ", 5) == 0)
+    for (;;)
     {
-        res.pure = true;
-        p = skip_spaces(p + 5);
+        if (strncmp(p, "pure ", 5) == 0)
+        {
+            res.pure = true;
+            p = skip_spaces(p + 5);
+        }
+        else if (strncmp(p, "nodiscard ", 10) == 0)
+        {
+            res.nodiscard = true;
+            p = skip_spaces(p + 10);
+        }
+        else
+            break;
     }
 
     if (*p == '(')
@@ -621,6 +612,10 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
 void sq_stringify_type_mask(SQChar* buffer, int buffer_length, SQUnsignedInteger32 mask)
 {
     assert(buffer_length > 128);
+
+    if ((mask & _RT_CLOSURE) || (mask & _RT_NATIVECLOSURE))
+        mask |= _RT_CLOSURE | _RT_NATIVECLOSURE;
+
     SQChar* p = buffer;
     SQChar* end = buffer + buffer_length - 1;
 
@@ -696,6 +691,12 @@ SQObjectPtr sq_stringify_function_type(SQVM* vm, const SQFunctionType& ft)
             }
         }
     };
+
+    if (ft.pure)
+        append(_SC("pure "));
+
+    if (ft.nodiscard)
+        append(_SC("nodiscard "));
 
     if (ft.objectTypeMask != ~0u)
     {

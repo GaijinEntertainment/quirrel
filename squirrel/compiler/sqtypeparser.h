@@ -15,6 +15,7 @@ struct SQFunctionType
     SQInteger requiredArgs;
     SQUnsignedInteger32 ellipsisArgTypeMask; // 0 if no ellipsis
     bool pure;
+    bool nodiscard;
 
     SQFunctionType(SQSharedState *ss) :
         argNames(ss->_alloc_ctx),
@@ -26,6 +27,7 @@ struct SQFunctionType
         requiredArgs = 0;
         ellipsisArgTypeMask = 0;
         pure = false;
+        nodiscard = false;
     }
 };
 

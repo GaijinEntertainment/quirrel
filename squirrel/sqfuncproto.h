@@ -232,6 +232,7 @@ public:
     bool _inside_hoisted_scope;
     bool _bgenerator;
     bool _purefunction;
+    bool _nodiscard;
     SQInt32 _stacksize;
     SQInt32 _varparams;
 

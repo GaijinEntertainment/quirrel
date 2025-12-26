@@ -84,7 +84,7 @@ public:
     virtual void visitTableDecl(TableDecl *tbl);
 
     virtual void visitClassDecl(ClassDecl *cls) { visitTableDecl(cls); }
-    virtual void visitFunctionDecl(FunctionDecl *f) { visitDecl(f); }
+    virtual void visitFunctionDecl(FunctionDecl *f);
     virtual void visitConstructorDecl(ConstructorDecl *ctr) { visitFunctionDecl(ctr); }
     virtual void visitConstDecl(ConstDecl *cnst) { visitDecl(cnst); }
     virtual void visitEnumDecl(EnumDecl *enm) { visitDecl(enm); }

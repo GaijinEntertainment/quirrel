@@ -319,6 +319,8 @@ static bool parse_types_from_file(HSQUIRRELVM sqvm, const char *filename)
                     printf("  ellipsisArgTypeMask: 0x%x\n", unsigned(t.ellipsisArgTypeMask));
                     printf("  requiredArgs: %d\n", int(t.requiredArgs));
                     printf("  argCount: %d\n", int(t.argTypeMask.size()));
+                    printf("  pure: %s\n", t.pure ? "true" : "false");
+                    printf("  nodiscard: %s\n", t.nodiscard ? "true" : "false");
                     printf("\n");
                 }
                 else {

@@ -77,7 +77,7 @@ static void DumpLiteral(OutputStream *stream, const SQObjectPtr &o)
 
 SQFuncState::SQFuncState(SQSharedState *ss,SQFuncState *parent,SQCompilationContext &ctx) :
     _vlocals(ss->_alloc_ctx),
-    _vlocals_nodes(ss->_alloc_ctx),
+    _vlocals_info(ss->_alloc_ctx),
     _targetstack(ss->_alloc_ctx),
     _unresolvedbreaks(ss->_alloc_ctx),
     _unresolvedcontinues(ss->_alloc_ctx),
@@ -86,7 +86,7 @@ SQFuncState::SQFuncState(SQSharedState *ss,SQFuncState *parent,SQCompilationCont
     _parameters(ss->_alloc_ctx),
     _param_type_masks(ss->_alloc_ctx),
     _outervalues(ss->_alloc_ctx),
-    _outervalues_nodes(ss->_alloc_ctx),
+    _outervalues_info(ss->_alloc_ctx),
     _instructions(ss->_alloc_ctx),
     _localvarinfos(ss->_alloc_ctx),
     _full_line_infos(ss->_alloc_ctx),
@@ -109,6 +109,7 @@ SQFuncState::SQFuncState(SQSharedState *ss,SQFuncState *parent,SQCompilationCont
         _varparams = false;
         _bgenerator = false;
         _purefunction = false;
+        _nodiscard = false;
         _outers = 0;
         _hoistLevel = 0;
         _staticmemos_count = 0;
@@ -522,7 +523,7 @@ SQInteger SQFuncState::AllocStackPos()
 {
     SQInteger npos=_vlocals.size();
     _vlocals.push_back(SQLocalVarInfo());
-    _vlocals_nodes.push_back(nullptr);
+    _vlocals_info.push_back(SQCompiletimeVarInfo{});
     if(_vlocals.size()>((SQUnsignedInteger)_stacksize)) {
         if(_stacksize>MAX_FUNC_STACKSIZE)
             _ctx.reportDiagnostic(DiagnosticsId::DI_TOO_MANY_SYMBOLS, -1, -1, 0, "locals");
@@ -556,7 +557,7 @@ SQInteger SQFuncState::PopTarget()
     SQLocalVarInfo &t = _vlocals[npos];
     if(sq_type(t._name)==OT_NULL){
         _vlocals.pop_back();
-        _vlocals_nodes.pop_back();
+        _vlocals_info.pop_back();
     }
     _targetstack.pop_back();
     return npos;
@@ -595,7 +596,7 @@ void SQFuncState::SetStackSize(SQInteger n)
             _localvarinfos.push_back(lvi);
         }
         _vlocals.pop_back();
-        _vlocals_nodes.pop_back();
+        _vlocals_info.pop_back();
     }
 }
 
@@ -607,38 +608,33 @@ bool SQFuncState::IsLocal(SQUnsignedInteger stkpos)
     return false;
 }
 
-SQInteger SQFuncState::PushLocalVariable(const SQObject &name, char varFlags, Expr *node)
+SQInteger SQFuncState::PushLocalVariable(const SQObject &name, const SQCompiletimeVarInfo& ct_var_info)
 {
     SQInteger pos=_vlocals.size();
     SQLocalVarInfo lvi;
     lvi._name=name;
     lvi._start_op=GetCurrentPos()+1;
     lvi._pos=_vlocals.size();
-    lvi._varFlags=varFlags;
+    lvi._varFlags=ct_var_info.var_flags;
     _vlocals.push_back(lvi);
-    _vlocals_nodes.push_back(node);
+    _vlocals_info.push_back(ct_var_info);
     if(_vlocals.size()>((SQUnsignedInteger)_stacksize))_stacksize=_vlocals.size();
     return pos;
 }
 
 
 
-SQInteger SQFuncState::GetLocalVariable(const SQObject &name, char &varFlags, Expr **node)
+SQInteger SQFuncState::GetLocalVariable(const SQObject &name, SQCompiletimeVarInfo& ct_var_info)
 {
     SQInteger locals=_vlocals.size();
     while(locals>=1){
         SQLocalVarInfo &lvi = _vlocals[locals-1];
         if(sq_type(lvi._name)==OT_STRING && _string(lvi._name)==_string(name)){
-            varFlags = lvi._varFlags;
-            if (node)
-                *node = _vlocals_nodes[locals - 1];
+            ct_var_info = _vlocals_info[locals-1];
             return locals-1;
         }
         locals--;
     }
-    varFlags = 0;
-    if (node)
-        *node = nullptr;
     return -1;
 }
 
@@ -650,48 +646,39 @@ void SQFuncState::MarkLocalAsOuter(SQInteger pos)
 }
 
 
-SQInteger SQFuncState::GetOuterVariable(const SQObject &name, char &varFlags, Expr **node)
+SQInteger SQFuncState::GetOuterVariable(const SQObject &name, SQCompiletimeVarInfo &varInfo)
 {
     SQInteger outers = _outervalues.size();
     for(SQInteger i = 0; i<outers; i++) {
         if(_string(_outervalues[i]._name) == _string(name)) {
-            varFlags = _outervalues[i]._varFlags;
-            if (node)
-                *node = _outervalues_nodes[i];
+            varInfo = _outervalues_info[i];
             return i;
         }
     }
     SQInteger pos=-1;
     if(_parent) {
-        Expr *n = nullptr;
-        pos = _parent->GetLocalVariable(name, varFlags, &n);
+        pos = _parent->GetLocalVariable(name, varInfo);
         if(pos == -1) {
-            pos = _parent->GetOuterVariable(name, varFlags, &n);
+            pos = _parent->GetOuterVariable(name, varInfo);
             if(pos != -1) {
-                _outervalues.push_back(SQOuterVar(SQObjectPtr(name),SQObjectPtr(SQInteger(pos)),otOUTER,varFlags)); //local
-                _outervalues_nodes.push_back(n);
-                if (node)
-                    *node = n;
+                _outervalues.push_back(SQOuterVar(SQObjectPtr(name), SQObjectPtr(SQInteger(pos)), otOUTER, varInfo.var_flags)); //local
+                _outervalues_info.push_back(varInfo);
                 return _outervalues.size() - 1;
             }
         }
         else {
             _parent->MarkLocalAsOuter(pos);
-            _outervalues.push_back(SQOuterVar(SQObjectPtr(name),SQObjectPtr(SQInteger(pos)),otLOCAL,varFlags)); //local
-            _outervalues_nodes.push_back(n);
-            if (node)
-                *node = n;
+            _outervalues.push_back(SQOuterVar(SQObjectPtr(name), SQObjectPtr(SQInteger(pos)), otLOCAL, varInfo.var_flags)); //local
+            _outervalues_info.push_back(varInfo);
             return _outervalues.size() - 1;
         }
     }
-    if (node)
-        *node = nullptr;
     return -1;
 }
 
-void SQFuncState::AddParameter(const SQObject &name, SQUnsignedInteger32 type_mask)
+void SQFuncState::AddParameter(const SQObject &name, SQUnsignedInteger32 type_mask) // TODO: initializer node
 {
-    PushLocalVariable(name, VF_PARAM | VF_ASSIGNABLE, nullptr);
+    PushLocalVariable(name, SQCompiletimeVarInfo{VF_PARAM | VF_ASSIGNABLE, type_mask, nullptr});
     _parameters.push_back(SQObjectPtr(name));
     _param_type_masks.push_back(type_mask);
 }
@@ -968,6 +955,7 @@ SQFunctionProto *SQFuncState::BuildProto()
     f->_sourcename = _sourcename;
     f->_bgenerator = _bgenerator;
     f->_purefunction = _purefunction;
+    f->_nodiscard = _nodiscard;
     f->_name = _name;
     f->_inside_hoisted_scope = _hoistLevel > 0;
     f->_result_type_mask = _result_type_mask;

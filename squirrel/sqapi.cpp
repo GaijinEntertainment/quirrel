@@ -17,6 +17,7 @@
 #include "compiler/ast.h"
 #include "ast_tools/ast_indent_render.h"
 #include "compiler/static_analyzer/analyzer.h"
+#include "compiler/static_analyzer/config.h"
 
 SQUIRREL_API SQBool sq_tracevar(HSQUIRRELVM v, const HSQOBJECT *container, const HSQOBJECT * key, SQChar * buf, int buf_size)
 {
@@ -127,6 +128,29 @@ SQSQCALLHOOK sq_set_sq_call_hook(HSQUIRRELVM v, SQSQCALLHOOK hook)
     v->_sq_call_hook = hook;
     return res;
 }
+
+SQWATCHDOGHOOK sq_set_watchdog_hook(HSQUIRRELVM v, SQWATCHDOGHOOK hook)
+{
+    SQWATCHDOGHOOK res = v->_watchdog_hook;
+    v->_watchdog_hook = hook;
+    return res;
+}
+
+void sq_kick_watchdog(HSQUIRRELVM v)
+{
+    if (v->_watchdog_hook)
+        v->_watchdog_hook(v, true);
+}
+
+SQInteger sq_set_watchdog_timeout_msec(HSQUIRRELVM v, SQInteger timeout)
+{
+    SQInteger prevTimeout = _ss(v)->watchdog_threshold_msec;
+    _ss(v)->watchdog_threshold_msec = SQUnsignedInteger32(timeout < 0 ? 0 : timeout);
+    sq_kick_watchdog(v);
+    return prevTimeout;
+}
+
+
 
 void sq_forbidglobalconstrewrite(HSQUIRRELVM v, SQBool on)
 {
@@ -385,11 +409,27 @@ SQRESULT sq_newclass(HSQUIRRELVM v,SQBool hasbase)
 
 SQBool sq_instanceof(HSQUIRRELVM v)
 {
-    SQObjectPtr &inst = stack_get(v,-1);
+    SQObjectPtr &obj = stack_get(v,-1);
     SQObjectPtr &cl = stack_get(v,-2);
-    if(sq_type(inst) != OT_INSTANCE || sq_type(cl) != OT_CLASS)
+    if(sq_type(cl) != OT_CLASS)
         return sq_throwerror(v,_SC("invalid param type"));
-    return _instance(inst)->InstanceOf(_class(cl))?SQTrue:SQFalse;
+
+    SQClass *cls = _class(cl);
+    bool result = false;
+
+    if (sq_type(obj) == OT_INSTANCE) {
+        result = _instance(obj)->InstanceOf(cls);
+    } else if (cls->_is_builtin_type) {
+        SQObjectType obj_type = sq_type(obj);
+        // both closures and native closures map to Function class
+        if (cls->_builtin_type_id == OT_CLOSURE && (obj_type == OT_CLOSURE || obj_type == OT_NATIVECLOSURE)) {
+            result = true;
+        } else {
+            result = (obj_type == cls->_builtin_type_id);
+        }
+    }
+
+    return result ? SQTrue : SQFalse;
 }
 
 SQRESULT sq_arrayappend(HSQUIRRELVM v,SQInteger idx)
@@ -608,6 +648,7 @@ SQRESULT sq_new_closure_slot_from_decl_string(HSQUIRRELVM v, SQFUNCTION func, SQ
 
     nc->_name = ft.functionName;
     nc->_purefunction = ft.pure;
+    nc->_nodiscard = ft.nodiscard;
 
     nc->_typecheck.resize(ft.argTypeMask.size() + 1);
     nc->_typecheck[0] = ft.objectTypeMask;
@@ -620,6 +661,9 @@ SQRESULT sq_new_closure_slot_from_decl_string(HSQUIRRELVM v, SQFUNCTION func, SQ
     else
         nc->_nparamscheck = ft.requiredArgs + 1;
 
+    nc->_result_type_mask = ft.returnTypeMask;
+
+#if SQ_STORE_DOC_OBJECTS
     if (docstring) {
         SQObjectPtr docValue(SQString::Create(_ss(v), docstring));
         SQObjectPtr docKey;
@@ -627,6 +671,17 @@ SQRESULT sq_new_closure_slot_from_decl_string(HSQUIRRELVM v, SQFUNCTION func, SQ
         docKey._unVal.pUserPointer = (void *)func;
         _table(_ss(v)->doc_objects)->NewSlot(docKey, docValue);
     }
+
+    {
+        SQObjectPtr declValue(SQString::Create(_ss(v), function_decl));
+        SQObjectPtr declKey;
+        declKey._type = OT_USERPOINTER;
+        declKey._unVal.pUserPointer = (void *)(((size_t)(void *)func) ^ ~size_t(0));
+        _table(_ss(v)->doc_objects)->NewSlot(declKey, declValue);
+    }
+#else
+    (void)(docstring);
+#endif
 
     v->Push(SQObjectPtr(nc));
 
@@ -1706,24 +1761,6 @@ SQRESULT sq_getweakrefval(HSQUIRRELVM v,SQInteger idx)
     return SQ_OK;
 }
 
-SQRESULT sq_getdefaultdelegate(HSQUIRRELVM v,SQObjectType t)
-{
-    SQSharedState *ss = _ss(v);
-    switch(t) {
-    case OT_TABLE: v->Push(ss->_table_default_delegate); break;
-    case OT_ARRAY: v->Push(ss->_array_default_delegate); break;
-    case OT_STRING: v->Push(ss->_string_default_delegate); break;
-    case OT_INTEGER: case OT_FLOAT: v->Push(ss->_number_default_delegate); break;
-    case OT_GENERATOR: v->Push(ss->_generator_default_delegate); break;
-    case OT_CLOSURE: case OT_NATIVECLOSURE: v->Push(ss->_closure_default_delegate); break;
-    case OT_THREAD: v->Push(ss->_thread_default_delegate); break;
-    case OT_CLASS: v->Push(ss->_class_default_delegate); break;
-    case OT_INSTANCE: v->Push(ss->_instance_default_delegate); break;
-    case OT_WEAKREF: v->Push(ss->_weakref_default_delegate); break;
-    default: return sq_throwerror(v,_SC("the type doesn't have a default delegate"));
-    }
-    return SQ_OK;
-}
 
 SQRESULT sq_next(HSQUIRRELVM v,SQInteger idx)
 {
@@ -1961,15 +1998,15 @@ bool sq_canaccessfromthisthread(HSQUIRRELVM vm)
 }
 
 void sq_resetanalyzerconfig() {
-  SQCompilationContext::resetConfig();
+  SQCompilation::resetAnalyzerConfig();
 }
 
 bool sq_loadanalyzerconfig(const char *configFileName) {
-  return SQCompilationContext::loadConfigFile(configFileName);
+  return SQCompilation::loadAnalyzerConfigFile(configFileName);
 }
 
 bool sq_loadanalyzerconfigblk(const KeyValueFile &config) {
-  return SQCompilationContext::loadConfigFile(config);
+  return SQCompilation::loadAnalyzerConfigFile(config);
 }
 
 bool sq_setdiagnosticstatebyname(const char *diagId, bool state) {

@@ -40,7 +40,7 @@ Global Symbols
         sq> printf("%s %d 0x%02X\n","this is a test :",123,10);
         this is a test : 123 0x0A
 
-.. note::  The following functions are also available as string :ref:`default delegates <default_delegates>`.
+.. note::  The following functions are also available as string :ref:`type methods <builtin_type_classes>`.
 
 .. sq:function:: lstrip(str)
 

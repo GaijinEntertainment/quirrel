@@ -452,6 +452,7 @@ SQFunctionProto::SQFunctionProto(SQSharedState *ss)
     _stacksize=0;
     _bgenerator=false;
     _purefunction=false;
+    _nodiscard=false;
     _inside_hoisted_scope=false;
     INIT_CHAIN();ADD_TO_CHAIN(&_ss(this)->_gc_chain,this);
 }
@@ -529,6 +530,7 @@ bool SQFunctionProto::Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write)
     _CHECK_IO(SafeWrite(v,write,up,&_stacksize,sizeof(_stacksize)));
     _CHECK_IO(SafeWrite(v,write,up,&_bgenerator,sizeof(_bgenerator)));
     _CHECK_IO(SafeWrite(v,write,up,&_purefunction,sizeof(_purefunction)));
+    _CHECK_IO(SafeWrite(v,write,up,&_nodiscard,sizeof(_nodiscard)));
     _CHECK_IO(SafeWrite(v,write,up,&_varparams,sizeof(_varparams)));
     return true;
 }
@@ -620,6 +622,7 @@ bool SQFunctionProto::Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr 
     _CHECK_IO(SafeRead(v,read,up, &f->_stacksize, sizeof(f->_stacksize)));
     _CHECK_IO(SafeRead(v,read,up, &f->_bgenerator, sizeof(f->_bgenerator)));
     _CHECK_IO(SafeRead(v,read,up, &f->_purefunction, sizeof(f->_purefunction)));
+    _CHECK_IO(SafeRead(v,read,up, &f->_nodiscard, sizeof(f->_nodiscard)));
     _CHECK_IO(SafeRead(v,read,up, &f->_varparams, sizeof(f->_varparams)));
 
     ret = f;

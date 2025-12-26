@@ -52,6 +52,8 @@ public:
     bool IsLocalConstant(const SQObject &name, SQObjectPtr &e);
     bool IsGlobalConstant(const SQObject &name, SQObjectPtr &e);
 
+    SQObjectPtr compileConstFunc(FunctionDecl *funcDecl);
+
 private:
 
     void reportDiagnostic(Node *n, int32_t id, ...);
@@ -66,6 +68,7 @@ private:
     void ResolveContinues(SQFuncState *funcstate, SQInteger ntoresolve, SQInteger targetpos);
 
     void EmitDerefOp(SQOpcode op);
+    void EmitCheckType(int target, uint32_t type_mask);
 
     void generateTableDecl(TableDecl *tableDecl);
 
@@ -89,10 +92,10 @@ private:
     void emitAssign(Expr *lvalue, Expr * rvalue);
     void emitFieldAssign(int isLiteralIndex);
 
-    bool CanBeDefaultDelegate(const SQChar *key);
-    bool CanBeDefaultTableDelegate(const SQChar *key);
+    bool CanBeTypeMethod(const SQChar *key);
+    bool CanBeTableTypeMethod(const SQChar *key);
     bool canBeLiteral(AccessExpr *expr);
-    SQObjectPtr GetDefaultDelegate(SQInteger sq_type, const SQChar* key);
+    SQObjectPtr GetTypeMethod(SQInteger sq_type, const SQChar* key);
 
     void MoveIfCurrentTargetIsLocal();
 
@@ -118,6 +121,8 @@ private:
     bool isFreezeCall(Expr *node);
     Expr *skipConstFreezePure(Expr *expr);
     bool isPureFunctionCall(Expr *node);
+
+    SQObjectPtr compileFunc(FunctionDecl *funcDecl, bool is_const, sqvector<SQObjectPtr> *out_defparam_values);
 
 public:
 

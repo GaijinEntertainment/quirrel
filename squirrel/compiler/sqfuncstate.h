@@ -9,6 +9,18 @@ namespace SQCompilation { class Expr; }
 
 using namespace SQCompilation;
 
+struct SQCompiletimeVarInfo
+{
+    char var_flags;
+    SQUnsignedInteger32 type_mask;
+    Expr *initializer;
+
+    SQCompiletimeVarInfo() { var_flags = 0; type_mask = ~0u; initializer = nullptr; }
+
+    SQCompiletimeVarInfo(char var_flags, SQUnsignedInteger32 type_mask, Expr *initializer) :
+        var_flags(var_flags), type_mask(type_mask), initializer(initializer) {}
+};
+
 struct SQFuncState
 {
     SQFuncState(SQSharedState *ss,SQFuncState *parent,SQCompilationContext &ctx);
@@ -31,11 +43,11 @@ struct SQFuncState
     SQInteger GetCurrentPos(){return _instructions.size()-1;}
     SQInteger GetNumericConstant(const SQInteger cons);
     SQInteger GetNumericConstant(const SQFloat cons);
-    SQInteger PushLocalVariable(const SQObject &name, char varFlags, Expr *node);
+    SQInteger PushLocalVariable(const SQObject &name, const SQCompiletimeVarInfo &ct_var_info);
     void AddParameter(const SQObject &name, SQUnsignedInteger32 type_mask);
-    SQInteger GetLocalVariable(const SQObject &name, char &varFlags, Expr **node = nullptr);
+    SQInteger GetLocalVariable(const SQObject &name, SQCompiletimeVarInfo &ct_var_info);
     void MarkLocalAsOuter(SQInteger pos);
-    SQInteger GetOuterVariable(const SQObject &name, char &varFlags, Expr **node = nullptr);
+    SQInteger GetOuterVariable(const SQObject &name, SQCompiletimeVarInfo &ct_var_info);
     SQInteger GetStackSize();
     void AddLineInfos(SQInteger line, bool is_dbg_step_point, bool force);
     SQFunctionProto *BuildProto();
@@ -51,12 +63,13 @@ struct SQFuncState
     SQUnsignedInteger lang_features;
     SQInteger _returnexp;
     SQLocalVarInfoVec _vlocals;
-    sqvector<Expr*> _vlocals_nodes; // compile time only
+    sqvector<SQCompiletimeVarInfo> _vlocals_info; // compile time only
     SQIntVec _targetstack;
     SQInteger _stacksize;
     bool _varparams;
     bool _bgenerator;
     bool _purefunction;
+    bool _nodiscard;
     SQIntVec _unresolvedbreaks;
     SQIntVec _unresolvedcontinues;
     SQIntVec _expr_block_results;
@@ -65,7 +78,7 @@ struct SQFuncState
     sqvector<SQUnsignedInteger32> _param_type_masks;
     SQUnsignedInteger32 _result_type_mask;
     SQOuterVarVec _outervalues;
-    sqvector<Expr*> _outervalues_nodes; // compile time only
+    sqvector<SQCompiletimeVarInfo> _outervalues_info; // compile time only
     SQInstructionVec _instructions;
     SQLocalVarInfoVec _localvarinfos;
     SQObjectPtr _literals;

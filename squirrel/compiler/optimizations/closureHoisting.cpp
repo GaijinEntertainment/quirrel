@@ -73,6 +73,7 @@ void ClosureHoistingOpt::ScopeComputeVisitor::visitValueDecl(ValueDecl *v) {
 
 void ClosureHoistingOpt::ScopeComputeVisitor::visitConstDecl(ConstDecl *c) {
   currentScope->declareSymbol(c->name(), c);
+  c->visitChildren(this);
 }
 
 void ClosureHoistingOpt::ScopeComputeVisitor::visitTryStatement(TryStatement *stmt) {

@@ -784,6 +784,24 @@ local_str3"
 |           Block isRoot = 0, isBody = 1
 |             ReturnStatement
 |               LiteralExpr LK_STRING "lambda_str3"
+|-VarDecl 'let', name = 'gfn_nodiscard', type = 'any'
+|   Initializer
+|     DeclExpr
+|       FunctionDecl 'lambda' name = 'gfn6', resultType = 'any'
+|       |-Parameters count = 0
+|       `-Body
+|           Block isRoot = 0, isBody = 1
+|             ReturnStatement
+|               LiteralExpr LK_STRING "lambda_str4"
+|-VarDecl 'let', name = 'gfn_pure_nodiscard', type = 'any'
+|   Initializer
+|     DeclExpr
+|       FunctionDecl 'lambda' name = 'gfn7', resultType = 'any'
+|       |-Parameters count = 0
+|       `-Body
+|           Block isRoot = 0, isBody = 1
+|             ReturnStatement
+|               LiteralExpr LK_STRING "lambda_str5"
 |-VarDecl 'let', name = 'fa1', type = 'any'
 |   Initializer
 |     DeclExpr
@@ -924,6 +942,20 @@ local_str3"
 |   Initializer
 |     DeclExpr
 |       FunctionDecl name = 'pure_fn', resultType = 'any'
+|       |-Parameters count = 1
+|       |   Parameter #1 name = 'x', type = 'any'
+|       `-Body
+|           Block isRoot = 0, isBody = 1
+|             ReturnStatement
+|               BinExpr '*'
+|               |-Left
+|               |   Id 'x'
+|               `-Right
+|                   Id 'x'
+|-VarDecl 'let', name = 'pure_nodiscard_fn', type = 'any'
+|   Initializer
+|     DeclExpr
+|       FunctionDecl name = 'pure_nodiscard_fn', resultType = 'any'
 |       |-Parameters count = 1
 |       |   Parameter #1 name = 'x', type = 'any'
 |       `-Body
@@ -1561,7 +1593,7 @@ local_str3"
 |-VarDecl 'let', name = '$ch0', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = '(all_syntax.nut:346)', resultType = 'any'
+|       FunctionDecl name = '(all_syntax.nut:349)', resultType = 'any'
 |       |-Parameters count = 0
 |       `-Body
 |           Block isRoot = 0, isBody = 1

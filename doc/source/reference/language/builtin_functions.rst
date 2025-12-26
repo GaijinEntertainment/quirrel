@@ -86,19 +86,38 @@ Given an object handle, returns its flags that may be:
   * 0 - no special flags
   * SQOBJ_FLAG_IMMUTABLE - bit set if the object handle is immutable
 
-.. _default_delegates:
+.. _builtin_type_classes:
 
------------------
-Default delegates
------------------
+----------------------
+Built-in Type Classes
+----------------------
 
-Except for null and userdata, every quirrel object has a default delegate containing a set of functions to manipulate and retrieve information from the object itself.
-All these default delegates can also be called by adding the $ symbol before the delegate name, like `table.$tostring()` or `table?.$tostring()`.
-With the '$' symbol, Squirrel will know that you want to call the default delegate. This can really matter in tables and instances (`{len=@() 0}.len() //0` vs `{len= @() 0}.$len() //1`)
+Every Quirrel value is an instance of a built-in type class. These classes (``Integer``, ``Float``, ``String``, ``Bool``, ``Array``, ``Table``, ``Null``, etc.) are available through the ``types`` module and contain methods to manipulate and retrieve information from values of that type.
 
-^^^^^^^^
+The built-in type classes can be imported like::
+
+    from "types" import Integer, Float, String, Array, Table, Bool, Null
+    // or
+    from "types" import *
+    // or
+    import types
+
+Type methods can be called directly on values.
+They can also be called by adding the $ symbol before the method name, like ``table.$tostring()`` or ``table?.$tostring()```.
+With the '$' symbol, Quirrel will call the built-in type method.
+This matters in tables and instances (``{len=@() 0}.len() //0`` vs ``{len= @() 0}.$len() //1``).
+While having such names in tables is not a good idea, this can happen with data coming from external sources.
+
+Values can be tested against classes using ``instanceof``, just like script class instances::
+
+    let x = 5
+    if (x instanceof Integer) {
+        println("x is an integer")
+    }
+
+^^^^^^^
 Integer
-^^^^^^^^
+^^^^^^^
 
 .. sq:function:: integer.tofloat()
 

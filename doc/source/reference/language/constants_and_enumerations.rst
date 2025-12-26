@@ -28,6 +28,7 @@ Constants values can be:
     * Tables and arrays of simple types (nested table/arrayes are allowed)
     * Values of other constants
     * Results of evaluating pure functions
+    * Function declarations
     * Arithmetic and logical expressions
 
 Constants are declared with the following syntax.::
@@ -61,7 +62,7 @@ To make constant global, use the ``global`` keyword.::
 Example::
 
   global const foo = 0
-  if ("foo" not in getconsttable()) 
+  if ("foo" not in getconsttable())
     global const foo = 1
   print(foo) //prints 1
 
@@ -79,6 +80,21 @@ A `const` keyword can also be used in an expression to declare a local anonymous
     let y = 2>3 ? const [1,2,3] : const [8,9,0]
     println(y[2]) // prints 0
 
+Using this method functions can be declared
+
+::
+
+    const lambda = @[pure](x) x*123
+    const foo = function [pure] foo() {}
+
+The latter expression can be written in a shorter form:
+
+::
+
+    const function [pure] foo() {}
+
+Functions declared as compile-time constants can contain nested functions,
+but cannot reference any outer variables.
 
 ---------------
 Enumerations

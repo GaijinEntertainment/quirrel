@@ -14,6 +14,7 @@
 #include "sqarray.h"
 #include "sqclass.h"
 #include "vartrace.h"
+#include "compiler/sqtypeparser.h" // for sq_stringify_type_mask
 
 #define TARGET _stack._vals[_stackbase+arg0]
 #define STK(a) _stack._vals[_stackbase+(a)]
@@ -21,6 +22,8 @@
 #define SLOT_RESOLVE_STATUS_OK         0
 #define SLOT_RESOLVE_STATUS_NO_MATCH   1
 #define SLOT_RESOLVE_STATUS_ERROR      2
+
+#define WATCHDOG_RAREFICATION 8000
 
 static inline void propagate_immutable(const SQObject &obj, SQObject &slot_val)
 {
@@ -155,6 +158,7 @@ SQVM::SQVM(SQSharedState *ss) :
     _current_thread = -1;
     _get_current_thread_id_func = NULL;
     _sq_call_hook = NULL;
+    _watchdog_hook = NULL;
     _openouters = NULL;
     ci = NULL;
     _releasehook = NULL;
@@ -177,6 +181,7 @@ void SQVM::Finalize()
     _debughook_closure.Null();
     _get_current_thread_id_func = NULL;
     _sq_call_hook = NULL;
+    _watchdog_hook = NULL;
     temp_reg.Null();
     _callstackdata.resize(0);
     SQInteger size=_stack.size();
@@ -493,6 +498,7 @@ bool SQVM::Init(SQVM *friendvm, SQInteger stacksize)
         _current_thread = friendvm->_current_thread;
         _get_current_thread_id_func = friendvm->_get_current_thread_id_func;
         _sq_call_hook = friendvm->_sq_call_hook;
+        _watchdog_hook = friendvm->_watchdog_hook;
     }
 
 
@@ -632,6 +638,7 @@ bool SQVM::Return(SQInteger _arg0, SQInteger _arg1, SQObjectPtr &retval)
         }
     }
     LeaveFrame();
+
     return _isroot ? true : false;
 }
 
@@ -809,6 +816,19 @@ bool SQVM::CLOSURE_OP(SQObjectPtr &target, SQFunctionProto *func)
         for(SQInteger i = 0; i < ndefparams; i++) {
             SQInteger spos = func->_defaultparams[i];
             closure->_defaultparams[i] = _stack._vals[_stackbase + spos];
+
+            #if SQ_RUNTIME_TYPE_CHECK
+            int nparams = func->_nparameters;
+            int begin = nparams - ndefparams;
+            if (SQUnsignedInteger32 *paramTypeMasks = func->_param_type_masks)
+                if (!check_typemask(sq_type(closure->_defaultparams[i]), paramTypeMasks[begin + i])) {
+                    SQChar buf[160];
+                    sq_stringify_type_mask(buf, sizeof(buf), paramTypeMasks[begin + i]);
+                    Raise_Error(_SC("default param (%d) type '%s' differs from the declared type '%s'"),
+                        int(i + begin), GetTypeName(closure->_defaultparams[i]), buf);
+                    return false;
+                }
+            #endif
         }
     }
     target = closure;
@@ -862,6 +882,23 @@ bool SQVM::IsFalse(const SQObject &o)
   SQ_USED_MEM_COUNTER_DECL
 #endif
 
+
+#if SQ_WATCHDOG_ENABLED
+#define SQ_WATCHDOG_CHECK() \
+    do { \
+        if (_watchdog_hook && ++watchdogCounter > WATCHDOG_RAREFICATION) { \
+            watchdogCounter = 0; \
+            if (!_watchdog_hook(this, false)) { \
+                Raise_Error(_SC("Watchdog: too long execution of quirrel script")); \
+                SQ_THROW(); \
+            } \
+        } \
+    } while (0)
+#else
+#define SQ_WATCHDOG_CHECK()
+#endif
+
+
 extern SQInstructionDesc g_InstrDesc[];
 
 template <bool debughookPresent>
@@ -878,6 +915,8 @@ bool SQVM::Execute(const SQObjectPtr &closure, SQInteger nargs, SQInteger stackb
         assert(_current_thread == _get_current_thread_id_func());
     }
     #endif
+
+    SQUnsignedInteger32 watchdogCounter = 0;
 
     if ((_nnativecalls + 1) > MAX_NATIVE_CALLS) { Raise_Error(_SC("Native stack overflow")); return false; }
     _nnativecalls++;
@@ -995,36 +1034,57 @@ exception_restore:
                                            }
                         continue;
                     case OT_CLASS:{
-                        SQObjectPtr inst, ctor;
-                        _GUARD(CreateClassInstance(_class(clo),inst,ctor));
-                        if(tgt0 != -1) {
-                            STK(tgt0) = inst;
-                        }
-                        SQInteger stkbase;
-                        switch(sq_type(ctor)) {
-                            case OT_CLOSURE:
-                                stkbase = _stackbase+arg2;
-                                _stack._vals[stkbase] = inst;
-                                _GUARD(StartCall<debughookPresent>(_closure(ctor), -1, arg3, stkbase, false));
-                                break;
-                            case OT_NATIVECLOSURE:
-                                bool dummy;
-                                stkbase = _stackbase+arg2;
-                                _stack._vals[stkbase] = inst;
-                                _GUARD(CallNative(_nativeclosure(ctor), arg3, stkbase, ctor, -1, dummy, dummy));
-                                break;
-                            case OT_NULL:
-                                if (arg3 > 1) {
-                                    Raise_Error(_SC("cannot call default constructor with arguments"));
-                                    SQ_THROW();
-                                }
-                                break;
-                            default:
-                                // cannot happen, but still...
-                                assert(!"invalid constructor type");
-                                Raise_Error(_SC("invalid constructor type %s"), IdType2Name(sq_type(ctor)));
+                        SQClass *theclass = _class(clo);
+
+                        if (theclass->_is_builtin_type) {
+                            // For built-in types, call the constructor directly (no instance creation)
+                            SQObjectPtr ctor;
+                            if (!theclass->GetConstructor(ctor)) {
+                                Raise_Error(_SC("built-in type '%s' has no constructor"), IdType2Name(theclass->_builtin_type_id));
                                 SQ_THROW();
-                                break;
+                            }
+
+                            assert(sq_type(ctor) == OT_NATIVECLOSURE);
+                            SQInteger stkbase = _stackbase+arg2;
+                            _stack._vals[stkbase].Null();  // 'this'
+                            bool dummy;
+                            _GUARD(CallNative(_nativeclosure(ctor), arg3, stkbase, ctor, tgt0, dummy, dummy));
+                            if (tgt0 != -1) {
+                                STK(tgt0) = ctor;
+                            }
+                        } else {
+                            // Regular script class - create instance then call constructor
+                            SQObjectPtr inst, ctor;
+                            _GUARD(CreateClassInstance(theclass,inst,ctor));
+                            if(tgt0 != -1) {
+                                STK(tgt0) = inst;
+                            }
+                            SQInteger stkbase;
+                            switch(sq_type(ctor)) {
+                                case OT_CLOSURE:
+                                    stkbase = _stackbase+arg2;
+                                    _stack._vals[stkbase] = inst;
+                                    _GUARD(StartCall<debughookPresent>(_closure(ctor), -1, arg3, stkbase, false));
+                                    break;
+                                case OT_NATIVECLOSURE:
+                                    bool dummy;
+                                    stkbase = _stackbase+arg2;
+                                    _stack._vals[stkbase] = inst;
+                                    _GUARD(CallNative(_nativeclosure(ctor), arg3, stkbase, ctor, -1, dummy, dummy));
+                                    break;
+                                case OT_NULL:
+                                    if (arg3 > 1) {
+                                        Raise_Error(_SC("cannot call default constructor with arguments"));
+                                        SQ_THROW();
+                                    }
+                                    break;
+                                default:
+                                    // cannot happen, but still...
+                                    assert(!"invalid constructor type");
+                                    Raise_Error(_SC("invalid constructor type %s"), IdType2Name(sq_type(ctor)));
+                                    SQ_THROW();
+                                    break;
+                            }
                         }
                         }
                         break;
@@ -1293,6 +1353,7 @@ exception_restore:
             case _OP_MOD: _GUARD(ARITH_OP('%',TARGET,STK(arg2),STK(arg1))); continue;
             case _OP_BITW:  _GUARD(BW_OP( arg3,TARGET,STK(arg2),STK(arg1))); continue;
             case _OP_RETURN:
+                SQ_WATCHDOG_CHECK();
                 if((ci)->_generator) {
                     (ci)->_generator->Kill();
                 }
@@ -1321,14 +1382,20 @@ exception_restore:
                 int r;
                 const uint8_t uArg3 = arg3;
                 _GUARD(CMP_OP_RES((CmpOP)(uArg3&7),STK(arg2),STK(arg0),r));
-                if(uint8_t(bool(r)) == (uArg3>>3)) ci->_ip+=(sarg1);
+                if(uint8_t(bool(r)) == (uArg3>>3)) {
+                    SQ_WATCHDOG_CHECK();
+                    ci->_ip+=(sarg1);
+                }
                 }
                 continue;
             case _OP_JCMPK: {
                 int r;
                 const uint8_t uArg3 = arg3;
                 _GUARD(CMP_OP_RES((CmpOP)(uArg3&7),STK(arg2),ci->_literals[arg0],r));
-                if(uint8_t(bool(r)) == (uArg3>>3)) ci->_ip+=(sarg1);
+                if(uint8_t(bool(r)) == (uArg3>>3)) {
+                    SQ_WATCHDOG_CHECK();
+                    ci->_ip+=(sarg1);
+                }
                 }
                 continue;
             case _OP_JCMPI: {
@@ -1336,7 +1403,10 @@ exception_restore:
                 //todo: optimize comparison with int
                 const uint8_t uArg3 = arg3;
                 _GUARD(CMP_OP_RESI((CmpOP)(uArg3&7),STK(arg2), (SQInteger)sarg1, r));
-                if(uint8_t(bool(r)) == (uArg3>>3)) ci->_ip+=(sarg0);
+                if(uint8_t(bool(r)) == (uArg3>>3)) {
+                    SQ_WATCHDOG_CHECK();
+                    ci->_ip+=(sarg0);
+                }
                 }
                 continue;
             case _OP_JCMPF: {
@@ -1344,11 +1414,17 @@ exception_restore:
                 //todo: optimize comparison with float
                 const uint8_t uArg3 = arg3;
                 _GUARD(CMP_OP_RESF((CmpOP)(uArg3&7),STK(arg2), farg1, r));
-                if(uint8_t(bool(r)) == (uArg3>>3)) ci->_ip+=(sarg0);
+                if(uint8_t(bool(r)) == (uArg3>>3)) {
+                    SQ_WATCHDOG_CHECK();
+                    ci->_ip+=(sarg0);
+                }
                 }
                 continue;
             case _OP_JZ: {
-              if(uint8_t(IsFalse(STK(arg0))) != arg2) ci->_ip+=(sarg1);
+              SQ_WATCHDOG_CHECK();
+              if(uint8_t(IsFalse(STK(arg0))) != arg2) {
+                  ci->_ip+=(sarg1);
+              }
             } continue;
             case _OP_GETOUTER: {
                 SQClosure *cur_cls = _closure(ci->_closure);
@@ -1446,7 +1522,24 @@ exception_restore:
             case _OP_INSTANCEOF:
                 if(sq_type(STK(arg1)) != OT_CLASS)
                 {Raise_Error(_SC("cannot apply instanceof between a %s and a %s"),GetTypeName(STK(arg1)),GetTypeName(STK(arg2))); SQ_THROW();}
-                TARGET = (sq_type(STK(arg2)) == OT_INSTANCE) ? (_instance(STK(arg2))->InstanceOf(_class(STK(arg1)))?true:false) : false;
+                {
+                    SQClass *cls = _class(STK(arg1));
+                    SQObjectPtr &obj = STK(arg2);
+                    bool result = false;
+
+                    if (sq_type(obj) == OT_INSTANCE) {
+                        result = _instance(obj)->InstanceOf(cls);
+                    } else if (cls->_is_builtin_type) {
+                        SQObjectType obj_type = sq_type(obj);
+                        // Special handling for closures and native closures - both map to Function class
+                        if (cls->_builtin_type_id == OT_CLOSURE && (obj_type == OT_CLOSURE || obj_type == OT_NATIVECLOSURE)) {
+                            result = true;
+                        } else {
+                            result = (obj_type == cls->_builtin_type_id);
+                        }
+                    }
+                    TARGET = result;
+                }
                 continue;
             case _OP_AND:{
                 if(IsFalse(STK(arg2))) {
@@ -1618,6 +1711,15 @@ exception_restore:
             case _OP_FREEZE:
                 STK(arg1)._flags |= SQOBJ_FLAG_IMMUTABLE;
                 TARGET = STK(arg1);
+                continue;
+            case _OP_CHECK_TYPE:
+                if (!check_typemask(sq_type(STK(arg0)), arg1)) {
+                    SQChar buf[160];
+                    sq_stringify_type_mask(buf, sizeof(buf), arg1);
+                    Raise_Error(_SC("type '%s' differs from the declared type '%s'"), GetTypeName(STK(arg0)), buf);
+                    SQ_THROW();
+                }
+                //TARGET = STK(arg2);
                 continue;
             }
 
@@ -1830,6 +1932,23 @@ bool SQVM::CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newb
         retval.Null();
     }
     LeaveFrame();
+
+#if SQ_RUNTIME_TYPE_CHECK
+    if (target != -1) {
+        if (!check_typemask(sq_type(retval), nclosure->_result_type_mask)) {
+            SQChar buf[160];
+            sq_stringify_type_mask(buf, sizeof(buf), nclosure->_result_type_mask);
+            Raise_Error(_SC("Function '%s' returned invalid type '%s', expected '%s'"),
+                sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : "<unknown>",
+                GetTypeName(retval), buf);
+            return false;
+        }
+    } else if (nclosure->_nodiscard) {
+        Raise_Error(_SC("Discarding return value of function '%s' with 'nodiscard' attribute"), sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : "<unknown>");
+        return false;
+    }
+#endif
+
     return true;
 }
 
@@ -1996,24 +2115,34 @@ SQInteger SQVM::GetImpl(const SQObjectPtr &self, const SQObjectPtr &key, SQObjec
     return SLOT_RESOLVE_STATUS_NO_MATCH;
 }
 
+SQClass* SQVM::GetBuiltInClassForType(SQObjectType type)
+{
+    switch(type) {
+        case OT_INTEGER: return _class(_sharedstate->_integer_class);
+        case OT_FLOAT: return _class(_sharedstate->_float_class);
+        case OT_BOOL: return _class(_sharedstate->_bool_class);
+        case OT_STRING: return _class(_sharedstate->_string_class);
+        case OT_ARRAY: return _class(_sharedstate->_array_class);
+        case OT_TABLE: return _class(_sharedstate->_table_class);
+        case OT_CLOSURE:
+        case OT_NATIVECLOSURE: return _class(_sharedstate->_function_class);
+        case OT_GENERATOR: return _class(_sharedstate->_generator_class);
+        case OT_THREAD: return _class(_sharedstate->_thread_class);
+        case OT_CLASS: return _class(_sharedstate->_class_class);
+        case OT_INSTANCE: return _class(_sharedstate->_instance_class);
+        case OT_WEAKREF: return _class(_sharedstate->_weakref_class);
+        case OT_USERDATA: return _class(_sharedstate->_userdata_class);
+        case OT_NULL: return _class(_sharedstate->_null_class);
+        default: return NULL;
+    }
+}
+
 bool SQVM::InvokeDefaultDelegate(const SQObjectPtr &self,const SQObjectPtr &key,SQObjectPtr &dest)
 {
-    SQTable *ddel = NULL;
-    switch(sq_type(self)) {
-        case OT_CLASS: ddel = _class_ddel; break;
-        case OT_TABLE: ddel = _table_ddel; break;
-        case OT_ARRAY: ddel = _array_ddel; break;
-        case OT_STRING: ddel = _string_ddel; break;
-        case OT_INSTANCE: ddel = _instance_ddel; break;
-        case OT_INTEGER:case OT_FLOAT:case OT_BOOL: ddel = _number_ddel; break;
-        case OT_GENERATOR: ddel = _generator_ddel; break;
-        case OT_CLOSURE: case OT_NATIVECLOSURE: ddel = _closure_ddel; break;
-        case OT_THREAD: ddel = _thread_ddel; break;
-        case OT_WEAKREF: ddel = _weakref_ddel; break;
-        case OT_USERDATA: ddel = _userdata_ddel; break;
-        default: return false;
-    }
-    return  ddel->Get(key,dest);
+    SQClass *builtin_class = GetBuiltInClassForType(sq_type(self));
+    if (!builtin_class)
+        return false;
+    return builtin_class->Get(key, dest);
 }
 
 
@@ -2280,16 +2409,33 @@ bool SQVM::Call(const SQObjectPtr &closure,SQInteger nparams,SQInteger stackbase
         return CallNative(_nativeclosure(closure), nparams, stackbase, outres, -1, dummy, dummy);
     }
     case OT_CLASS: {
-        SQObjectPtr constr;
-        SQObjectPtr temp;
-        if (!CreateClassInstance(_class(closure),outres,constr))
-            return false;
-        SQObjectType ctype = sq_type(constr);
-        if (ctype == OT_NATIVECLOSURE || ctype == OT_CLOSURE) {
-            _stack[stackbase] = outres;
-            return Call(constr,nparams,stackbase,temp,invoke_err_handler);
+        SQClass *theclass = _class(closure);
+
+        if (theclass->_is_builtin_type) {
+            // For built-in types, call the constructor directly (no instance creation)
+            SQObjectPtr constr;
+            if (!theclass->GetConstructor(constr)) {
+                Raise_Error(_SC("built-in type '%s' has no constructor"), IdType2Name(theclass->_builtin_type_id));
+                return false;
+            }
+
+            assert(sq_type(constr) == OT_NATIVECLOSURE);
+            _stack[stackbase].Null();  // 'this'
+            bool dummy;
+            return CallNative(_nativeclosure(constr), nparams, stackbase, outres, -1, dummy, dummy);
+        } else {
+            // Regular script class - create instance then call constructor
+            SQObjectPtr constr;
+            SQObjectPtr temp;
+            if (!CreateClassInstance(theclass,outres,constr))
+                return false;
+            SQObjectType ctype = sq_type(constr);
+            if (ctype == OT_NATIVECLOSURE || ctype == OT_CLOSURE) {
+                _stack[stackbase] = outres;
+                return Call(constr,nparams,stackbase,temp,invoke_err_handler);
+            }
+            return true;
         }
-        return true;
     }
     default:
         Raise_Error(_SC("attempt to call '%s'"), GetTypeName(closure));

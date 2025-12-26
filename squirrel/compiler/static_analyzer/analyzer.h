@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../ast.h"
-#include "../compilationcontext.h"
+#include "compiler/ast.h"
+#include "compiler/compilationcontext.h"
 
 namespace SQCompilation {
 

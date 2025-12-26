@@ -8,6 +8,7 @@
 #include "compilationcontext.h"
 #include "sqtypeparser.h"
 #include <stdarg.h>
+#include <sq_char_class.h>
 
 namespace SQCompilation {
 
@@ -66,7 +67,7 @@ bool SQParser::ProcessPosDirective()
         return false;
 
     sval += 4;
-    if (!isdigit(*sval))
+    if (!sq_isdigit(*sval))
         reportDiagnostic(DiagnosticsId::DI_EXPECTED_LINENUM);
     SQChar * next = NULL;
     _lex._currentline = scstrtol(sval, &next, 10);
@@ -75,7 +76,7 @@ bool SQParser::ProcessPosDirective()
         return false;
     }
     next++;
-    if (!isdigit(*next))
+    if (!sq_isdigit(*next))
         reportDiagnostic(DiagnosticsId::DI_EXPECTED_COLNUM);
     _lex._currentcolumn = scstrtol(next, NULL, 10);
     return true;
@@ -1168,6 +1169,7 @@ void SQParser::ParseTableOrClass(TableDecl *decl, SQInteger separator, SQInteger
             Expect(_SC('('));
             FunctionDecl *f = CreateFunction(funcName, false, tk == TK_CONSTRUCTOR);
             f->setPure(attr & FATTR_PURE);
+            f->setNodiscard(attr & FATTR_NODISCARD);
             DeclExpr *e = newNode<DeclExpr>(f);
             setCoordinates(e, l, c);
             decl->addMember(key, e, flags);
@@ -1228,6 +1230,7 @@ Decl *SQParser::parseLocalFunctionDeclStmt(bool assignable)
     Expect(_SC('('));
     FunctionDecl *f = CreateFunction(varname, false);
     f->setPure(attr & FATTR_PURE);
+    f->setNodiscard(attr & FATTR_NODISCARD);
     f->setLineStartPos(l); f->setColumnStartPos(c);
     VarDecl *d = newNode<VarDecl>(varname->name(), copyCoordinates(f, newNode<DeclExpr>(f)), assignable); //-V522
     setCoordinates(d, l, c);
@@ -1661,11 +1664,38 @@ LiteralExpr* SQParser::ExpectScalar()
 }
 
 
+ConstDecl* SQParser::parseConstFunctionDeclStmt(bool global)
+{
+    SQInteger l = line(), c = column();
+
+    assert(_token == TK_FUNCTION);
+    Lex();
+
+    FuncAttrFlagsType attr = ParseFunctionAttributes();
+    Id *funcName = (Id *)Expect(TK_IDENTIFIER);
+    Expect(_SC('('));
+    FunctionDecl *f = CreateFunction(funcName, false);
+    f->setPure(attr & FATTR_PURE);
+    f->setNodiscard(attr & FATTR_NODISCARD);
+    f->setLineStartPos(l); f->setColumnStartPos(c);
+
+    // Wrap function in DeclExpr first, then in const inline operator
+    DeclExpr *funcExpr = copyCoordinates(f, newNode<DeclExpr>(f));
+    Expr *constFunc = copyCoordinates(funcExpr, newNode<UnExpr>(TO_INLINE_CONST, funcExpr));
+    ConstDecl *d = setCoordinates(newNode<ConstDecl>(funcName->name(), constFunc, global), l, c); //-V522
+    return d;
+}
+
 ConstDecl* SQParser::parseConstStatement(bool global)
 {
     NestingChecker nc(this);
     SQInteger l = line(), c = column();
     Lex();
+
+    if (_token == TK_FUNCTION) {
+        return parseConstFunctionDeclStmt(global);
+    }
+
     Id *id = (Id *)Expect(TK_IDENTIFIER);
 
     Expect('=');
@@ -1775,6 +1805,8 @@ SQParser::FuncAttrFlagsType SQParser::ParseFunctionAttributes() {
             FuncAttrFlagsType flag = 0;
             if (strcmp(_lex._svalue, "pure")==0) {
                 flag = FATTR_PURE;
+            } else if (strcmp(_lex._svalue, "nodiscard")==0) {
+                flag = FATTR_NODISCARD;
             } else {
                 reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "valid attribute name");
             }
@@ -1808,6 +1840,7 @@ DeclExpr* SQParser::FunctionExp(bool lambda)
 
     Decl *f = CreateFunction(funcName, lambda);
     static_cast<FunctionDecl *>(f)->setPure(attr & FATTR_PURE);
+    static_cast<FunctionDecl *>(f)->setNodiscard(attr & FATTR_NODISCARD);
     f->setLineStartPos(l);
     f->setColumnStartPos(c);
 

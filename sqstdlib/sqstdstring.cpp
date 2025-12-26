@@ -4,10 +4,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <ctype.h>
 #include <assert.h>
 #include <stdarg.h>
 #include <sqstringlib.h>
+#include <sq_char_class.h>
 
 #define MAX_FORMAT_LEN  20
 #define MAX_WFORMAT_LEN 3
@@ -31,7 +31,7 @@ static SQInteger validate_format(HSQUIRRELVM v, SQChar *fmt, const SQChar *src, 
     SQInteger start = n;
     fmt[0] = '%';
     while (isfmtchr(src[n])) n++;
-    while (isdigit(src[n])) {
+    while (sq_isdigit(src[n])) {
         swidth[wc] = src[n];
         n++;
         wc++;
@@ -48,7 +48,7 @@ static SQInteger validate_format(HSQUIRRELVM v, SQChar *fmt, const SQChar *src, 
         n++;
 
         wc = 0;
-        while (isdigit(src[n])) {
+        while (sq_isdigit(src[n])) {
             swidth[wc] = src[n];
             n++;
             wc++;
@@ -327,8 +327,8 @@ static SQInteger _regexp__typeof(HSQUIRRELVM v)
 static const SQRegFunctionFromStr rexobj_funcs[] = {
     { _regexp_constructor, "constructor(pattern: string): instance" },
     { _regexp_match, "instance.match(str: string): bool" },
-    { _regexp_search, "instance.search(str: string, [start: int]): table" },
-    { _regexp_capture, "instance.capture(str: string, [start: int]): array" },
+    { _regexp_search, "instance.search(str: string, [start: int]): table|null" },
+    { _regexp_capture, "instance.capture(str: string, [start: int]): array|null" },
     { _regexp_subexpcount, "instance.subexpcount(): int" },
     { _regexp__typeof, "instance._typeof(): string" },
     { NULL, NULL }
