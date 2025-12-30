@@ -5,6 +5,30 @@
 #include <cstdio>
 #include <cstdarg>
 
+
+// Not using file system
+static struct WasmSqModulesFileAccess : public ISqModulesFileAccess
+{
+  virtual void destroy() override {}
+
+  virtual void getSearchTargets(const char * /*fn*/, bool &search_native, bool &search_script) override {
+    search_native = true;
+    search_script = false; // No file system in Wasm build
+  }
+
+  virtual void resolveFileName(const char *requested_fn, const char *running_script, string &res) override {
+    // No relative paths because there's no file systems
+    res = requested_fn;
+  }
+
+  virtual bool readFile(const string &resolved_fn, const char *requested_fn, vector<char> &buf, string &out_err_msg) override {
+    // Should not get here, but just in case
+    out_err_msg = std::string("Cannot read '") + resolved_fn.c_str() + "' module from file";
+    return false;
+  }
+} wasm_file_access;
+
+
 static std::string output;
 
 
@@ -98,8 +122,7 @@ static std::string runScript(const std::string &source_text)
   assert(vm);
 
   std::unique_ptr<SqModules> moduleMgr;
-  DefSqModulesFileAccess fileAccess;
-  moduleMgr.reset(new SqModules(vm, &fileAccess));
+  moduleMgr.reset(new SqModules(vm, &wasm_file_access));
 
   sq_setprintfunc(vm, script_print_func, script_err_print_func);
   sq_setcompilererrorhandler(vm, compile_error_handler);
@@ -112,6 +135,7 @@ static std::string runScript(const std::string &source_text)
   moduleMgr->registerMathLib();
   moduleMgr->registerStringLib();
   moduleMgr->registerSystemLib();
+  moduleMgr->registerDebugLib();
   moduleMgr->registerIoStreamLib();
   //moduleMgr->registerIoLib(); // not needed in browser version
   moduleMgr->registerDateTimeLib();
