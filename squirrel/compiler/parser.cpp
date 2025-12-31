@@ -1196,10 +1196,13 @@ void SQParser::ParseTableOrClass(TableDecl *decl, SQInteger separator, SQInteger
                 break;
             }  //-V796
         default: {
-            Id *id = (Id *)setCoordinates(Expect(TK_IDENTIFIER), l, c);
+            Id *id = (Id *)Expect(TK_IDENTIFIER);
             assert(id);
-            LiteralExpr *key = newNode<LiteralExpr>(id->name()); //-V522
+            id->setLineStartPos(l); //-V522
+            id->setColumnStartPos(c);
+            LiteralExpr *key = newNode<LiteralExpr>(id->name());
             copyCoordinates(id, key);
+
             if ((otype == NEWOBJ_TABLE) &&
                 (_token == TK_IDENTIFIER || _token == separator || _token == terminator || _token == _SC('[')
                     || _token == TK_FUNCTION)) {
