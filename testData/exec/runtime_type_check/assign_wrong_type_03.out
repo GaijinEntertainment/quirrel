@@ -8,4 +8,4 @@ LOCALS
 [y] TABLE={}
 [vargv] ARRAY=[]
 [this] NULL
-Error [Failed to run script testData\exec\runtime_type_check\assign_wrong_type_03.nut (testData/exec/runtime_type_check/assign_wrong_type_03.nut)]
+Error [Failed to run script testData/exec/runtime_type_check/assign_wrong_type_03.nut (testData/exec/runtime_type_check/assign_wrong_type_03.nut)]

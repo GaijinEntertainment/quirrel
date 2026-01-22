@@ -12,4 +12,4 @@ LOCALS
 [fn] CLOSURE=FN:fn
 [vargv] ARRAY=[]
 [this] NULL
-Error [Failed to run script testData\exec\runtime_type_check\return_wrong_type.nut (testData/exec/runtime_type_check/return_wrong_type.nut)]
+Error [Failed to run script testData/exec/runtime_type_check/return_wrong_type.nut (testData/exec/runtime_type_check/return_wrong_type.nut)]

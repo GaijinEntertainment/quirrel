@@ -12,4 +12,4 @@ LOCALS
 [y] TABLE={}
 [vargv] ARRAY=[]
 [this] NULL
-Error [Failed to run script testData\exec\runtime_type_check\assign_wrong_type_05.nut (testData/exec/runtime_type_check/assign_wrong_type_05.nut)]
+Error [Failed to run script testData/exec/runtime_type_check/assign_wrong_type_05.nut (testData/exec/runtime_type_check/assign_wrong_type_05.nut)]

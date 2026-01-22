@@ -90,6 +90,8 @@ def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs,
     if (not path.exists(testFilePath)):
         testFilePath = computePath(dirname, name + '.nut.txt')
 
+    testFilePath = testFilePath.replace('\\', '/')
+
     expectedResultFilePath = computePath(dirname, name + suffix)
     outputDir = computePath(workingDir, dirname)
 
