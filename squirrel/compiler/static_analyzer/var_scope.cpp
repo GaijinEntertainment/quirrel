@@ -1,10 +1,14 @@
 #include <assert.h>
+#include <vector>
+#include <algorithm>
 
 #include "var_scope.h"
 #include "value_ref.h"
+#include "symbol_info.h"
 #include "naming.h"
 #include "checker_visitor.h"
 #include "compiler/compilationcontext.h"
+#include "compiler/sourceloc.h"
 
 namespace SQCompilation
 {
@@ -151,9 +155,26 @@ VarScope *VarScope::copy(Arena *a, bool forClosure) const {
 }
 
 
-void VarScope::checkUnusedSymbols(CheckerVisitor *checker) {
+static SourceLoc getSymbolLocation(const SymbolInfo *info) {
+  if (info->kind == SK_IMPORT) {
+    const ImportInfo *imp = info->declarator.imp;
+    return {imp->line, imp->column};
+  }
+  const Node *node = info->extractPointedNode();
+  return {node->lineStart(), node->columnStart()}; //-V522
+}
 
-  for (auto &s : symbols) {
+void VarScope::checkUnusedSymbols(CheckerVisitor *checker) {
+  std::vector<std::pair<const SQChar *, ValueRef *>> sorted(symbols.begin(), symbols.end());
+  std::sort(sorted.begin(), sorted.end(), [](const auto &a, const auto &b) {
+    SourceLoc locA = getSymbolLocation(a.second->info);
+    SourceLoc locB = getSymbolLocation(b.second->info);
+    if (locA.line != locB.line)
+      return locA.line < locB.line;
+    return locA.column < locB.column;
+  });
+
+  for (auto &s : sorted) {
     const SQChar *n = s.first;
     const ValueRef *v = s.second;
 
