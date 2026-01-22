@@ -23,8 +23,7 @@ but conversion usually can be done easily.
 
 Quirrel offers a wide range of features like dynamic typing, higher
 order functions, generators, tail recursion, exception handling, coroutines, automatic memory
-management while fitting both compiler and virtual machine into about 6k lines of C++
-code.
+management.
 
 Repository is available on https://github.com/GaijinEntertainment/quirrel and your PR's and feedback are welcome!
 
