@@ -102,7 +102,7 @@ void CodeGenVisitor::reportDiagnostic(Node *n, int32_t id, ...) {
     va_list vargs;
     va_start(vargs, id);
 
-    _ctx.vreportDiagnostic((enum DiagnosticsId)id, n->lineStart(), n->columnStart(), n->columnEnd() - n->columnStart(), vargs);
+    _ctx.vreportDiagnostic((enum DiagnosticsId)id, n->lineStart(), n->columnStart(), n->textWidth(), vargs);
 
     va_end(vargs);
 }

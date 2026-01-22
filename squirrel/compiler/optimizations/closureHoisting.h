@@ -167,7 +167,7 @@ class ClosureHoistingOpt {
 
     VarScope *scope;
 
-    Id *createId(const char *name);
+    Id *createId(SourceSpan span, const char *name);
 
   public:
     Node *transformDeclExpr(DeclExpr *expr);

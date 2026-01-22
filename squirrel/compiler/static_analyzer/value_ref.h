@@ -12,12 +12,10 @@ struct SymbolInfo;
 class Expr;
 
 enum ValueRefState {
-  VRS_UNDEFINED,
   VRS_EXPRESSION,
   VRS_INITIALIZED,
   VRS_MULTIPLE,
   VRS_UNKNOWN,
-  VRS_PARTIALLY,
   VRS_DECLARED,
   VRS_NUM_OF_STATES
 };
@@ -35,13 +33,21 @@ struct ValueRef {
     let y = x    // eid = 2
     x = 20       // eid = 3
   */
-
   int32_t evalIndex;
 
-  ValueRef(SymbolInfo *i, int32_t eid) : info(i), evalIndex(eid), state(), expression(nullptr) {
+  // Track aliasing: if this variable was initialized from another variable,
+  // store a reference to it so we can check its current flags dynamically.
+  const ValueRef *origin;
+  int32_t originEvalIndex;  // origin's evalIndex at the time of this declaration
+
+  ValueRef(SymbolInfo *i, int32_t eid)
+    : info(i), evalIndex(eid), state(), expression(nullptr)
+  {
     assigned = false;
     lastAssigneeScope = nullptr;
     flagsPositive = flagsNegative = 0;
+    origin = nullptr;
+    originEvalIndex = -1;
   }
 
   bool hasValue() const {

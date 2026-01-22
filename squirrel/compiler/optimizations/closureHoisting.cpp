@@ -16,16 +16,6 @@ ClosureHoistingOpt::ClosureHoistingOpt(SQSharedState *ss, Arena *astA)
 
 }
 
-template<typename N>
-static N *copyCoordinates(const Node *f, N *t) {
-  t->setLineStartPos(f->lineStart());
-  t->setColumnStartPos(f->columnStart());
-  t->setLineEndPos(f->lineEnd());
-  t->setColumnEndPos(f->columnEnd());
-
-  return t;
-}
-
 void ClosureHoistingOpt::ScopeComputeVisitor::visitFunctionDecl(FunctionDecl *f) {
 
   if (f->name()) {
@@ -239,14 +229,17 @@ const char *ClosureHoistingOpt::HoistingVisitor::generateName() {
 }
 
 VarDecl *ClosureHoistingOpt::HoistingVisitor::createStubVariable(FunctionDecl *f) {
-  DeclExpr *dexpr = copyCoordinates(f, new (astArena) DeclExpr(f));
+  // DeclExpr::sourceSpan() delegates to f->sourceSpan(), so no coordinate copying needed
+  DeclExpr *dexpr = new (astArena) DeclExpr(f);
   const char *name = generateName();
 
   relocMap[f] = name;
 
   relocSet.insert(dexpr);
 
-  return copyCoordinates(f, new (astArena) VarDecl(name, dexpr, false));
+  // Create Id with the function's span for proper diagnostics
+  Id *nameId = new (astArena) Id(f->sourceSpan(), name);
+  return new (astArena) VarDecl(f->sourceSpan().start, nameId, dexpr, false);
 }
 
 ClosureHoistingOpt::HoistingVisitor::RelocateState *ClosureHoistingOpt::HoistingVisitor::findState(int depth) {
@@ -327,8 +320,8 @@ void ClosureHoistingOpt::hoistClosures(RootBlock *root) {
   root->visit(&visitor);
 }
 
-Id *ClosureHoistingOpt::RemapTransformer::createId(const char *name) {
-  return new (astArena) Id(name);
+Id *ClosureHoistingOpt::RemapTransformer::createId(SourceSpan span, const char *name) {
+  return new (astArena) Id(span, name);
 }
 
 Node *ClosureHoistingOpt::RemapTransformer::transformDeclExpr(DeclExpr *e) {
@@ -340,7 +333,8 @@ Node *ClosureHoistingOpt::RemapTransformer::transformDeclExpr(DeclExpr *e) {
       FunctionDecl *f = (FunctionDecl *)d;
       auto it = relocMap.find(f);
       if (it != relocMap.end()) {
-        return copyCoordinates(e, createId(it->second));
+        // Create Id with the expression's span for proper diagnostics
+        return createId(e->sourceSpan(), it->second);
       }
     }
   }
@@ -366,7 +360,8 @@ Node *ClosureHoistingOpt::RemapTransformer::transformId(Id *id) {
     FunctionDecl *f = (FunctionDecl *)d;
     auto it = relocMap.find(f);
     if (it != relocMap.end()) {
-      return copyCoordinates(id, createId(it->second));
+      // Create Id with the original identifier's span for proper diagnostics
+      return createId(id->sourceSpan(), it->second);
     }
   }
 
@@ -384,7 +379,7 @@ Node *ClosureHoistingOpt::RemapTransformer::transformFunctionDecl(FunctionDecl *
 
   auto it = relocMap.find(f);
   if (it != relocMap.end()) {
-    return new(astArena) EmptyStatement();
+    return new(astArena) EmptyStatement(SourceSpan::invalid());
   }
 
   return f;

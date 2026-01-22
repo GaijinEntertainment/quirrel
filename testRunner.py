@@ -12,6 +12,7 @@ import subprocess
 from subprocess import Popen, PIPE
 import platform
 import argparse
+import threading
 
 CRED = '\33[31m'
 CGREEN = '\33[32m'
@@ -22,6 +23,9 @@ numOfTests=0
 numOfFailedTests=0
 verbose=False
 ciRun=False
+
+THREADS = 12
+lock = threading.Lock()
 
 
 def xprint(str, color = ''):
@@ -89,27 +93,28 @@ def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs,
     expectedResultFilePath = computePath(dirname, name + suffix)
     outputDir = computePath(workingDir, dirname)
 
-    if (not path.exists(outputDir)):
-        os.makedirs(outputDir)
+    with lock:
+        if (not path.exists(outputDir)):
+            os.makedirs(outputDir)
 
-    actualResultFilePath = computePath(workingDir, expectedResultFilePath)
+        actualResultFilePath = computePath(workingDir, expectedResultFilePath)
 
-    if path.exists(actualResultFilePath):
-        os.remove(actualResultFilePath)
+        if path.exists(actualResultFilePath):
+            os.remove(actualResultFilePath)
 
-    compilationCommand = [compiler, "-optCH"]
-    compilationCommand += extraargs
+        compilationCommand = [compiler, "-optCH"]
+        compilationCommand += extraargs
 
-    if stdoutFile:
-        outredirect = open(actualResultFilePath, 'w+')
-    else:
-        outredirect = subprocess.PIPE
-        compilationCommand += [actualResultFilePath]
+        if stdoutFile:
+            outredirect = open(actualResultFilePath, 'w+')
+        else:
+            outredirect = subprocess.PIPE
+            compilationCommand += [actualResultFilePath]
 
-    compilationCommand += [testFilePath]
+        compilationCommand += [testFilePath]
 
-    if verbose:
-        xprint(compilationCommand)
+        if verbose:
+            xprint(compilationCommand)
 
     proc = Popen(compilationCommand, stdout=outredirect, stderr=outredirect)
 
@@ -118,33 +123,35 @@ def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs,
     try:
         outs, errs = proc.communicate(timeout=10)
     except subprocess.TimeoutExpired:
-        proc.kill()
-        outs, errs = proc.communicate()
-        xprint("\nTIMEOUT: sq froze on test: {0}\n".format(testFilePath), CBOLD + CRED)
-        numOfFailedTests = numOfFailedTests + 1
+        with lock:
+            proc.kill()
+            outs, errs = proc.communicate()
+            xprint("\nTIMEOUT: sq froze on test: {0}\n".format(testFilePath), CBOLD + CRED)
+            numOfFailedTests = numOfFailedTests + 1
         return
 
-    if proc.returncode != 0:
-        xprint("\nCRASH: {0}".format(testFilePath), CBOLD + CRED)
-        numOfFailedTests = numOfFailedTests + 1
-        if outs != None:
-            xprint("--stdout------------------", CBOLD + CRED)
-            xprint(outs.decode('utf-8'))
-        if errs != None:
-            xprint("--stderr------------------", CBOLD + CRED)
-            xprint(errs.decode('utf-8'))
-        if errs != None or outs != None:
-            xprint("--------------------------", CBOLD + CRED)
-            xprint("")
-    else:
-        testOk = True
-        if (path.exists(expectedResultFilePath)):
-            testOk = compareFilesLineByLine(kind, testFilePath, actualResultFilePath, expectedResultFilePath)
+    with lock:
+        if proc.returncode != 0:
+            xprint("\nCRASH: {0}".format(testFilePath), CBOLD + CRED)
+            numOfFailedTests = numOfFailedTests + 1
+            if outs != None:
+                xprint("--stdout------------------", CBOLD + CRED)
+                xprint(outs.decode('utf-8'))
+            if errs != None:
+                xprint("--stderr------------------", CBOLD + CRED)
+                xprint(errs.decode('utf-8'))
+            if errs != None or outs != None:
+                xprint("--------------------------", CBOLD + CRED)
+                xprint("")
+        else:
+            testOk = True
+            if (path.exists(expectedResultFilePath)):
+                testOk = compareFilesLineByLine(kind, testFilePath, actualResultFilePath, expectedResultFilePath)
 
-        if (testOk):
-            xprint(f"PASSED: {testFilePath}", CBOLD + CGREEN)
+            if (testOk):
+                xprint(f"PASSED: {testFilePath}", CBOLD + CGREEN)
 
-        updateExpectedFromActualIfNeed(kind, actualResultFilePath, expectedResultFilePath)
+            updateExpectedFromActualIfNeed(kind, actualResultFilePath, expectedResultFilePath)
 
 
 def runDiagTest(compiler, workingDir, dirname, name):
@@ -191,13 +198,29 @@ def runTestForData(filePath, compiler, workingDir, testMode):
             xprint(f"Unknown test mode {testMode}")
 
 
-def walkDirectory(path, indent, block):
+def walkDirectoryImpl(counter, path, indent, block):
     for file in path.iterdir():
         # print('\t' * indent + f"Walk path {file}")
         if file.is_dir():
-            walkDirectory(file, indent + 1, block)
+            walkDirectoryImpl(counter, file, indent + 1, block)
         else:
-            block(file)
+            counter = counter + 1
+            if counter == THREADS:
+                counter = 0
+                block(file)
+
+
+def walkDirectory(path, indent, block):
+    threads = []
+
+    for i in range(THREADS):
+        thread = threading.Thread(target=walkDirectoryImpl, args=(i, path, indent, block))
+        thread.start()
+        threads.append(thread)
+
+    for thread in threads:
+        thread.join()
+
 
 def checkCompiler(compiler):
     try:

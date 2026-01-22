@@ -3,7 +3,7 @@ testData/static_analyzer/w200_static_memo_expr.nut:4:10
 
 function fn(mod, wpUnitRank) { //-declared-never-used
   return (static(mod?.reqRank) > wpUnitRank) // -w316
-          ^---------------------
+          ^------------------
 }
 
 

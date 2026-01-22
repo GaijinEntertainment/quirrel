@@ -16,7 +16,7 @@ class NameShadowingChecker : public Visitor {
     va_list vargs;
     va_start(vargs, id);
 
-    _ctx.vreportDiagnostic((enum DiagnosticsId)id, n->lineStart(), n->columnStart(), n->columnEnd() - n->columnStart(), vargs); //-V522
+    _ctx.vreportDiagnostic((enum DiagnosticsId)id, n->lineStart(), n->columnStart(), n->textWidth(), vargs); //-V522
 
     va_end(vargs);
   }
@@ -85,7 +85,7 @@ public:
     : _ctx(ctx)
     , rootScope(this, nullptr)
     , scope(&rootScope)
-    , rootPointerNode("<root>") {
+    , rootPointerNode(SourceSpan::invalid(), "<root>") {
     rootScope.parent = nullptr;
     loadBindings(bindings);
   }

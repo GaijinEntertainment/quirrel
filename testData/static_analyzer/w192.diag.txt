@@ -34,7 +34,7 @@ WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 
 testData/static_analyzer/w192.nut:8:0
 
 if (test == 5)
-^---------
+^
   a = 7
 
 
@@ -50,7 +50,7 @@ WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 
 testData/static_analyzer/w192.nut:14:0
 
 while (a > b)
-^-----------
+^
     a = 0; b = 20;
 
 

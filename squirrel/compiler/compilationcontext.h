@@ -32,11 +32,11 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(FP_EXP_EXPECTED, ERROR, LEX, -1, "", "exponent expected"), \
   DEF_DIAGNOSTIC(MALFORMED_NUMBER, ERROR, LEX, -1, "", "malformed number"), \
   DEF_DIAGNOSTIC(HEX_DIGITS_EXPECTED, ERROR, LEX, -1, "", "expected hex digits after '0x'"), \
-  DEF_DIAGNOSTIC(HEX_TOO_MANY_DIGITS, ERROR, LEX, -1, "", "too many digits for an Hex number"), \
+  DEF_DIAGNOSTIC(HEX_TOO_MANY_DIGITS, ERROR, LEX, -1, "", "too many digits for a hex number"), \
   DEF_DIAGNOSTIC(OCTAL_NOT_SUPPORTED, ERROR, LEX, -1, "", "leading 0 is not allowed, octal numbers are not supported"), \
   DEF_DIAGNOSTIC(TOO_LONG_LITERAL, ERROR, LEX, -1, "", "constant too long"), \
   DEF_DIAGNOSTIC(EMPTY_LITERAL, ERROR, LEX, -1, "", "empty constant"), \
-  DEF_DIAGNOSTIC(UNRECOGNISED_ESCAPER, ERROR, LEX, -1, "", "unrecognised escaper char"), \
+  DEF_DIAGNOSTIC(UNRECOGNISED_ESCAPER, ERROR, LEX, -1, "", "unrecognised escape char"), \
   DEF_DIAGNOSTIC(NEWLINE_IN_CONST, ERROR, LEX, -1, "", "newline in a constant"), \
   DEF_DIAGNOSTIC(UNFINISHED_STRING, ERROR, LEX, -1, "", "unfinished string"), \
   DEF_DIAGNOSTIC(HEX_NUMBERS_EXPECTED, ERROR, LEX, -1, "", "hexadecimal number expected"), \
@@ -53,7 +53,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(GLOBAL_CONSTS_ONLY, ERROR, SYNTAX, -1, "", "global can be applied to const and enum only"), \
   DEF_DIAGNOSTIC(END_OF_STMT_EXPECTED, ERROR, SYNTAX, -1, "", "end of statement expected (; or lf)"), \
   DEF_DIAGNOSTIC(EXPECTED_TOKEN, ERROR, SYNTAX, -1, "", "expected '%s'"), \
-  DEF_DIAGNOSTIC(INVALID_TYPE_NAME_SUGGESTION, ERROR, SYNTAX, -1, "", "Invalid type name '%s', did your mean '%s'?"), \
+  DEF_DIAGNOSTIC(INVALID_TYPE_NAME_SUGGESTION, ERROR, SYNTAX, -1, "", "Invalid type name '%s', did you mean '%s'?"), \
   DEF_DIAGNOSTIC(INVALID_TYPE_NAME, ERROR, SYNTAX, -1, "", "Invalid type name '%s'"), \
   DEF_DIAGNOSTIC(UNSUPPORTED_DIRECTIVE, ERROR, SYNTAX, -1, "", "unsupported directive '%s'"), \
   DEF_DIAGNOSTIC(EXPECTED_LINENUM, ERROR, SYNTAX, -1, "", "expected line number after #pos:"), \
@@ -87,7 +87,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(CONFLICTS_WITH, ERROR, SEMA, -1, "", "%s name '%s' conflicts with %s"), \
   DEF_DIAGNOSTIC(INC_DEC_NOT_ASSIGNABLE, ERROR, SEMA, -1, "", "argument of inc/dec operation is not assignable"), \
   DEF_DIAGNOSTIC(TYPE_DIFFERS, ERROR, SEMA, -1, "", "%s type differs from the declared type"), \
-  DEF_DIAGNOSTIC(SPACE_SEP_FIELD_NAME, ERROR, SEMA, -1, "", "Separate access operator '%s' with it's following name is forbidden"), \
+  DEF_DIAGNOSTIC(SPACE_SEP_FIELD_NAME, ERROR, SEMA, -1, "", "Separate access operator '%s' with its following name is forbidden"), \
   DEF_DIAGNOSTIC(TOO_MANY_SYMBOLS, ERROR, SEMA, -1, "", "internal compiler error: too many %s"), \
   DEF_DIAGNOSTIC(NOT_ALLOWED_IN_CONST, ERROR, SEMA, -1, "", "%s is not allowed in constant"), \
   DEF_DIAGNOSTIC(ID_IS_NOT_CONST, ERROR, SEMA, -1, "", "Identifier '%s' is not a compile-time constant"), \
@@ -106,7 +106,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(POTENTIALLY_NULLABLE_INDEX, WARNING, SEMA, 210, "potentially-nulled-index", "Potentially nullable expression used as array index."), \
   DEF_DIAGNOSTIC(DUPLICATE_CASE, WARNING, SEMA, 211, "duplicate-case", "Duplicate case value."), \
   DEF_DIAGNOSTIC(DUPLICATE_IF_EXPR, WARNING, SEMA, 212, "duplicate-if-expression", "Detected pattern 'if (A) {...} else if (A) {...}'. Branch unreachable."), \
-  DEF_DIAGNOSTIC(THEN_ELSE_EQUAL, WARNING, SEMA, 213, "then-and-else-equals", "then' statement is equivalent to 'else' statement."), \
+  DEF_DIAGNOSTIC(THEN_ELSE_EQUAL, WARNING, SEMA, 213, "then-and-else-equals", "'then' statement is equivalent to 'else' statement."), \
   DEF_DIAGNOSTIC(TERNARY_SAME_VALUES, WARNING, SEMA, 214, "operator-returns-same-val", "Both branches of operator '<> ? <> : <>' are equivalent."), \
   DEF_DIAGNOSTIC(TERNARY_PRIOR, WARNING, SEMA, 215, "ternary-priority", "The '?:' operator has lower priority than the '%s' operator. Perhaps the '?:' operator works in a different way than it was expected."), \
   DEF_DIAGNOSTIC(SAME_OPERANDS, WARNING, SEMA, 216, "same-operands", "Left and right operands of '%s' operator are the same."), \
@@ -115,7 +115,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(UNUTILIZED_EXPRESSION, WARNING, SEMA, 221, "result-not-utilized", "Result of operation is not used."), \
   DEF_DIAGNOSTIC(BOOL_AS_INDEX, WARNING, SEMA, 222, "bool-as-index", "Boolean used as array index."), \
   DEF_DIAGNOSTIC(COMPARE_WITH_BOOL, WARNING, SEMA, 223, "compared-with-bool", "Comparison with boolean."), \
-  DEF_DIAGNOSTIC(EMPTY_BODY, WARNING, SEMA, 224, "empty-body", "'%s' operator has an empty body."), \
+  DEF_DIAGNOSTIC(EMPTY_BODY, WARNING, SEMA, 224, "empty-body", "%s has an empty body."), \
   DEF_DIAGNOSTIC(NOT_ALL_PATH_RETURN_VALUE, WARNING, SEMA, 225, "all-paths-return-value", "Not all control paths return a value."), \
   DEF_DIAGNOSTIC(RETURNS_DIFFERENT_TYPES, WARNING, SEMA, 226, "return-different-types", "Function can return different types."), \
   DEF_DIAGNOSTIC(ID_HIDES_ID, WARNING, SEMA, 227, "ident-hides-ident", "%s '%s' hides %s with the same name."), \
@@ -129,7 +129,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(ROUND_TO_INT, WARNING, SEMA, 235, "round-to-int", "Result of division will be integer."), \
   DEF_DIAGNOSTIC(SHIFT_PRIORITY, WARNING, SEMA, 236, "shift-priority", "Shift operator has lower priority. Perhaps parentheses are missing?"), \
   DEF_DIAGNOSTIC(NAME_LIKE_SHOULD_RETURN, WARNING, SEMA, 238, "named-like-should-return", "Function name '%s' implies a return value, but its result is never used."), \
-  DEF_DIAGNOSTIC(NAME_RET_BOOL, WARNING, SEMA, 239, "named-like-return-bool", "Function name '%s' implies a return boolean type but not all control paths returns boolean."), \
+  DEF_DIAGNOSTIC(NAME_RET_BOOL, WARNING, SEMA, 239, "named-like-return-bool", "Function name '%s' implies a return boolean type but not all control paths return boolean."), \
   DEF_DIAGNOSTIC(NULL_COALESCING_PRIORITY, WARNING, SEMA, 240, "null-coalescing-priority", "The '??""' operator has a lower priority than the '%s' operator (a??b > c == a??""(b > c)). Perhaps the '??""' operator works in a different way than it was expected."), \
   DEF_DIAGNOSTIC(ALREADY_REQUIRED, WARNING, SEMA, 241, "already-required", "Module '%s' has been required already."), \
   DEF_DIAGNOSTIC(USED_FROM_STATIC, WARNING, SEMA, 244, "used-from-static", "Access 'this.%s' from %s function."), \
@@ -141,7 +141,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(DUPLICATE_ASSIGN_EXPR, WARNING, SEMA, 257, "duplicate-assigned-expr", "Duplicate of the assigned expression."), \
   DEF_DIAGNOSTIC(SIMILAR_FUNC, WARNING, SEMA, 258, "similar-function", "Function bodies are very similar. Consider functions '%s' and '%s'."), \
   DEF_DIAGNOSTIC(SIMILAR_ASSIGN_EXPR, WARNING, SEMA, 259, "similar-assigned-expr", "Assigned expression is very similar to one of the previous ones."), \
-  DEF_DIAGNOSTIC(NAME_EXPECTS_RETURN, WARNING, SEMA, 260, "named-like-must-return-result", "Function '%s' has name like it should return a value, but not all control paths returns a value."), \
+  DEF_DIAGNOSTIC(NAME_EXPECTS_RETURN, WARNING, SEMA, 260, "named-like-must-return-result", "Function '%s' has name like it should return a value, but not all control paths return a value."), \
   DEF_DIAGNOSTIC(SUSPICIOUS_FMT, WARNING, SYNTAX, 262, "suspicious-formatting", "Suspicious code formatting."), \
   DEF_DIAGNOSTIC(EGYPT_BRACES, WARNING, SYNTAX, 263, "egyptian-braces", "Indentation style: 'egyptian braces' required."), \
   DEF_DIAGNOSTIC(PLUS_STRING, WARNING, SEMA, 264, "plus-string", "Usage of '+' for string concatenation."), \
@@ -150,14 +150,14 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(MIXED_SEPARATORS, WARNING, SYNTAX, 269, "mixed-separators", "Mixed spaces and commas to separate %s."), \
   DEF_DIAGNOSTIC(EXTEND_TO_APPEND, HINT, SEMA, 270, "extent-to-append", "It is better to use 'append(A, B, ...)' instead of 'extend([A, B, ...])'."), \
   DEF_DIAGNOSTIC(FORGOT_SUBST, WARNING, SEMA, 271, "forgot-subst", "'{}' found inside string (forgot 'subst' or '$' ?)."), \
-  DEF_DIAGNOSTIC(NOT_UNARY_OP, WARNING, SYNTAX, 272, "not-unary-op", "This '%s' is not unary operator. Please use ' ' after it or ',' before it for better understandability."), \
-  DEF_DIAGNOSTIC(ITER_IN_CLOSURE, WARNING, SEMA, 274, "iterator-in-lambda", "Iterator '%s' is trying to be captured in closure."), \
+  DEF_DIAGNOSTIC(NOT_UNARY_OP, WARNING, SYNTAX, 272, "not-unary-op", "This '%s' is not a unary operator. Please use ' ' after it or ',' before it for better understandability."), \
+  DEF_DIAGNOSTIC(ITER_IN_CLOSURE, WARNING, SEMA, 274, "iterator-in-lambda", "Iterator '%s' is trying to be captured in a closure."), \
   DEF_DIAGNOSTIC(MISSED_BREAK, WARNING, SEMA, 275, "missed-break", "A 'break' statement is probably missing in a 'switch' statement."), \
   DEF_DIAGNOSTIC(SPACE_AT_EOL, WARNING, LEX, 277, "space-at-eol", "Whitespace at the end of line."), \
   DEF_DIAGNOSTIC(FORBIDDEN_FUNC, WARNING, SEMA, 278, "forbidden-function", "It is forbidden to call '%s' function."), \
   DEF_DIAGNOSTIC(MISMATCH_LOOP_VAR, WARNING, SEMA, 279, "mismatch-loop-variable", "The variable used in for-loop does not match the initialized one."), \
   DEF_DIAGNOSTIC(FORBIDDEN_PARENT_DIR, WARNING, SEMA, 280, "forbidden-parent-dir", "Access to the parent directory is forbidden in this function."), \
-  DEF_DIAGNOSTIC(UNWANTED_MODIFICATION, WARNING, SEMA, 281, "unwanted-modification", "Function '%s' modifies object. You probably didn't want to modify the object here."), \
+  DEF_DIAGNOSTIC(UNWANTED_MODIFICATION, WARNING, SEMA, 281, "unwanted-modification", "Function '%s' modifies the object. You probably didn't want to modify the object here."), \
   DEF_DIAGNOSTIC(USELESS_NULLC, WARNING, SEMA, 283, "useless-null-coalescing", "The expression to the right of the '??""' is null."), \
   DEF_DIAGNOSTIC(CAN_BE_SIMPLIFIED, WARNING, SEMA, 284, "can-be-simplified", "Expression can be simplified."), \
   DEF_DIAGNOSTIC(EXPR_NOT_NULL, WARNING, SEMA, 285, "expr-cannot-be-null", "The expression to the left of the '%s' cannot be null."), \
@@ -165,18 +165,15 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(RANGE_CHECK, WARNING, SEMA, 287, "range-check", "It looks like the range boundaries are not checked correctly. Pay attention to checking with minimum and maximum index."), \
   DEF_DIAGNOSTIC(PARAM_COUNT_MISMATCH, WARNING, SEMA, 288, "param-count", "Function '%s' (%d..%d parameters) is called with the wrong number of arguments (%d)."),\
   DEF_DIAGNOSTIC(PARAM_POSITION_MISMATCH, WARNING, SEMA, 289, "param-pos", "The function parameter '%s' seems to be in the wrong position."), \
-  DEF_DIAGNOSTIC(INVALID_UNDERSCORE, WARNING, SEMA, 291, "invalid-underscore", "The name of %s '%s' is invalid. The identifier is marked as an unused with a prefix underscore, but it is used."), \
+  DEF_DIAGNOSTIC(INVALID_UNDERSCORE, WARNING, SEMA, 291, "invalid-underscore", "The name of %s '%s' is invalid. The identifier is marked as unused with a prefix underscore, but it is used."), \
   DEF_DIAGNOSTIC(MODIFIED_CONTAINER, WARNING, SEMA, 292, "modified-container", "The container was modified within the loop."), \
   DEF_DIAGNOSTIC(DUPLICATE_PERSIST_ID, WARNING, SEMA, 293, "duplicate-persist-id", "Duplicate id '%s' passed to 'persist'."), \
   DEF_DIAGNOSTIC(UNDEFINED_GLOBAL, WARNING, SEMA, 295, "undefined-global", "Undefined global identifier '%s'."), \
   DEF_DIAGNOSTIC(CALL_FROM_ROOT, WARNING, SEMA, 297, "call-from-root", "Function '%s' must be called from the root scope."), \
-  DEF_DIAGNOSTIC(REASSIGN_WITH_NO_USAGE, WARNING, SEMA, 301, "re-assign-no-use", "Re-assign variable without usage of previous assign."), \
-  DEF_DIAGNOSTIC(POSSIBLE_GARBAGE, WARNING, SEMA, 302, "possible-garbage", "Not all paths initialize variable %s, it could potentially contain garbage."), \
-  DEF_DIAGNOSTIC(UNINITIALIZED_VAR, WARNING, SEMA, 303, "uninitialized-variable", "Usage of uninitialized variable."), \
   DEF_DIAGNOSTIC(INTEGER_OVERFLOW, WARNING, SEMA, 304, "integer-overflow", "Integer Overflow."), \
-  DEF_DIAGNOSTIC(RELATIVE_CMP_BOOL, WARNING, SEMA, 305, "relative-bool-cmp", "Relative comparison non-boolean with boolean. It is potential runtime error"), \
-  DEF_DIAGNOSTIC(EQ_PAREN_MISSED, WARNING, SEMA, 306, "eq-paren-miss", "Suspicious expression, probably parens are missed."), \
-  DEF_DIAGNOSTIC(GLOBAL_NAME_REDEF, WARNING, SEMA, 307, "global-id-redef", "Redefinition of existed global name '%s'."), \
+  DEF_DIAGNOSTIC(RELATIVE_CMP_BOOL, WARNING, SEMA, 305, "relative-bool-cmp", "Relative comparison of non-boolean with boolean. It is a potential runtime error."), \
+  DEF_DIAGNOSTIC(EQ_PAREN_MISSED, WARNING, SEMA, 306, "eq-paren-miss", "Suspicious expression, probably parens are missing."), \
+  DEF_DIAGNOSTIC(GLOBAL_NAME_REDEF, WARNING, SEMA, 307, "global-id-redef", "Redefinition of existing global name '%s'."), \
   DEF_DIAGNOSTIC(BOOL_LAMBDA_REQUIRED, WARNING, SEMA, 308, "bool-lambda-required", "Function '%s' requires lambda which returns boolean."), \
   DEF_DIAGNOSTIC(MISSING_DESTRUCTURED_VALUE, WARNING, SEMA, 309, "missing-destructured-value", "No value for '%s' in destructured declaration."), \
   DEF_DIAGNOSTIC(DESTRUCTURED_TYPE_MISMATCH, WARNING, SEMA, 310, "destructured-type", "Destructured type mismatch, right side is %s."), \

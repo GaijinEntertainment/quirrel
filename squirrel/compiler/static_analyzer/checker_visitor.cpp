@@ -122,7 +122,7 @@ void CheckerVisitor::report(const Node *n, int32_t id, ...) {
   va_list vargs;
   va_start(vargs, id);
 
-  _ctx.vreportDiagnostic((enum DiagnosticsId)id, n->lineStart(), n->columnStart(), n->columnEnd() - n->columnStart(), vargs); // -V522
+  _ctx.vreportDiagnostic((enum DiagnosticsId)id, n->lineStart(), n->columnStart(), n->textWidth(), vargs); // -V522
 
   va_end(vargs);
 }
@@ -219,10 +219,6 @@ void CheckerVisitor::checkIdUsed(const Id *id, const Node *p, ValueRef *v) {
     bool simpleAsgn = e->op() == TO_ASSIGN;
     if (id == lhs) {
       bool used = v->info->usedAfterAssign || existsInTree(id, rhs);
-      //if (!used && assigned && simpleAsgn) {
-      //  if (!v->lastAssigneeScope || currentScope->owner == v->lastAssigneeScope->owner)
-      //    report(bin, DiagnosticsId::DI_REASSIGN_WITH_NO_USAGE);
-      //}
       v->info->used |= used;
       v->assigned = true;
       v->lastAssigneeScope = currentScope;
@@ -237,13 +233,6 @@ void CheckerVisitor::checkIdUsed(const Id *id, const Node *p, ValueRef *v) {
   if (assigned) {
     v->info->usedAfterAssign = true;
     v->assigned = e ? TO_PLUSEQ <= e->op() && e->op() <= TO_MODEQ : false;
-  }
-
-  if (v->state == VRS_PARTIALLY) {
-    report(id, DiagnosticsId::DI_POSSIBLE_GARBAGE, id->name());
-  }
-  else if (v->state == VRS_UNDEFINED) {
-    report(id, DiagnosticsId::DI_UNINITIALIZED_VAR);
   }
 }
 
@@ -1860,22 +1849,6 @@ const SQChar *CheckerVisitor::extractFunctionName(const CallExpr *call) {
   return calleeName;
 }
 
-BinExpr *CheckerVisitor::wrapConditionIntoNC(Expr *e) {
-  Expr *b = new (arena) UnExpr(TO_PAREN, e);
-
-  b->setLineStartPos(e->lineStart());
-  b->setColumnStartPos(e->columnStart());
-  b->setLineEndPos(e->lineEnd());
-  b->setColumnEndPos(e->columnEnd());
-
-  BinExpr *r = new (arena) BinExpr(TO_NE, b, &nullValue);
-
-  r->setLineEndPos(b->lineEnd());
-  r->setColumnEndPos(b->columnEnd());
-
-  return r;
-}
-
 void CheckerVisitor::visitBinaryBranches(Expr *lhs, Expr *rhs, bool inv) {
   VarScope *trunkScope = currentScope;
   VarScope *branchScope = nullptr;
@@ -2013,7 +1986,6 @@ void CheckerVisitor::visitTerExpr(TerExpr *expr) {
   nodeStack.pop_back();
 
   ifTrueScope->merge(ifFalseScope);
-
   trunkScope->copyFrom(ifTrueScope);
 
   ifTrueScope->~VarScope();
@@ -2374,7 +2346,7 @@ void CheckerVisitor::checkEmptyWhileBody(WhileStatement *loop) {
   const Statement *body = unwrapBody(loop->body());
 
   if (body && body->op() == TO_EMPTY) {
-    report(body, DiagnosticsId::DI_EMPTY_BODY, "while");
+    report(body, DiagnosticsId::DI_EMPTY_BODY, "'while' loop");
   }
 }
 
@@ -2385,7 +2357,7 @@ void CheckerVisitor::checkEmptyThenBody(IfStatement *stmt) {
   const Statement *thenStmt = unwrapBody(stmt->thenBranch());
 
   if (thenStmt && thenStmt->op() == TO_EMPTY) {
-    report(thenStmt, DiagnosticsId::DI_EMPTY_BODY, "then");
+    report(thenStmt, DiagnosticsId::DI_EMPTY_BODY, "'then' branch of 'if'");
   }
 }
 
@@ -2542,49 +2514,72 @@ void CheckerVisitor::checkAssignExpressionSimilarity(const Block *b) {
   }
 }
 
-bool CheckerVisitor::isCallResultShouldBeUtilized(const SQChar *name, const CallExpr *call) {
+// Determines if a function call's result should be utilized based on its name.
+// Returns true if the result SHOULD be utilized (warn if discarded).
+// Returns false if it's OK to discard the result (no warning).
+//
+// Special case: Boolean-named functions (is*, has*, etc.) with a single
+// "valuable" argument are treated as potential setters, not getters.
+// Example: isEnabled(true) might SET enabled state, not query it.
+// In this case we suppress the warning.
+bool CheckerVisitor::shouldCallResultBeUtilized(const SQChar *name, const CallExpr *call) {
   if (!name)
     return false;
 
-  if (nameLooksLikeResultMustBeUtilized(name)) {
+  // Functions like __merge, findvalue, filter - always should utilize result
+  if (nameLooksLikeResultMustBeUtilized(name))
     return true;
-  }
 
+  // Boolean-named functions (is*, has*, get*, etc.)
   if (nameLooksLikeResultMustBeBoolean(name)) {
     const auto &args = call->arguments();
 
+    // Multiple or zero arguments - likely a getter, should utilize result
     if (args.size() != 1)
       return true;
 
     const Expr *arg = args[0];
 
-    if (looksLikeBooleanExpr(arg)) {
+    // Single boolean expression argument (true, false, x > 0, etc.)
+    // Looks like: isEnabled(true) - setting state to true
+    if (looksLikeBooleanExpr(arg))
       return false;
-    }
 
+    // Single identifier with boolean-like name (isValid, hasItems, etc.)
+    // Looks like: isEnabled(isCurrentlyValid) - setting state from another boolean
     if (arg->op() == TO_ID) {
-      if (nameLooksLikeResultMustBeBoolean(arg->asId()->name())) {
+      if (nameLooksLikeResultMustBeBoolean(arg->asId()->name()))
         return false;
-      }
     }
 
+    // Single call to a function whose result should be utilized
+    // Looks like: isEnabled(getValue()) - passing a meaningful value
+    // If the inner call returns something "valuable", we're using it as input
+    // to potentially set state, so suppress warning for the outer call
     if (arg->op() == TO_CALL) {
-      const CallExpr *acall = arg->asCallExpr();
-      const Expr *callee = acall->callee();
+      const CallExpr *innerCall = arg->asCallExpr();
+      const Expr *callee = innerCall->callee();
       const SQChar *calleeName = nullptr;
-      if (callee->op() == TO_ID) {
+      if (callee->op() == TO_ID)
         calleeName = callee->asId()->name();
-      }
-      else if (callee->op() == TO_GETFIELD) {
+      else if (callee->op() == TO_GETFIELD)
         calleeName = callee->asGetField()->fieldName();
-      }
 
-      return isCallResultShouldBeUtilized(calleeName, acall) == false;
+      // Recursive check: if inner call's result should be utilized,
+      // then we're passing a "valuable" result to outer function,
+      // which suggests outer function might be a setter
+      if (shouldCallResultBeUtilized(calleeName, innerCall))
+        return false;
     }
 
+    // Try to evaluate the argument - it might resolve to a boolean
+    // Example: let x = true; isEnabled(x) - x evaluates to true
     const Expr *evaled = maybeEval(arg);
+    if (looksLikeBooleanExpr(evaled))
+      return false;
 
-    return looksLikeBooleanExpr(evaled) == false;
+    // Single non-boolean argument - likely a getter, should utilize result
+    return true;
   }
 
   return false;
@@ -2599,28 +2594,20 @@ void CheckerVisitor::checkUnutilizedResult(const ExprStatement *s) {
   if (e->op() == TO_CALL) {
     const CallExpr *c = static_cast<const CallExpr *>(e);
     const Expr *callee = c->callee();
-    bool isCtor = false;
-    const FunctionInfo *info = findFunctionInfo(callee, isCtor);
-    // check only for functions because instances could have overriden () operator
-    if (info) {
-      const FunctionDecl *f = info->declaration;
-      assert(f);
 
-      if (f->op() == TO_CONSTRUCTOR) {
-        report(e, DiagnosticsId::DI_NAME_LIKE_SHOULD_RETURN, "<constructor>");
-      }
-      else if (isCallResultShouldBeUtilized(f->name(), c)) {
-        report(e, DiagnosticsId::DI_NAME_LIKE_SHOULD_RETURN, f->name());
-      }
+    const SQChar *calleeName = nullptr;
+    if (callee->op() == TO_ID) {
+      calleeName = callee->asId()->name();
     }
-    else if (isCtor) {
-      report(e, DiagnosticsId::DI_NAME_LIKE_SHOULD_RETURN, "<constructor>");
+    else if (callee->op() == TO_GETFIELD) {
+      calleeName = callee->asGetField()->fieldName();
     }
 
-    return;
+    if (calleeName && shouldCallResultBeUtilized(calleeName, c)) {
+      report(e, DiagnosticsId::DI_NAME_LIKE_SHOULD_RETURN, calleeName);
+    }
   }
-
-  if (!isAssignExpr(e) && e->op() != TO_INC && e->op() != TO_NEWSLOT && e->op() != TO_DELETE) {
+  else if (!isAssignExpr(e) && e->op() != TO_INC && e->op() != TO_NEWSLOT && e->op() != TO_DELETE) {
     report(s, DiagnosticsId::DI_UNUTILIZED_EXPRESSION);
   }
 }
@@ -3584,7 +3571,10 @@ void CheckerVisitor::checkFunctionReturns(FunctionDecl *func) {
 
   if (returnFlags & ~(RT_BOOL | RT_UNRECOGNIZED | RT_FUNCTION_CALL | RT_NULL)) { // Null is castable to boolean
     if (nameLooksLikeResultMustBeBoolean(name)) {
-      report(func, DiagnosticsId::DI_NAME_RET_BOOL, name);
+      Node *reportNode = func->nameId();
+      if (!reportNode) // just for safety
+        reportNode = func;
+      report(reportNode, DiagnosticsId::DI_NAME_RET_BOOL, name);
       reported = true;
     }
   }
@@ -3971,8 +3961,13 @@ bool CheckerVisitor::isPotentiallyNullable(const Expr *e, std::unordered_set<con
     if (v->flagsNegative & RT_NULL)
       return false;
 
-    if (v->state == VRS_UNDEFINED || v->state == VRS_PARTIALLY)
-      return true;
+    // Check aliased source variable's current flags if it wasn't reassigned.
+    // This handles: let y = x; if (!x) return; y.field
+    // (y is non-null via x)
+    if (v->origin && v->origin->evalIndex == v->originEvalIndex) {
+      if (v->origin->flagsNegative & RT_NULL)
+        return false;
+    }
   }
 
   e = maybeEval(e);
@@ -4028,9 +4023,6 @@ bool CheckerVisitor::isPotentiallyNullable(const Expr *e, std::unordered_set<con
     case VRS_EXPRESSION:
     case VRS_INITIALIZED:
       return isPotentiallyNullable(v->expression, visited);
-    case VRS_UNDEFINED:
-    case VRS_PARTIALLY:
-      return true;
     default:
       return false;
     }
@@ -4390,6 +4382,7 @@ void CheckerVisitor::visitVarDecl(VarDecl *decl) {
   SymbolInfo *info = makeSymbolInfo(decl->isAssignable() ? SK_VAR : SK_BINDING);
   ValueRef *v = makeValueRef(info);
   const Expr *init = decl->initializer();
+  const Expr *origInit = deparenStatic(init);
   init = maybeEval(init, true);
   if (decl->isDestructured()) {
     v->state = VRS_UNKNOWN;
@@ -4412,12 +4405,17 @@ void CheckerVisitor::visitVarDecl(VarDecl *decl) {
         v->flagsPositive |= RT_NULL;
       }
     }
-    if (init->op() == TO_ID) {
-      const ValueRef *vr = findValueForExpr(init);
-      if (vr) {
-        v->flagsPositive = vr->flagsPositive;
-        v->flagsNegative = vr->flagsNegative;
-      }
+  }
+
+  // Track aliasing: if initialized from a variable, store reference for dynamic flag lookup.
+  // This allows checking the source's current flags even if they change after this declaration.
+  if (origInit && origInit->op() == TO_ID) {
+    const ValueRef *vr = findValueForExpr(origInit);
+    if (vr) {
+      v->flagsPositive = vr->flagsPositive;
+      v->flagsNegative = vr->flagsNegative;
+      v->origin = vr;
+      v->originEvalIndex = vr->evalIndex;
     }
   }
 
@@ -4611,13 +4609,19 @@ void CheckerVisitor::visitImportStatement(ImportStmt *import) {
     importInfo->column = import->moduleAlias ? import->aliasCol : import->nameCol;
     importInfo->name = import->moduleAlias ? import->moduleAlias : import->moduleName;
 
+    // Find an external value auto-collected from bindings in analyze()
+    ValueRef *existing = findValueInScopes(importInfo->name);
+    assert(existing);
+
     SymbolInfo *info = makeSymbolInfo(SK_IMPORT);
     ValueRef *v = makeValueRef(info);
-    v->state = VRS_DECLARED;
-    v->expression = nullptr;
+    v->state = VRS_INITIALIZED;
+    v->expression = existing->expression; //-V522
     info->declarator.imp = importInfo;
     info->ownedScope = currentScope;
 
+    // Warning! This redeclares symbol with the same name
+    // This is a temporary solution and will be fixed separately
     declareSymbol(importInfo->name, v);
   }
   else {
@@ -4630,13 +4634,19 @@ void CheckerVisitor::visitImportStatement(ImportStmt *import) {
       importInfo->column = slot.column;
       importInfo->name = slot.alias ? slot.alias : slot.name;
 
+      // Find an external value auto-collected from bindings in analyze()
+      ValueRef *existing = findValueInScopes(importInfo->name);
+      assert(existing);
+
       SymbolInfo *info = makeSymbolInfo(SK_IMPORT);
       ValueRef *v = makeValueRef(info);
-      v->state = VRS_DECLARED;
-      v->expression = nullptr;
+      v->state = VRS_INITIALIZED;
+      v->expression = existing->expression; //-V522
       info->declarator.imp = importInfo;
       info->ownedScope = currentScope;
 
+      // Warning! This redeclares symbol with the same name
+      // This is a temporary solution and will be fixed separately
       declareSymbol(importInfo->name, v);
     }
   }
@@ -4647,9 +4657,9 @@ void CheckerVisitor::visitImportStatement(ImportStmt *import) {
 ValueRef* CheckerVisitor::addExternalValue(const SQObject &val, const Node *location) {
   SymbolInfo *info = makeSymbolInfo(SK_EXTERNAL_BINDING);
   ValueRef *v = makeValueRef(info);
-  ExternalValueExpr *ev = new(arena) ExternalValueExpr(val);
-  if (location)
-    ev->copyLocationFrom(*location);
+  // Create ExternalValueExpr with span from location (if provided) or invalid span
+  SourceSpan spanFromLoc = location ? location->sourceSpan() : SourceSpan::invalid();
+  ExternalValueExpr *ev = new(arena) ExternalValueExpr(val, spanFromLoc);
   externalValues.push_back(ev);
 
   info->declarator.ev = ev;

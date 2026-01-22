@@ -229,12 +229,27 @@ class ArenaVector {
 public:
     using size_type = uint32_t;
 
-    ArenaVector(Arena *arena) :
-    _arena(arena),
-    _vals(NULL),
-    _size(0),
-    _allocated(0) {
+    ArenaVector(Arena *arena)
+        : _arena(arena)
+        , _vals(NULL)
+        , _size(0)
+        , _allocated(0)
+    {
+    }
 
+    // Implement if needed
+    ArenaVector(const ArenaVector&) = delete;
+    ArenaVector& operator=(const ArenaVector&) = delete;
+
+    ArenaVector(ArenaVector&& other) noexcept
+        : _arena(other._arena)
+        , _vals(other._vals)
+        , _size(other._size)
+        , _allocated(other._allocated)
+    {
+        other._vals = nullptr;
+        other._size = 0;
+        other._allocated = 0;
     }
 
     inline T &push_back(const T& val = T())

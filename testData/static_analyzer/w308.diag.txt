@@ -1,8 +1,8 @@
 WARNING: w308 (bool-lambda-required) Function 'findindex' requires lambda which returns boolean.
-testData/static_analyzer/w308.nut:5:28
+testData/static_analyzer/w308.nut:7:28
 
 let _expected = o.findindex(@(t) t.id = 10) // EXPECTED
-                            ^--------------
+                            ^-------------
 let _falsep = o.findvalue(@(t) t.id == 10)  // FP 1
 
 

@@ -109,7 +109,7 @@ local { abc } = cn3
 }
 
 {
-  local { y: int = 609, x: string|null } = t2
+  local { y: int = 609, x: string|int|null } = t2
   println(x)
 }
 
@@ -147,6 +147,19 @@ function type_test6(x: (number|null) = null): (int|float) {
 function type_test7(x: bool|number|int|float|string|table|array|userdata|function|generator|userpointer|thread|instance|class|weakref|null, y: any): any {
   return x + y
 }
+
+let type_test8 = @(x: bool|number|int|float|string|table|array|userdata|function|generator|userpointer|thread|instance|class|weakref|null, y: any): any (
+  x + y
+)
+
+let type_test9 = @type_test9(x: bool|number|int|null, y: any): any (
+  x + y
+)
+
+let type_test10 = (@ [pure,] type_test10(x: bool|number|int|null, y: any): any (
+  x + y
+))
+
 
 let x901: int = 5
 local t902: table = {}

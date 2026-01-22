@@ -413,7 +413,7 @@ local_str3"
 | | |-VarDecl 'local', name = 'y', type = 'int'
 | | |   Initializer
 | | |     LiteralExpr LK_INT 609
-| | `-VarDecl 'local', name = 'x', type = 'string|null'
+| | `-VarDecl 'local', name = 'x', type = 'int|string|null'
 | `-ExprStatement
 |     CallExpr
 |     |-Callee
@@ -566,6 +566,55 @@ local_str3"
 |               |   Id 'x'
 |               `-Right
 |                   Id 'y'
+|-VarDecl 'let', name = 'type_test8', type = 'any'
+|   Initializer
+|     DeclExpr
+|       FunctionDecl 'lambda' name = 'type_test8', resultType = 'any'
+|       |-Parameters count = 2
+|       | |-Parameter #1 name = 'x', type = 'bool|number|string|table|array|userdata|function|generator|userpointer|thread|instance|class|weakref|null'
+|       | `-Parameter #2 name = 'y', type = 'any'
+|       `-Body
+|           Block isRoot = 0, isBody = 1
+|             ReturnStatement
+|               UnExpr '('
+|                 BinExpr '+'
+|                 |-Left
+|                 |   Id 'x'
+|                 `-Right
+|                     Id 'y'
+|-VarDecl 'let', name = 'type_test9', type = 'any'
+|   Initializer
+|     DeclExpr
+|       FunctionDecl 'lambda' name = 'type_test9', resultType = 'any'
+|       |-Parameters count = 2
+|       | |-Parameter #1 name = 'x', type = 'bool|number|null'
+|       | `-Parameter #2 name = 'y', type = 'any'
+|       `-Body
+|           Block isRoot = 0, isBody = 1
+|             ReturnStatement
+|               UnExpr '('
+|                 BinExpr '+'
+|                 |-Left
+|                 |   Id 'x'
+|                 `-Right
+|                     Id 'y'
+|-VarDecl 'let', name = 'type_test10', type = 'any'
+|   Initializer
+|     UnExpr '('
+|       DeclExpr
+|         FunctionDecl 'lambda' name = 'type_test10', resultType = 'any'
+|         |-Parameters count = 2
+|         | |-Parameter #1 name = 'x', type = 'bool|number|null'
+|         | `-Parameter #2 name = 'y', type = 'any'
+|         `-Body
+|             Block isRoot = 0, isBody = 1
+|               ReturnStatement
+|                 UnExpr '('
+|                   BinExpr '+'
+|                   |-Left
+|                   |   Id 'x'
+|                   `-Right
+|                       Id 'y'
 |-VarDecl 'let', name = 'x901', type = 'int'
 |   Initializer
 |     LiteralExpr LK_INT 5
@@ -596,7 +645,7 @@ local_str3"
 |         |   `-Body
 |         |       Block isRoot = 0, isBody = 1
 |         |-DeclExpr
-|         |   FunctionDecl name = '(all_syntax.nut:161)', resultType = 'any'
+|         |   FunctionDecl name = '(all_syntax.nut:174)', resultType = 'any'
 |         |   |-Parameters count = 0
 |         |   `-Body
 |         |       Block isRoot = 0, isBody = 1
@@ -618,7 +667,7 @@ local_str3"
 |         |                 Receiver
 |         |                   Id 'this'
 |         |-DeclExpr
-|         |   FunctionDecl 'lambda' name = '(all_syntax.nut:163)', resultType = 'any'
+|         |   FunctionDecl 'lambda' name = '(all_syntax.nut:176)', resultType = 'any'
 |         |   |-Parameters count = 0
 |         |   `-Body
 |         |       Block isRoot = 0, isBody = 1
@@ -632,7 +681,7 @@ local_str3"
 |         |         ReturnStatement
 |         |           LiteralExpr LK_STRING "class_str2"
 |         `-DeclExpr
-|             FunctionDecl name = '(all_syntax.nut:165)', resultType = 'any'
+|             FunctionDecl name = '(all_syntax.nut:178)', resultType = 'any'
 |             |-Parameters count = 1
 |             |   Parameter #1 name = 'name', type = 'any'
 |             `-Body
@@ -718,7 +767,7 @@ local_str3"
 |-VarDecl 'local', name = 'gfn2', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = '(all_syntax.nut:183)', resultType = 'any'
+|       FunctionDecl name = '(all_syntax.nut:196)', resultType = 'any'
 |       |-Parameters count = 0
 |       `-Body
 |           Block isRoot = 0, isBody = 1
@@ -744,7 +793,7 @@ local_str3"
 |-VarDecl 'local', name = 'gfn4', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl 'lambda' name = '(all_syntax.nut:185)', resultType = 'any'
+|       FunctionDecl 'lambda' name = '(all_syntax.nut:198)', resultType = 'any'
 |       |-Parameters count = 0
 |       `-Body
 |           Block isRoot = 0, isBody = 1
@@ -762,7 +811,7 @@ local_str3"
 |-VarDecl 'local', name = '_call', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = '(all_syntax.nut:187)', resultType = 'any'
+|       FunctionDecl name = '(all_syntax.nut:200)', resultType = 'any'
 |       |-Parameters count = 1
 |       |   Parameter #1 name = 'name', type = 'any'
 |       `-Body
@@ -1593,7 +1642,7 @@ local_str3"
 |-VarDecl 'let', name = '$ch0', type = 'any'
 |   Initializer
 |     DeclExpr
-|       FunctionDecl name = '(all_syntax.nut:349)', resultType = 'any'
+|       FunctionDecl name = '(all_syntax.nut:362)', resultType = 'any'
 |       |-Parameters count = 0
 |       `-Body
 |           Block isRoot = 0, isBody = 1

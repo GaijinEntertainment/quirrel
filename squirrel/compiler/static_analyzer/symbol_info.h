@@ -71,6 +71,9 @@ struct SymbolInfo {
     case SK_EXCEPTION:
       return declarator.x;
     case SK_FUNCTION:
+      // Return the Id node if available (points to identifier for diagnostics)
+      if (declarator.f && declarator.f->nameId())
+        return declarator.f->nameId();
       return declarator.f;
     case SK_CLASS:
       return declarator.k;
@@ -79,6 +82,9 @@ struct SymbolInfo {
     case SK_VAR:
     case SK_BINDING:
     case SK_FOREACH:
+      // Return the Id node if available (points to identifier for diagnostics)
+      if (declarator.v && declarator.v->nameId())
+        return declarator.v->nameId();
       return declarator.v;
     case SK_CONST:
       return declarator.c;

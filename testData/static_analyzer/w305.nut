@@ -10,7 +10,7 @@ let b2 = false
 
 print(b1 > b2)
 
-if (B == x > y)
+if (B == x > y) //-compared-with-bool
   print("a")
 
 if ((B == x) > y)

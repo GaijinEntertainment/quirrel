@@ -3,7 +3,7 @@ testData/static_analyzer/w227.nut:6:4
 
     local x = c
     local a = x
-    ^----
+    ^----------
     print(a)
 
 

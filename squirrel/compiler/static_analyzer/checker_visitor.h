@@ -215,7 +215,7 @@ class CheckerVisitor : public Visitor
     return CheckModificationVisitor().check(key, tree);
   }
 
-  bool isCallResultShouldBeUtilized(const SQChar *name, const CallExpr *call);
+  bool shouldCallResultBeUtilized(const SQChar *name, const CallExpr *call);
 
   void checkUnterminatedLoop(LoopStatement *loop);
   void checkVariableMismatchForLoop(ForStatement *loop);
@@ -320,7 +320,6 @@ class CheckerVisitor : public Visitor
   bool isPotentiallyNullable(const Expr *e, std::unordered_set<const Expr *> &visited);
   bool couldBeString(const Expr *e);
 
-  BinExpr *wrapConditionIntoNC(Expr *e);
   void visitBinaryBranches(Expr *lhs, Expr *rhs, bool inv);
   void speculateIfConditionHeuristics(const Expr *cond, VarScope *thenScope, VarScope *elseScope, bool inv = false);
   void speculateIfConditionHeuristics(const Expr *cond, VarScope *thenScope, VarScope *elseScope, std::unordered_set<const Expr *> &visited, int32_t evalId, unsigned flags, bool inv);
@@ -346,9 +345,9 @@ public:
     , currentInfo(nullptr)
     , currentScope(nullptr)
     , breakScope(nullptr)
-    , trueValue(true)
-    , falseValue(false)
-    , nullValue()
+    , trueValue(SourceSpan::invalid(), true)
+    , falseValue(SourceSpan::invalid(), false)
+    , nullValue(SourceSpan::invalid())
     , isEffectsGatheringPass(false) {}
 
   ~CheckerVisitor();

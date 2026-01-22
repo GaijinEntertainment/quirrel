@@ -243,11 +243,11 @@ public:
                 ++_indent;
                 writeIndentedFmtString("Left\n");
                 ++_indent;
-                expr->_lhs->visit(this);
+                expr->lhs()->visit(this);
                 --_indent;
                 writeIndentedFmtString("Right\n");
                 ++_indent;
-                expr->_rhs->visit(this);
+                expr->rhs()->visit(this);
                 --_indent;
                 --_indent;
                 break;

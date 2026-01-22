@@ -1,4 +1,9 @@
+if (__name__ == "__analysis__")
+  return
+
 // -file:paren-is-function-call
+
+
 function foo(...) {}
 
 foo("sum=" (6+7)) // EXPECTED 1
@@ -14,6 +19,4 @@ let _x = [
     (6+7)       // EXPECTED 5
 ]
 
-
 foo(foo("b"))    // FP
-

@@ -32,11 +32,11 @@ class SQParser
     Arena *_astArena;
 
     template<typename N, typename ... Args>
-    N *newNode(Args... args) {
-        return new (arena()) N(args...);
+    N *newNode(Args&&... args) const {
+        return new (arena()) N(std::forward<Args>(args)...);
     }
 
-    SQChar *copyString(const SQChar *s) {
+    SQChar *copyString(const SQChar *s) const {
         size_t len = strlen(s);
         size_t memLen = (len + 1) * sizeof(SQChar);
         SQChar *buf = (SQChar *)arena()->allocate(memLen);
@@ -44,44 +44,15 @@ class SQParser
         return buf;
     }
 
-    Id *newId(const SQChar *name) {
-        Id *r = newNode<Id>(copyString(name));
-        r->setLineEndPos(_lex._currentline);
-        r->setColumnEndPos(_lex._currentcolumn);
-        return r;
+    Id *newId(const SQChar *name) const {
+        return newNode<Id>(_lex.tokenSpan(), copyString(name));
     }
 
-    LiteralExpr *newStringLiteral(const SQChar *s) {
-        LiteralExpr *r = newNode<LiteralExpr>(copyString(s));
-        r->setLineEndPos(_lex._currentline);
-        r->setColumnEndPos(_lex._currentcolumn);
-        return r;
+    LiteralExpr *newStringLiteral(const SQChar *s) const {
+        return newNode<LiteralExpr>(_lex.tokenSpan(), copyString(s));
     }
 
-    Arena *arena() { return _astArena; }
-
-    template<typename N>
-    N *copyCoordinates(const Node *from, N *to) {
-      to->setLineStartPos(from->lineStart());
-      to->setColumnStartPos(from->columnStart());
-      to->setLineEndPos(from->lineEnd());
-      to->setColumnEndPos(from->columnEnd());
-      return to;
-    }
-
-    template<typename N>
-    N *setCoordinates(N *to, SQInteger l, SQInteger c) {
-      to->setLineStartPos(l);
-      to->setColumnStartPos(c);
-      to->setLineEndPos(_lex._currentline);
-      to->setColumnEndPos(_lex._currentcolumn);
-      return to;
-    }
-
-
-    SQInteger line() const { return _lex._tokenline; }
-    SQInteger column() const { return _lex._tokencolumn; }
-    SQInteger width() const { return _lex._currentcolumn - _lex._tokencolumn; }
+    Arena *arena() const { return _astArena; }
 
     void checkSuspiciousUnaryOp(SQInteger prevTok, SQInteger tok, unsigned prevFlags);
     void checkSuspiciousBracket();
@@ -105,14 +76,14 @@ public:
     }
 
     Expr*   Expect(SQInteger tok);
-    bool    IsEndOfStatement() {
+    bool    IsEndOfStatement() const {
         return ((_lex._prevtoken == _SC('\n')) || (_token == SQUIRREL_EOB) || (_token == _SC('}')) || (_token == _SC(';')))
             || (_token == TK_DIRECTIVE);
     }
     void    OptionalSemicolon();
 
     RootBlock*  parse();
-    Block*      parseStatements();
+    Block*      parseStatements(SourceLoc start);
     Statement*  parseStatement(bool closeframe = true);
     Expr*       parseCommaExpr(SQExpressionContext expression_context);
     Expr*       Expression(SQExpressionContext expression_context);
@@ -132,13 +103,12 @@ public:
     Expr*   MultExp();
     Expr*   PrefixedExpr();
     Expr*   Factor(SQInteger &pos);
-    Expr*   UnaryOP(enum TreeOp op);
 
     void ParseTableOrClass(TableDecl *decl, SQInteger separator, SQInteger terminator);
 
     Decl* parseLocalDeclStatement();
-    Decl *parseLocalFunctionDeclStmt(bool assignable);
-    Decl *parseLocalClassDeclStmt(bool assignable);
+    Decl *parseLocalFunctionDeclStmt(bool assignable, SourceLoc keywordStart);
+    Decl *parseLocalClassDeclStmt(bool assignable, SourceLoc keywordStart);
 
     Statement* IfLikeBlock(bool &wrapped);
     IfStatement* parseIfStatement();
@@ -150,17 +120,17 @@ public:
     Expr *parseStringTemplate();
     unsigned parseTypeMask(bool eol_breaks_type_parsing);
     LiteralExpr* ExpectScalar();
-    ConstDecl* parseConstStatement(bool global);
-    ConstDecl* parseConstFunctionDeclStmt(bool global);
-    EnumDecl* parseEnumStatement(bool global);
+    ConstDecl* parseConstStatement(bool global, SourceLoc globalStart = SourceLoc::invalid());
+    ConstDecl* parseConstFunctionDeclStmt(bool global, SourceLoc globalStart = SourceLoc::invalid());
+    EnumDecl* parseEnumStatement(bool global, SourceLoc globalStart = SourceLoc::invalid());
     TryStatement* parseTryCatchStatement();
     Id* generateSurrogateFunctionName();
     DeclExpr* FunctionExp(bool lambda);
     FuncAttrFlagsType ParseFunctionAttributes();
-    ClassDecl* ClassExp(Expr *key);
+    ClassDecl* ClassExp(SourceLoc classStart, Expr *key);
     Expr* DeleteExpr();
     Expr* PrefixIncDec(SQInteger token);
-    FunctionDecl* CreateFunction(Id *name, bool lambda = false, bool ctor = false);
+    FunctionDecl* CreateFunction(SourceLoc start, Id *name, bool lambda = false, bool ctor = false);
     Statement* parseDirectiveStatement();
     ImportStmt* parseImportStatement();
     void onDocString(const SQChar *doc_string);

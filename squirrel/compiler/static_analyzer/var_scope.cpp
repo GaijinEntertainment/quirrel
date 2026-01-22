@@ -84,23 +84,20 @@ void VarScope::merge(const VarScope *other) {
     assert(l->depth == r->depth && "Scope corruption");
     assert(l->owner == r->owner && "Scope corruption");
 
-    auto &thisSymbols = l->symbols;
-    auto &otherSymbols = r->symbols;
-    auto it = otherSymbols.begin();
-    auto ie = otherSymbols.end();
-    auto te = thisSymbols.end();
+    auto &originSymbols = l->symbols;
+    const auto &branchSymbols = r->symbols;
 
-    while (it != ie) {
-      auto f = thisSymbols.find(it->first);
-      if (f != te) {
-        if (it->second->info == f->second->info) // lambdas declared on the same line could have same names
-          f->second->merge(it->second);
+    for (const auto &kv : branchSymbols) {
+      auto it = originSymbols.find(kv.first);
+      if (it != originSymbols.end()) {
+        // Lambdas declared on the same line could have same names
+        if (it->second->info == kv.second->info) {
+          it->second->merge(kv.second);
+        }
       }
-      else {
-        it->second->kill(VRS_PARTIALLY);
-        thisSymbols[it->first] = it->second;
-      }
-      ++it;
+      // Otherwise (would be under `else`) the symbol only exists in branch
+      // (e.g., lambda created in ternary) - it's local to that branch,
+      // don't propagate to origin scope
     }
 
     l = l->parent;

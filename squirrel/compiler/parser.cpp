@@ -54,7 +54,8 @@ void SQParser::reportDiagnostic(int32_t id, ...) {
     va_list vargs;
     va_start(vargs, id);
 
-    _ctx.vreportDiagnostic((enum DiagnosticsId)id, line(), column(), width(), vargs);
+    SourceSpan span = _lex.tokenSpan();
+    _ctx.vreportDiagnostic((enum DiagnosticsId)id, span.start.line, span.start.column, span.textWidth(), vargs);
 
     va_end(vargs);
 }
@@ -134,12 +135,7 @@ Statement* SQParser::parseDirectiveStatement()
 
     SQInteger setFlags = pragmaDesc->setFlags, clearFlags = pragmaDesc->clearFlags;
 
-    DirectiveStmt *d = newNode<DirectiveStmt>();
-    d->setLineStartPos(_lex._tokenline);
-    d->setColumnStartPos(_lex._tokencolumn);
-    d->setLineEndPos(_lex._currentline);
-    d->setColumnEndPos(_lex._currentcolumn);
-
+    DirectiveStmt *d = newNode<DirectiveStmt>(_lex.tokenSpan());
     d->applyToDefault = applyToDefault;
     d->setFlags = setFlags;
     d->clearFlags = clearFlags;
@@ -228,10 +224,10 @@ Expr* SQParser::Expect(SQInteger tok)
         ret = newStringLiteral(_lex._svalue);
         break;
     case TK_INTEGER:
-        ret = setCoordinates(newNode<LiteralExpr>(_lex._nvalue), line(), column());
+        ret = newNode<LiteralExpr>(_lex.tokenSpan(), _lex._nvalue);
         break;
     case TK_FLOAT:
-        ret = setCoordinates(newNode<LiteralExpr>(_lex._fvalue), line(), column());
+        ret = newNode<LiteralExpr>(_lex.tokenSpan(), _lex._fvalue);
         break;
     }
     Lex();
@@ -251,16 +247,14 @@ void SQParser::OptionalSemicolon()
 RootBlock* SQParser::parse()
 {
     try {
-        RootBlock *rootBlock = newNode<RootBlock>(arena());
         Lex();
-        rootBlock->setLineStartPos(line());
-        rootBlock->setColumnStartPos(column());
+        SourceLoc start = _lex.tokenStart();
+        RootBlock *rootBlock = newNode<RootBlock>(arena(), start);
         while(_token > 0){
             rootBlock->addStatement(parseStatement());
             if(_lex._prevtoken != _SC('}') && _lex._prevtoken != _SC(';')) OptionalSemicolon();
         }
-        rootBlock->setLineEndPos(_lex._currentline);
-        rootBlock->setColumnEndPos(_lex._currentcolumn);
+        rootBlock->setSpanEnd(_lex.currentPos());
         return rootBlock;
     }
     catch (SQCompilation::CompilerError &) {
@@ -269,15 +263,16 @@ RootBlock* SQParser::parse()
 }
 
 
-Block* SQParser::parseStatements()
+Block* SQParser::parseStatements(SourceLoc start)
 {
     NestingChecker nc(this);
-    Block *result = newNode<Block>(arena());
+    Block *result = newNode<Block>(arena(), start);
     while(_token != _SC('}') && _token != TK_DEFAULT && _token != TK_CASE) {
         Statement *stmt = parseStatement();
         result->addStatement(stmt);
         if(_lex._prevtoken != _SC('}') && _lex._prevtoken != _SC(';')) OptionalSemicolon();
     }
+    result->setSpanEnd(_lex.currentPos());
     return result;
 }
 
@@ -298,19 +293,19 @@ Statement* SQParser::parseStatement(bool closeframe)
 {
     NestingChecker nc(this);
     Statement *result = NULL;
-    SQInteger l = line(), c = column();
 
     bool allowsImport = false;
 
     switch(_token) {
     case _SC(';'):
         allowsImport = true;
-        result = newNode<EmptyStatement>();
+        result = newNode<EmptyStatement>(_lex.tokenSpan());
         Lex();
         break;
     case TK_DOCSTRING: {
+        SourceSpan span = _lex.tokenSpan();
         onDocString(_lex._svalue);
-        result = newNode<EmptyStatement>();
+        result = newNode<EmptyStatement>(span);
         Lex();
         break;
     }
@@ -330,15 +325,8 @@ Statement* SQParser::parseStatement(bool closeframe)
         break;
     case TK_RETURN:
     case TK_YIELD: {
-        SQOpcode op;
-        if(_token == TK_RETURN) {
-            op = _OP_RETURN;
-        }
-        else {
-            op = _OP_YIELD;
-        }
-        SQInteger le = _lex._currentline;
-        SQInteger ce = _lex._currentcolumn;
+        bool isReturn = (_token == TK_RETURN);
+        SourceSpan keywordSpan = _lex.tokenSpan();
         Lex();
 
         Expr *arg = NULL;
@@ -346,68 +334,70 @@ Statement* SQParser::parseStatement(bool closeframe)
             arg = Expression(SQE_RVALUE);
         }
 
-        result = op == _OP_RETURN ? static_cast<TerminateStatement *>(newNode<ReturnStatement>(arg)) : newNode<YieldStatement>(arg);
-        if (arg) {
-            copyCoordinates(arg, result);
+        if (isReturn) {
+            return newNode<ReturnStatement>(keywordSpan, arg);
+        } else {
+            return newNode<YieldStatement>(keywordSpan, arg);
         }
-        else {
-            result->setLineEndPos(le);
-            result->setColumnEndPos(ce);
-        }
-
-        result->setLineStartPos(l);
-        result->setColumnStartPos(c);
-
-        return result;
     }
-    case TK_BREAK:
-        result = setCoordinates(newNode<BreakStatement>(nullptr), l, c);
+    case TK_BREAK: {
+        SourceSpan span = _lex.tokenSpan();
         Lex();
-        return result;
-    case TK_CONTINUE:
-        result = setCoordinates(newNode<ContinueStatement>(nullptr), l, c);
+        return newNode<BreakStatement>(span, nullptr);
+    }
+    case TK_CONTINUE: {
+        SourceSpan span = _lex.tokenSpan();
         Lex();
-        return result;
-    case TK_FUNCTION:
-        result = parseLocalFunctionDeclStmt(false);
+        return newNode<ContinueStatement>(span, nullptr);
+    }
+    case TK_FUNCTION: {
+        SourceLoc funcStart = _lex.tokenStart();
+        result = parseLocalFunctionDeclStmt(false, funcStart);
         break;
-    case TK_CLASS:
-        result = parseLocalClassDeclStmt(false);
+    }
+    case TK_CLASS: {
+        SourceLoc classStart = _lex.tokenStart();
+        result = parseLocalClassDeclStmt(false, classStart);
         break;
+    }
     case TK_ENUM:
         result = parseEnumStatement(false);
         break;
     case _SC('{'):
     {
         SQUnsignedInteger savedLangFeatures = _lang_features;
+        SourceLoc blockStart = _lex.tokenStart();
         Lex();
-        result = parseStatements();
+        Block *block = parseStatements(blockStart);
+        block->setSpanEnd(_lex.currentPos());
         Expect(_SC('}'));
         _lang_features = savedLangFeatures;
+        result = block;
         break;
     }
     case TK_TRY:
         result = parseTryCatchStatement();
         break;
     case TK_THROW: {
+        SourceSpan keywordSpan = _lex.tokenSpan();
         Lex();
         Expr *e = Expression(SQE_RVALUE);
-        result = copyCoordinates(e, newNode<ThrowStatement>(e));
-        result->setLineStartPos(l); result->setColumnStartPos(c);
-        return result;
+        return newNode<ThrowStatement>(keywordSpan, e);
     }
     case TK_CONST:
         result = parseConstStatement(false);
         break;
-    case TK_GLOBAL:
+    case TK_GLOBAL: {
+        SourceLoc globalStart = _lex.tokenStart();
         Lex();
         if (_token == TK_CONST)
-            result = parseConstStatement(true);
+            result = parseConstStatement(true, globalStart);
         else if (_token == TK_ENUM)
-            result = parseEnumStatement(true);
+            result = parseEnumStatement(true, globalStart);
         else
             reportDiagnostic(DiagnosticsId::DI_GLOBAL_CONSTS_ONLY);
         break;
+    }
     default: {
         // Check for contextual import keywords to switch parsing mode
         if (_are_imports_still_allowed && _token == TK_IDENTIFIER) {
@@ -418,13 +408,12 @@ Statement* SQParser::parseStatement(bool closeframe)
             }
         }
         Expr *e = Expression(SQE_REGULAR);
-        return copyCoordinates(e, newNode<ExprStatement>(e));
+        return newNode<ExprStatement>(e);
       }
     }
 
     assert(result);
 
-    setCoordinates(result, l, c);
     if (!allowsImport)
         _are_imports_still_allowed = false;
 
@@ -438,13 +427,13 @@ Expr* SQParser::parseCommaExpr(SQExpressionContext expression_context)
     Expr *expr = Expression(expression_context);
 
     if (_token == ',') {
-        CommaExpr *cm = newNode<CommaExpr>(arena());
-        cm->addExpression(expr);
-        expr = cm;
+        ArenaVector<Expr *> exprs(arena());
+        exprs.push_back(expr);
         while (_token == ',') {
             Lex();
-            cm->addExpression(Expression(expression_context));
+            exprs.push_back(Expression(expression_context));
         }
+        expr = newNode<CommaExpr>(arena(), std::move(exprs));
     }
 
     return expr;
@@ -669,11 +658,11 @@ Expr* SQParser::CompExp()
         case TK_IN: lhs = BIN_EXP(&SQParser::ShiftExp, TO_IN, lhs); break;
         case TK_INSTANCEOF: lhs = BIN_EXP(&SQParser::ShiftExp, TO_INSTANCEOF, lhs); break;
         case TK_NOT: {
+            SourceLoc notStart = _lex.tokenStart();
             Lex();
-            SQInteger l = line(), c = column();
             if (_token == TK_IN) {
                 lhs = BIN_EXP(&SQParser::ShiftExp, TO_IN, lhs);
-                lhs = setCoordinates(newNode<UnExpr>(TO_NOT, lhs), l, c);
+                lhs = newNode<UnExpr>(TO_NOT, notStart, lhs);
             }
             else
                 reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "in");
@@ -790,13 +779,11 @@ Expr* SQParser::PrefixedExpr()
               reportDiagnostic(DiagnosticsId::DI_SPACE_SEP_FIELD_NAME, opname(tok));
             }
 
-            SQInteger l = _lex._currentline, c = _lex._currentcolumn;
             Expr *receiver = e;
             Id *id = (Id *)Expect(TK_IDENTIFIER);
             assert(id);
-            e = newNode<GetFieldExpr>(receiver, id->name(), nextIsNullable, isTypeMethod); //-V522
-            e->setLineStartPos(receiver->lineStart()); e->setColumnStartPos(receiver->columnStart());
-            e->setLineEndPos(l); e->setColumnEndPos(c);
+            // Use end from Id's span (after the identifier)
+            e = newNode<GetFieldExpr>(receiver, id->name(), nextIsNullable, isTypeMethod, id->sourceSpan().end); //-V522
             break;
         }
         case _SC('['):
@@ -813,8 +800,9 @@ Expr* SQParser::PrefixedExpr()
             Lex();
             Expr *receiver = e;
             Expr *key = Expression(SQE_RVALUE);
-            e = setCoordinates(newNode<GetSlotExpr>(receiver, key, nextIsNullable), receiver->lineStart(), receiver->columnStart());
+            SourceLoc end = _lex.currentPos();
             Expect(_SC(']'));
+            e = newNode<GetSlotExpr>(receiver, key, nextIsNullable, end);
             break;
         }
         case TK_MINUSMINUS:
@@ -823,8 +811,9 @@ Expr* SQParser::PrefixedExpr()
                 nextIsNullable = false;
                 if(IsEndOfStatement()) return e;
                 SQInteger diff = (_token==TK_MINUSMINUS) ? -1 : 1;
-                e = setCoordinates(newNode<IncExpr>(e, diff, IF_POSTFIX), e->lineStart(), e->columnStart());
+                SourceLoc opEnd = _lex.currentPos();
                 Lex();
+                e = newNode<IncExpr>(e, diff, IF_POSTFIX, opEnd);
             }
             return e;
         case _SC('('):
@@ -834,7 +823,6 @@ Expr* SQParser::PrefixedExpr()
             }
             SQInteger nullcall = (_token==TK_NULLCALL || nextIsNullable);
             nextIsNullable = !!nullcall;
-            SQInteger l = e->lineStart(), c = e->columnStart();
             CallExpr *call = newNode<CallExpr>(arena(), e, nullcall);
 
             if (_token == _SC('('))
@@ -848,8 +836,7 @@ Expr* SQParser::PrefixedExpr()
                 }
             }
 
-            setCoordinates(call, l, c);
-
+            call->setSpanEnd(_lex.currentPos());
             Lex();
             e = call;
             break;
@@ -872,7 +859,7 @@ Expr *SQParser::parseStringTemplate() {
     _lex._state = LS_TEMPLATE;
     _lex._expectedToken = TK_TEMPLATE_PREFIX;
 
-    SQInteger l = line(), c = column();
+    SourceLoc templateStart = _lex.tokenStart();
 
     Lex();
     int idx = 0;
@@ -881,7 +868,7 @@ Expr *SQParser::parseStringTemplate() {
     sqvector<Expr *> args(_ctx.allocContext());
     char buffer[64] = {0};
 
-    SQInteger fmtL = line(), fmtC = column();
+    SourceLoc fmtStart = _lex.tokenStart();
     SQInteger tok = -1;
 
     while ((tok = _token) != SQUIRREL_EOB) {
@@ -919,15 +906,20 @@ Expr *SQParser::parseStringTemplate() {
 
     formatString.push_back('\0');
 
+    SourceLoc templateEnd = _lex.currentPos();
+
     Expr *result = nullptr;
-    LiteralExpr *fmt = setCoordinates(newStringLiteral(&formatString[0]), fmtL, fmtC);
+    SourceSpan fmtSpan = {fmtStart, templateEnd};
+    LiteralExpr *fmt = newNode<LiteralExpr>(fmtSpan, copyString(&formatString[0]));
 
     if (args.empty()) {
       result = fmt;
     }
     else {
-      Expr *callee = setCoordinates(newNode<GetFieldExpr>(fmt, "subst", false, /* force type method */ true), l, c);
-      CallExpr *call = setCoordinates(newNode<CallExpr>(arena(), callee, false), l, c);
+      // GetFieldExpr: from fmt start to current position (synthetic .subst access)
+      Expr *callee = newNode<GetFieldExpr>(fmt, "subst", false, /* force type method */ true, templateEnd);
+      // CallExpr: from callee start to end of arguments (which is templateEnd for string templates)
+      CallExpr *call = newNode<CallExpr>(arena(), callee, false, templateEnd);
 
       for (Expr *arg : args)
         call->addArgument(arg);
@@ -947,57 +939,76 @@ Expr* SQParser::Factor(SQInteger &pos)
     NestingChecker nc(this);
     Expr *r = NULL;
 
-    SQInteger l = line(), c = column();
-
     switch(_token)
     {
     case TK_STRING_LITERAL:
         r = newStringLiteral(_lex._svalue);
-        r->setLineStartPos(l); r->setColumnStartPos(c);
         Lex();
         break;
     case TK_TEMPLATE_OP:
         r = parseStringTemplate();
         break;
-    case TK_BASE:
-        r = setCoordinates(newNode<BaseExpr>(), l, c);
+    case TK_BASE: {
+        SourceSpan span = _lex.tokenSpan();
         Lex();
+        r = newNode<BaseExpr>(span);
         break;
+    }
     case TK_IDENTIFIER:
         r = newId(_lex._svalue);
-        r->setLineStartPos(l); r->setColumnStartPos(c);
         Lex();
         break;
-    case TK_CONSTRUCTOR:
-        r = setCoordinates(newNode<Id>(_SC("constructor")), l, c);
+    case TK_CONSTRUCTOR: {
+        SourceSpan span = _lex.tokenSpan();
         Lex();
+        r = newNode<Id>(span, _SC("constructor"));
         break;
-    case TK_THIS: r = setCoordinates(newNode<Id>(_SC("this")), l, c); Lex(); break;
-    case TK_DOUBLE_COLON:  // "::"
+    }
+    case TK_THIS: {
+        SourceSpan span = _lex.tokenSpan();
+        Lex();
+        r = newNode<Id>(span, _SC("this"));
+        break;
+    }
+    case TK_DOUBLE_COLON: { // "::"
         if (_lang_features & LF_FORBID_ROOT_TABLE)
             reportDiagnostic(DiagnosticsId::DI_ROOT_TABLE_FORBIDDEN);
+        SourceSpan span = _lex.tokenSpan();
         _token = _SC('.'); /* hack: drop into PrefixExpr, case '.'*/
-        r = setCoordinates(newNode<RootTableAccessExpr>(), l, c);
+        r = newNode<RootTableAccessExpr>(span);
         break;
-    case TK_NULL:
-        r = setCoordinates(newNode<LiteralExpr>(), l, c);
+    }
+    case TK_NULL: {
+        SourceSpan span = _lex.tokenSpan();
         Lex();
+        r = newNode<LiteralExpr>(span);
         break;
-    case TK_INTEGER:
-        r = setCoordinates(newNode<LiteralExpr>(_lex._nvalue), l, c);
+    }
+    case TK_INTEGER: {
+        SourceSpan span = _lex.tokenSpan();
+        SQInteger val = _lex._nvalue;
         Lex();
+        r = newNode<LiteralExpr>(span, val);
         break;
-    case TK_FLOAT:
-        r = setCoordinates(newNode<LiteralExpr>(_lex._fvalue), l, c);
+    }
+    case TK_FLOAT: {
+        SourceSpan span = _lex.tokenSpan();
+        SQFloat val = _lex._fvalue;
         Lex();
+        r = newNode<LiteralExpr>(span, val);
         break;
-    case TK_TRUE: case TK_FALSE:
-        r = setCoordinates(newNode<LiteralExpr>((bool)(_token == TK_TRUE)), l, c);
+    }
+    case TK_TRUE: case TK_FALSE: {
+        SourceSpan span = _lex.tokenSpan();
+        bool val = (_token == TK_TRUE);
         Lex();
+        r = newNode<LiteralExpr>(span, val);
         break;
+    }
     case _SC('['): {
+            SourceLoc start = _lex.tokenStart();
             Lex();
-            ArrayExpr *arr = newNode<ArrayExpr>(arena());
+            ArrayExpr *arr = newNode<ArrayExpr>(arena(), start);
             bool commaSeparated = false;
             bool spaceSeparated = false;
             bool reported = false;
@@ -1020,19 +1031,20 @@ Expr* SQParser::Factor(SQInteger &pos)
                     Lex();
                 }
             }
-            setCoordinates(arr, l, c);
+            arr->setSpanEnd(_lex.currentPos());
             Lex();
             r = arr;
         }
         break;
     case _SC('{'): {
+        SourceLoc start = _lex.tokenStart();
         Lex();
-        TableDecl *t = newNode<TableDecl>(arena());
+        TableDecl *t = newNode<TableDecl>(arena(), start);
         _docObjectStack.push_back(&t->docObject);
         ParseTableOrClass(t, _SC(','), _SC('}'));
         _docObjectStack.pop_back();
-        setCoordinates(t, l, c);
-        r = setCoordinates(newNode<DeclExpr>(t), l, c);
+        // TableDecl end is set by ParseTableOrClass via Lex() after '}'
+        r = newNode<DeclExpr>(t);
         break;
     }
     case TK_FUNCTION:
@@ -1042,49 +1054,89 @@ Expr* SQParser::Factor(SQInteger &pos)
         r = FunctionExp(true);
         break;
     case TK_CLASS: {
+        SourceLoc classStart = _lex.tokenStart();
         Lex();
-        Decl *classDecl = ClassExp(NULL);
-        r = setCoordinates(newNode<DeclExpr>(classDecl), l, c);
+        Decl *classDecl = ClassExp(classStart, NULL);
+        r = newNode<DeclExpr>(classDecl);
         break;
     }
-    case _SC('-'):
+    case _SC('-'): {
+        SourceLoc opStart = _lex.tokenStart();
         Lex();
         switch(_token) {
-        case TK_INTEGER:
-            r = setCoordinates(newNode<LiteralExpr>(-_lex._nvalue), l, c);
+        case TK_INTEGER: {
+            SourceSpan span = {opStart, _lex.currentPos()};
+            SQInteger val = -_lex._nvalue;
             Lex();
+            r = newNode<LiteralExpr>(span, val);
             break;
-        case TK_FLOAT:
-            r = setCoordinates(newNode<LiteralExpr>(-_lex._fvalue), l, c);
+        }
+        case TK_FLOAT: {
+            SourceSpan span = {opStart, _lex.currentPos()};
+            SQFloat val = -_lex._fvalue;
             Lex();
+            r = newNode<LiteralExpr>(span, val);
             break;
+        }
         default:
-            r = setCoordinates(UnaryOP(TO_NEG), l, c);
+            r = newNode<UnExpr>(TO_NEG, opStart, PrefixedExpr());
             break;
         }
         break;
-    case _SC('!'):
+    }
+    case _SC('!'): {
+        SourceLoc opStart = _lex.tokenStart();
         Lex();
-        r = setCoordinates(UnaryOP(TO_NOT), l, c);
+        r = newNode<UnExpr>(TO_NOT, opStart, PrefixedExpr());
         break;
-    case _SC('~'):
+    }
+    case _SC('~'): {
+        SourceLoc opStart = _lex.tokenStart();
         Lex();
         if(_token == TK_INTEGER)  {
-            r = setCoordinates(newNode<LiteralExpr>(~_lex._nvalue), l, c);
+            SourceSpan span = {opStart, _lex.currentPos()};
+            SQInteger val = ~_lex._nvalue;
             Lex();
+            r = newNode<LiteralExpr>(span, val);
         }
         else {
-            r = setCoordinates(UnaryOP(TO_BNOT), l, c);
+            r = newNode<UnExpr>(TO_BNOT, opStart, PrefixedExpr());
         }
         break;
-    case TK_TYPEOF : Lex(); r = setCoordinates(UnaryOP(TO_TYPEOF), l, c); break;
-    case TK_RESUME : Lex(); r = setCoordinates(UnaryOP(TO_RESUME), l, c); break;
-    case TK_CLONE : Lex(); r = setCoordinates(UnaryOP(TO_CLONE), l, c); break;
-    case TK_STATIC : Lex(); r = setCoordinates(UnaryOP(TO_STATIC_MEMO), l, c); break;
-    case TK_CONST : Lex(); r = setCoordinates(UnaryOP(TO_INLINE_CONST), l, c); break;
+    }
+    case TK_TYPEOF: {
+        SourceLoc opStart = _lex.tokenStart();
+        Lex();
+        r = newNode<UnExpr>(TO_TYPEOF, opStart, PrefixedExpr());
+        break;
+    }
+    case TK_RESUME: {
+        SourceLoc opStart = _lex.tokenStart();
+        Lex();
+        r = newNode<UnExpr>(TO_RESUME, opStart, PrefixedExpr());
+        break;
+    }
+    case TK_CLONE: {
+        SourceLoc opStart = _lex.tokenStart();
+        Lex();
+        r = newNode<UnExpr>(TO_CLONE, opStart, PrefixedExpr());
+        break;
+    }
+    case TK_STATIC: {
+        SourceLoc opStart = _lex.tokenStart();
+        Lex();
+        r = newNode<UnExpr>(TO_STATIC_MEMO, opStart, PrefixedExpr());
+        break;
+    }
+    case TK_CONST: {
+        SourceLoc opStart = _lex.tokenStart();
+        Lex();
+        r = newNode<UnExpr>(TO_INLINE_CONST, opStart, PrefixedExpr());
+        break;
+    }
     case TK_MINUSMINUS :
     case TK_PLUSPLUS :
-        r = setCoordinates(PrefixIncDec(_token), l, c);
+        r = PrefixIncDec(_token);
         break;
     case TK_DELETE :
         if (_lang_features & LF_FORBID_DELETE_OP) {
@@ -1092,45 +1144,48 @@ Expr* SQParser::Factor(SQInteger &pos)
         }
         r = DeleteExpr();
         break;
-    case _SC('('):
+    case _SC('('): {
+        SourceLoc start = _lex.tokenStart();
         Lex();
-        r = setCoordinates(newNode<UnExpr>(TO_PAREN, Expression(_expression_context)), l, c);
+        Expr *inner = Expression(_expression_context);
         Expect(_SC(')'));
+        r = newNode<UnExpr>(TO_PAREN, start, inner);
         break;
+    }
     case TK_CODE_BLOCK_EXPR: {
         if ((_lang_features & LF_ALLOW_COMPILER_INTERNALS) == 0)
             reportDiagnostic(DiagnosticsId::DI_COMPILER_INTERNALS_FORBIDDEN);
         SQExpressionContext saved_expression_context = _expression_context;
         _expression_context = SQE_REGULAR;
         SQUnsignedInteger savedLangFeatures = _lang_features;
+        SourceLoc start = _lex.tokenStart();
         Lex();
-        Block * blk = parseStatements();
+        Block *blk = parseStatements(start);
         blk->setIsExprBlock();
-        r = setCoordinates(newNode<CodeBlockExpr>(blk), l, c);
+        blk->setSpanEnd(_lex.currentPos());
+        r = newNode<CodeBlockExpr>(blk);
         Expect(_SC('}'));
         _lang_features = savedLangFeatures;
         _expression_context = saved_expression_context;
         break;
     }
-    case TK___LINE__:
-        r = setCoordinates(newNode<LiteralExpr>(_lex._currentline), l, c);
+    case TK___LINE__: {
+        SourceSpan span = _lex.tokenSpan();
+        SQInteger val = _lex._currentline;
         Lex();
+        r = newNode<LiteralExpr>(span, val);
         break;
-    case TK___FILE__:
-        r = setCoordinates(newNode<LiteralExpr>(_sourcename), l, c);
+    }
+    case TK___FILE__: {
+        SourceSpan span = _lex.tokenSpan();
         Lex();
+        r = newNode<LiteralExpr>(span, _sourcename);
         break;
+    }
     default:
         reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "expression");
     }
     return r;
-}
-
-Expr* SQParser::UnaryOP(enum TreeOp op)
-{
-    NestingChecker nc(this);
-    Expr *arg = PrefixedExpr();
-    return newNode<UnExpr>(op, arg);
 }
 
 void SQParser::ParseTableOrClass(TableDecl *decl, SQInteger separator, SQInteger terminator)
@@ -1139,14 +1194,14 @@ void SQParser::ParseTableOrClass(TableDecl *decl, SQInteger separator, SQInteger
     NewObjectType otype = separator==_SC(',') ? NEWOBJ_TABLE : NEWOBJ_CLASS;
 
     while(_token != terminator) {
-        SQInteger l = line();
-        SQInteger c = column();
+        SourceSpan keySpan = _lex.tokenSpan();
         unsigned flags = 0;
         //check if is an static
         if(otype == NEWOBJ_CLASS) {
             if(_token == TK_STATIC) {
                 flags |= TMF_STATIC;
                 Lex();
+                keySpan = _lex.tokenSpan();
             }
         }
 
@@ -1159,19 +1214,17 @@ void SQParser::ParseTableOrClass(TableDecl *decl, SQInteger separator, SQInteger
         case TK_FUNCTION:
         case TK_CONSTRUCTOR: {
             SQInteger tk = _token;
-            SQInteger l = line(), c = column();
+            SourceLoc funcStart = _lex.tokenStart();
             Lex();
             FuncAttrFlagsType attr = ParseFunctionAttributes();
-            Id *funcName = tk == TK_FUNCTION ? (Id *)Expect(TK_IDENTIFIER) : newNode<Id>(_SC("constructor"));
+            Id *funcName = tk == TK_FUNCTION ? (Id *)Expect(TK_IDENTIFIER) : newNode<Id>(_lex.tokenSpan(), _SC("constructor"));
             assert(funcName);
-            LiteralExpr *key = newNode<LiteralExpr>(funcName->name()); //-V522
-            setCoordinates(key, l, c);
+            LiteralExpr *key = newNode<LiteralExpr>(funcName->sourceSpan(), funcName->name()); //-V522
             Expect(_SC('('));
-            FunctionDecl *f = CreateFunction(funcName, false, tk == TK_CONSTRUCTOR);
+            FunctionDecl *f = CreateFunction(funcStart, funcName, false, tk == TK_CONSTRUCTOR);
             f->setPure(attr & FATTR_PURE);
             f->setNodiscard(attr & FATTR_NODISCARD);
             DeclExpr *e = newNode<DeclExpr>(f);
-            setCoordinates(e, l, c);
             decl->addMember(key, e, flags);
         }
         break;
@@ -1198,10 +1251,7 @@ void SQParser::ParseTableOrClass(TableDecl *decl, SQInteger separator, SQInteger
         default: {
             Id *id = (Id *)Expect(TK_IDENTIFIER);
             assert(id);
-            id->setLineStartPos(l); //-V522
-            id->setColumnStartPos(c);
-            LiteralExpr *key = newNode<LiteralExpr>(id->name());
-            copyCoordinates(id, key);
+            LiteralExpr *key = newNode<LiteralExpr>(keySpan, id->name()); //-V522
 
             if ((otype == NEWOBJ_TABLE) &&
                 (_token == TK_IDENTIFIER || _token == separator || _token == terminator || _token == _SC('[')
@@ -1218,12 +1268,13 @@ void SQParser::ParseTableOrClass(TableDecl *decl, SQInteger separator, SQInteger
         if (_token == separator) Lex(); //optional comma/semicolon
     }
 
+    decl->setSpanEnd(_lex.currentPos());
     Lex();
 }
 
-Decl *SQParser::parseLocalFunctionDeclStmt(bool assignable)
+Decl *SQParser::parseLocalFunctionDeclStmt(bool assignable, SourceLoc keywordStart)
 {
-    SQInteger l = line(), c = column();
+    SourceLoc funcStart = _lex.tokenStart();
 
     assert(_token == TK_FUNCTION);
     Lex();
@@ -1231,27 +1282,25 @@ Decl *SQParser::parseLocalFunctionDeclStmt(bool assignable)
     FuncAttrFlagsType attr = ParseFunctionAttributes();
     Id *varname = (Id *)Expect(TK_IDENTIFIER);
     Expect(_SC('('));
-    FunctionDecl *f = CreateFunction(varname, false);
+    FunctionDecl *f = CreateFunction(funcStart, varname, false);
     f->setPure(attr & FATTR_PURE);
     f->setNodiscard(attr & FATTR_NODISCARD);
-    f->setLineStartPos(l); f->setColumnStartPos(c);
-    VarDecl *d = newNode<VarDecl>(varname->name(), copyCoordinates(f, newNode<DeclExpr>(f)), assignable); //-V522
-    setCoordinates(d, l, c);
+    DeclExpr *funcExpr = newNode<DeclExpr>(f);
+    VarDecl *d = newNode<VarDecl>(keywordStart, varname, funcExpr, assignable); //-V522
     return d;
 }
 
-Decl *SQParser::parseLocalClassDeclStmt(bool assignable)
+Decl *SQParser::parseLocalClassDeclStmt(bool assignable, SourceLoc keywordStart)
 {
-    SQInteger l = line(), c = column();
+    SourceLoc classStart = _lex.tokenStart();
 
     assert(_token == TK_CLASS);
     Lex();
 
     Id *varname = (Id *)Expect(TK_IDENTIFIER);
-    ClassDecl *cls = ClassExp(NULL);
-    cls->setLineStartPos(l); cls->setColumnStartPos(c);
-    VarDecl *d = newNode<VarDecl>(varname->name(), copyCoordinates(cls, newNode<DeclExpr>(cls)), assignable); //-V522
-    setCoordinates(d, l, c);
+    ClassDecl *cls = ClassExp(classStart, NULL);
+    DeclExpr *classExpr = newNode<DeclExpr>(cls);
+    VarDecl *d = newNode<VarDecl>(keywordStart, varname, classExpr, assignable); //-V522
     return d;
 }
 
@@ -1260,14 +1309,14 @@ Decl* SQParser::parseLocalDeclStatement()
     NestingChecker nc(this);
 
     assert(_token == TK_LET || _token == TK_LOCAL);
-    SQInteger gl = line(), gc = column();
+    SourceLoc keywordStart = _lex.tokenStart();
     bool assignable = _token == TK_LOCAL;
     Lex();
 
     if (_token == TK_FUNCTION) {
-        return parseLocalFunctionDeclStmt(assignable);
+        return parseLocalFunctionDeclStmt(assignable, keywordStart);
     } else if (_token == TK_CLASS) {
-        return parseLocalClassDeclStmt(assignable);
+        return parseLocalClassDeclStmt(assignable, keywordStart);
     }
 
 
@@ -1277,20 +1326,24 @@ Decl* SQParser::parseLocalDeclStatement()
     SQInteger destructurer = 0;
 
     if (_token == _SC('{') || _token == _SC('[')) {
-        SQInteger l = line(), c = column();
         destructurer = _token;
         Lex();
-        decls = dd = newNode<DestructuringDecl>(arena(), destructurer == _SC('{') ? DT_TABLE : DT_ARRAY);
-        setCoordinates(dd, l, c);
+        // Use keywordStart (position of 'local'/'let') so span includes the keyword
+        decls = dd = newNode<DestructuringDecl>(arena(), keywordStart, destructurer == _SC('{') ? DT_TABLE : DT_ARRAY);
     }
 
     do {
-        SQInteger l = line();
-        SQInteger c = column();
-        Id *varname = (Id *)setCoordinates(Expect(TK_IDENTIFIER), l, c);
+        Id *varname = (Id *)Expect(TK_IDENTIFIER);
         assert(varname);
         VarDecl *cur = NULL;
         unsigned typeMask = _token == _SC(':') ? parseTypeMask(destructurer == 0) : ~0u;
+
+        // Determine start position:
+        // - For destructured vars, use varname's span start (keyword covered by DestructuringDecl)
+        // - For first non-destructured var, use keywordStart (to include 'local'/'let')
+        // - For subsequent vars in a group, use varname's span start (group covers keyword)
+        bool isFirstNonDestructured = (!destructurer && decl == NULL && decls == NULL);
+        SourceLoc varStart = isFirstNonDestructured ? keywordStart : varname->sourceSpan().start; //-V522
 
         if(_token == _SC('=')) {
             Lex();
@@ -1301,21 +1354,20 @@ Decl* SQParser::parseLocalDeclStatement()
                 f->setName(varname->name());
               }
             }
-            cur = newNode<VarDecl>(varname->name(), expr, assignable, destructurer != 0); //-V522
+            cur = newNode<VarDecl>(varStart, varname, expr, assignable, destructurer != 0); //-V522
         }
         else {
             if (!assignable && !destructurer)
                 _ctx.reportDiagnostic(DiagnosticsId::DI_UNINITIALIZED_BINDING, varname->lineStart(), varname->columnStart(), varname->textWidth(), varname->name()); //-V522
-            cur = newNode<VarDecl>(varname->name(), nullptr, assignable, destructurer != 0);
+            cur = newNode<VarDecl>(varStart, varname, nullptr, assignable, destructurer != 0);
         }
 
         cur->setTypeMask(typeMask);
-        setCoordinates(cur, l, c);
 
         if (decls) {
             decls->addDeclaration(cur);
         } else if (decl) {
-            decls = setCoordinates(newNode<DeclGroup>(arena()), gl, gc);
+            decls = newNode<DeclGroup>(arena(), keywordStart);
             decls->addDeclaration(static_cast<VarDecl *>(decl));
             decls->addDeclaration(cur);
             decl = decls;
@@ -1357,20 +1409,23 @@ Statement* SQParser::IfLikeBlock(bool &wrapped)
 {
     NestingChecker nc(this);
     Statement *stmt = NULL;
-    SQInteger l = line(), c = column();
     if (_token == _SC('{'))
     {
         wrapped = false;
+        SourceLoc blockStart = _lex.tokenStart();
         Lex();
-        stmt = setCoordinates(parseStatements(), l, c);
+        Block *block = parseStatements(blockStart);
+        block->setSpanEnd(_lex.currentPos());
         Expect(_SC('}'));
+        stmt = block;
     }
     else {
         wrapped = true;
         stmt = parseStatement();
-        Block *block = newNode<Block>(arena());
+        SourceSpan stmtSpan = stmt->sourceSpan(); //-V522
+        Block *block = newNode<Block>(arena(), stmtSpan.start);
         block->addStatement(stmt);
-        copyCoordinates(stmt, block);
+        block->setSpanEnd(stmtSpan.end);
         stmt = block;
         if (_lex._prevtoken != _SC('}') && _lex._prevtoken != _SC(';')) OptionalSemicolon();
     }
@@ -1382,7 +1437,7 @@ IfStatement* SQParser::parseIfStatement()
 {
     NestingChecker nc(this);
 
-    SQInteger l = line(), c = column();
+    SourceLoc start = _lex.tokenStart();
 
     SQInteger prevTok = _lex._prevtoken;
 
@@ -1399,10 +1454,10 @@ IfStatement* SQParser::parseIfStatement()
     Statement *thenB = IfLikeBlock(wrapped);
     Statement *elseB = NULL;
     if (_token == TK_ELSE) {
-        SQInteger el = line(), ec = column(), ew = width();
+        SourceSpan elseSpan = _lex.tokenSpan();
         Lex();
-        if (_token != _SC('{') && prevTok != TK_ELSE && wrapped && l != el && c != ec) {
-          _ctx.reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT, el, ec, ew);
+        if (_token != _SC('{') && prevTok != TK_ELSE && wrapped && start.line != elseSpan.start.line && start.column != elseSpan.start.column) {
+          _ctx.reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT, elseSpan.start.line, elseSpan.start.column, elseSpan.textWidth());
         }
         checkBraceIndentationStyle();
         elseB = IfLikeBlock(wrapped);
@@ -1416,20 +1471,21 @@ IfStatement* SQParser::parseIfStatement()
 
 
     if (_token != SQUIRREL_EOB && _token != _SC('}') && _token != _SC(']') && _token != _SC(')') && _token != _SC(',')) {
-      SQInteger lastLine = elseB ? elseB->lineEnd() : thenB->lineEnd();
-      if (line() != lastLine && column() > c) {
+      int32_t lastLine = elseB ? elseB->lineEnd() : thenB->lineEnd();
+      SourceLoc curTok = _lex.tokenStart();
+      if (curTok.line != lastLine && curTok.column > start.column) {
         reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT);
       }
     }
 
-    return setCoordinates(newNode<IfStatement>(cond, thenB, elseB), l, c);
+    return newNode<IfStatement>(start, cond, thenB, elseB);
 }
 
 WhileStatement* SQParser::parseWhileStatement()
 {
     NestingChecker nc(this);
 
-    SQInteger l = line(), c = column();
+    SourceLoc start = _lex.tokenStart();
 
     Consume(TK_WHILE);
 
@@ -1446,19 +1502,20 @@ WhileStatement* SQParser::parseWhileStatement()
     }
 
     if (_token != SQUIRREL_EOB && _token != _SC('}')) {
-      if (line() != body->lineEnd() && column() > c) {
+      SourceLoc curTok = _lex.tokenStart();
+      if (curTok.line != body->lineEnd() && curTok.column > start.column) {
         reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT);
       }
     }
 
-    return setCoordinates(newNode<WhileStatement>(cond, body), l, c);
+    return newNode<WhileStatement>(start, cond, body);
 }
 
 DoWhileStatement* SQParser::parseDoWhileStatement()
 {
     NestingChecker nc(this);
 
-    SQInteger l = line(), c = column();
+    SourceLoc start = _lex.tokenStart();
 
     Consume(TK_DO); // DO
 
@@ -1470,16 +1527,17 @@ DoWhileStatement* SQParser::parseDoWhileStatement()
 
     Expect(_SC('('));
     Expr *cond = Expression(SQE_LOOP_CONDITION);
+    SourceLoc end = _lex.currentPos();
     Expect(_SC(')'));
 
-    return setCoordinates(newNode<DoWhileStatement>(body, cond), l, c);
+    return newNode<DoWhileStatement>(start, body, cond, end);
 }
 
 ForStatement* SQParser::parseForStatement()
 {
     NestingChecker nc(this);
 
-    SQInteger l = line(), c = column();
+    SourceLoc start = _lex.tokenStart();
 
     Consume(TK_FOR);
 
@@ -1514,35 +1572,33 @@ ForStatement* SQParser::parseForStatement()
     }
 
     if (_token != SQUIRREL_EOB && _token != _SC('}')) {
-      if (line() != body->lineEnd() && column() > c) {
+      SourceLoc curTok = _lex.tokenStart();
+      if (curTok.line != body->lineEnd() && curTok.column > start.column) {
         reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT);
       }
     }
 
-    return setCoordinates(newNode<ForStatement>(init, cond, mod, body), l, c);
+    return newNode<ForStatement>(start, init, cond, mod, body);
 }
 
 ForeachStatement* SQParser::parseForEachStatement()
 {
     NestingChecker nc(this);
 
-    SQInteger l = line(), c = column();
+    SourceLoc start = _lex.tokenStart();
 
     Consume(TK_FOREACH);
 
     Expect(_SC('('));
-    SQInteger idL = line(), idC = column();
 
-    Id *valname = (Id *)setCoordinates(Expect(TK_IDENTIFIER), idL, idC);
+    Id *valname = (Id *)Expect(TK_IDENTIFIER);
     assert(valname);
 
     Id *idxname = NULL;
     if(_token == _SC(',')) {
         idxname = valname;
         Lex();
-        idL = line();
-        idC = column();
-        valname = (Id *)setCoordinates(Expect(TK_IDENTIFIER), idL, idC);
+        valname = (Id *)Expect(TK_IDENTIFIER);
         assert(valname);
 
         if (strcmp(idxname->name(), valname->name()) == 0) //-V522
@@ -1566,22 +1622,23 @@ ForeachStatement* SQParser::parseForEachStatement()
     }
 
     if (_token != SQUIRREL_EOB && _token != _SC('}')) {
-      if (line() != body->lineEnd() && column() > c) {
+      SourceLoc curTok = _lex.tokenStart();
+      if (curTok.line != body->lineEnd() && curTok.column > start.column) {
         reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT);
       }
     }
 
-    VarDecl *idxDecl = idxname ? copyCoordinates(idxname, newNode<VarDecl>(idxname->name(), nullptr, false)) : NULL;
-    VarDecl *valDecl = valname ? copyCoordinates(valname, newNode<VarDecl>(valname->name(), nullptr, false)) : NULL;
+    VarDecl *idxDecl = idxname ? newNode<VarDecl>(idxname->sourceSpan().start, idxname, nullptr, false) : NULL;
+    VarDecl *valDecl = valname ? newNode<VarDecl>(valname->sourceSpan().start, valname, nullptr, false) : NULL;
 
-    return setCoordinates(newNode<ForeachStatement>(idxDecl, valDecl, contnr, body), l, c);
+    return newNode<ForeachStatement>(start, idxDecl, valDecl, contnr, body);
 }
 
 SwitchStatement* SQParser::parseSwitchStatement()
 {
     NestingChecker nc(this);
 
-    SQInteger l = line(), c = column();
+    SourceLoc start = _lex.tokenStart();
 
     Consume(TK_SWITCH);
 
@@ -1592,30 +1649,33 @@ SwitchStatement* SQParser::parseSwitchStatement()
     checkBraceIndentationStyle();
     Expect(_SC('{'));
 
-    SwitchStatement *switchStmt = newNode<SwitchStatement>(arena(), switchExpr);
+    SwitchStatement *switchStmt = newNode<SwitchStatement>(start, arena(), switchExpr);
 
     while(_token == TK_CASE) {
         Consume(TK_CASE);
 
         Expr *cond = Expression(SQE_RVALUE);
         Expect(_SC(':'));
+        SourceLoc caseBodyStart = _lex.currentPos();
 
         checkBraceIndentationStyle();
-        Statement *caseBody = parseStatements();
+        Statement *caseBody = parseStatements(caseBodyStart);
         switchStmt->addCases(cond, caseBody);
     }
 
     if(_token == TK_DEFAULT) {
         Consume(TK_DEFAULT);
         Expect(_SC(':'));
+        SourceLoc defaultBodyStart = _lex.currentPos();
 
         checkBraceIndentationStyle();
-        switchStmt->addDefault(parseStatements());
+        switchStmt->addDefault(parseStatements(defaultBodyStart));
     }
 
+    switchStmt->setSpanEnd(_lex.currentPos());
     Expect(_SC('}'));
 
-    return setCoordinates(switchStmt, l, c);
+    return switchStmt;
 }
 
 
@@ -1623,53 +1683,53 @@ LiteralExpr* SQParser::ExpectScalar()
 {
     NestingChecker nc(this);
     LiteralExpr *ret = NULL;
-    SQInteger l = line(), c = column();
+    SourceLoc start = _lex.tokenStart();
 
     switch(_token) {
         case TK_NULL:
-            ret = newNode<LiteralExpr>();
+            ret = newNode<LiteralExpr>(_lex.tokenSpan());
             break;
         case TK_INTEGER:
-            ret = newNode<LiteralExpr>(_lex._nvalue);
+            ret = newNode<LiteralExpr>(_lex.tokenSpan(), _lex._nvalue);
             break;
         case TK_FLOAT:
-            ret = newNode<LiteralExpr>(_lex._fvalue);
+            ret = newNode<LiteralExpr>(_lex.tokenSpan(), _lex._fvalue);
             break;
         case TK_STRING_LITERAL:
             ret = newStringLiteral(_lex._svalue);
             break;
         case TK_TRUE:
         case TK_FALSE:
-            ret = newNode<LiteralExpr>((bool)(_token == TK_TRUE ? 1 : 0));
+            ret = newNode<LiteralExpr>(_lex.tokenSpan(), (bool)(_token == TK_TRUE ? 1 : 0));
             break;
-        case '-':
+        case '-': {
             Lex();
+            SourceSpan span = {start, _lex.currentPos()};
             switch(_token)
             {
             case TK_INTEGER:
-                ret = newNode<LiteralExpr>(-_lex._nvalue);
+                ret = newNode<LiteralExpr>(span, -_lex._nvalue);
             break;
             case TK_FLOAT:
-                ret = newNode<LiteralExpr>(-_lex._fvalue);
+                ret = newNode<LiteralExpr>(span, -_lex._fvalue);
             break;
             default:
                 reportDiagnostic(DiagnosticsId::DI_SCALAR_EXPECTED, "integer, float");
             }
             break;
+        }
         default:
             reportDiagnostic(DiagnosticsId::DI_SCALAR_EXPECTED, "integer, float, or string");
     }
-
-    setCoordinates(ret, l, c);
 
     Lex();
     return ret;
 }
 
 
-ConstDecl* SQParser::parseConstFunctionDeclStmt(bool global)
+ConstDecl* SQParser::parseConstFunctionDeclStmt(bool global, SourceLoc globalStart)
 {
-    SQInteger l = line(), c = column();
+    SourceLoc start = globalStart.isValid() ? globalStart : _lex.tokenStart();
 
     assert(_token == TK_FUNCTION);
     Lex();
@@ -1677,33 +1737,32 @@ ConstDecl* SQParser::parseConstFunctionDeclStmt(bool global)
     FuncAttrFlagsType attr = ParseFunctionAttributes();
     Id *funcName = (Id *)Expect(TK_IDENTIFIER);
     Expect(_SC('('));
-    FunctionDecl *f = CreateFunction(funcName, false);
+    FunctionDecl *f = CreateFunction(start, funcName, false);
     f->setPure(attr & FATTR_PURE);
     f->setNodiscard(attr & FATTR_NODISCARD);
-    f->setLineStartPos(l); f->setColumnStartPos(c);
 
     // Wrap function in DeclExpr first, then in const inline operator
-    DeclExpr *funcExpr = copyCoordinates(f, newNode<DeclExpr>(f));
-    Expr *constFunc = copyCoordinates(funcExpr, newNode<UnExpr>(TO_INLINE_CONST, funcExpr));
-    ConstDecl *d = setCoordinates(newNode<ConstDecl>(funcName->name(), constFunc, global), l, c); //-V522
+    DeclExpr *funcExpr = newNode<DeclExpr>(f);
+    Expr *constFunc = newNode<UnExpr>(TO_INLINE_CONST, start, funcExpr);
+    ConstDecl *d = newNode<ConstDecl>(start, funcName->name(), constFunc, global); //-V522
     return d;
 }
 
-ConstDecl* SQParser::parseConstStatement(bool global)
+ConstDecl* SQParser::parseConstStatement(bool global, SourceLoc globalStart)
 {
     NestingChecker nc(this);
-    SQInteger l = line(), c = column();
+    SourceLoc start = globalStart.isValid() ? globalStart : _lex.tokenStart();
     Lex();
 
     if (_token == TK_FUNCTION) {
-        return parseConstFunctionDeclStmt(global);
+        return parseConstFunctionDeclStmt(global, globalStart);
     }
 
     Id *id = (Id *)Expect(TK_IDENTIFIER);
 
     Expect('=');
     Expr *valExpr = Expression(SQE_RVALUE);
-    ConstDecl *d = setCoordinates(newNode<ConstDecl>(id->name(), valExpr, global), l, c); //-V522
+    ConstDecl *d = newNode<ConstDecl>(start, id->name(), valExpr, global); //-V522
 
     OptionalSemicolon();
 
@@ -1711,24 +1770,23 @@ ConstDecl* SQParser::parseConstStatement(bool global)
 }
 
 
-EnumDecl* SQParser::parseEnumStatement(bool global)
+EnumDecl* SQParser::parseEnumStatement(bool global, SourceLoc globalStart)
 {
     NestingChecker nc(this);
-    SQInteger l = line(), c = column();
+    SourceLoc start = globalStart.isValid() ? globalStart : _lex.tokenStart();
     Lex();
     Id *id = (Id *)Expect(TK_IDENTIFIER);
 
-    EnumDecl *decl = newNode<EnumDecl>(arena(), id->name(), global); //-V522
+    EnumDecl *decl = newNode<EnumDecl>(arena(), start, id->name(), global); //-V522
 
     checkBraceIndentationStyle();
     Expect(_SC('{'));
 
     SQInteger nval = 0;
     while(_token != _SC('}')) {
-        SQInteger cl = line(), cc = column();
-        Id *key = (Id *)setCoordinates(Expect(TK_IDENTIFIER), cl, cc);
+        Id *key = (Id *)Expect(TK_IDENTIFIER);
 
-        const char* keyName = key->name();
+        const char* keyName = key->name(); //-V522
         for (EnumConst& ec : decl->consts())
             if (*keyName == *ec.id && !strcmp(keyName, ec.id))
                 reportDiagnostic(DiagnosticsId::DI_DUPLICATE_KEY, keyName);
@@ -1741,8 +1799,7 @@ EnumDecl* SQParser::parseEnumStatement(bool global)
             valExpr = ExpectScalar();
         }
         else {
-            valExpr = newNode<LiteralExpr>(nval++);
-            copyCoordinates(key, valExpr);
+            valExpr = newNode<LiteralExpr>(key->sourceSpan(), nval++);
         }
 
         decl->addConst(keyName, valExpr); //-V522
@@ -1750,7 +1807,7 @@ EnumDecl* SQParser::parseEnumStatement(bool global)
         if(_token == ',') Lex();
     }
 
-    setCoordinates(decl, l, c);
+    decl->setSpanEnd(_lex.currentPos());
     Lex();
 
     return decl;
@@ -1761,7 +1818,7 @@ TryStatement* SQParser::parseTryCatchStatement()
 {
     NestingChecker nc(this);
 
-    SQInteger l = line(), c = column();
+    SourceLoc start = _lex.tokenStart();
 
     Consume(TK_TRY);
 
@@ -1777,7 +1834,7 @@ TryStatement* SQParser::parseTryCatchStatement()
     checkBraceIndentationStyle();
     Statement *cth = parseStatement();
 
-    return setCoordinates(newNode<TryStatement>(t, exid, cth), l, c);
+    return newNode<TryStatement>(start, t, exid, cth);
 }
 
 
@@ -1835,26 +1892,23 @@ SQParser::FuncAttrFlagsType SQParser::ParseFunctionAttributes() {
 DeclExpr* SQParser::FunctionExp(bool lambda)
 {
     NestingChecker nc(this);
-    SQInteger l = line(), c = column();
+    SourceLoc start = _lex.tokenStart();
     Lex();
     FuncAttrFlagsType attr = ParseFunctionAttributes();
     Id *funcName = (_token == TK_IDENTIFIER) ? (Id *)Expect(TK_IDENTIFIER) : generateSurrogateFunctionName();
     Expect(_SC('('));
 
-    Decl *f = CreateFunction(funcName, lambda);
-    static_cast<FunctionDecl *>(f)->setPure(attr & FATTR_PURE);
-    static_cast<FunctionDecl *>(f)->setNodiscard(attr & FATTR_NODISCARD);
-    f->setLineStartPos(l);
-    f->setColumnStartPos(c);
+    FunctionDecl *f = CreateFunction(start, funcName, lambda);
+    f->setPure(attr & FATTR_PURE);
+    f->setNodiscard(attr & FATTR_NODISCARD);
 
-    return setCoordinates(newNode<DeclExpr>(f), l, c);
+    return newNode<DeclExpr>(f);
 }
 
 
-ClassDecl* SQParser::ClassExp(Expr *key)
+ClassDecl* SQParser::ClassExp(SourceLoc classStart, Expr *key)
 {
     NestingChecker nc(this);
-    SQInteger l = line(), c = column();
     Expr *baseExpr = NULL;
     if(_token == TK_EXTENDS) {
         Lex();
@@ -1867,34 +1921,32 @@ ClassDecl* SQParser::ClassExp(Expr *key)
     }
     checkBraceIndentationStyle();
     Expect(_SC('{'));
-    ClassDecl *d = newNode<ClassDecl>(arena(), key, baseExpr);
+    ClassDecl *d = newNode<ClassDecl>(arena(), classStart, key, baseExpr);
     _docObjectStack.push_back(&d->docObject);
     ParseTableOrClass(d, _SC(';'),_SC('}'));
     _docObjectStack.pop_back();
-    return setCoordinates(d, l, c);
+    return d;
 }
 
 
 Expr* SQParser::DeleteExpr()
 {
     NestingChecker nc(this);
-    SQInteger l = line(), c = column();
+    SourceLoc opStart = _lex.tokenStart();
     Consume(TK_DELETE);
     Expr *arg = PrefixedExpr();
-    Expr *d = newNode<UnExpr>(TO_DELETE, arg);
-    d->setLineStartPos(l);
-    d->setColumnStartPos(c);
-    return d;
+    return newNode<UnExpr>(TO_DELETE, opStart, arg);
 }
 
 
 Expr* SQParser::PrefixIncDec(SQInteger token)
 {
     NestingChecker nc(this);
+    SourceLoc opStart = _lex.tokenStart();
     SQInteger diff = (token==TK_MINUSMINUS) ? -1 : 1;
     Lex();
     Expr *arg = PrefixedExpr();
-    return newNode<IncExpr>(arg, diff, IF_PREFIX);
+    return newNode<IncExpr>(arg, diff, IF_PREFIX, opStart);
 }
 
 
@@ -1955,22 +2007,21 @@ unsigned SQParser::parseTypeMask(bool eol_breaks_type_parsing)
 }
 
 
-FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
+FunctionDecl* SQParser::CreateFunction(SourceLoc start, Id *name, bool lambda, bool ctor)
 {
     NestingChecker nc(this);
-    FunctionDecl *f = ctor ? newNode<ConstructorDecl>(arena(), name->name()) : newNode<FunctionDecl>(arena(), name->name());
-    f->setLineStartPos(line()); f->setColumnStartPos(column());
+    FunctionDecl *f = ctor ? newNode<ConstructorDecl>(arena(), start, name->name()) : newNode<FunctionDecl>(arena(), start, name);
 
     SQInteger defparams = 0;
 
     auto &params = f->parameters();
 
     while (_token!=_SC(')')) {
-        SQInteger l = line(), c = column();
+        SourceSpan paramSpan = _lex.tokenSpan();
         if (_token == TK_VARPARAMS) {
             if(defparams > 0)
                 reportDiagnostic(DiagnosticsId::DI_VARARG_WITH_DEFAULT_ARG);
-            f->addParameter(_SC("vargv"));
+            f->addParameter(paramSpan, _SC("vargv"));
             f->setVararg(true);
             params.back()->setVararg();
             Lex();
@@ -1995,10 +2046,9 @@ FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
                     reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "=");
             }
 
-            f->addParameter(paramname->name(), defVal); //-V522
+            // Use Id's span for parameter name span
+            f->addParameter(paramname->sourceSpan(), paramname->name(), defVal); //-V522
             ParamDecl *p = params.back();
-            p->setLineStartPos(l); p->setColumnStartPos(c);
-            p->setLineEndPos(_lex._currentline); p->setColumnEndPos(_lex._currentcolumn - 1);
             p->setTypeMask(typeMask);
 
             if(_token == _SC(',')) Lex();
@@ -2016,14 +2066,14 @@ FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
     _docObjectStack.push_back(&f->docObject);
 
     if (lambda) {
-        SQInteger line = _lex._prevtoken == _SC('\n') ? _lex._lasttokenline : _lex._currentline;
         Expr *expr = Expression(SQE_REGULAR);
-        ReturnStatement *retStmt = newNode<ReturnStatement>(expr);
-        copyCoordinates(expr, retStmt);
+        SourceSpan exprSpan = expr->sourceSpan();
+        // For lambda, use expression span as the synthetic "return" span
+        ReturnStatement *retStmt = newNode<ReturnStatement>(exprSpan, expr);
         retStmt->setIsLambda();
-        body = newNode<Block>(arena());
+        body = newNode<Block>(arena(), exprSpan.start);
         body->addStatement(retStmt);
-        copyCoordinates(retStmt, body);
+        body->setSpanEnd(exprSpan.end);
     }
     else {
         if (_token != '{')
@@ -2033,17 +2083,12 @@ FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
     }
 
     _docObjectStack.pop_back();
-    SQInteger line2 = _lex._prevtoken == _SC('\n') ? _lex._lasttokenline : _lex._currentline;
-    SQInteger column2 = _lex._prevtoken == _SC('\n') ? _lex._lasttokencolumn : _lex._currentcolumn;
 
     f->setBody(body);
 
     f->setSourceName(_sourcename);
     f->setLambda(lambda);
     f->setResultTypeMask(resultTypeMask);
-
-    f->setLineEndPos(line2);
-    f->setColumnEndPos(column2);
 
     _lang_features = savedLangFeatures;
 
@@ -2058,7 +2103,7 @@ ImportStmt* SQParser::parseImportStatement()
 
     // Reuse lexer for the specific import syntax
 
-    SQInteger l = line(), c = column();
+    SourceLoc start = _lex.tokenStart();
     ImportStmt *importStmt = nullptr;
 
     const char *keyword = _lex._svalue;
@@ -2077,9 +2122,9 @@ ImportStmt* SQParser::parseImportStatement()
             reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "import");
         Lex();
 
-        importStmt = newNode<ImportStmt>(arena(), moduleName, nullptr);
-        importStmt->nameCol = column();
-        importStmt->aliasCol = column();
+        importStmt = newNode<ImportStmt>(arena(), start, moduleName, nullptr);
+        importStmt->nameCol = _lex.tokenStart().column;
+        importStmt->aliasCol = _lex.tokenStart().column;
 
         // Parse import list: x, y, z as foo, *
         do {
@@ -2091,8 +2136,9 @@ ImportStmt* SQParser::parseImportStatement()
             bool isWildcard = (_token == '*');
 
             slot.name = copyString(isWildcard ? "*" : _lex._svalue);
-            slot.line = line();
-            slot.column = column();
+            SourceLoc slotLoc = _lex.tokenStart();
+            slot.line = slotLoc.line;
+            slot.column = slotLoc.column;
             Lex();
 
             // Check for an alias
@@ -2122,7 +2168,8 @@ ImportStmt* SQParser::parseImportStatement()
             reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "module name string");
 
         const char *moduleName = copyString(_lex._svalue);
-        int nameCol = column(), aliasCol = column();
+        int32_t nameCol = _lex.tokenStart().column;
+        int32_t aliasCol = nameCol;
         Lex();
 
         const char *moduleAlias = nullptr;
@@ -2131,17 +2178,18 @@ ImportStmt* SQParser::parseImportStatement()
             if (_token != TK_IDENTIFIER)
                 reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "identifier");
             moduleAlias = copyString(_lex._svalue);
-            aliasCol = column();
+            aliasCol = _lex.tokenStart().column;
             Lex();
         }
 
-        importStmt = newNode<ImportStmt>(arena(), moduleName, moduleAlias);
+        importStmt = newNode<ImportStmt>(arena(), start, moduleName, moduleAlias);
         importStmt->nameCol = nameCol;
         importStmt->aliasCol = aliasCol;
     }
 
     if (importStmt) {
-        setCoordinates(importStmt, l, c);
+        // Set end position to current position (after the last parsed token)
+        importStmt->setSpanEnd(_lex.tokenStart());
     }
 
     return importStmt;

@@ -1,4 +1,4 @@
-ERROR: Invalid type name 'Integer', did your mean 'int'?
+ERROR: Invalid type name 'Integer', did you mean 'int'?
 testData/diagnostics/invalid_type_hint_3.nut:1:13
 
 let a = @(x: Integer): Integer x * x

@@ -321,6 +321,8 @@ void IncExpr::transformChildren(Transformer *transformer) {
   _arg = _arg->transform(transformer)->asExpression();
 }
 
+DeclExpr::DeclExpr(Decl *decl) : Expr(TO_DECL_EXPR, decl->sourceSpan()), _decl(decl) {}
+
 void DeclExpr::visitChildren(Visitor *visitor) { _decl->visit(visitor); }
 
 void DeclExpr::transformChildren(Transformer *transformer) {
@@ -411,7 +413,11 @@ void FunctionDecl::transformChildren(Transformer *transformer) {
   setBody(body()->transform(transformer)->asStatement()->asBlock());
 }
 
-void FunctionDecl::setBody(Block *body) { _body = body; body->setIsBody(); }
+void FunctionDecl::setBody(Block *body) {
+    _body = body;
+    body->setIsBody();
+    setSpanEnd(body->sourceSpan().end);
+}
 
 void ConstDecl::visitChildren(Visitor *visitor) {
   _value->visit(visitor);
@@ -422,7 +428,6 @@ void ConstDecl::transformChildren(Transformer *transformer) {
 }
 
 void DeclGroup::visitChildren(Visitor *visitor) {
-
     for (auto decl : declarations())
         decl->visit(visitor);
 }

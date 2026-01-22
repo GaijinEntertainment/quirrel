@@ -3,6 +3,7 @@
 #define _SQLEXER_H_
 
 #include "compilationcontext.h"
+#include "sourceloc.h"
 
 enum SQLexerState {
   LS_REGULAR,
@@ -53,6 +54,21 @@ private:
     sqvector<SQChar> _currentComment;
 
 public:
+    SQCompilation::SourceSpan tokenSpan() const {
+        return {
+            {static_cast<int32_t>(_tokenline), static_cast<int32_t>(_tokencolumn)},
+            {static_cast<int32_t>(_currentline), static_cast<int32_t>(_currentcolumn)}
+        };
+    }
+
+    SQCompilation::SourceLoc tokenStart() const {
+        return {static_cast<int32_t>(_tokenline), static_cast<int32_t>(_tokencolumn)};
+    }
+
+    SQCompilation::SourceLoc currentPos() const {
+        return {static_cast<int32_t>(_currentline), static_cast<int32_t>(_currentcolumn)};
+    }
+
     SQInteger _prevtoken = -1;
     SQInteger _currentline = 1;
     SQInteger _lasttokenline = -1;

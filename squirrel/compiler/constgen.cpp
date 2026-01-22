@@ -16,12 +16,12 @@ namespace SQCompilation {
 
 void ConstGenVisitor::throwUnsupported(Node *n, const char *type)
 {
-    _ctx.reportDiagnostic(DiagnosticsId::DI_NOT_ALLOWED_IN_CONST, n->lineStart(), n->columnStart(), n->columnEnd() - n->columnStart(), type);
+    _ctx.reportDiagnostic(DiagnosticsId::DI_NOT_ALLOWED_IN_CONST, n->lineStart(), n->columnStart(), n->textWidth(), type);
 }
 
 void ConstGenVisitor::throwGeneralError(Node *n, const char *msg)
 {
-    _ctx.reportDiagnostic(DiagnosticsId::DI_GENERAL_COMPILE_ERROR, n->lineStart(), n->columnStart(), n->columnEnd() - n->columnStart(), msg);
+    _ctx.reportDiagnostic(DiagnosticsId::DI_GENERAL_COMPILE_ERROR, n->lineStart(), n->columnStart(), n->textWidth(), msg);
 }
 
 void ConstGenVisitor::process(Expr *expr, SQObjectPtr &out)
@@ -103,7 +103,7 @@ void ConstGenVisitor::visitId(Id *id)
         _result = constant;
     } else {
         _ctx.reportDiagnostic(DiagnosticsId::DI_ID_IS_NOT_CONST,
-            id->lineStart(), id->columnStart(), id->columnEnd() - id->columnStart(),
+            id->lineStart(), id->columnStart(), id->textWidth(),
             _stringval(idObj));
     }
 
@@ -184,7 +184,7 @@ void ConstGenVisitor::visitGetFieldExpr(GetFieldExpr *expr)
     else {
         sq_settop(_vm, prevTop);
         _ctx.reportDiagnostic(DiagnosticsId::DI_CONSTANT_FIELD_NOT_FOUND,
-            expr->lineStart(), expr->columnStart(), expr->columnEnd() - expr->columnStart(),
+            expr->lineStart(), expr->columnStart(), expr->textWidth(),
             _stringval(slotName));
     }
 
@@ -230,7 +230,7 @@ void ConstGenVisitor::visitGetSlotExpr(GetSlotExpr *expr)
 
         Expr *errNode = expr->key();
         _ctx.reportDiagnostic(DiagnosticsId::DI_CONSTANT_SLOT_NOT_FOUND,
-            errNode->lineStart(), errNode->columnStart(), errNode->columnEnd() - errNode->columnStart(),
+            errNode->lineStart(), errNode->columnStart(), errNode->textWidth(),
             IdType2Name(sq_type(key)), _stringval(keyAsString));
     }
     sq_settop(_vm, prevTop);

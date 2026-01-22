@@ -5,6 +5,7 @@
 #include "squtils.h"
 #include "arena.h"
 #include "sqobject.h"
+#include "sourceloc.h"
 
 // NOTE: There are some checkers that rely on the order of this list so re-arrange it carefully
 
@@ -126,9 +127,8 @@ class GetSlotExpr;
 
 class Node : public ArenaObj {
 protected:
-    Node(enum TreeOp op): _op(op) {
-      _coordinates.lineStart = _coordinates.lineEnd = _coordinates.columnStart = _coordinates.columnEnd = -1;
-    }
+    Node(enum TreeOp op, SourceSpan span) : _op(op), _span(span) {}
+
 public:
     virtual ~Node() {}
 
@@ -157,31 +157,21 @@ public:
     GetFieldExpr *asGetField() const { assert(_op == TO_GETFIELD); return (GetFieldExpr*)this; }
     GetSlotExpr *asGetSlot() const { assert(_op == TO_GETSLOT); return (GetSlotExpr*)this; }
 
-    int lineStart() const { return _coordinates.lineStart; }
-    void setLineStartPos(int pos) { _coordinates.lineStart = pos; }
-    int lineEnd() const { return _coordinates.lineEnd; }
-    void setLineEndPos(int pos) { _coordinates.lineEnd = pos; }
+    SourceSpan sourceSpan() const { return _span; }
 
-    int columnStart() const { return _coordinates.columnStart; }
-    void setColumnStartPos(int pos) { _coordinates.columnStart = pos; }
-    int columnEnd() const { return _coordinates.columnEnd; }
-    void setColumnEndPos(int pos) { _coordinates.columnEnd = pos; }
+    // Only for incrementally-built nodes
+    void setSpanEnd(SourceLoc end) { _span.end = end; }
 
-    int textWidth() const { return columnEnd() - columnStart(); }
-
-    void copyLocationFrom(const Node &from) { _coordinates = from._coordinates; }
+    // Convenience accessors
+    int lineStart() const { return _span.start.line; }
+    int lineEnd() const { return _span.end.line; }
+    int columnStart() const { return _span.start.column; }
+    int columnEnd() const { return _span.end.column; }
+    int textWidth() const { return _span.textWidth(); }
 
 private:
-
-    struct {
-        int lineStart;
-        int columnStart;
-
-        int lineEnd;
-        int columnEnd;
-    } _coordinates;
-
     enum TreeOp _op;
+    SourceSpan _span;
 };
 
 
@@ -205,7 +195,7 @@ class ExternalValueExpr;
 
 class Expr : public Node {
 protected:
-    Expr(enum TreeOp op) : Node(op) {}
+    Expr(enum TreeOp op, SourceSpan span) : Node(op, span) {}
 
 public:
     bool isAccessExpr() const { return TO_GETFIELD <= op() && op() <= TO_SETSLOT; }
@@ -220,7 +210,7 @@ public:
 
 class Id : public Expr {
 public:
-    Id(const SQChar *name) : Expr(TO_ID), _name(name) {}
+    Id(SourceSpan span, const SQChar *name) : Expr(TO_ID, span), _name(name) {}
 
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
@@ -233,10 +223,8 @@ private:
 
 class UnExpr : public Expr {
 public:
-    UnExpr(enum TreeOp op, Expr *arg): Expr(op), _arg(arg) {
-      setLineEndPos(arg->lineEnd());
-      setColumnEndPos(arg->columnEnd());
-    }
+    UnExpr(enum TreeOp op, SourceLoc opStart, Expr *arg)
+        : Expr(op, {opStart, arg->sourceSpan().end}), _arg(arg) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -249,12 +237,8 @@ private:
 
 class BinExpr : public Expr {
 public:
-    BinExpr(enum TreeOp op, Expr *lhs, Expr *rhs) : Expr(op), _lhs(lhs), _rhs(rhs) {
-      setLineStartPos(lhs->lineStart());
-      setColumnStartPos(lhs->columnStart());
-      setLineEndPos(rhs->lineEnd());
-      setColumnEndPos(rhs->columnEnd());
-    }
+    BinExpr(enum TreeOp op, Expr *lhs, Expr *rhs)
+        : Expr(op, SourceSpan::merge(lhs->sourceSpan(), rhs->sourceSpan())), _lhs(lhs), _rhs(rhs) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -262,18 +246,15 @@ public:
     Expr *lhs() const { return _lhs; }
     Expr *rhs() const { return _rhs; }
 
+private:
     Expr *_lhs;
     Expr *_rhs;
 };
 
 class TerExpr : public Expr {
 public:
-    TerExpr(Expr *a, Expr *b, Expr *c) : Expr(TO_TERNARY), _a(a), _b(b), _c(c) {
-      setLineStartPos(a->lineStart());
-      setColumnStartPos(a->columnStart());
-      setLineEndPos(c->lineEnd());
-      setColumnEndPos(c->columnEnd());
-    }
+    TerExpr(Expr *a, Expr *b, Expr *c)
+        : Expr(TO_TERNARY, SourceSpan::merge(a->sourceSpan(), c->sourceSpan())), _a(a), _b(b), _c(c) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -283,7 +264,6 @@ public:
     Expr *c() const { return _c; }
 
 private:
-
     Expr *_a;
     Expr *_b;
     Expr *_c;
@@ -293,7 +273,8 @@ class FieldAccessExpr;
 
 class AccessExpr : public Expr {
 protected:
-    AccessExpr(enum TreeOp op, Expr *receiver, bool nullable) : Expr(op), _receiver(receiver), _nullable(nullable) {}
+    AccessExpr(enum TreeOp op, SourceSpan span, Expr *receiver, bool nullable)
+        : Expr(op, span), _receiver(receiver), _nullable(nullable) {}
 public:
 
     bool isFieldAccessExpr() const { return op() == TO_GETFIELD || op() == TO_SETFIELD; }
@@ -309,7 +290,8 @@ protected:
 
 class FieldAccessExpr : public AccessExpr {
 protected:
-    FieldAccessExpr(enum TreeOp op, Expr *receiver, const SQChar *field, bool nullable) : AccessExpr(op, receiver, nullable), _fieldName(field) {}
+    FieldAccessExpr(enum TreeOp op, SourceSpan span, Expr *receiver, const SQChar *field, bool nullable)
+        : AccessExpr(op, span, receiver, nullable), _fieldName(field) {}
 
 public:
 
@@ -324,9 +306,10 @@ private:
 class GetFieldExpr : public FieldAccessExpr {
     bool _isTypeMethod;
 public:
-    GetFieldExpr(Expr *receiver, const SQChar *field, bool nullable, bool is_type_method)
-      : FieldAccessExpr(TO_GETFIELD, receiver, field, nullable)
-      , _isTypeMethod(is_type_method) {}
+    // Constructor computes span from receiver start to end of field name
+    GetFieldExpr(Expr *receiver, const SQChar *field, bool nullable, bool is_type_method, SourceLoc end)
+        : FieldAccessExpr(TO_GETFIELD, {receiver->sourceSpan().start, end}, receiver, field, nullable)
+        , _isTypeMethod(is_type_method) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -337,7 +320,10 @@ public:
 
 class SetFieldExpr : public FieldAccessExpr {
 public:
-    SetFieldExpr(Expr *receiver, const SQChar *field, Expr *value, bool nullable): FieldAccessExpr(TO_SETFIELD, receiver, field, nullable), _value(value) {}
+    // Constructor computes span from receiver start to value end
+    SetFieldExpr(Expr *receiver, const SQChar *field, Expr *value, bool nullable)
+        : FieldAccessExpr(TO_SETFIELD, {receiver->sourceSpan().start, value->sourceSpan().end}, receiver, field, nullable)
+        , _value(value) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -351,7 +337,8 @@ protected:
 
 class SlotAccessExpr : public AccessExpr {
 protected:
-    SlotAccessExpr(enum TreeOp op, Expr *receiver, Expr *key, bool nullable) : AccessExpr(op, receiver, nullable), _key(key) {}
+    SlotAccessExpr(enum TreeOp op, SourceSpan span, Expr *receiver, Expr *key, bool nullable)
+        : AccessExpr(op, span, receiver, nullable), _key(key) {}
 public:
 
     Expr *key() const { return _key; }
@@ -361,7 +348,8 @@ protected:
 
 class GetSlotExpr : public SlotAccessExpr {
 public:
-    GetSlotExpr(Expr *receiver, Expr *key, bool nullable): SlotAccessExpr(TO_GETSLOT, receiver, key, nullable) {}
+    GetSlotExpr(Expr *receiver, Expr *key, bool nullable, SourceLoc end)
+        : SlotAccessExpr(TO_GETSLOT, {receiver->sourceSpan().start, end}, receiver, key, nullable) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -369,7 +357,9 @@ public:
 
 class SetSlotExpr : public SlotAccessExpr {
 public:
-    SetSlotExpr(Expr *receiver, Expr *key, Expr *val, bool nullable): SlotAccessExpr(TO_SETSLOT, receiver, key, nullable), _val(val) {}
+    SetSlotExpr(Expr *receiver, Expr *key, Expr *val, bool nullable)
+        : SlotAccessExpr(TO_SETSLOT, {receiver->sourceSpan().start, val->sourceSpan().end}, receiver, key, nullable)
+        , _val(val) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -381,7 +371,7 @@ private:
 
 class BaseExpr : public Expr {
 public:
-    BaseExpr() : Expr(TO_BASE) {}
+    BaseExpr(SourceSpan span) : Expr(TO_BASE, span) {}
 
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
@@ -389,7 +379,7 @@ public:
 
 class RootTableAccessExpr : public Expr {
 public:
-    RootTableAccessExpr() : Expr(TO_ROOT_TABLE_ACCESS) {}
+    RootTableAccessExpr(SourceSpan span) : Expr(TO_ROOT_TABLE_ACCESS, span) {}
 
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
@@ -405,12 +395,11 @@ enum LiteralKind {
 
 class LiteralExpr : public Expr {
 public:
-
-    LiteralExpr() : Expr(TO_LITERAL), _kind(LK_NULL) { _v.raw = 0; }
-    LiteralExpr(const SQChar *s) : Expr(TO_LITERAL), _kind(LK_STRING) { _v.s = s; }
-    LiteralExpr(SQFloat f) : Expr(TO_LITERAL), _kind(LK_FLOAT) { _v.f = f; }
-    LiteralExpr(SQInteger i) : Expr(TO_LITERAL), _kind(LK_INT) { _v.i = i; }
-    LiteralExpr(bool i) : Expr(TO_LITERAL), _kind(LK_BOOL) { _v.i = i; }
+    LiteralExpr(SourceSpan span) : Expr(TO_LITERAL, span), _kind(LK_NULL) { _v.raw = 0; }
+    LiteralExpr(SourceSpan span, const SQChar *s) : Expr(TO_LITERAL, span), _kind(LK_STRING) { _v.s = s; }
+    LiteralExpr(SourceSpan span, SQFloat f) : Expr(TO_LITERAL, span), _kind(LK_FLOAT) { _v.f = f; }
+    LiteralExpr(SourceSpan span, SQInteger i) : Expr(TO_LITERAL, span), _kind(LK_INT) { _v.i = i; }
+    LiteralExpr(SourceSpan span, bool b) : Expr(TO_LITERAL, span), _kind(LK_BOOL) { _v.b = b; }
 
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
@@ -439,7 +428,8 @@ private:
 // Used in the analyzer for external bindings
 class ExternalValueExpr : public Expr {
 public:
-    ExternalValueExpr(const SQObject &from) : Expr(TO_EXTERNAL_VALUE), _value(from) {}
+    ExternalValueExpr(const SQObject &from) : Expr(TO_EXTERNAL_VALUE, SourceSpan::invalid()), _value(from) {}
+    ExternalValueExpr(const SQObject &from, SourceSpan span) : Expr(TO_EXTERNAL_VALUE, span), _value(from) {}
 
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
@@ -458,7 +448,14 @@ enum IncForm {
 
 class IncExpr : public Expr {
 public:
-    IncExpr(Expr *arg, int diff, enum IncForm form) : Expr(TO_INC), _arg(arg), _diff(diff), _form(form) {}
+    // Constructor computes span based on form
+    // For prefix: opLoc is the start of the operator, span is {opLoc, arg->span().end}
+    // For postfix: opLoc is the end of the operator, span is {arg->span().start, opLoc}
+    IncExpr(Expr *arg, int diff, enum IncForm form, SourceLoc opLoc)
+        : Expr(TO_INC, form == IF_PREFIX
+            ? SourceSpan{opLoc, arg->sourceSpan().end}
+            : SourceSpan{arg->sourceSpan().start, opLoc})
+        , _arg(arg), _diff(diff), _form(form) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -468,16 +465,16 @@ public:
     Expr *argument() const { return _arg; }
 
 private:
-    enum IncForm _form;
-    int _diff;
     Expr *_arg;
+    int _diff;
+    enum IncForm _form;
 };
 
 class Decl;
 
 class DeclExpr : public Expr {
 public:
-    DeclExpr(Decl *decl) : Expr(TO_DECL_EXPR), _decl(decl) {}
+    DeclExpr(Decl *decl);
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -490,7 +487,15 @@ private:
 
 class CallExpr : public Expr {
 public:
-    CallExpr(Arena *arena, Expr *callee, bool nullable) : Expr(TO_CALL), _callee(callee), _args(arena), _nullable(nullable) {}
+    // For incremental building - call setSpanEnd() after adding arguments
+    CallExpr(Arena *arena, Expr *callee, bool nullable)
+        : Expr(TO_CALL, {callee->sourceSpan().start, SourceLoc::invalid()})
+        , _callee(callee), _args(arena), _nullable(nullable) {}
+
+    // For cases where end is known at construction time
+    CallExpr(Arena *arena, Expr *callee, bool nullable, SourceLoc end)
+        : Expr(TO_CALL, {callee->sourceSpan().start, end})
+        , _callee(callee), _args(arena), _nullable(nullable) {}
 
     void addArgument(Expr *arg) { _args.push_back(arg); }
 
@@ -510,7 +515,9 @@ private:
 
 class ArrayExpr : public Expr {
 public:
-    ArrayExpr(Arena *arena) : Expr(TO_ARRAYEXPR), _inits(arena) {}
+    // Incremental building - call setSpanEnd() after adding values
+    ArrayExpr(Arena *arena, SourceLoc start)
+        : Expr(TO_ARRAYEXPR, {start, SourceLoc::invalid()}), _inits(arena) {}
 
     void addValue(Expr *v) { _inits.push_back(v); }
 
@@ -526,20 +533,8 @@ private:
 
 class CommaExpr : public Expr {
 public:
-    CommaExpr(Arena *arena) : Expr(TO_COMMA), _exprs(arena) {}
-
-    void addExpression(Expr *expr) {
-      if (_exprs.empty()) {
-        setLineStartPos(expr->lineStart());
-        setColumnStartPos(expr->columnStart());
-      }
-      else {
-        setLineEndPos(expr->lineEnd());
-        setColumnEndPos(expr->columnEnd());
-      }
-
-      _exprs.push_back(expr);
-    }
+    CommaExpr(Arena *arena, ArenaVector<Expr *> exprs)
+        : Expr(TO_COMMA, computeSpan(exprs)), _exprs(std::move(exprs)) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -548,6 +543,11 @@ public:
     ArenaVector<Expr *> &expressions() { return _exprs; }
 
 private:
+    static SourceSpan computeSpan(const ArenaVector<Expr *> &exprs) {
+        if (exprs.empty()) return SourceSpan::invalid();
+        return SourceSpan::merge(exprs[0]->sourceSpan(), exprs.back()->sourceSpan());
+    }
+
     ArenaVector<Expr *> _exprs;
 };
 
@@ -555,7 +555,7 @@ class Block;
 
 class Statement : public Node {
 protected:
-    Statement(enum TreeOp op) : Node(op) {}
+    Statement(enum TreeOp op, SourceSpan span) : Node(op, span) {}
 
 public:
     inline Block *asBlock() const { assert(op() == TO_BLOCK); return (Block *)(this); }
@@ -563,7 +563,11 @@ public:
 
 class DirectiveStmt : public Statement {
 public:
-    DirectiveStmt() : Statement(TO_DIRECTIVE) {}
+    DirectiveStmt(SourceSpan span) : Statement(TO_DIRECTIVE, span) {}
+
+    void visitChildren(Visitor *visitor) {}
+    void transformChildren(Transformer *transformer) {}
+
     uint32_t setFlags = 0, clearFlags = 0;
     bool applyToDefault = false;
 };
@@ -571,8 +575,10 @@ public:
 
 class ImportStmt : public Statement {
 public:
-    ImportStmt(Arena *arena_, const char *module_name, const char *module_alias)
-        : Statement(TO_IMPORT), arena(arena_), moduleName(module_name), moduleAlias(module_alias), slots(arena_) {}
+    // Incremental building - call setSpanEnd() after parsing
+    ImportStmt(Arena *arena_, SourceLoc start, const char *module_name, const char *module_alias)
+        : Statement(TO_IMPORT, {start, SourceLoc::invalid()})
+        , arena(arena_), moduleName(module_name), moduleAlias(module_alias), slots(arena_) {}
 
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
@@ -592,7 +598,7 @@ class VarDecl;
 
 class Decl : public Statement {
 protected:
-    Decl(enum TreeOp op) : Statement(op), typeMask(~0u) {}
+    Decl(enum TreeOp op, SourceSpan span) : Statement(op, span), typeMask(~0u) {}
     unsigned typeMask;
 public:
 
@@ -604,7 +610,8 @@ public:
 
 class ValueDecl : public Decl {
 protected:
-    ValueDecl(enum TreeOp op, const SQChar *name, Expr *expr) : Decl(op), _name(name), _expr(expr) {}
+    ValueDecl(enum TreeOp op, SourceSpan span, const SQChar *name, Expr *expr)
+        : Decl(op, span), _name(name), _expr(expr) {}
 public:
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -613,7 +620,6 @@ public:
     const SQChar *name() const { return _name; }
 
 private:
-
     const SQChar *_name;
     Expr *_expr;
 };
@@ -621,7 +627,11 @@ private:
 class ParamDecl : public ValueDecl {
   bool _isVararg;
 public:
-    ParamDecl(const SQChar *name, Expr *defaultVal) : ValueDecl(TO_PARAM, name, defaultVal), _isVararg(false) {}
+    ParamDecl(SourceSpan nameSpan, const SQChar *name, Expr *defaultVal)
+        : ValueDecl(TO_PARAM,
+            {nameSpan.start, defaultVal ? defaultVal->sourceSpan().end : nameSpan.end},
+            name, defaultVal)
+        , _isVararg(false) {}
 
     bool hasDefaultValue() const { return expression() != NULL; }
     Expr *defaultValue() const { return expression(); }
@@ -631,10 +641,18 @@ public:
 };
 
 class VarDecl : public ValueDecl {
+    Id *_nameId;
 public:
-    VarDecl(const SQChar *name, Expr *init, bool assignable, bool destructured = false) : ValueDecl(TO_VAR, name, init), _assignable(assignable), _destructured(destructured) {}
+    VarDecl(SourceLoc start, Id *nameId, Expr *init, bool assignable, bool destructured = false)
+        : ValueDecl(TO_VAR,
+            {start, init ? init->sourceSpan().end : nameId->sourceSpan().end},
+            nameId->name(), init)
+        , _nameId(nameId), _assignable(assignable), _destructured(destructured) {}
 
     Expr *initializer() const { return expression(); }
+
+    // Get the Id node (for diagnostics - points to identifier)
+    Id *nameId() const { return _nameId; }
 
     bool isAssignable() const { return _assignable; }
     bool isDestructured() const { return _destructured; }
@@ -662,7 +680,9 @@ struct TableMember {
 
 class TableDecl : public Decl {
 public:
-    TableDecl(Arena *arena) : Decl(TO_TABLE), _members(arena) {}
+    // Incremental building - call setSpanEnd() after adding members
+    TableDecl(Arena *arena, SourceLoc start)
+        : Decl(TO_TABLE, {start, SourceLoc::invalid()}), _members(arena) {}
 
     void addMember(Expr *key, Expr *value, unsigned keys = 0) { _members.push_back({ key, value, keys }); }
 
@@ -675,14 +695,18 @@ public:
     DocObject docObject;
 
 protected:
-    TableDecl(Arena *arena, enum TreeOp op) : Decl(op), _members(arena) {}
+    TableDecl(Arena *arena, enum TreeOp op, SourceLoc start)
+        : Decl(op, {start, SourceLoc::invalid()}), _members(arena) {}
+
 private:
     ArenaVector<TableMember> _members;
 };
 
 class ClassDecl : public TableDecl {
 public:
-    ClassDecl(Arena *arena, Expr *key, Expr *base) : TableDecl(arena, TO_CLASS), _key(key), _base(base) {}
+    // Incremental building - span starts at class keyword, call setSpanEnd() after body
+    ClassDecl(Arena *arena, SourceLoc classKeywordStart, Expr *key, Expr *base)
+        : TableDecl(arena, TO_CLASS, classKeywordStart), _key(key), _base(base) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -702,14 +726,25 @@ private:
 class Block;
 
 class FunctionDecl : public Decl {
+    Id *_nameId;       // Name identifier (for diagnostics)
 protected:
-    FunctionDecl(enum TreeOp op, Arena *arena, const SQChar *name) : Decl(op), _arena(arena), _parameters(arena), _name(name),
-        _vararg(false), _body(NULL), _lambda(false), _pure(false), _nodiscard(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
-public:
-    FunctionDecl(Arena *arena, const SQChar *name) : Decl(TO_FUNCTION), _arena(arena), _parameters(arena), _name(name),
+    // Incremental building - call setSpanEnd() after body is set
+    FunctionDecl(enum TreeOp op, Arena *arena, SourceLoc start, const SQChar *name, Id *nameId = nullptr)
+        : Decl(op, {start, SourceLoc::invalid()}), _arena(arena), _parameters(arena), _name(name), _nameId(nameId),
         _vararg(false), _body(NULL), _lambda(false), _pure(false), _nodiscard(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
 
-    void addParameter(const SQChar *name, Expr *defaultVal = NULL) { _parameters.push_back(new (_arena) ParamDecl(name, defaultVal)); }
+public:
+    FunctionDecl(Arena *arena, SourceLoc start, Id *nameId)
+        : Decl(TO_FUNCTION, {start, SourceLoc::invalid()}), _arena(arena), _parameters(arena), _name(nameId->name()), _nameId(nameId),
+        _vararg(false), _body(NULL), _lambda(false), _pure(false), _nodiscard(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
+
+    FunctionDecl(Arena *arena, SourceLoc start, const SQChar *name)
+        : Decl(TO_FUNCTION, {start, SourceLoc::invalid()}), _arena(arena), _parameters(arena), _name(name), _nameId(nullptr),
+        _vararg(false), _body(NULL), _lambda(false), _pure(false), _nodiscard(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
+
+    void addParameter(SourceSpan nameSpan, const SQChar *name, Expr *defaultVal = NULL) {
+        _parameters.push_back(new (_arena) ParamDecl(nameSpan, name, defaultVal));
+    }
 
     ArenaVector<ParamDecl *> &parameters() { return _parameters; }
     const ArenaVector<ParamDecl *> &parameters() const { return _parameters; }
@@ -722,6 +757,7 @@ public:
 
     void setName(const SQChar *newName) { _name = newName; }
     const SQChar *name() const { return _name; }
+    Id *nameId() const { return _nameId; }
     bool isVararg() const { return _vararg; }
     Block *body() const { return _body; }
 
@@ -762,8 +798,8 @@ private:
 
 class ConstructorDecl : public FunctionDecl {
 public:
-    ConstructorDecl(Arena *arena, const SQChar *name) : FunctionDecl(TO_CONSTRUCTOR, arena, name) {}
-
+    ConstructorDecl(Arena *arena, SourceLoc start, const SQChar *name)
+        : FunctionDecl(TO_CONSTRUCTOR, arena, start, name) {}
 };
 
 struct EnumConst {
@@ -773,7 +809,9 @@ struct EnumConst {
 
 class EnumDecl : public Decl {
 public:
-    EnumDecl(Arena *arena, const SQChar *id, bool global) : Decl(TO_ENUM), _id(id), _consts(arena), _global(global) {}
+    // Incremental building - call setSpanEnd() after constants are added
+    EnumDecl(Arena *arena, SourceLoc start, const SQChar *id, bool global)
+        : Decl(TO_ENUM, {start, SourceLoc::invalid()}), _id(id), _consts(arena), _global(global) {}
 
     void addConst(const SQChar *id, LiteralExpr *val) { _consts.push_back({ id, val }); }
 
@@ -794,7 +832,8 @@ private:
 
 class ConstDecl : public Decl {
 public:
-    ConstDecl(const SQChar *id, Expr *value, bool global) : Decl(TO_CONST), _id(id), _value(value), _global(global) {}
+    ConstDecl(SourceLoc start, const SQChar *id, Expr *value, bool global)
+        : Decl(TO_CONST, {start, value->sourceSpan().end}), _id(id), _value(value), _global(global) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -811,14 +850,17 @@ private:
 
 class DeclGroup : public Decl {
 protected:
-    DeclGroup(Arena *arena, enum TreeOp op) : Decl(op), _decls(arena) {}
+    // Incremental building - span start is keyword, end is set when last decl is added
+    DeclGroup(Arena *arena, enum TreeOp op, SourceLoc start)
+        : Decl(op, {start, SourceLoc::invalid()}), _decls(arena) {}
 public:
-    DeclGroup(Arena *arena) : Decl(TO_DECL_GROUP), _decls(arena) {}
+    DeclGroup(Arena *arena, SourceLoc start)
+        : Decl(TO_DECL_GROUP, {start, SourceLoc::invalid()}), _decls(arena) {}
 
     void addDeclaration(VarDecl *d) {
       _decls.push_back(d);
-      setLineEndPos(d->lineEnd());
-      setColumnEndPos(d->columnEnd());
+      // Update span end to include the new declaration
+      setSpanEnd(d->sourceSpan().end);
     }
 
     void visitChildren(Visitor *visitor);
@@ -838,15 +880,15 @@ enum DestructuringType {
 
 class DestructuringDecl : public DeclGroup {
 public:
-    DestructuringDecl(Arena *arena, enum DestructuringType dt) : DeclGroup(arena, TO_DESTRUCTURE), _dt_type(dt), _expr(NULL) {}
+    DestructuringDecl(Arena *arena, SourceLoc start, enum DestructuringType dt)
+        : DeclGroup(arena, TO_DESTRUCTURE, start), _dt_type(dt), _expr(NULL) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
 
     void setExpression(Expr *expr) {
-      _expr = expr;
-      setLineEndPos(expr->lineEnd());
-      setColumnEndPos(expr->columnEnd());
+        _expr = expr;
+        setSpanEnd(_expr->sourceSpan().end);
     }
     Expr *initExpression() const { return _expr; }
 
@@ -860,7 +902,10 @@ private:
 
 class Block : public Statement {
 public:
-    Block(Arena *arena, bool is_root = false) : Statement(TO_BLOCK), _statements(arena), _is_root(is_root), _is_body(false), _is_expr_block(false) {}
+    // Incremental building - call setSpanEnd() after statements are added
+    Block(Arena *arena, SourceLoc start, bool is_root = false)
+        : Statement(TO_BLOCK, {start, SourceLoc::invalid()})
+        , _statements(arena), _is_root(is_root), _is_body(false), _is_expr_block(false) {}
 
     void addStatement(Statement *stmt) { assert(stmt); _statements.push_back(stmt); }
 
@@ -879,23 +924,20 @@ public:
     void setIsExprBlock() { _is_expr_block = true; }
 
 private:
+    ArenaVector<Statement *> _statements;
     bool _is_root;
     bool _is_body;
     bool _is_expr_block;
-    ArenaVector<Statement *> _statements;
 };
 
 class RootBlock : public Block {
 public:
-    RootBlock(Arena *arena) : Block(arena, true) {}
+    RootBlock(Arena *arena, SourceLoc start) : Block(arena, start, true) {}
 };
 
 class CodeBlockExpr : public Expr {
 public:
-    CodeBlockExpr(Block *block): Expr(TO_CODE_BLOCK_EXPR), _block(block) {
-      setLineEndPos(block->lineEnd());
-      setColumnEndPos(block->columnEnd());
-    }
+    CodeBlockExpr(Block *block): Expr(TO_CODE_BLOCK_EXPR, block->sourceSpan()), _block(block) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -908,7 +950,9 @@ private:
 
 class IfStatement : public Statement {
 public:
-    IfStatement(Expr *cond, Statement *thenB, Statement *elseB) : Statement(TO_IF), _cond(cond), _thenB(thenB), _elseB(elseB) {}
+    IfStatement(SourceLoc start, Expr *cond, Statement *thenB, Statement *elseB)
+        : Statement(TO_IF, {start, (elseB ? elseB : thenB)->sourceSpan().end})
+        , _cond(cond), _thenB(thenB), _elseB(elseB) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -925,7 +969,13 @@ private:
 
 class LoopStatement : public Statement {
 protected:
-    LoopStatement(enum TreeOp op, Statement *body) : Statement(op), _body(body) {}
+    // Constructor computes span from keyword start to body end
+    LoopStatement(enum TreeOp op, SourceLoc start, Statement *body)
+        : Statement(op, {start, body->sourceSpan().end}), _body(body) {}
+
+    // For DoWhile which needs a different span
+    LoopStatement(enum TreeOp op, SourceSpan span, Statement *body)
+        : Statement(op, span), _body(body) {}
 public:
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -938,7 +988,8 @@ private:
 
 class WhileStatement : public LoopStatement {
 public:
-    WhileStatement(Expr *cond, Statement *body) : LoopStatement(TO_WHILE, body), _cond(cond) {}
+    WhileStatement(SourceLoc start, Expr *cond, Statement *body)
+        : LoopStatement(TO_WHILE, start, body), _cond(cond) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -951,7 +1002,8 @@ private:
 
 class DoWhileStatement : public LoopStatement {
 public:
-    DoWhileStatement(Statement *body, Expr *cond) : LoopStatement(TO_DOWHILE, body), _cond(cond) {}
+    DoWhileStatement(SourceLoc start, Statement *body, Expr *cond, SourceLoc end)
+        : LoopStatement(TO_DOWHILE, {start, end}, body), _cond(cond) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -964,7 +1016,8 @@ private:
 
 class ForStatement : public LoopStatement {
 public:
-    ForStatement(Node *init, Expr *cond, Expr *mod, Statement *body) : LoopStatement(TO_FOR, body), _init(init), _cond(cond), _mod(mod) {}
+    ForStatement(SourceLoc start, Node *init, Expr *cond, Expr *mod, Statement *body)
+        : LoopStatement(TO_FOR, start, body), _init(init), _cond(cond), _mod(mod) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -982,7 +1035,8 @@ private:
 
 class ForeachStatement : public LoopStatement {
 public:
-    ForeachStatement(VarDecl *idx, VarDecl *val, Expr *container, Statement *body) : LoopStatement(TO_FOREACH, body), _idx(idx), _val(val), _container(container) {}
+    ForeachStatement(SourceLoc start, VarDecl *idx, VarDecl *val, Expr *container, Statement *body)
+        : LoopStatement(TO_FOREACH, start, body), _idx(idx), _val(val), _container(container) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -1004,7 +1058,9 @@ struct SwitchCase {
 
 class SwitchStatement : public Statement {
 public:
-    SwitchStatement(Arena *arena, Expr *expr) : Statement(TO_SWITCH), _expr(expr), _cases(arena), _defaultCase() {}
+    // Incremental building - call setSpanEnd() after cases are added
+    SwitchStatement(SourceLoc start, Arena *arena, Expr *expr)
+        : Statement(TO_SWITCH, {start, SourceLoc::invalid()}), _expr(expr), _cases(arena), _defaultCase() {}
 
     void addCases(Expr *val, Statement *stmt) { _cases.push_back({ val, stmt }); }
 
@@ -1030,7 +1086,8 @@ private:
 
 class TryStatement : public Statement {
 public:
-    TryStatement(Statement *t, Id *exc, Statement *c) : Statement(TO_TRY), _tryStmt(t), _exception(exc), _catchStmt(c) {}
+    TryStatement(SourceLoc start, Statement *t, Id *exc, Statement *c)
+        : Statement(TO_TRY, {start, c->sourceSpan().end}), _tryStmt(t), _exception(exc), _catchStmt(c) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -1047,7 +1104,9 @@ private:
 
 class TerminateStatement : public Statement {
 protected:
-    TerminateStatement(enum TreeOp op, Expr *arg) : Statement(op), _arg(arg) {}
+    TerminateStatement(enum TreeOp op, SourceSpan keywordSpan, Expr *arg)
+        : Statement(op, arg ? SourceSpan{keywordSpan.start, arg->sourceSpan().end} : keywordSpan)
+        , _arg(arg) {}
 public:
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -1060,7 +1119,8 @@ private:
 
 class ReturnStatement : public TerminateStatement {
 public:
-    ReturnStatement(Expr *arg) : TerminateStatement(TO_RETURN, arg), _isLambda(false) {}
+    ReturnStatement(SourceSpan keywordSpan, Expr *arg)
+        : TerminateStatement(TO_RETURN, keywordSpan, arg), _isLambda(false) {}
 
 
     void setIsLambda() { _isLambda = true; }
@@ -1072,19 +1132,17 @@ private:
 
 class YieldStatement : public TerminateStatement {
 public:
-    YieldStatement(Expr *arg) : TerminateStatement(TO_YIELD, arg) {}
-
+    YieldStatement(SourceSpan keywordSpan, Expr *arg) : TerminateStatement(TO_YIELD, keywordSpan, arg) {}
 };
 
 class ThrowStatement : public TerminateStatement {
 public:
-    ThrowStatement(Expr *arg) : TerminateStatement(TO_THROW, arg) { assert(arg); }
-
+    ThrowStatement(SourceSpan keywordSpan, Expr *arg) : TerminateStatement(TO_THROW, keywordSpan, arg) { assert(arg); }
 };
 
 class JumpStatement : public Statement {
 protected:
-    JumpStatement(enum TreeOp op) : Statement(op) {}
+    JumpStatement(enum TreeOp op, SourceSpan span) : Statement(op, span) {}
 public:
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
@@ -1092,7 +1150,7 @@ public:
 
 class BreakStatement : public JumpStatement {
 public:
-    BreakStatement(Statement *breakTarget) : JumpStatement(TO_BREAK), _target(breakTarget) {}
+    BreakStatement(SourceSpan span, Statement *breakTarget) : JumpStatement(TO_BREAK, span), _target(breakTarget) {}
 
 private:
     Statement *_target;
@@ -1100,7 +1158,7 @@ private:
 
 class ContinueStatement : public JumpStatement {
 public:
-    ContinueStatement(LoopStatement *target) : JumpStatement(TO_CONTINUE), _target(target) {}
+    ContinueStatement(SourceSpan span, LoopStatement *target) : JumpStatement(TO_CONTINUE, span), _target(target) {}
 
 private:
     LoopStatement *_target;
@@ -1108,7 +1166,7 @@ private:
 
 class ExprStatement : public Statement {
 public:
-    ExprStatement(Expr *expr) : Statement(TO_EXPR_STMT), _expr(expr) {}
+    ExprStatement(Expr *expr) : Statement(TO_EXPR_STMT, expr->sourceSpan()), _expr(expr) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -1121,7 +1179,7 @@ private:
 
 class EmptyStatement : public Statement {
 public:
-    EmptyStatement() : Statement(TO_EMPTY) {}
+    EmptyStatement(SourceSpan span) : Statement(TO_EMPTY, span) {}
 
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}

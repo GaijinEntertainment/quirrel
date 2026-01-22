@@ -20,12 +20,12 @@ const char *symbolContextName(SymbolKind k) {
   case SK_CLASS: return "class";
   case SK_TABLE: return "table";
   case SK_VAR: return "variable";
-  case SK_BINDING: return "let";
+  case SK_BINDING: return "binding";
   case SK_CONST: return "const";
   case SK_ENUM: return "enum";
   case SK_ENUM_CONST: return "enum const";
   case SK_PARAM: return "parameter";
-  case SK_FOREACH: return "foreach var";
+  case SK_FOREACH: return "iteration variable";
   case SK_EXTERNAL_BINDING: return "external binding";
   case SK_IMPORT: return "import";
   default: return "<unknown>";
