@@ -65,7 +65,7 @@ struct getAsInt
               return SQ_SUCCEEDED(res);
           }
           default:
-              SQRAT_ASSERTF(0, FormatTypeError(vm, idx, _SC("integer")).c_str());
+              SQRAT_ASSERTF(0, FormatTypeError(vm, idx, "integer").c_str());
               value = static_cast<T>(0);
               break;
         }
@@ -102,7 +102,7 @@ struct getAsFloat
               return SQ_SUCCEEDED(res);
           }
           default:
-              SQRAT_ASSERTF(0, FormatTypeError(vm, idx, _SC("float")).c_str());
+              SQRAT_ASSERTF(0, FormatTypeError(vm, idx, "float").c_str());
               value = 0;
               break;
         }
@@ -140,7 +140,7 @@ struct Var {
             SQRAT_ASSERTF(0, "Class/typename was not bound");
     }
 
-    static const SQChar * getVarTypeName() { return ClassT::ClassName().c_str(); }
+    static const char * getVarTypeName() { return ClassT::ClassName().c_str(); }
 
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) {
         return ClassT::IsClassInstance(vm, idx);
@@ -196,7 +196,7 @@ struct Var<T&> {
             SQRAT_ASSERTF(0, "Class/typename was not bound");
     }
 
-    static const SQChar * getVarTypeName() { return ClassT::ClassName().c_str(); }
+    static const char * getVarTypeName() { return ClassT::ClassName().c_str(); }
 
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) {
         return ClassT::IsClassInstance(vm, idx);
@@ -222,7 +222,7 @@ struct Var<T*, SQRAT_STD::enable_if_t<!is_callable_v<T*>>> {
           SQRAT_ASSERTF(0, "Class/typename was not bound");
     }
 
-    static const SQChar * getVarTypeName() { return ClassT::ClassName().c_str(); }
+    static const char * getVarTypeName() { return ClassT::ClassName().c_str(); }
 
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) {
         return ClassT::IsClassInstance(vm, idx);
@@ -263,7 +263,7 @@ struct Var<SQRAT_STD::shared_ptr<T> > {
      static void push(HSQUIRRELVM vm, type value) { \
          sq_pushinteger(vm, static_cast<SQInteger>(value)); \
      } \
-    static const SQChar * getVarTypeName() { return _SC("integer"); } \
+    static const char * getVarTypeName() { return "integer"; } \
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) { return sq_gettype(vm, idx) & SQOBJECT_NUMERIC; } \
  };\
  \
@@ -276,7 +276,7 @@ struct Var<SQRAT_STD::shared_ptr<T> > {
      static void push(HSQUIRRELVM vm, type& value) { \
          sq_pushinteger(vm, static_cast<SQInteger>(value)); \
      } \
-    static const SQChar * getVarTypeName() { return _SC("integer ref"); } \
+    static const char * getVarTypeName() { return "integer ref"; } \
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) { return sq_gettype(vm, idx) & SQOBJECT_NUMERIC; } \
  }; \
  \
@@ -289,7 +289,7 @@ struct Var<SQRAT_STD::shared_ptr<T> > {
      static void push(HSQUIRRELVM vm, type value) { \
          sq_pushinteger(vm, static_cast<SQInteger>(value)); \
      } \
-    static const SQChar * getVarTypeName() { return _SC("integer const ref"); } \
+    static const char * getVarTypeName() { return "integer const ref"; } \
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) { return sq_gettype(vm, idx) & SQOBJECT_NUMERIC; } \
  };
 
@@ -322,7 +322,7 @@ SQRAT_INTEGER(signed __int64)
      static void push(HSQUIRRELVM vm, const type& value) { \
          sq_pushfloat(vm, static_cast<SQFloat>(value)); \
      } \
-    static const SQChar * getVarTypeName() { return _SC("float"); } \
+    static const char * getVarTypeName() { return "float"; } \
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) { return sq_gettype(vm, idx) & SQOBJECT_NUMERIC; } \
  }; \
  \
@@ -335,7 +335,7 @@ SQRAT_INTEGER(signed __int64)
      static void push(HSQUIRRELVM vm, const type& value) { \
          sq_pushfloat(vm, static_cast<SQFloat>(value)); \
      } \
-    static const SQChar * getVarTypeName() { return _SC("float const ref"); } \
+    static const char * getVarTypeName() { return "float const ref"; } \
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) { return sq_gettype(vm, idx) & SQOBJECT_NUMERIC; } \
  };
 
@@ -359,7 +359,7 @@ struct Var<T, typename SQRAT_STD::enable_if<SQRAT_STD::is_enum<T>::value, void>:
      static void push(HSQUIRRELVM vm, T value) {
          sq_pushinteger(vm, static_cast<SQInteger>(value));
      }
-    static const SQChar * getVarTypeName() { return _SC("enum"); }
+    static const char * getVarTypeName() { return "enum"; }
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) {
         return sq_gettype(vm, idx) == OT_INTEGER;
     }
@@ -383,7 +383,7 @@ struct Var<bool> {
         sq_pushbool(vm, static_cast<SQBool>(value));
     }
 
-    static const SQChar * getVarTypeName() { return _SC("bool"); }
+    static const char * getVarTypeName() { return "bool"; }
     static bool check_type(HSQUIRRELVM /*vm*/, SQInteger /*idx*/) { return true; }
 };
 
@@ -403,13 +403,13 @@ struct Var<const bool&> {
         sq_pushbool(vm, static_cast<SQBool>(value));
     }
 
-    static const SQChar * getVarTypeName() { return _SC("bool const ref"); }
+    static const char * getVarTypeName() { return "bool const ref"; }
     static bool check_type(HSQUIRRELVM /*vm*/, SQInteger /*idx*/) { return true; }
 };
 
-/// Used to get and push strings as SQChar arrays to and from the stack
+/// Used to get and push strings as char arrays to and from the stack
 template<>
-struct Var<SQChar*> {
+struct Var<char*> {
 private:
 
     HSQOBJECT obj; /* hold a reference to the object holding value during the Var struct lifetime*/
@@ -417,20 +417,20 @@ private:
 
 public:
 
-    SQChar* value; ///< The actual value of get operations
+    char* value; ///< The actual value of get operations
     SQInteger valueLen;
 
     /// Attempts to get the value off the stack at idx as a character array
     Var(HSQUIRRELVM vm, SQInteger idx) {
         sq_tostring(vm, idx);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &obj)));
-        sq_getstringandsize(vm, -1, (const SQChar**)&value, &valueLen);
+        sq_getstringandsize(vm, -1, (const char**)&value, &valueLen);
         sq_addref(vm, &obj);
         sq_pop(vm,1);
         v = vm;
     }
 
-    Var(Var<SQChar *> const &rhs)
+    Var(Var<char *> const &rhs)
       : obj(rhs.obj)
       , v(rhs.v)
       , value(rhs.value)
@@ -439,7 +439,7 @@ public:
       sq_addref(v, &obj);
     }
 
-    Var<SQChar *> &operator=(Var<SQChar *> const &rhs)
+    Var<char *> &operator=(Var<char *> const &rhs)
     {
       if (&rhs == this)
         return *this;
@@ -461,29 +461,29 @@ public:
     }
 
     /// Called by Sqrat::PushVar to put a character array on the stack
-    static void push(HSQUIRRELVM vm, const SQChar* value, SQInteger len = -1) {
+    static void push(HSQUIRRELVM vm, const char* value, SQInteger len = -1) {
         sq_pushstring(vm, value, len);
     }
 
-    static const SQChar * getVarTypeName() { return _SC("string"); }
+    static const char * getVarTypeName() { return "string"; }
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) { return sq_gettype(vm, idx) == OT_STRING; }
 };
 
 template<>
-struct VarControlsValueLifeTime<SQChar*>
+struct VarControlsValueLifeTime<char*>
 {
   enum {value = 1};
 };
 
-/// Used to get and push strings as SQChar arrays to and from the stack
+/// Used to get and push strings as char arrays to and from the stack
 template<>
-struct Var<const SQChar*> {
+struct Var<const char*> {
 private:
     HSQOBJECT obj; /* hold a reference to the object holding value during the Var struct lifetime*/
     HSQUIRRELVM v;
 
 public:
-    const SQChar* value; ///< The actual value of get operations
+    const char* value; ///< The actual value of get operations
     SQInteger valueLen;
 
     /// Attempts to get the value off the stack at idx as a character array
@@ -496,7 +496,7 @@ public:
         v = vm;
     }
 
-    Var(Var<const SQChar *> const &rhs)
+    Var(Var<const char *> const &rhs)
       : obj(rhs.obj)
       , v(rhs.v)
       , value(rhs.value)
@@ -505,7 +505,7 @@ public:
       sq_addref(v, &obj);
     }
 
-    Var<const SQChar *> &operator=(Var<const SQChar *> const &rhs)
+    Var<const char *> &operator=(Var<const char *> const &rhs)
     {
       if (&rhs == this)
         return *this;
@@ -527,16 +527,16 @@ public:
     }
 
     /// Called by Sqrat::PushVar to put a character array on the stack
-    static void push(HSQUIRRELVM vm, const SQChar* value, SQInteger len = -1) {
+    static void push(HSQUIRRELVM vm, const char* value, SQInteger len = -1) {
         sq_pushstring(vm, value, len);
     }
 
-    static const SQChar * getVarTypeName() { return _SC("string"); }
+    static const char * getVarTypeName() { return "string"; }
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) { return sq_gettype(vm, idx) == OT_STRING; }
 };
 
 template<>
-struct VarControlsValueLifeTime<const SQChar*>
+struct VarControlsValueLifeTime<const char*>
 {
   enum {value = 1};
 };
@@ -549,7 +549,7 @@ struct Var<string> {
 
     /// Attempts to get the value off the stack at idx as a string
     Var(HSQUIRRELVM vm, SQInteger idx) {
-        const SQChar* ret = _SC("n/a");
+        const char* ret = "n/a";
         sq_tostring(vm, idx);
         sq_getstring(vm, -1, &ret);
         value = string(ret, sq_getsize(vm, -1));
@@ -561,7 +561,7 @@ struct Var<string> {
         sq_pushstring(vm, value.c_str(), value.size());
     }
 
-    static const SQChar * getVarTypeName() { return _SC("string"); }
+    static const char * getVarTypeName() { return "string"; }
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) { return sq_gettype(vm, idx) == OT_STRING; }
 };
 
@@ -573,7 +573,7 @@ struct Var<const string&> {
 
     /// Attempts to get the value off the stack at idx as a string
     Var(HSQUIRRELVM vm, SQInteger idx) {
-        const SQChar* ret = nullptr;
+        const char* ret = nullptr;
         sq_tostring(vm, idx);
         sq_getstring(vm, -1, &ret);
         value = string(ret, sq_getsize(vm, -1));
@@ -585,7 +585,7 @@ struct Var<const string&> {
         sq_pushstring(vm, value.c_str(), value.size());
     }
 
-    static const SQChar * getVarTypeName() { return _SC("string"); }
+    static const char * getVarTypeName() { return "string"; }
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) { return sq_gettype(vm, idx) == OT_STRING; }
 };
 
@@ -647,9 +647,9 @@ public:
     sq_pushstring(vm, sv.data(), sv.size());
   }
 
-  static const SQChar *getVarTypeName()
+  static const char *getVarTypeName()
   {
-    return _SC("string");
+    return "string";
   }
   static bool check_type(HSQUIRRELVM vm, SQInteger idx)
   {
@@ -760,17 +760,17 @@ namespace vargs
   bool check_var_types(HSQUIRRELVM vm, int idx)
   {
     if (!Var<T>::check_type(vm, idx)) {
-      const SQChar *argTypeName = _SC("unknown");
+      const char *argTypeName = "unknown";
       SQInteger prevTop = sq_gettop(vm);
       if (SQ_SUCCEEDED(sq_typeof(vm, idx))) {
         sq_tostring(vm, -1);
         sq_getstring(vm, -1, &argTypeName);
       }
 
-      int l = snprintf(nullptr, 0, _SC("Wrong argument type, expected '%s', got '%s'"),
+      int l = snprintf(nullptr, 0, "Wrong argument type, expected '%s', got '%s'",
                             Var<T>::getVarTypeName(), argTypeName);
       string errMsg(l + 1, '\0');
-      snprintf(&errMsg[0], errMsg.size(), _SC("Wrong argument type, expected '%s', got '%s'"),
+      snprintf(&errMsg[0], errMsg.size(), "Wrong argument type, expected '%s', got '%s'",
                     Var<T>::getVarTypeName(), argTypeName);
       sq_settop(vm, prevTop);
       (void)sq_throwerror(vm, errMsg.c_str());

@@ -6,14 +6,12 @@
 #include "sqobject.h"
 struct SQString;
 struct SQTable;
-//max number of character for a printed number
-#define NUMBER_MAX_CHAR 50
 
 struct SQStringTable
 {
     SQStringTable(SQSharedState*ss);
     ~SQStringTable();
-    SQString *Add(const SQChar *,SQInteger len);
+    SQString *Add(const char *,SQInteger len);
     void Remove(SQString *);
 private:
     void Resize(SQInteger size);
@@ -74,7 +72,7 @@ public:
     void disableCompilationOption(SQUnsignedInteger co) {
       compilationOptions &= ~co;
     }
-    SQChar* GetScratchPad(SQInteger size);
+    char* GetScratchPad(SQInteger size);
     SQInteger GetMetaMethodIdxByName(const SQObjectPtr &name);
 #ifndef NO_GARBAGE_COLLECTOR
     SQInteger CollectGarbage(SQVM *vm);
@@ -113,20 +111,20 @@ public:
     SQObjectPtr _weakref_class;
     SQObjectPtr _userdata_class;
 
-    static const SQRegFunction _table_default_delegate_funcz[];
-    static const SQRegFunction _array_default_delegate_funcz[];
-    static const SQRegFunction _string_default_delegate_funcz[];
-    static const SQRegFunction _integer_default_delegate_funcz[];
-    static const SQRegFunction _float_default_delegate_funcz[];
-    static const SQRegFunction _bool_default_delegate_funcz[];
-    static const SQRegFunction _null_default_delegate_funcz[];
-    static const SQRegFunction _generator_default_delegate_funcz[];
-    static const SQRegFunction _closure_default_delegate_funcz[];
-    static const SQRegFunction _thread_default_delegate_funcz[];
-    static const SQRegFunction _class_default_delegate_funcz[];
-    static const SQRegFunction _instance_default_delegate_funcz[];
-    static const SQRegFunction _weakref_default_delegate_funcz[];
-    static const SQRegFunction _userdata_default_delegate_funcz[];
+    static const SQRegFunction _table_default_type_methods_funcz[];
+    static const SQRegFunction _array_default_type_methods_funcz[];
+    static const SQRegFunction _string_default_type_methods_funcz[];
+    static const SQRegFunction _integer_default_type_methods_funcz[];
+    static const SQRegFunction _float_default_type_methods_funcz[];
+    static const SQRegFunction _bool_default_type_methods_funcz[];
+    static const SQRegFunction _null_default_type_methods_funcz[];
+    static const SQRegFunction _generator_default_type_methods_funcz[];
+    static const SQRegFunction _closure_default_type_methods_funcz[];
+    static const SQRegFunction _thread_default_type_methods_funcz[];
+    static const SQRegFunction _class_default_type_methods_funcz[];
+    static const SQRegFunction _instance_default_type_methods_funcz[];
+    static const SQRegFunction _weakref_default_type_methods_funcz[];
+    static const SQRegFunction _userdata_default_type_methods_funcz[];
 
     SQCOMPILERERROR _compilererrorhandler;
     SQPRINTFUNCTION _printfunc;
@@ -147,14 +145,14 @@ public:
     SQUnsignedInteger32 watchdog_last_alive_time_msec;
     SQUnsignedInteger32 watchdog_threshold_msec;
 private:
-    SQChar *_scratchpad;
+    char *_scratchpad;
     SQInteger _scratchpadsize;
 };
 
 #define _sp(s) (_sharedstate->GetScratchPad(s))
 #define _spval (_sharedstate->GetScratchPad(-1))
 
-bool CompileTypemask(SQIntVec &res,const SQChar *typemask);
+bool CompileTypemask(SQIntVec &res,const char *typemask);
 
 
 #endif //_SQSTATE_H_

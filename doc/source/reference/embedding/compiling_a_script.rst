@@ -6,8 +6,8 @@ Compiling a script
 
 You can compile a Quirrel script with the function *sq_compile*.::
 
-    SQRESULT sq_compile(HSQUIRRELVM v, const SQChar* s, SQInteger size,
-                const SQChar *sourcename, SQBool raiseerror,
+    SQRESULT sq_compile(HSQUIRRELVM v, const char* s, SQInteger size,
+                const char *sourcename, SQBool raiseerror,
                 const HSQOBJECT *bindings = nullptr);
 
 The function compiles a script from a memory buffer. The parameters are:
@@ -30,8 +30,8 @@ When the compiler fails for a syntax error it will try to call the 'compiler err
 this function must be declared as follow: ::
 
     typedef void (*SQCOMPILERERROR)(HSQUIRRELVM v, SQMessageSeverity severity,
-                            const SQChar *desc, const SQChar *source,
-                            SQInteger line, SQInteger column, const SQChar *extra_info);
+                            const char *desc, const char *source,
+                            SQInteger line, SQInteger column, const char *extra_info);
 
 where ``severity`` indicates the message severity (error, warning, etc.), ``desc`` is the error description,
 ``source`` is the source filename, ``line`` and ``column`` are the location, and ``extra_info`` provides

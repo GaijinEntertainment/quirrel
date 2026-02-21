@@ -4,6 +4,6 @@ testData/static_analyzer/w274_2.nut:5:23
 foreach (_, x in a) {
     m.append(@() print(x))
                        ^
-    m.each(@(_p) print(x))
+    m.each(@(_p) print(x)) // `each()` is whitelisted, should not warn
 
 

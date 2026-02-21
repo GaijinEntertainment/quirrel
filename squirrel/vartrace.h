@@ -15,7 +15,7 @@ struct VarTrace
 {
   struct VarStackRecord
   {
-    const SQChar * fileName;
+    const char * fileName;
     int line;
   };
 
@@ -24,8 +24,8 @@ struct VarTrace
     VarStackRecord stack[VAR_TRACE_STACK_DEPTH];
 #if VAR_TRACE_SAVE_VALUES != 0
     int count;
-    SQChar val[31];
-    SQChar flags;
+    char val[31];
+    char flags;
 #endif
   };
 

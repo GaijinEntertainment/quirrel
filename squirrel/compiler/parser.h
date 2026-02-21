@@ -36,19 +36,19 @@ class SQParser
         return new (arena()) N(std::forward<Args>(args)...);
     }
 
-    SQChar *copyString(const SQChar *s) const {
+    char *copyString(const char *s) const {
         size_t len = strlen(s);
-        size_t memLen = (len + 1) * sizeof(SQChar);
-        SQChar *buf = (SQChar *)arena()->allocate(memLen);
+        size_t memLen = (len + 1) * sizeof(char);
+        char *buf = (char *)arena()->allocate(memLen);
         memcpy(buf, s, memLen);
         return buf;
     }
 
-    Id *newId(const SQChar *name) const {
+    Id *newId(const char *name) const {
         return newNode<Id>(_lex.tokenSpan(), copyString(name));
     }
 
-    LiteralExpr *newStringLiteral(const SQChar *s) const {
+    LiteralExpr *newStringLiteral(const char *s) const {
         return newNode<LiteralExpr>(_lex.tokenSpan(), copyString(s));
     }
 
@@ -63,7 +63,7 @@ public:
 
     uint32_t _depth;
 
-    SQParser(SQVM *v, const char *sourceText, size_t sourceTextSize, const SQChar* sourcename, Arena *astArena, SQCompilationContext &ctx, Comments *comments);
+    SQParser(SQVM *v, const char *sourceText, size_t sourceTextSize, const char* sourcename, Arena *astArena, SQCompilationContext &ctx, Comments *comments);
 
     bool ProcessPosDirective();
     void Lex();
@@ -77,7 +77,7 @@ public:
 
     Expr*   Expect(SQInteger tok);
     bool    IsEndOfStatement() const {
-        return ((_lex._prevtoken == _SC('\n')) || (_token == SQUIRREL_EOB) || (_token == _SC('}')) || (_token == _SC(';')))
+        return ((_lex._prevtoken == '\n') || (_token == SQUIRREL_EOB) || (_token == '}') || (_token == ';'))
             || (_token == TK_DIRECTIVE);
     }
     void    OptionalSemicolon();
@@ -104,14 +104,14 @@ public:
     Expr*   PrefixedExpr();
     Expr*   Factor(SQInteger &pos);
 
-    void ParseTableOrClass(TableDecl *decl, SQInteger separator, SQInteger terminator);
+    void ParseTableOrClass(TableExpr *decl, SQInteger separator, SQInteger terminator);
 
-    Decl* parseLocalDeclStatement();
-    Decl *parseLocalFunctionDeclStmt(bool assignable, SourceLoc keywordStart);
-    Decl *parseLocalClassDeclStmt(bool assignable, SourceLoc keywordStart);
+    Decl *parseLocalDeclStatement(bool onlySingleVariable = false);
+    Decl *parseLocalFunctionExprStmt(bool assignable, SourceLoc keywordStart);
+    Decl *parseLocalClassExprStmt(bool assignable, SourceLoc keywordStart);
 
     Statement* IfLikeBlock(bool &wrapped);
-    IfStatement* parseIfStatement();
+    Statement* parseIfStatement();
     WhileStatement* parseWhileStatement();
     DoWhileStatement* parseDoWhileStatement();
     ForStatement* parseForStatement();
@@ -121,19 +121,19 @@ public:
     unsigned parseTypeMask(bool eol_breaks_type_parsing);
     LiteralExpr* ExpectScalar();
     ConstDecl* parseConstStatement(bool global, SourceLoc globalStart = SourceLoc::invalid());
-    ConstDecl* parseConstFunctionDeclStmt(bool global, SourceLoc globalStart = SourceLoc::invalid());
+    ConstDecl* parseConstFunctionExprStmt(bool global, SourceLoc globalStart = SourceLoc::invalid());
     EnumDecl* parseEnumStatement(bool global, SourceLoc globalStart = SourceLoc::invalid());
     TryStatement* parseTryCatchStatement();
     Id* generateSurrogateFunctionName();
-    DeclExpr* FunctionExp(bool lambda);
+    FunctionExpr* FunctionExp(bool lambda);
     FuncAttrFlagsType ParseFunctionAttributes();
-    ClassDecl* ClassExp(SourceLoc classStart, Expr *key);
+    ClassExpr* ClassExp(SourceLoc classStart, Expr *key);
     Expr* DeleteExpr();
     Expr* PrefixIncDec(SQInteger token);
-    FunctionDecl* CreateFunction(SourceLoc start, Id *name, bool lambda = false, bool ctor = false);
+    FunctionExpr* CreateFunction(SourceLoc start, Id *name, bool lambda = false, bool ctor = false);
     Statement* parseDirectiveStatement();
     ImportStmt* parseImportStatement();
-    void onDocString(const SQChar *doc_string);
+    void onDocString(const char *doc_string);
 
     DocObject& getModuleDocObject() { return _moduleDocObject; }
 
@@ -141,7 +141,7 @@ private:
     ArenaVector<DocObject *> _docObjectStack;
     DocObject _moduleDocObject;
     SQInteger _token;
-    const SQChar *_sourcename;
+    const char *_sourcename;
     SQLexer _lex;
     SQExpressionContext _expression_context;
     SQUnsignedInteger _lang_features;

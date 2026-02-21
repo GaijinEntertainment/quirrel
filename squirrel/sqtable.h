@@ -103,7 +103,7 @@ public:
         return NULL;
     }
     //for compiler use
-    inline bool GetStr(const SQChar* key,SQInteger keylen,SQObjectPtr &val) const
+    inline bool GetStr(const char* key,SQInteger keylen,SQObjectPtr &val) const
     {
         SQHash hash = _hashstr(key,keylen);
         _HashNode *n = &_nodes[hash & _numofnodes_minus_one];

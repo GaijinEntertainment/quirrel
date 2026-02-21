@@ -163,26 +163,26 @@ public:
     Visitor::visitValueDecl(v);
   }
 
-  void visitTableDecl(TableDecl *t) {
+  void visitTableExpr(TableExpr *t) {
     complexity += (t->members().size() * 2); // key + value
 
-    Visitor::visitTableDecl(t);
+    Visitor::visitTableExpr(t);
   }
 
-  void visitClassDecl(ClassDecl *c) {
+  void visitClassExpr(ClassExpr *c) {
     if (c->classBase())
       complexity += 1;
 
     if (c->classKey())
       complexity += 1;
 
-    Visitor::visitClassDecl(c);
+    Visitor::visitClassExpr(c);
   }
 
-  void visitFunctionDecl(FunctionDecl *f) {
+  void visitFunctionExpr(FunctionExpr *f) {
     complexity += f->parameters().size();
 
-    Visitor::visitFunctionDecl(f);
+    Visitor::visitFunctionExpr(f);
   }
 
   void visitEnumDecl(EnumDecl *e) {

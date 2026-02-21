@@ -26,7 +26,6 @@ struct StmtEvalResult
 class FunctionReturnTypeEvaluator
 {
   unsigned evalLiteral(const LiteralExpr *l);
-  unsigned evalDeclaration(const DeclExpr *de);
   unsigned evalAddExpr(const BinExpr *expr);
   unsigned evalExpr(const Expr *expr);
   unsigned evalCall(const CallExpr *expr);

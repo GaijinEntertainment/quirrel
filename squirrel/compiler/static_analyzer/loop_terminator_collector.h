@@ -83,7 +83,11 @@ public:
   }
 
   void visitLoopStatement(LoopStatement *loop) override {
-    // skip
+    // skip - nested loops have their own break/continue/return semantics
+  }
+
+  void visitFunctionExpr(FunctionExpr *f) override {
+    // skip - function expressions have their own return semantics
   }
 
   void visitDecl(Decl *d) override {

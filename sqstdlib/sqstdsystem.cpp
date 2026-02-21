@@ -8,7 +8,7 @@
 
 static SQInteger _system_getenv(HSQUIRRELVM v)
 {
-    const SQChar *s;
+    const char *s;
     if(SQ_SUCCEEDED(sq_getstring(v,2,&s))){
         sq_pushstring(v,getenv(s),-1);
         return 1;
@@ -18,17 +18,17 @@ static SQInteger _system_getenv(HSQUIRRELVM v)
 
 static SQInteger _system_system(HSQUIRRELVM v)
 {
-    const SQChar *s;
+    const char *s;
     if(SQ_SUCCEEDED(sq_getstring(v,2,&s))){
         sq_pushinteger(v,system(s));
         return 1;
     }
-    return sq_throwerror(v,_SC("wrong param"));
+    return sq_throwerror(v,"wrong param");
 }
 
 static SQInteger _system_setenv(HSQUIRRELVM v)
 {
-    const SQChar *envname,*envval;
+    const char *envname,*envval;
     sq_getstring(v,2,&envname);
     sq_getstring(v,3,&envval);
     #if defined(_MSC_VER)
@@ -37,37 +37,37 @@ static SQInteger _system_setenv(HSQUIRRELVM v)
     int res = setenv(envname,envval,1);
     #endif
     if (res != 0)
-        return sq_throwerror(v,_SC("setenv() failed"));
+        return sq_throwerror(v,"setenv() failed");
     return 0;
 }
 
 static SQInteger _system_remove(HSQUIRRELVM v)
 {
-    const SQChar *s;
+    const char *s;
     sq_getstring(v,2,&s);
     if(remove(s)==-1)
-        return sq_throwerror(v,_SC("remove() failed"));
+        return sq_throwerror(v,"remove() failed");
     return 0;
 }
 
 static SQInteger _system_rename(HSQUIRRELVM v)
 {
-    const SQChar *oldn,*newn;
+    const char *oldn,*newn;
     sq_getstring(v,2,&oldn);
     sq_getstring(v,3,&newn);
     if(rename(oldn,newn)==-1)
-        return sq_throwerror(v,_SC("rename() failed"));
+        return sq_throwerror(v,"rename() failed");
     return 0;
 }
 
 
-#define _DECL_FUNC(name,nparams,pmask) {_SC(#name),_system_##name,nparams,pmask}
+#define _DECL_FUNC(name,nparams,pmask) {#name,_system_##name,nparams,pmask}
 static const SQRegFunction systemlib_funcs[]={
-    _DECL_FUNC(getenv,2,_SC(".s")),
-    _DECL_FUNC(setenv,2,_SC(".ss")),
-    _DECL_FUNC(system,2,_SC(".s")),
-    _DECL_FUNC(remove,2,_SC(".s")),
-    _DECL_FUNC(rename,3,_SC(".ss")),
+    _DECL_FUNC(getenv,2,".s"),
+    _DECL_FUNC(setenv,3,".ss"),
+    _DECL_FUNC(system,2,".s"),
+    _DECL_FUNC(remove,2,".s"),
+    _DECL_FUNC(rename,3,".ss"),
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 #undef _DECL_FUNC
@@ -76,7 +76,7 @@ static const SQRegFunction systemlib_funcs[]={
 SQRESULT sqstd_register_command_line_args(HSQUIRRELVM v, int argc, char ** argv)
 {
     sq_pushroottable(v);
-    sq_pushstring(v, _SC("__argv"), -1);
+    sq_pushstring(v, "__argv", -1);
     sq_newarray(v, 0);
     for (int idx = 0; idx < argc; idx++)
     {

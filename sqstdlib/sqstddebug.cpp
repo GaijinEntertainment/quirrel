@@ -47,7 +47,7 @@ static SQInteger debug_getlocals(HSQUIRRELVM v)
         sq_getbool(v, 3, &includeInternal);
 
     sq_newtable(v);
-    const SQChar *name = NULL;
+    const char *name = NULL;
 
     SQInteger seq=0;
     SQInteger prevTop = sq_gettop(v);
@@ -89,23 +89,23 @@ static SQInteger debug_resurrectunreachable(HSQUIRRELVM v)
 static SQInteger debug_getbuildinfo(HSQUIRRELVM v)
 {
   sq_newtable(v);
-  sq_pushstring(v, _SC("version"), -1);
+  sq_pushstring(v, "version", -1);
   sq_pushstring(v, SQUIRREL_VERSION, -1);
   sq_newslot(v, -3, SQFalse);
-  sq_pushstring(v, _SC("charsize"), -1);
-  sq_pushinteger(v, sizeof(SQChar));
+  sq_pushstring(v, "charsize", -1);
+  sq_pushinteger(v, sizeof(char));
   sq_newslot(v, -3, SQFalse);
-  sq_pushstring(v, _SC("intsize"), -1);
+  sq_pushstring(v, "intsize", -1);
   sq_pushinteger(v, sizeof(SQInteger));
   sq_newslot(v, -3, SQFalse);
-  sq_pushstring(v, _SC("floatsize"), -1);
+  sq_pushstring(v, "floatsize", -1);
   sq_pushinteger(v, sizeof(SQFloat));
   sq_newslot(v, -3, SQFalse);
-  sq_pushstring(v, _SC("gc"), -1);
+  sq_pushstring(v, "gc", -1);
 #ifndef NO_GARBAGE_COLLECTOR
-  sq_pushstring(v, _SC("enabled"), -1);
+  sq_pushstring(v, "enabled", -1);
 #else
-  sq_pushstring(v, _SC("disabled"), -1);
+  sq_pushstring(v, "disabled", -1);
 #endif // NO_GARBAGE_COLLECTOR
   sq_newslot(v, -3, SQFalse);
   return 1;
@@ -143,6 +143,14 @@ static SQInteger debug_doc(HSQUIRRELVM v)
 
     sq_pushobject(v, value);
     return 1;
+}
+
+
+static int nparamscheck_to_required_args(int nparamscheck)
+{
+    if (nparamscheck==0) // No param check
+        return 0;
+    return abs(nparamscheck)-1; // Don't include `this`
 }
 
 static SQInteger debug_get_function_info_table(HSQUIRRELVM v)
@@ -216,7 +224,7 @@ static SQInteger debug_get_function_info_table(HSQUIRRELVM v)
                 ft.functionName = f->_name;
                 ft.returnTypeMask = ~0u;
                 ft.objectTypeMask = f->_typecheck.size() > 0 ? f->_typecheck[0] : (_RT_INSTANCE | _RT_TABLE | _RT_CLASS | _RT_USERDATA | _RT_NULL);
-                ft.requiredArgs = abs(f->_nparamscheck);
+                ft.requiredArgs = nparamscheck_to_required_args(f->_nparamscheck);
                 ft.pure = f->_purefunction;
                 ft.nodiscard = f->_nodiscard;
 
@@ -337,13 +345,15 @@ static SQInteger debug_get_function_decl_string(HSQUIRRELVM v)
                 ft.functionName = f->_name;
                 ft.returnTypeMask = ~0u;
                 ft.objectTypeMask = f->_typecheck.size() > 0 ? f->_typecheck[0] : (_RT_INSTANCE | _RT_TABLE | _RT_CLASS | _RT_USERDATA | _RT_NULL);
-                ft.requiredArgs = abs(f->_nparamscheck);
+                ft.requiredArgs = nparamscheck_to_required_args(f->_nparamscheck);
                 ft.pure = f->_purefunction;
                 ft.nodiscard = f->_nodiscard;
 
-                int cnt = (ft.requiredArgs > f->_typecheck.size()) ? ft.requiredArgs : f->_typecheck.size();
+                int nArgsFromMask = f->_typecheck.size() ? f->_typecheck.size()-1 : 0; // Exclude `this`
+                int nArgsDisplayed = f->_nparamscheck >= 0 ? ft.requiredArgs : // for fixed args count ignore mask length
+                                    (ft.requiredArgs > nArgsFromMask) ? ft.requiredArgs : nArgsFromMask;
 
-                for (SQInteger n = 1; n < cnt; n++) {
+                for (SQInteger n = 1; n <= nArgsDisplayed; n++) {
                     char buf[16] = { 0 };
                     snprintf(buf, sizeof(buf), "arg%d", int(n));
                     ft.argNames.push_back(SQObjectPtr(SQString::Create(_ss(v), buf, -1)));
@@ -381,7 +391,7 @@ static SQInteger debug_type_mask_to_string(HSQUIRRELVM v)
   SQInteger typeMask = 0;
   sq_getinteger(v, 2, &typeMask);
 
-  SQChar buf[2048];
+  char buf[2048];
   sq_stringify_type_mask(buf, sizeof(buf), typeMask);
 
   sq_pushstring(v, buf, -1);
@@ -435,23 +445,23 @@ SQInteger debug_set_script_watchdog_timeout_msec(HSQUIRRELVM v)
 
 
 static const SQRegFunction debuglib_funcs[] = {
-    {_SC("seterrorhandler"),debug_seterrorhandler,2, NULL},
-    {_SC("setdebughook"),debug_setdebughook,2, NULL},
-    {_SC("getstackinfos"),debug_getstackinfos,2, _SC(".n")},
-    {_SC("format_call_stack_string"), format_call_stack_string, 1, NULL},
-    {_SC("getlocals"),debug_getlocals,-1, _SC(".nb")},
-    {_SC("get_stack_top"),debug_get_stack_top,0, NULL},
-    {_SC("script_watchdog_kick"), debug_script_watchdog_kick, 1, NULL},
-    {_SC("set_script_watchdog_timeout_msec"), debug_set_script_watchdog_timeout_msec, 2, _SC(".n")},
-    {_SC("get_function_decl_string"),debug_get_function_decl_string,2, _SC(".c"), _SC("Returns a function declaration string")},
-    {_SC("type_mask_to_string"),debug_type_mask_to_string,2, _SC(".i"), _SC("Convert type mask to human-readable string")},
-    {_SC("get_function_info_table"),debug_get_function_info_table,2, _SC(".c"), _SC("Returns meta information about a function as table")},
-    {_SC("doc"),debug_doc,2, _SC(".t|c|x|y"), _SC("Returns a documentation string for a function, class, or table")},
+    {"seterrorhandler",debug_seterrorhandler,2, NULL},
+    {"setdebughook",debug_setdebughook,2, NULL},
+    {"getstackinfos",debug_getstackinfos,2, ".n"},
+    {"format_call_stack_string", format_call_stack_string, 1, NULL},
+    {"getlocals",debug_getlocals,-1, ".nb"},
+    {"get_stack_top",debug_get_stack_top,0, NULL},
+    {"script_watchdog_kick", debug_script_watchdog_kick, 1, NULL},
+    {"set_script_watchdog_timeout_msec", debug_set_script_watchdog_timeout_msec, 2, ".n"},
+    {"get_function_decl_string",debug_get_function_decl_string,2, ".c", "Returns a function declaration string"},
+    {"type_mask_to_string",debug_type_mask_to_string,2, ".i", "Convert type mask to human-readable string"},
+    {"get_function_info_table",debug_get_function_info_table,2, ".c", "Returns meta information about a function as table"},
+    {"doc",debug_doc,2, ".t|c|x|y", "Returns a documentation string for a function, class, or table"},
 #ifndef NO_GARBAGE_COLLECTOR
-    {_SC("collectgarbage"),debug_collectgarbage,0, NULL},
-    {_SC("resurrectunreachable"),debug_resurrectunreachable,0, NULL},
+    {"collectgarbage",debug_collectgarbage,0, NULL},
+    {"resurrectunreachable",debug_resurrectunreachable,0, NULL},
 #endif
-    {_SC("getbuildinfo"), debug_getbuildinfo,1,NULL},
+    {"getbuildinfo", debug_getbuildinfo,1,NULL},
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 

@@ -48,13 +48,13 @@ public:
     }
 
     template <typename T, SQRAT_STD::enable_if_t<SQRAT_STD::is_arithmetic_v<T> || SQRAT_STD::is_enum_v<T>, int> = 0>
-    Enumeration& Const(const SQChar* name, T val) {
+    Enumeration& Const(const char* name, T val) {
         BindValue<T>(name, strlen(name), val, false);
         return *this;
     }
 
-    Enumeration& Const(const SQChar* name, const SQChar* val) {
-        BindValue<const SQChar*>(name, strlen(name), val, false);
+    Enumeration& Const(const char* name, const char* val) {
+        BindValue<const char*>(name, strlen(name), val, false);
         return *this;
     }
 };
@@ -70,12 +70,12 @@ public:
     }
 
     template <typename T>
-    ConstTable& Const(const SQChar* name, T val) {
+    ConstTable& Const(const char* name, T val) {
         Enumeration::Const(name, val);
         return *this;
     }
 
-    ConstTable& Enum(const SQChar* name, Enumeration& en) {
+    ConstTable& Enum(const char* name, Enumeration& en) {
         sq_pushobject(vm, GetObject());
         sq_pushstring(vm, name, -1);
         sq_pushobject(vm, en.GetObject());

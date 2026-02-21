@@ -262,12 +262,14 @@ void SqModules::bindRequireApi(HSQOBJECT bindings)
   sq_pushstring(sqvm, "require", 7);
   sq_pushuserpointer(sqvm, this);
   sq_newclosure(sqvm, sqRequire<true>, 1);
+  sq_setnativeclosurename(sqvm, -1, "require");
   SQRAT_VERIFY(SQ_SUCCEEDED(sq_setparamscheck(sqvm, 2, ".s")));
   SQRAT_VERIFY(SQ_SUCCEEDED(sq_rawset(sqvm, -3)));
 
   sq_pushstring(sqvm, "require_optional", 16);
   sq_pushuserpointer(sqvm, this);
   sq_newclosure(sqvm, sqRequire<false>, 1);
+  sq_setnativeclosurename(sqvm, -1, "require_optional");
   SQRAT_VERIFY(SQ_SUCCEEDED(sq_setparamscheck(sqvm, 2, ".s")));
   SQRAT_VERIFY(SQ_SUCCEEDED(sq_rawset(sqvm, -3)));
 
@@ -288,12 +290,14 @@ void SqModules::bindModuleApi(HSQOBJECT bindings, Sqrat::Table &state_storage, S
   sq_pushstring(vm, "persist", 7);
   sq_pushobject(vm, state_storage.GetObject());
   sq_newclosure(vm, persist_state, 1);
+  sq_setnativeclosurename(vm, -1, "persist");
   SQRAT_VERIFY(SQ_SUCCEEDED(sq_setparamscheck(vm, 3, ".sc")));
   SQRAT_VERIFY(SQ_SUCCEEDED(sq_rawset(vm, -3)));
 
   sq_pushstring(vm, "keepref", 7);
   sq_pushobject(vm, ref_holder.GetObject());
   sq_newclosure(vm, keepref, 1);
+  sq_setnativeclosurename(vm, -1, "keepref");
   SQRAT_VERIFY(SQ_SUCCEEDED(sq_rawset(vm, -3)));
 
   sq_pushstring(vm, "__name__", 8);

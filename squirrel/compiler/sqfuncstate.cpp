@@ -14,7 +14,7 @@
 
 #include <stdarg.h>
 
-#define SQ_OPCODE(id) {_SC(#id)},
+#define SQ_OPCODE(id) {#id},
 
 SQInstructionDesc g_InstrDesc[]={
     SQ_OPCODES_LIST
@@ -35,43 +35,43 @@ static void streamprintf(OutputStream *stream, const char *fmt, ...) {
 static void DumpLiteral(OutputStream *stream, const SQObjectPtr &o)
 {
     switch (sq_type(o)) {
-        case OT_NULL: streamprintf(stream, _SC("null")); break;
-        case OT_STRING: streamprintf(stream, _SC("string(\"%s\")"), _stringval(o)); break;
-        case OT_FLOAT: streamprintf(stream, _SC("float(%f)"), _float(o)); break;
-        case OT_INTEGER: streamprintf(stream, _SC("int(") _PRINT_INT_FMT _SC(")"), _integer(o)); break;
-        case OT_BOOL: streamprintf(stream, _SC("%s"), _integer(o) ? _SC("bool(true)") : _SC("bool(false)")); break;
-        case OT_ARRAY: streamprintf(stream, _SC("array(0x%p size=%d)"), (void*)_rawval(o), int(_array(o)->Size())); break;
-        case OT_TABLE: streamprintf(stream, _SC("table(0x%p size=%d)"), (void*)_rawval(o), int(_table(o)->CountUsed())); break;
+        case OT_NULL: streamprintf(stream, "null"); break;
+        case OT_STRING: streamprintf(stream, "string(\"%s\")", _stringval(o)); break;
+        case OT_FLOAT: streamprintf(stream, "float(%f)", _float(o)); break;
+        case OT_INTEGER: streamprintf(stream, "int(" _PRINT_INT_FMT ")", _integer(o)); break;
+        case OT_BOOL: streamprintf(stream, "%s", _integer(o) ? "bool(true)" : "bool(false)"); break;
+        case OT_ARRAY: streamprintf(stream, "array(0x%p size=%d)", (void*)_rawval(o), int(_array(o)->Size())); break;
+        case OT_TABLE: streamprintf(stream, "table(0x%p size=%d)", (void*)_rawval(o), int(_table(o)->CountUsed())); break;
         case OT_CLOSURE:
         {
             SQFunctionProto *func = _closure(o)->_function;
-            const SQChar *funcName = sq_isstring(func->_name) ? _stringval(func->_name) : _SC("<null-name>");
-            streamprintf(stream, _SC("%s(0x%p \"%s\")"), GetTypeName(o), (void*)func, funcName);
+            const char *funcName = sq_isstring(func->_name) ? _stringval(func->_name) : "<null-name>";
+            streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)func, funcName);
             break;
         }
         case OT_NATIVECLOSURE:
         {
             SQNativeClosure *nc = _nativeclosure(o);
-            const SQChar* funcName = sq_isstring(nc->_name) ? _stringval(nc->_name) : _SC("<null-name>");
-            streamprintf(stream, _SC("%s(0x%p \"%s\")"), GetTypeName(o), (void*)nc, funcName);
+            const char* funcName = sq_isstring(nc->_name) ? _stringval(nc->_name) : "<null-name>";
+            streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)nc, funcName);
             break;
         }
         case OT_FUNCPROTO:
         {
             SQFunctionProto *func = _funcproto(o);
-            const SQChar* funcName = sq_isstring(func->_name) ? _stringval(func->_name) : _SC("<null-name>");
-            streamprintf(stream, _SC("%s(0x%p \"%s\")"), GetTypeName(o), (void*)func, funcName);
+            const char* funcName = sq_isstring(func->_name) ? _stringval(func->_name) : "<null-name>";
+            streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)func, funcName);
             break;
         }
         case OT_GENERATOR:
         {
             SQGenerator *gen = _generator(o);
             SQObjectPtr nameObj = _closure(gen->_closure)->_function->_name;
-            const SQChar* funcName = sq_isstring(nameObj) ? _stringval(nameObj) : _SC("<null-name>");
-            streamprintf(stream, _SC("%s(0x%p \"%s\")"), GetTypeName(o), (void*)gen, funcName);
+            const char* funcName = sq_isstring(nameObj) ? _stringval(nameObj) : "<null-name>";
+            streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)gen, funcName);
             break;
         }
-        default: streamprintf(stream, _SC("%s(0x%p)"), GetTypeName(o), (void*)_rawval(o)); break;
+        default: streamprintf(stream, "%s(0x%p)", GetTypeName(o), (void*)_rawval(o)); break;
     }
 }
 
@@ -143,23 +143,23 @@ void DumpInstructions(OutputStream *stream, SQLineInfosHeader *lineinfos, int nl
         SQInteger line = SQFunctionProto::GetLine(lineinfos, nlineinfos, i, &lineHint, &isStepPoint);
         if (inst.op == _OP_LOAD || inst.op == _OP_DLOAD || inst.op == _OP_PREPCALLK || inst.op == _OP_GETK) {
             SQInteger lidx = inst._arg1;
-            streamprintf(stream, _SC("[line%c%03d]%c[op %03d] %15s %d "), isStepPoint ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
+            streamprintf(stream, "[line%c%03d]%c[op %03d] %15s %d ", isStepPoint ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
                 g_InstrDesc[inst.op].name, inst._arg0);
             if (lidx >= 0xFFFFFFFF) //-V547
-                streamprintf(stream, _SC("null"));
+                streamprintf(stream, "null");
             else {
                 assert(lidx < _nliterals);
                 SQObjectPtr key = _literals[lidx];
                 DumpLiteral(stream, key);
             }
             if (inst.op != _OP_DLOAD) {
-                streamprintf(stream, _SC(" %d %d"), inst._arg2, inst._arg3);
+                streamprintf(stream, " %d %d", inst._arg2, inst._arg3);
             }
             else {
-                streamprintf(stream, _SC(" %d "), inst._arg2);
+                streamprintf(stream, " %d ", inst._arg2);
                 lidx = inst._arg3;
                 if (lidx >= 0xFFFFFFFF) //-V547
-                    streamprintf(stream, _SC("null"));
+                    streamprintf(stream, "null");
                 else {
                     assert(lidx < _nliterals);
                     SQObjectPtr key = _literals[lidx];
@@ -168,7 +168,7 @@ void DumpInstructions(OutputStream *stream, SQLineInfosHeader *lineinfos, int nl
             }
         }
         /*  else if(inst.op==_OP_ARITH){
-                printf(_SC("[%03d] %15s %d %d %d %c\n"),n,g_InstrDesc[inst.op].name,inst._arg0,inst._arg1,inst._arg2,inst._arg3);
+                printf("[%03d] %15s %d %d %d %c\n",n,g_InstrDesc[inst.op].name,inst._arg0,inst._arg1,inst._arg2,inst._arg3);
             }*/
         else {
             int jumpLabel = 0x7FFFFFFF;
@@ -187,22 +187,22 @@ void DumpInstructions(OutputStream *stream, SQLineInfosHeader *lineinfos, int nl
             }
             bool arg1F = inst.op == _OP_JCMPF || inst.op == _OP_LOADFLOAT;
             if (arg1F)
-                streamprintf(stream, _SC("[line%c%03d]%c[op %03d] %15s %d %f %d %d"), isStepPoint ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
+                streamprintf(stream, "[line%c%03d]%c[op %03d] %15s %d %f %d %d", isStepPoint ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
                     g_InstrDesc[inst.op].name, inst._arg0, inst._farg1, inst._arg2, inst._arg3);
             else
             {
                 if (i > 0 && (ii[i - 1].op == _OP_SET_LITERAL || ii[i - 1].op == _OP_GET_LITERAL))
-                    streamprintf(stream, _SC("[line%c%03d]%c[op %03d] HINT (0x%") _SC(PRIx64) _SC(")"), isStepPoint ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
+                    streamprintf(stream, "[line%c%03d]%c[op %03d] HINT (0x%" PRIx64 ")", isStepPoint ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
                         GetUInt64FromPtr(ii + i));
                 else if (inst.op < sizeof(g_InstrDesc) / sizeof(g_InstrDesc[0]))
-                    streamprintf(stream, _SC("[line%c%03d]%c[op %03d] %15s %d %d %d %d"), isStepPoint ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
+                    streamprintf(stream, "[line%c%03d]%c[op %03d] %15s %d %d %d %d", isStepPoint ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
                         g_InstrDesc[inst.op].name, inst._arg0, inst._arg1, inst._arg2, inst._arg3);
                 else
-                    streamprintf(stream, _SC("[line%c%03d]%c[op %03d] INVALID INSTRUNCTION (%d)"), isStepPoint ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
+                    streamprintf(stream, "[line%c%03d]%c[op %03d] INVALID INSTRUNCTION (%d)", isStepPoint ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
                         int(inst.op));
             }
             if (jumpLabel != 0x7FFFFFFF)
-                streamprintf(stream, _SC("  // jump to %d"), jumpLabel);
+                streamprintf(stream, "  // jump to %d", jumpLabel);
         }
 
         // comments
@@ -213,31 +213,31 @@ void DumpInstructions(OutputStream *stream, SQLineInfosHeader *lineinfos, int nl
             case _OP_LOADBOOL:
             case _OP_LOADROOT:
             case _OP_LOADCALLEE:
-                streamprintf(stream, _SC("  // -> [%d]"), int(inst._arg0));
+                streamprintf(stream, "  // -> [%d]", int(inst._arg0));
                 break;
 
             case _OP_LOADNULLS:
-                streamprintf(stream, _SC("  // null -> [%d .. %d]"), int(inst._arg0), int(inst._arg0 + inst._arg1 - 1));
+                streamprintf(stream, "  // null -> [%d .. %d]", int(inst._arg0), int(inst._arg0 + inst._arg1 - 1));
                 break;
 
             case _OP_DLOAD: {
-                streamprintf(stream, _SC("  //"));
+                streamprintf(stream, "  //");
                 if (unsigned(inst._arg1) < unsigned(_nliterals)) {
                     const SQObjectPtr &key = _literals[inst._arg1];
                     DumpLiteral(stream, key);
                 }
                 else {
-                    streamprintf(stream, _SC("?"));
+                    streamprintf(stream, "?");
                 }
-                streamprintf(stream, _SC(" -> [%d], "), int(inst._arg0));
+                streamprintf(stream, " -> [%d], ", int(inst._arg0));
                 if (unsigned(inst._arg3) < unsigned(_nliterals)) {
                     const SQObjectPtr &key = _literals[inst._arg3];
                     DumpLiteral(stream, key);
                 }
                 else {
-                    streamprintf(stream, _SC("?"));
+                    streamprintf(stream, "?");
                 }
-                streamprintf(stream, _SC(" -> [%d]"), int(inst._arg2));
+                streamprintf(stream, " -> [%d]", int(inst._arg2));
                 break;
             }
 
@@ -248,7 +248,7 @@ void DumpInstructions(OutputStream *stream, SQLineInfosHeader *lineinfos, int nl
                     {
                         int loadInstr = saveInstr + 1 - ((ii[saveInstr]._arg2 << 8) + ii[saveInstr]._arg3);
                         if (loadInstr == i) {
-                            streamprintf(stream, _SC("  // LOAD_STATIC_MEMO: staticmemo[%d] -> [%d], jump to %d"),
+                            streamprintf(stream, "  // LOAD_STATIC_MEMO: staticmemo[%d] -> [%d], jump to %d",
                                 int(inst._arg1), int(inst._arg0), saveInstr + 1);
                         }
                     }
@@ -257,43 +257,43 @@ void DumpInstructions(OutputStream *stream, SQLineInfosHeader *lineinfos, int nl
 
             case _OP_SAVE_STATIC_MEMO: {
                     int loadInstr = i + 1 - ((inst._arg2 << 8) + inst._arg3);
-                    streamprintf(stream, _SC("  // [%d] -> staticmemo[%d], [%d] -> [%d], modify instr at %d"),
+                    streamprintf(stream, "  // [%d] -> staticmemo[%d], [%d] -> [%d], modify instr at %d",
                         int(inst._arg0), int(inst._arg1), int(inst._arg0), int(ii[loadInstr]._arg0), loadInstr);
                 }
                 break;
 
             case _OP_CALL:
-                streamprintf(stream, _SC("  // (call [%d]) -> [%d]"), int(inst._arg1), int(inst._arg0));
+                streamprintf(stream, "  // (call [%d]) -> [%d]", int(inst._arg1), int(inst._arg0));
                 break;
 
             case _OP_NULLCALL:
-                streamprintf(stream, _SC("  // (if [%d] then call [%d]) -> [%d]"), int(inst._arg1), int(inst._arg1), int(inst._arg0));
+                streamprintf(stream, "  // (if [%d] then call [%d]) -> [%d]", int(inst._arg1), int(inst._arg1), int(inst._arg0));
                 break;
 
             case _OP_MOVE:
-                streamprintf(stream, _SC("  // [%d] -> [%d]"), int(inst._arg1), int(inst._arg0));
+                streamprintf(stream, "  // [%d] -> [%d]", int(inst._arg1), int(inst._arg0));
                 break;
 
             case _OP_GET:
-                streamprintf(stream, _SC("  // [%d].[%d] -> [%d]"), int(inst._arg2), int(inst._arg1), int(inst._arg0));
+                streamprintf(stream, "  // [%d].[%d] -> [%d]", int(inst._arg2), int(inst._arg1), int(inst._arg0));
                 break;
 
             case _OP_NEWOBJ: {
-                const SQChar *objType = inst._arg3 == NEWOBJ_TABLE ? _SC("table") : (inst._arg3 == NEWOBJ_ARRAY ? _SC("array") :
-                    (inst._arg3 == NEWOBJ_CLASS ? _SC("class") : _SC("unknown")));
-                streamprintf(stream, _SC("  // new %s -> [%d]"), objType, int(inst._arg0));
+                const char *objType = inst._arg3 == NEWOBJ_TABLE ? "table" : (inst._arg3 == NEWOBJ_ARRAY ? "array" :
+                    (inst._arg3 == NEWOBJ_CLASS ? "class" : "unknown"));
+                streamprintf(stream, "  // new %s -> [%d]", objType, int(inst._arg0));
                 break;
             }
 
             case _OP_CLOSURE:
-                streamprintf(stream, _SC("  // closure -> [%d]"), int(inst._arg0));
+                streamprintf(stream, "  // closure -> [%d]", int(inst._arg0));
                 break;
 
             case _OP_APPENDARRAY: {
-                streamprintf(stream, _SC("  // [%d].append("), int(inst._arg0));
+                streamprintf(stream, "  // [%d].append(", int(inst._arg0));
                 switch (inst._arg2) {
                     case AAT_STACK:
-                        streamprintf(stream, _SC("[%d]"), int(inst._arg1));
+                        streamprintf(stream, "[%d]", int(inst._arg1));
                         break;
                     case AAT_LITERAL:
                         if (unsigned(inst._arg1) < unsigned(_nliterals)) {
@@ -301,81 +301,81 @@ void DumpInstructions(OutputStream *stream, SQLineInfosHeader *lineinfos, int nl
                             DumpLiteral(stream, key);
                         }
                         else {
-                            streamprintf(stream, _SC("?"));
+                            streamprintf(stream, "?");
                         }
                         break;
                     case AAT_INT:
-                        streamprintf(stream, _SC("%d"), int(inst._arg1));
+                        streamprintf(stream, "%d", int(inst._arg1));
                         break;
                     case AAT_FLOAT:
-                        streamprintf(stream, _SC("%f"), *((const SQFloat *)&inst._arg1));
+                        streamprintf(stream, "%f", *((const SQFloat *)&inst._arg1));
                         break;
                     case AAT_BOOL:
-                        streamprintf(stream, _SC("%s"), inst._arg1 ? _SC("true") : _SC("false"));
+                        streamprintf(stream, "%s", inst._arg1 ? "true" : "false");
                         break;
                     default:
-                        streamprintf(stream, _SC("unknown"));
+                        streamprintf(stream, "unknown");
                         break;
                 }
 
-                streamprintf(stream, _SC(")"));
+                streamprintf(stream, ")");
                 break;
             }
 
             case _OP_GETK:
             case _OP_GET_LITERAL: {
-                streamprintf(stream, _SC("  // [%d].["), int(inst._arg2));
+                streamprintf(stream, "  // [%d].[", int(inst._arg2));
                 if (unsigned(inst._arg1) < unsigned(_nliterals)) {
                     const SQObjectPtr &key = _literals[inst._arg1];
                     DumpLiteral(stream, key);
                 }
                 else {
-                    streamprintf(stream, _SC("?"));
+                    streamprintf(stream, "?");
                 }
-                streamprintf(stream, _SC("] -> [%d]"), int(inst._arg0));
+                streamprintf(stream, "] -> [%d]", int(inst._arg0));
                 break;
             }
 
             default:
                 break;
         }
-        streamprintf(stream, _SC("\n"));
+        streamprintf(stream, "\n");
         n++;
     }
 }
 
 static void DumpLiterals(OutputStream *stream, const SQObjectPtr *_literals, SQInt32 _nliterals)
 {
-    streamprintf(stream, _SC("-----LITERALS\n"));
+    streamprintf(stream, "-----LITERALS\n");
     for (SQInt32 i = 0; i < _nliterals; ++i) {
-        streamprintf(stream, _SC("[%d] "), (SQInt32)i);
+        streamprintf(stream, "[%d] ", (SQInt32)i);
         DumpLiteral(stream, _literals[i]);
-        streamprintf(stream, _SC("\n"));
+        streamprintf(stream, "\n");
     }
 }
 
 static void DumpStaticMemos(OutputStream *stream, const SQObjectPtr *_staticmemos, SQInt32 _nstaticmemos)
 {
-    streamprintf(stream, _SC("-----STATIC MEMOS\n"));
+    streamprintf(stream, "-----STATIC MEMOS\n");
     for (SQInt32 i = 0; i < _nstaticmemos; ++i) {
-        streamprintf(stream, _SC("[%d] "), (SQInt32)i);
+        streamprintf(stream, "[%d] ", (SQInt32)i);
         DumpLiteral(stream, _staticmemos[i]);
-        streamprintf(stream, _SC("\n"));
+        streamprintf(stream, "\n");
     }
 }
 
 static void DumpLocals(OutputStream *stream, const SQLocalVarInfo *_localvarinfos, SQInt32 _nlocalvarinfos)
 {
-    streamprintf(stream, _SC("-----LOCALS\n"));
+    streamprintf(stream, "-----LOCALS\n");
     for (SQInt32 si = 0; si < _nlocalvarinfos; si++) {
         SQLocalVarInfo lvi = _localvarinfos[si];
-        streamprintf(stream, _SC("[%d] %s \t%d %d\n"), (SQInt32)lvi._pos, _stringval(lvi._name), (SQInt32)lvi._start_op, (SQInt32)lvi._end_op);
+        streamprintf(stream, "[%d] %s \t%d %d\n", (SQInt32)lvi._pos, _stringval(lvi._name), (SQInt32)lvi._start_op, (SQInt32)lvi._end_op);
     }
 }
 
 static void DumpLineInfo(OutputStream *stream, const SQLineInfosHeader *_lineinfos, SQInt32 _nlineinfos)
 {
-    streamprintf(stream, _SC("-----LINE INFO\n"));
+    streamprintf(stream, "-----LINE INFO\n");
     for (SQInt32 i = 0; i < _nlineinfos; i++) {
         int op = 0;
         int line = 0;
@@ -391,7 +391,7 @@ static void DumpLineInfo(OutputStream *stream, const SQLineInfosHeader *_lineinf
             line = _lineinfos->_first_line + li._line_offset;
             isDbgStepPoint = li._is_dbg_step_point;
         }
-        streamprintf(stream, _SC("op [%d] line [%d]%s\n"), op, line, isDbgStepPoint ? " dbgstep" : "");
+        streamprintf(stream, "op [%d] line [%d]%s\n", op, line, isDbgStepPoint ? " dbgstep" : "");
     }
 }
 
@@ -408,31 +408,31 @@ void Dump(OutputStream *stream, SQFunctionProto *func, bool deep, int instructio
             Dump(stream, _funcproto(f), deep, -1);
         }
     }
-    streamprintf(stream, _SC("SQInstruction sizeof %d\n"), (SQInt32)sizeof(SQInstruction));
-    streamprintf(stream, _SC("SQObject sizeof %d\n"), (SQInt32)sizeof(SQObject));
-    streamprintf(stream, _SC("--------------------------------------------------------------------\n"));
-    streamprintf(stream, _SC("*****FUNCTION [%s]\n"), sq_type(func->_name) == OT_STRING ? _stringval(func->_name) : _SC("unknown"));
+    streamprintf(stream, "SQInstruction sizeof %d\n", (SQInt32)sizeof(SQInstruction));
+    streamprintf(stream, "SQObject sizeof %d\n", (SQInt32)sizeof(SQObject));
+    streamprintf(stream, "--------------------------------------------------------------------\n");
+    streamprintf(stream, "*****FUNCTION [%s]\n", sq_type(func->_name) == OT_STRING ? _stringval(func->_name) : "unknown");
     DumpLiterals(stream, func->_literals, func->_nliterals);
     DumpStaticMemos(stream, func->_staticmemos, func->_nstaticmemos);
-    streamprintf(stream, _SC("-----RESULT TYPE MASK = 0x%X\n"), func->_result_type_mask);
-    streamprintf(stream, _SC("-----PARAMS\n"));
+    streamprintf(stream, "-----RESULT TYPE MASK = 0x%X\n", func->_result_type_mask);
+    streamprintf(stream, "-----PARAMS\n");
     if (func->_varparams)
-        streamprintf(stream, _SC("<<VARPARAMS>>\n"));
+        streamprintf(stream, "<<VARPARAMS>>\n");
     n = 0;
     for (i = 0; i < func->_nparameters; i++) {
-        streamprintf(stream, _SC("[%d] "), (SQInt32)n);
+        streamprintf(stream, "[%d] ", (SQInt32)n);
         DumpLiteral(stream, func->_parameters[i]);
-        streamprintf(stream, _SC(", type mask = 0x%X\n"), func->_param_type_masks[i]);
+        streamprintf(stream, ", type mask = 0x%X\n", func->_param_type_masks[i]);
         n++;
     }
     DumpLocals(stream, func->_localvarinfos, func->_nlocalvarinfos);
     DumpLineInfo(stream, func->_lineinfos, func->_nlineinfos);
-    streamprintf(stream, _SC("-----dump\n"));
+    streamprintf(stream, "-----dump\n");
     DumpInstructions(stream, func->_lineinfos, func->_nlineinfos,
         func->_instructions, func->_ninstructions, func->_literals, func->_nliterals, instruction_index);
-    streamprintf(stream, _SC("-----\n"));
-    streamprintf(stream, _SC("stack size[%d]\n"), (SQInt32)func->_stacksize);
-    streamprintf(stream, _SC("--------------------------------------------------------------------\n\n"));
+    streamprintf(stream, "-----\n");
+    streamprintf(stream, "stack size[%d]\n", (SQInt32)func->_stacksize);
+    streamprintf(stream, "--------------------------------------------------------------------\n\n");
 }
 
 void ResetStaticMemos(SQFunctionProto *func, SQSharedState *ss)
@@ -904,7 +904,7 @@ void SQFuncState::AddInstruction(SQInstruction &i)
     _instructions.push_back(i);
 }
 
-SQObjectPtr SQFuncState::CreateString(const SQChar *s,SQInteger len)
+SQObjectPtr SQFuncState::CreateString(const char *s,SQInteger len)
 {
     return SQObjectPtr(SQString::Create(_sharedstate,s,len));
 }

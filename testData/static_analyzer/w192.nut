@@ -1,4 +1,3 @@
-//expect:w192
 local test = true
 local a = 1, b = 2
 if (test == 3)

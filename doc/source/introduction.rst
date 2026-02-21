@@ -18,7 +18,7 @@ but the language has a very dynamic nature like Python/Lua/JavaScript.
 Easy to start while being much safer than Lua and JS, having the equal performance with Lua.
 
 It is based on Squirrel Script language (http://www.squirrel-lang.org/), but modified to be safer, stricter and faster.
-Quirrel is not compatible with the original Squirrel (see :ref:`Diff from original <diff_from_original>`),
+Quirrel is not compatible with the original Squirrel (see :ref:`Diff from Squirrel <diff_from_squirrel>`),
 but conversion usually can be done easily.
 
 Quirrel offers a wide range of features like dynamic typing, higher

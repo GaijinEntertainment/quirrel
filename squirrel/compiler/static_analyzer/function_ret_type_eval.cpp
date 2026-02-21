@@ -78,9 +78,13 @@ unsigned FunctionReturnTypeEvaluator::evalExpr(const Expr *expr) {
       return RT_NUMBER;
     case TO_CALL:
       return evalCall(expr->asCallExpr());
-    case TO_DECL_EXPR:
-      return evalDeclaration(static_cast<const DeclExpr *>(expr));
-    case TO_ARRAYEXPR:
+    case TO_TABLE:
+      return RT_TABLE;
+    case TO_CLASS:
+      return RT_CLASS;
+    case TO_FUNCTION:
+      return RT_CLOSURE;
+    case TO_ARRAY:
       return RT_ARRAY;
     case TO_PAREN:
       return evalExpr(static_cast<const UnExpr *>(expr)->argument());
@@ -125,19 +129,6 @@ unsigned FunctionReturnTypeEvaluator::evalAddExpr(const BinExpr *expr) {
   }
   else {
     return lhsFlags | rhsFlags;
-  }
-}
-
-unsigned FunctionReturnTypeEvaluator::evalDeclaration(const DeclExpr *de) {
-  const Decl *decl = de->declaration();
-
-  switch (decl->op())
-  {
-  case TO_CLASS: return RT_CLASS;
-  case TO_FUNCTION: return RT_CLOSURE;
-  case TO_TABLE: return RT_TABLE;
-  default:
-    return 0;
   }
 }
 
@@ -284,7 +275,7 @@ unsigned FunctionReturnTypeEvaluator::evalCall(const CallExpr *call) {
     flags |= RT_STRING;
   }
 
-  const SQChar *fn = checker->extractFunctionName(call);
+  const char *fn = checker->extractFunctionName(call);
 
   if (nameLooksLikeResultMustBeBoolean(fn)) {
     flags |= RT_BOOL;

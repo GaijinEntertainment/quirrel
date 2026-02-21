@@ -64,13 +64,13 @@ public:
     }
 
     /// Binds a Table or Class to the Table (can be used to facilitate namespaces)
-    void Bind(const SQChar* name, Object& object) { BindImpl(name, object); }
+    void Bind(const char* name, Object& object) { BindImpl(name, object); }
     template <typename C, typename A>
-    void Bind(const SQChar* name, Class<C, A>& klass)  { BindImpl(name, klass); }
+    void Bind(const char* name, Class<C, A>& klass)  { BindImpl(name, klass); }
 
     /// Binds a raw Squirrel closure to the Table
-    TableBase& SquirrelFunc(const SQChar* name, SQFUNCTION func, SQInteger nparamscheck, const SQChar *typemask=nullptr,
-                            const SQChar *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr,
+    TableBase& SquirrelFunc(const char* name, SQFUNCTION func, SQInteger nparamscheck, const char *typemask=nullptr,
+                            const char *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr,
                             FunctionPurity purity=FunctionPurity::SideEffects) {
         sq_pushobject(vm, GetObject());
         sq_pushstring(vm, name, -1);
@@ -88,8 +88,8 @@ public:
         return *this;
     }
 
-    TableBase& SquirrelFuncDeclString(SQFUNCTION func, const SQChar *function_decl,
-                                      const SQChar *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr) {
+    TableBase& SquirrelFuncDeclString(SQFUNCTION func, const char *function_decl,
+                                      const char *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr) {
         sq_pushobject(vm, GetObject());
         for (SQInteger i=0; i<nfreevars; ++i)
             sq_pushobject(vm, freevars[i].GetObject());
@@ -100,7 +100,7 @@ public:
     }
 
     template<class V>
-    TableBase& SetValue(const SQChar* name, const V& val) { //-V1071
+    TableBase& SetValue(const char* name, const V& val) { //-V1071
         BindValue<V>(name, strlen(name), val, false);
         return *this;
     }
@@ -124,7 +124,7 @@ public:
     }
 
     template<class V>
-    TableBase& SetInstance(const SQChar* name, V* val) {
+    TableBase& SetInstance(const char* name, V* val) {
         BindInstance<V>(name, val, false);
         return *this;
     }
@@ -143,13 +143,13 @@ public:
 
     /// Sets a key in the Table to a specific function
     template<class F>
-    TableBase& Func(const SQChar* name, F method, const SQChar *docstring=nullptr) { //-V1071
+    TableBase& Func(const char* name, F method, const char *docstring=nullptr) { //-V1071
         BindFunc<F>(name, method, SqGlobalThunk<F>(), 1+SqGetArgCount<F>(), false, docstring);
         return *this;
     }
 
     template <bool raw>
-    bool HasKeyImpl(const SQChar* name) const {
+    bool HasKeyImpl(const char* name) const {
         sq_pushobject(vm, obj);
         sq_pushstring(vm, name, -1);
         if (SQ_FAILED(raw ? sq_rawget(vm, -2) : sq_get(vm, -2))) {
@@ -160,11 +160,11 @@ public:
         return true;
     }
 
-    bool HasKey(const SQChar* name) const {
+    bool HasKey(const char* name) const {
         return HasKeyImpl<false>(name);
     }
 
-    bool RawHasKey(const SQChar* name) const {
+    bool RawHasKey(const char* name) const {
         return HasKeyImpl<true>(name);
     }
 
@@ -185,7 +185,7 @@ public:
 
 
     template <bool raw>
-    Function GetFunctionImpl(const SQChar* name) const {
+    Function GetFunctionImpl(const char* name) const {
         HSQOBJECT funcObj;
         sq_pushobject(vm, GetObject());
         sq_pushstring(vm, name, -1);
@@ -205,11 +205,11 @@ public:
         return ret;
     }
 
-    Function GetFunction(const SQChar* name) const {
+    Function GetFunction(const char* name) const {
         return GetFunctionImpl<false>(name);
     }
 
-    Function RawGetFunction(const SQChar* name) const {
+    Function RawGetFunction(const char* name) const {
         return GetFunctionImpl<true>(name);
     }
 
@@ -257,7 +257,7 @@ public:
     }
 
     template <bool raw>
-    bool DeleteSlotImpl(const SQChar* name) const {
+    bool DeleteSlotImpl(const char* name) const {
         sq_pushobject(vm, obj);
         sq_pushstring(vm, name, -1);
         if (SQ_FAILED(raw ? sq_rawdeleteslot(vm, -2, false) : sq_deleteslot(vm, -2, false))) {
@@ -268,11 +268,11 @@ public:
         return true;
     }
 
-    bool DeleteSlot(const SQChar* name) const {
+    bool DeleteSlot(const char* name) const {
         return DeleteSlotImpl<false>(name);
     }
 
-    bool RawDeleteSlot(const SQChar* name) const {
+    bool RawDeleteSlot(const char* name) const {
         return DeleteSlotImpl<true>(name);
     }
 
@@ -312,7 +312,7 @@ public:
 
 protected:
     template <class V>
-    void BindImpl(const SQChar* name, V& v) {
+    void BindImpl(const char* name, V& v) {
         sq_pushobject(vm, GetObject());
         sq_pushstring(vm, name, -1);
         sq_pushobject(vm, v.GetObject());
@@ -381,7 +381,7 @@ struct Var<Table> {
 
         SQObjectType value_type = sq_gettype(vm, idx);
         if (value_type != OT_TABLE && value_type != OT_NULL) {
-            SQRAT_ASSERTF(0, FormatTypeError(vm, idx, _SC("table")).c_str());
+            SQRAT_ASSERTF(0, FormatTypeError(vm, idx, "table").c_str());
         }
     }
 
@@ -393,7 +393,7 @@ struct Var<Table> {
         sq_pushobject(vm,obj);
     }
 
-    static const SQChar * getVarTypeName() { return _SC("table"); }
+    static const char * getVarTypeName() { return "table"; }
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) {
         return sq_gettype(vm, idx) == OT_TABLE || sq_gettype(vm, idx) == OT_NULL;
     }

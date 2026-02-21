@@ -26,10 +26,10 @@ class NameShadowingChecker : public Visitor {
   struct SymbolInfo {
     union {
       const Id *x;
-      const FunctionDecl *f;
-      const ClassDecl *k;
+      const FunctionExpr *f;
+      const ClassExpr *k;
       const VarDecl *v;
-      const TableDecl *t;
+      const TableExpr *t;
       const ParamDecl *p;
       const EnumDecl *e;
       const ConstDecl *c;
@@ -39,7 +39,7 @@ class NameShadowingChecker : public Visitor {
     SymbolKind kind;
 
     const struct Scope *ownerScope;
-    const SQChar *name;
+    const char *name;
 
     SymbolInfo(SymbolKind k) : kind(k), declaration(), name(nullptr), ownerScope(nullptr) {}
   };
@@ -47,7 +47,7 @@ class NameShadowingChecker : public Visitor {
   struct Scope {
     NameShadowingChecker *checker;
 
-    Scope(NameShadowingChecker *chk, const Decl *o) : checker(chk), owner(o), symbols() {
+    Scope(NameShadowingChecker *chk, const Node *o) : checker(chk), owner(o), symbols() {
       parent = checker->scope;
       checker->scope = this;
     }
@@ -57,10 +57,10 @@ class NameShadowingChecker : public Visitor {
     }
 
     struct Scope *parent;
-    std::unordered_map<const SQChar *, SymbolInfo *, StringHasher, StringEqualer> symbols;
-    const Decl *owner;
+    std::unordered_map<const char *, SymbolInfo *, StringHasher, StringEqualer> symbols;
+    const Node *owner;
 
-    SymbolInfo *findSymbol(const SQChar *name) const;
+    SymbolInfo *findSymbol(const char *name) const;
   };
 
   const Node *extractPointedNode(const SymbolInfo *info);
@@ -77,7 +77,7 @@ class NameShadowingChecker : public Visitor {
   void loadBindings(const HSQOBJECT *bindings);
 
   void declareVar(SymbolKind k, const VarDecl *v);
-  void declareSymbol(const SQChar *name, SymbolInfo *info);
+  void declareSymbol(const char *name, SymbolInfo *info);
 
   Id rootPointerNode;
 public:
@@ -93,12 +93,12 @@ public:
   void visitNode(Node *n);
 
   void visitVarDecl(VarDecl *var);
-  void visitFunctionDecl(FunctionDecl *f);
+  void visitFunctionExpr(FunctionExpr *f);
   void visitParamDecl(ParamDecl *p);
   void visitConstDecl(ConstDecl *c);
   void visitEnumDecl(EnumDecl *e);
-  void visitClassDecl(ClassDecl *k);
-  void visitTableDecl(TableDecl *t);
+  void visitClassExpr(ClassExpr *k);
+  void visitTableExpr(TableExpr *t);
 
   void visitBlock(Block *block);
   void visitTryStatement(TryStatement *stmt);

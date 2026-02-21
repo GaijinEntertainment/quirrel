@@ -14,6 +14,7 @@ private:
     bool isUnsafeRange(int start, int count) const;
     bool isUnsafeJumpRange(int start, int count) const;
     bool isLocalVarInstructions(int start, int count) const;
+    bool isLocalVarRegister(int reg, int instrIndex) const;
     void cutRange(int start, int old_count, int new_count);
 
     void optimizeConstFolding();
@@ -34,7 +35,7 @@ private:
     bool codeChanged;
 
 #ifdef _DEBUG_DUMP
-    void debugPrintInstructionPos(const SQChar * message, int instructionIndex);
+    void debugPrintInstructionPos(const char * message, int instructionIndex);
 #endif
 };
 

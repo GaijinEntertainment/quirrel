@@ -84,7 +84,7 @@ static SQInteger math_recursive_hash_impl(HSQUIRRELVM vm, HSQOBJECT &obj, SQUnsi
 
     default:
       out_hash = prev_hash;
-      return sq_throwerror(vm, _SC("unsupported type for hashing"));
+      return sq_throwerror(vm, "unsupported type for hashing");
   }
 
   out_hash ^= out_hash >> 15;
@@ -107,9 +107,9 @@ SQInteger sq_math_deep_hash(HSQUIRRELVM v)
   SQInteger argDepth = 200; // not a very deep by default to avoid stack overflows in case of circular references
   if (sq_gettop(v) >= 3) {
     if (SQ_FAILED(sq_getinteger(v, 3, &argDepth)))
-      return sq_throwerror(v, _SC("invalid param"));
+      return sq_throwerror(v, "invalid param");
     if (argDepth < 1)
-      return sq_throwerror(v, _SC("hashing depth must be >= 1"));
+      return sq_throwerror(v, "hashing depth must be >= 1");
   }
   HSQOBJECT obj;
   sq_getstackobj(v, 2, &obj);

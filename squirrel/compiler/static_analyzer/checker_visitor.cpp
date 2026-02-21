@@ -60,7 +60,7 @@ static bool looksLikeBooleanExpr(const Expr *e) {
 }
 
 
-void CheckerVisitor::putIntoGlobalNamesMap(std::unordered_map<std::string, std::vector<IdLocation>> &map, enum DiagnosticsId diag, const SQChar *name, const Node *d) {
+void CheckerVisitor::putIntoGlobalNamesMap(std::unordered_map<std::string, std::vector<IdLocation>> &map, enum DiagnosticsId diag, const char *name, const Node *d) {
   std::string sourcenameCache(_ctx.sourceName());
 
   auto fnIt = fileNames.find(sourcenameCache);
@@ -91,11 +91,11 @@ void CheckerVisitor::putIntoGlobalNamesMap(std::unordered_map<std::string, std::
   }
 }
 
-void CheckerVisitor::storeGlobalDeclaration(const SQChar *name, const Node *d) {
+void CheckerVisitor::storeGlobalDeclaration(const char *name, const Node *d) {
   putIntoGlobalNamesMap(declaredGlobals, DiagnosticsId::DI_GLOBAL_NAME_REDEF, name, d);
 }
 
-void CheckerVisitor::storeGlobalUsage(const SQChar *name, const Node *d) {
+void CheckerVisitor::storeGlobalUsage(const char *name, const Node *d) {
   putIntoGlobalNamesMap(usedGlobals, DiagnosticsId::DI_UNDEFINED_GLOBAL, name, d);
 }
 
@@ -127,7 +127,7 @@ void CheckerVisitor::report(const Node *n, int32_t id, ...) {
   va_end(vargs);
 }
 
-void CheckerVisitor::reportImportSlot(int line, int column, const SQChar *name) {
+void CheckerVisitor::reportImportSlot(int line, int column, const char *name) {
   if (isEffectsGatheringPass)
     return;
 
@@ -143,7 +143,7 @@ void CheckerVisitor::checkForeachIteratorCapturedByClosure(const Id *id, const V
   if (v->info->kind != SK_FOREACH)
     return;
 
-  const FunctionDecl *thisScopeOwner = currentScope->owner;
+  const FunctionExpr *thisScopeOwner = currentScope->owner;
 
   if (v->info->ownedScope->owner == currentScope->owner)
     return;
@@ -167,16 +167,16 @@ void CheckerVisitor::checkForeachIteratorCapturedByClosure(const Id *id, const V
 
   assert(thisId > 0);
 
-  if (i > 2) { // decl_expr + call + foreach
+  if (i > 1) { // call + foreach
 
-    auto &candidate = nodeStack[i - 2];
+    auto &candidate = nodeStack[i - 1];
 
     if (candidate.sst == SST_NODE && candidate.n->op() == TO_CALL) {
       const CallExpr *call = candidate.n->asExpression()->asCallExpr();
 
       bool found = false;
       for (auto arg : call->arguments()) {
-        if (arg->op() == TO_DECL_EXPR && arg->asDeclExpr()->declaration() == thisScopeOwner) {
+        if (arg == thisScopeOwner) {
           found = true;
           break;
         }
@@ -184,7 +184,7 @@ void CheckerVisitor::checkForeachIteratorCapturedByClosure(const Id *id, const V
 
       if (found) {// in call arguments
         const Expr *callee = call->callee();
-        const SQChar *name = nullptr;
+        const char *name = nullptr;
 
         if (callee->op() == TO_ID)
           name = callee->asId()->name();
@@ -246,7 +246,7 @@ void CheckerVisitor::checkAccessFromStatic(const GetFieldExpr *acc) {
     return;
 
   const TableMember *m = nullptr;
-  const ClassDecl *klass = nullptr;
+  const ClassExpr *klass = nullptr;
 
   for (auto it = nodeStack.rbegin(); it != nodeStack.rend(); ++it) {
     if (it->sst == SST_TABLE_MEMBER) {
@@ -254,7 +254,7 @@ void CheckerVisitor::checkAccessFromStatic(const GetFieldExpr *acc) {
       ++it;
 
       if (it != nodeStack.rend() && it->sst == SST_NODE && it->n->op() == TO_CLASS) {
-        klass = static_cast<const ClassDecl *>(it->n);
+        klass = static_cast<const ClassExpr *>(it->n);
       }
 
       break;
@@ -265,11 +265,11 @@ void CheckerVisitor::checkAccessFromStatic(const GetFieldExpr *acc) {
     return;
 
   const auto &members = klass->members();
-  const SQChar *memberName = acc->fieldName();
+  const char *memberName = acc->fieldName();
 
   for (const auto &m : members) {
     if (m.key->op() == TO_LITERAL && m.key->asLiteral()->kind() == LK_STRING) {
-      const SQChar *klassMemberName = m.key->asLiteral()->s();
+      const char *klassMemberName = m.key->asLiteral()->s();
       if (strcmp(memberName, klassMemberName) == 0) {
         if (!m.isStatic())
           report(acc, DiagnosticsId::DI_USED_FROM_STATIC, memberName, "static member");
@@ -331,7 +331,7 @@ static bool cannotBeNull(const Expr *e) {
   case TO_ADD: case TO_SUB:  case TO_MUL: case TO_DIV: /*case TO_MOD:*/
   case TO_TYPEOF: case TO_RESUME:
   case TO_BASE: case TO_ROOT_TABLE_ACCESS:
-  case TO_ARRAYEXPR: case TO_DECL_EXPR:
+  case TO_ARRAY: case TO_TABLE: case TO_CLASS: case TO_FUNCTION:
     return true;
   case TO_LITERAL:
     return e->asLiteral()->kind() != LK_NULL;
@@ -405,8 +405,8 @@ void CheckerVisitor::reportModifyIfContainer(const Expr *e, const Expr *mod) {
 }
 
 
-static bool stringLooksLikeFormatTemplate(const SQChar *s) {
-  const SQChar *bracePtr = strchr(s, '{');
+static bool stringLooksLikeFormatTemplate(const char *s) {
+  const char *bracePtr = strchr(s, '{');
   if (bracePtr && (sq_isalpha(bracePtr[1]) || bracePtr[1] == '_'))
   {
     // check for strings specific to Dagor DataBlock objects
@@ -438,7 +438,7 @@ void CheckerVisitor::checkForgotSubst(const LiteralExpr *l) {
     }
   }
 
-  const SQChar *s = l->s();
+  const char *s = l->s();
   if (!stringLooksLikeFormatTemplate(s)) {
     return;
   }
@@ -450,7 +450,7 @@ void CheckerVisitor::checkForgotSubst(const LiteralExpr *l) {
     const auto &arguments = candidate->arguments();
     if (callee->op() == TO_GETFIELD) { // -V522
       const GetFieldExpr *f = callee->asGetField();
-      const SQChar *funcName = f->fieldName();
+      const char *funcName = f->fieldName();
       if (deparenStatic(f->receiver()) == l) {
         ok = strcmp(funcName, "subst") == 0;
       } else if (strcmp(funcName, "split") == 0) {
@@ -581,7 +581,8 @@ void CheckerVisitor::checkAlwaysTrueOrFalse(const Expr *n) {
     const LiteralExpr *l = cond->asExpression()->asLiteral();
     report(n, DiagnosticsId::DI_ALWAYS_T_OR_F, l->raw() ? "true" : "false");
   }
-  else if (cond->op() == TO_ARRAYEXPR || cond->op() == TO_DECL_EXPR || cond->isDeclaration()) {
+  else if (cond->op() == TO_ARRAY || cond->op() == TO_TABLE || cond->op() == TO_CLASS ||
+           cond->op() == TO_FUNCTION || cond->isDeclaration()) {
     report(n, DiagnosticsId::DI_ALWAYS_T_OR_F, "true");
   }
 }
@@ -721,12 +722,14 @@ void CheckerVisitor::checkDeclarationInArith(const BinExpr *bin) {
     const Expr *lhs = maybeEval(bin->lhs());
     const Expr *rhs = maybeEval(bin->rhs());
 
-    if (lhs->op() == TO_DECL_EXPR || lhs->op() == TO_ARRAYEXPR) {
+    if (lhs->op() == TO_TABLE || lhs->op() == TO_CLASS || lhs->op() == TO_FUNCTION ||
+        lhs->op() == TO_ARRAY) {
       report(bin->lhs(), DiagnosticsId::DI_DECL_IN_EXPR);
     }
 
     if (bin->op() != TO_OROR && bin->op() != TO_ANDAND) {
-      if (rhs->op() == TO_DECL_EXPR || rhs->op() == TO_ARRAYEXPR) {
+      if (rhs->op() == TO_TABLE || rhs->op() == TO_CLASS || rhs->op() == TO_FUNCTION ||
+          rhs->op() == TO_ARRAY) {
         report(bin->rhs(), DiagnosticsId::DI_DECL_IN_EXPR);
       }
     }
@@ -940,8 +943,10 @@ void CheckerVisitor::checkConstInBoolExpr(const BinExpr *bin) {
   const Expr *lhs = bin->lhs();
   const Expr *rhs = bin->rhs();
 
-  bool leftIsConst = lhs->op() == TO_LITERAL || lhs->op() == TO_DECL_EXPR || lhs->op() == TO_ARRAYEXPR || isUpperCaseIdentifier(lhs); //-V522
-  bool rightIsConst = rhs->op() == TO_LITERAL || rhs->op() == TO_DECL_EXPR || rhs->op() == TO_ARRAYEXPR || isUpperCaseIdentifier(rhs); // -V522
+  bool leftIsConst = lhs->op() == TO_LITERAL || lhs->op() == TO_TABLE || lhs->op() == TO_CLASS ||
+                     lhs->op() == TO_FUNCTION || lhs->op() == TO_ARRAY || isUpperCaseIdentifier(lhs); //-V522
+  bool rightIsConst = rhs->op() == TO_LITERAL || rhs->op() == TO_TABLE || rhs->op() == TO_CLASS ||
+                      rhs->op() == TO_FUNCTION || rhs->op() == TO_ARRAY || isUpperCaseIdentifier(rhs); // -V522
 
 /*  if (rightIsConst && bin->op() == TO_OROR) {
     if (rhs->op() != TO_LITERAL || rhs->asLiteral()->kind() != LK_BOOL || rhs->asLiteral()->b() != true) {
@@ -978,11 +983,14 @@ void CheckerVisitor::checkCompareWithContainer(const BinExpr *bin) {
   const Expr *l = bin->lhs();
   const Expr *r = bin->rhs();
 
-  if (l->op() == TO_ARRAYEXPR || r->op() == TO_ARRAYEXPR) {
+  if (l->op() == TO_ARRAY || r->op() == TO_ARRAY) {
     report(bin, DiagnosticsId::DI_CMP_WITH_CONTAINER, "array");
   }
 
-  if (l->op() == TO_DECL_EXPR || r->op() == TO_DECL_EXPR) {
+  auto isDeclLikeExpr = [](TreeOp op) {
+    return op == TO_TABLE || op == TO_CLASS || op == TO_FUNCTION;
+  };
+  if (isDeclLikeExpr(l->op()) || isDeclLikeExpr(r->op())) {
     report(bin, DiagnosticsId::DI_CMP_WITH_CONTAINER, "declaration");
   }
 }
@@ -997,7 +1005,7 @@ void CheckerVisitor::checkExtendToAppend(const CallExpr *expr) {
   if (callee->op() == TO_GETFIELD) {
     if (args.size() > 0) {
       Expr *arg0 = args[0];
-      if (arg0->op() == TO_ARRAYEXPR) {
+      if (arg0->op() == TO_ARRAY) {
         if (strcmp(callee->asGetField()->fieldName(), "extend") == 0) {
           report(expr, DiagnosticsId::DI_EXTEND_TO_APPEND);
         }
@@ -1025,7 +1033,7 @@ void CheckerVisitor::checkBoolToStrangePosition(const BinExpr *bin) {
   }
 }
 
-static const SQChar *tryExtractKeyName(const Expr *e) {
+static const char *tryExtractKeyName(const Expr *e) {
 
   if (e->op() == TO_GETFIELD)
     return e->asGetField()->fieldName();
@@ -1067,23 +1075,19 @@ void CheckerVisitor::checkKeyNameMismatch(const Expr *key, const Expr *e) {
   if (isEffectsGatheringPass)
     return;
 
-  const SQChar *fieldName = tryExtractKeyName(key);
+  const char *fieldName = tryExtractKeyName(key);
 
   if (!fieldName)
     return;
 
-  if (e->op() != TO_DECL_EXPR)
+  if (e->op() != TO_FUNCTION)
     return;
 
-  const Decl *decl = static_cast<const DeclExpr *>(e)->declaration();
+  const FunctionExpr *f = e->asFunctionExpr();
+  const char *declName = nullptr;
 
-  const SQChar *declName = nullptr;
-
-  if (decl->op() == TO_FUNCTION) {
-    const FunctionDecl *f = static_cast<const FunctionDecl *>(decl);
-    if (!f->isLambda() && f->name()[0] != '(') {
-      declName = f->name();
-    }
+  if (!f->isLambda() && f->name()[0] != '(') {
+    declName = f->name();
   }
 
   if (!declName)
@@ -1300,7 +1304,7 @@ void CheckerVisitor::checkAlreadyRequired(const CallExpr *call) {
   if (isCtor)
     return;
 
-  const SQChar *name = nullptr;
+  const char *name = nullptr;
 
   if (info) {
     name = info->declaration->name();
@@ -1321,7 +1325,7 @@ void CheckerVisitor::checkAlreadyRequired(const CallExpr *call) {
   if (strcmp(name, "require") != 0 && strcmp(name, "require_optional") != 0)
     return;
 
-  const SQChar *moduleName = l->s();
+  const char *moduleName = l->s();
 
   if (!_ctx.isRequireDisabled(call->lineStart(), call->columnStart()))
     if (auto fv = findValueInScopes("require_optional"); fv && fv->expression && fv->expression->op() == TO_EXTERNAL_VALUE) {
@@ -1379,7 +1383,7 @@ void CheckerVisitor::checkPersistCall(const CallExpr *call) {
   if (isEffectsGatheringPass)
     return;
 
-  const SQChar *calleeName = extractFunctionName(call);
+  const char *calleeName = extractFunctionName(call);
 
   if (!calleeName)
     return;
@@ -1416,7 +1420,7 @@ void CheckerVisitor::checkPersistCall(const CallExpr *call) {
   if (l->kind() != LK_STRING)
     return;
 
-  const SQChar *key = l->s();
+  const char *key = l->s();
 
   auto r = persistedKeys.emplace(key);
 
@@ -1430,7 +1434,7 @@ void CheckerVisitor::checkForbiddenCall(const CallExpr *call) {
   if (isEffectsGatheringPass)
     return;
 
-  const SQChar *fn = extractFunctionName(call);
+  const char *fn = extractFunctionName(call);
 
   if (!fn)
     return;
@@ -1444,7 +1448,7 @@ void CheckerVisitor::checkCallFromRoot(const CallExpr *call) {
   if (isEffectsGatheringPass)
     return;
 
-  const SQChar *fn = extractFunctionName(call);
+  const char *fn = extractFunctionName(call);
 
   if (!fn)
     return;
@@ -1461,7 +1465,7 @@ void CheckerVisitor::checkCallFromRoot(const CallExpr *call) {
 
     TreeOp op = it->n->op();
 
-    if (op == TO_FUNCTION || op == TO_CLASS || op == TO_CONSTRUCTOR) {
+    if (op == TO_FUNCTION || op == TO_CLASS) {
       do_report = true;
       break;
     }
@@ -1476,7 +1480,7 @@ void CheckerVisitor::checkForbiddenParentDir(const CallExpr *call) {
   if (isEffectsGatheringPass)
     return;
 
-  const SQChar *fn = extractFunctionName(call);
+  const char *fn = extractFunctionName(call);
 
   if (!fn)
     return;
@@ -1495,7 +1499,7 @@ void CheckerVisitor::checkForbiddenParentDir(const CallExpr *call) {
   if (arg->op() != TO_LITERAL || arg->asLiteral()->kind() != LK_STRING)
     return;
 
-  const SQChar *path = arg->asLiteral()->s();
+  const char *path = arg->asLiteral()->s();
 
   const char * p = strstr(path, "..");
   if (p && (p[2] == '/' || p[2] == '\\')) {
@@ -1513,7 +1517,7 @@ void CheckerVisitor::checkFormatArguments(const CallExpr *call) {
     const Expr *arg = deparenStatic(arguments[i]);
     if (arg->op() == TO_LITERAL && arg->asLiteral()->kind() == LK_STRING) { // -V522
       int32_t formatsCount = 0;
-      for (const SQChar *s = arg->asLiteral()->s(); *s; ++s) {
+      for (const char *s = arg->asLiteral()->s(); *s; ++s) {
         if (*s == '%') {
           if (*(s + 1) == '%') {
             s++;
@@ -1525,7 +1529,7 @@ void CheckerVisitor::checkFormatArguments(const CallExpr *call) {
       }
 
       if (formatsCount && formatsCount != (arguments.size() - i - 1)) {
-        const SQChar *name = extractFunctionName(call);
+        const char *name = extractFunctionName(call);
         if (!name)
           return;
 
@@ -1539,7 +1543,7 @@ void CheckerVisitor::checkFormatArguments(const CallExpr *call) {
   }
 }
 
-int32_t CheckerVisitor::normalizeParamNameLength(const SQChar *name) {
+int32_t CheckerVisitor::normalizeParamNameLength(const char *name) {
   int32_t r = 0;
 
   while (*name) {
@@ -1551,16 +1555,16 @@ int32_t CheckerVisitor::normalizeParamNameLength(const SQChar *name) {
   return r;
 }
 
-const SQChar *CheckerVisitor::normalizeParamName(const SQChar *name, SQChar *buffer) {
+const char *CheckerVisitor::normalizeParamName(const char *name, char *buffer) {
 
   if (!buffer) {
     int32_t nl = normalizeParamNameLength(name);
-    buffer = (SQChar *)arena->allocate(nl + 1);
+    buffer = (char *)arena->allocate(nl + 1);
   }
 
   int32_t i = 0, j = 0;
   while (name[i]) {
-    SQChar c = name[i++];
+    char c = name[i++];
     if (c != '_') {
       buffer[j++] = std::tolower(c);
     }
@@ -1581,13 +1585,13 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
   const SQFunctionProto *proto = nullptr;
   const SQNativeClosure *nclosure = nullptr;
 
-  const SQChar *funcName;
+  const char *funcName;
   int numParams;
   int dpParameters;
   bool isVararg;
 
   if (info) {
-    const FunctionDecl *decl = info->declaration;
+    const FunctionExpr *decl = info->declaration;
     funcName = decl->name();
     numParams = info->parameters.size();
     isVararg = decl->isVararg();
@@ -1606,7 +1610,7 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
     const SQObject& v = ev->value();
     if (sq_isclosure(v)) {
       proto = _closure(v)->_function;
-      funcName = sq_isstring(proto->_name) ? _stringval(proto->_name) : _SC("unknown");
+      funcName = sq_isstring(proto->_name) ? _stringval(proto->_name) : "unknown";
       numParams = proto->_nparameters - 1; // not counting 'this'
       isVararg = proto->_varparams;
       dpParameters = proto->_ndefaultparams;
@@ -1619,7 +1623,7 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
       nclosure = _nativeclosure(v);
       if (nclosure->_nparamscheck == 0)
         return;
-      funcName = sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : _SC("unknown native");
+      funcName = sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : "unknown native";
       numParams = std::abs(nclosure->_nparamscheck)-1; // not counting 'this'
       isVararg = nclosure->_nparamscheck < 0;
       dpParameters = 0;
@@ -1643,7 +1647,7 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
   }
 
   for (int i = 0; i < numParams; ++i) {
-    const SQChar *paramName;
+    const char *paramName;
     if (info) paramName = info->parameters[i];
     else if (proto) {
       if (!sq_isstring(proto->_parameters[i + 1])) continue;
@@ -1657,7 +1661,7 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
 
     for (int j = 0; j < args.size(); ++j) {
       const Expr *arg = args[j];
-      const SQChar *possibleArgName = nullptr;
+      const char *possibleArgName = nullptr;
 
       if (arg->op() == TO_ID)
         possibleArgName = arg->asId()->name();
@@ -1668,7 +1672,7 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
         continue;
 
       int32_t argNL = normalizeParamNameLength(possibleArgName);
-      SQChar *buffer = (SQChar *)sq_malloc(_ctx.allocContext(), argNL + 1);
+      char *buffer = (char *)sq_malloc(_ctx.allocContext(), argNL + 1);
       normalizeParamName(possibleArgName, buffer);
 
       if (i != j) {
@@ -1688,7 +1692,7 @@ void CheckerVisitor::checkContainerModification(const CallExpr *call) {
   if (isEffectsGatheringPass)
     return;
 
-  const SQChar *name = extractFunctionName(call);
+  const char *name = extractFunctionName(call);
 
   if (!name)
     return;
@@ -1723,8 +1727,11 @@ static bool hasMixedLifetime(const Expr *e) {
   else
     return false;
 
-  bool isLiteral0 = (expr0->op() == TO_ARRAYEXPR || expr0->op() == TO_DECL_EXPR); //-V522
-  bool isLiteral1 = (expr1->op() == TO_ARRAYEXPR || expr1->op() == TO_DECL_EXPR); //-V522
+  auto isDeclLikeExpr = [](TreeOp op) {
+    return op == TO_ARRAY || op == TO_TABLE || op == TO_CLASS || op == TO_FUNCTION;
+  };
+  bool isLiteral0 = isDeclLikeExpr(expr0->op()); //-V522
+  bool isLiteral1 = isDeclLikeExpr(expr1->op()); //-V522
 
   return (isLiteral0 != isLiteral1);
 }
@@ -1733,7 +1740,7 @@ void CheckerVisitor::checkUnwantedModification(const CallExpr *call) {
   if (isEffectsGatheringPass)
     return;
 
-  const SQChar *name = extractFunctionName(call);
+  const char *name = extractFunctionName(call);
 
   if (!name)
     return;
@@ -1772,7 +1779,7 @@ void CheckerVisitor::checkBooleanLambda(const CallExpr *call) {
   if (isEffectsGatheringPass)
     return;
 
-  const SQChar *fn = extractFunctionName(call);
+  const char *fn = extractFunctionName(call);
 
   if (!fn)
     return;
@@ -1785,15 +1792,10 @@ void CheckerVisitor::checkBooleanLambda(const CallExpr *call) {
 
   const Expr *arg = deparenStatic(call->arguments()[0]);
 
-  if (arg->op() != TO_DECL_EXPR) // -V522
+  if (arg->op() != TO_FUNCTION) // -V522
     return;
 
-  const Decl *decl = arg->asDeclExpr()->declaration();
-
-  if (decl->op() != TO_FUNCTION)
-    return;
-
-  const FunctionDecl *f = static_cast<const FunctionDecl *>(decl);
+  const FunctionExpr *f = arg->asFunctionExpr();
 
   FunctionReturnTypeEvaluator rte(this);
 
@@ -1830,18 +1832,14 @@ void CheckerVisitor::checkAssertCall(const CallExpr *call) {
   speculateIfConditionHeuristics(cond, currentScope, nullptr);
 }
 
-const SQChar *CheckerVisitor::extractFunctionName(const CallExpr *call) {
+const char *CheckerVisitor::extractFunctionName(const CallExpr *call) {
   const Expr *c = maybeEval(call->callee());
 
-  const SQChar *calleeName = nullptr;
+  const char *calleeName = nullptr;
   if (c->op() == TO_ID)
     calleeName = c->asId()->name();
-  else if (c->op() == TO_DECL_EXPR) {
-    const Decl *decl = c->asDeclExpr()->declaration();
-    if (decl->op() != TO_FUNCTION)
-      return nullptr;
-
-    calleeName = static_cast<const FunctionDecl *>(decl)->name();
+  else if (c->op() == TO_FUNCTION) {
+    calleeName = c->asFunctionExpr()->name();
   }
   else if (c->op() == TO_GETFIELD)
     calleeName = c->asGetField()->fieldName();
@@ -1996,8 +1994,8 @@ void CheckerVisitor::visitTerExpr(TerExpr *expr) {
 
 void CheckerVisitor::visitIncExpr(IncExpr *expr) {
 
-  SQChar buffer[64] = { 0 };
-  const SQChar *name = computeNameRef(deparenStatic(expr->argument()), buffer, sizeof buffer);
+  char buffer[64] = { 0 };
+  const char *name = computeNameRef(deparenStatic(expr->argument()), buffer, sizeof buffer);
   if (name) {
     ValueRef *v = findValueInScopes(name);
 
@@ -2265,7 +2263,7 @@ void CheckerVisitor::checkVariableMismatchForLoop(ForStatement *loop) {
   if (isEffectsGatheringPass)
     return;
 
-  const SQChar *varname = nullptr;
+  const char *varname = nullptr;
   Node *init = loop->initializer();
   Expr *cond = loop->condition();
   Expr *mod = loop->modifier();
@@ -2416,11 +2414,11 @@ void CheckerVisitor::checkAssignedTwice(const Block *b) {
 }
 
 
-void CheckerVisitor::checkFunctionPairSimilarity(const FunctionDecl *f1, const FunctionDecl *f2) {
+void CheckerVisitor::checkFunctionPairSimilarity(const FunctionExpr *f1, const FunctionExpr *f2) {
   int32_t diff = NodeDiffComputer::compute(f1->body(), f2->body(), 4);
   if (diff < 4) {
-    const SQChar *name1 = f1->name();
-    const SQChar *name2 = f2->name();
+    const char *name1 = f1->name();
+    const char *name2 = f2->name();
 
     if (diff == 0)
       report(f2, DiagnosticsId::DI_DUPLICATE_FUNC, name1, name2);
@@ -2439,7 +2437,7 @@ void CheckerVisitor::checkFunctionSimilarity(const Block *b) {
   const auto &statements = b->statements();
 
   for (int32_t i = 0; i < int32_t(statements.size()); ++i) {
-    const FunctionDecl *f1 = extractFunction(statements[i]);
+    const FunctionExpr *f1 = extractFunction(statements[i]);
     if (!f1)
       continue;
 
@@ -2447,7 +2445,7 @@ void CheckerVisitor::checkFunctionSimilarity(const Block *b) {
 
     if (complexity >= functionComplexityThreshold) {
       for (int32_t j = i + 1; j < int32_t(statements.size()); ++j) {
-        if (const FunctionDecl *f2 = extractFunction(statements[j])) {
+        if (const FunctionExpr *f2 = extractFunction(statements[j])) {
           checkFunctionPairSimilarity(f1, f2);
         }
       }
@@ -2455,21 +2453,21 @@ void CheckerVisitor::checkFunctionSimilarity(const Block *b) {
   }
 }
 
-void CheckerVisitor::checkFunctionSimilarity(const TableDecl *table) {
+void CheckerVisitor::checkFunctionSimilarity(const TableExpr *table) {
   if (isEffectsGatheringPass)
     return;
 
   const auto &members = table->members();
 
   for (int32_t i = 0; i < int32_t(members.size()); ++i) {
-    const FunctionDecl *f1 = extractFunction(members[i].value);
+    const FunctionExpr *f1 = extractFunction(members[i].value);
     if (!f1)
       continue;
 
     int32_t complexity = NodeComplexityComputer::compute(f1->body(), functionComplexityThreshold);
     if (complexity >= functionComplexityThreshold) {
       for (int32_t j = i + 1; j < int32_t(members.size()); ++j) {
-        if (const FunctionDecl *f2 = extractFunction(members[j].value))
+        if (const FunctionExpr *f2 = extractFunction(members[j].value))
           checkFunctionPairSimilarity(f1, f2);
       }
     }
@@ -2522,7 +2520,7 @@ void CheckerVisitor::checkAssignExpressionSimilarity(const Block *b) {
 // "valuable" argument are treated as potential setters, not getters.
 // Example: isEnabled(true) might SET enabled state, not query it.
 // In this case we suppress the warning.
-bool CheckerVisitor::shouldCallResultBeUtilized(const SQChar *name, const CallExpr *call) {
+bool CheckerVisitor::shouldCallResultBeUtilized(const char *name, const CallExpr *call) {
   if (!name)
     return false;
 
@@ -2559,7 +2557,7 @@ bool CheckerVisitor::shouldCallResultBeUtilized(const SQChar *name, const CallEx
     if (arg->op() == TO_CALL) {
       const CallExpr *innerCall = arg->asCallExpr();
       const Expr *callee = innerCall->callee();
-      const SQChar *calleeName = nullptr;
+      const char *calleeName = nullptr;
       if (callee->op() == TO_ID)
         calleeName = callee->asId()->name();
       else if (callee->op() == TO_GETFIELD)
@@ -2595,7 +2593,7 @@ void CheckerVisitor::checkUnutilizedResult(const ExprStatement *s) {
     const CallExpr *c = static_cast<const CallExpr *>(e);
     const Expr *callee = c->callee();
 
-    const SQChar *calleeName = nullptr;
+    const char *calleeName = nullptr;
     if (callee->op() == TO_ID) {
       calleeName = callee->asId()->name();
     }
@@ -3285,7 +3283,7 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
     if (!checkeeId)
       return;
 
-    bool nullCheck = strcmp(typeLit->s(), _SC("null")) == 0; // todo: should it be more precise in case of avaliable names
+    bool nullCheck = strcmp(typeLit->s(), "null") == 0; // todo: should it be more precise in case of avaliable names
     bool accessCheck = typeCheckee != checkeeId;
 
     // if it's null check we could know for sure that true-branch implies NULL and false-branch implies NON_NULL
@@ -3507,7 +3505,7 @@ void CheckerVisitor::visitTryStatement(TryStatement *tryStmt) {
   currentScope = trunkScope;
 }
 
-const SQChar *CheckerVisitor::findSlotNameInStack(const Decl *decl) {
+const char *CheckerVisitor::findSlotNameInStack(const Node *decl) {
   auto it = nodeStack.rbegin();
   auto ie = nodeStack.rend();
 
@@ -3519,13 +3517,10 @@ const SQChar *CheckerVisitor::findSlotNameInStack(const Decl *decl) {
         const BinExpr *bin = static_cast<const BinExpr *>(n);
         Expr *lhs = bin->lhs();
         Expr *rhs = bin->rhs();
-        if (rhs->op() == TO_DECL_EXPR) {
-          const DeclExpr *de = static_cast<const DeclExpr *>(rhs);
-          if (de->declaration() == decl) {
-            if (lhs->op() == TO_LITERAL) {
-              if (lhs->asLiteral()->kind() == LK_STRING) {
-                return lhs->asLiteral()->s();
-              }
+        if (rhs == decl) {
+          if (lhs->op() == TO_LITERAL) {
+            if (lhs->asLiteral()->kind() == LK_STRING) {
+              return lhs->asLiteral()->s();
             }
           }
           return nullptr;
@@ -3536,15 +3531,12 @@ const SQChar *CheckerVisitor::findSlotNameInStack(const Decl *decl) {
       assert(slot.sst == SST_TABLE_MEMBER);
       Expr *lhs = slot.member->key;
       Expr *rhs = slot.member->value;
-      if (rhs->op() == TO_DECL_EXPR) {
-        const DeclExpr *de = static_cast<const DeclExpr *>(rhs);
-        if (de->declaration() == decl) {
-          if (lhs->op() == TO_LITERAL) {
+      if (rhs == decl) {
+        if (lhs->op() == TO_LITERAL) {
             if (lhs->asLiteral()->kind() == LK_STRING) {
               return lhs->asLiteral()->s();
             }
           }
-        }
         return nullptr;
       }
     }
@@ -3554,11 +3546,11 @@ const SQChar *CheckerVisitor::findSlotNameInStack(const Decl *decl) {
   return nullptr;
 }
 
-void CheckerVisitor::checkFunctionReturns(FunctionDecl *func) {
+void CheckerVisitor::checkFunctionReturns(FunctionExpr *func) {
   if (isEffectsGatheringPass)
     return;
 
-  const SQChar *name = func->name();
+  const char *name = func->name();
 
   if (!name || name[0] == '(') {
     name = findSlotNameInStack(func);
@@ -3646,8 +3638,8 @@ void CheckerVisitor::checkEnumConstUsage(const GetFieldExpr *acc) {
   if (isEffectsGatheringPass)
     return;
 
-  SQChar buffer[64] = { 0 };
-  const SQChar *receiverName = computeNameRef(acc->receiver(), buffer, sizeof buffer);
+  char buffer[64] = { 0 };
+  const char *receiverName = computeNameRef(acc->receiver(), buffer, sizeof buffer);
 
   if (!receiverName)
     return;
@@ -3656,7 +3648,7 @@ void CheckerVisitor::checkEnumConstUsage(const GetFieldExpr *acc) {
   if (!enumV || enumV->info->kind != SK_ENUM)
     return;
 
-  const SQChar *fqn = enumFqn(arena, receiverName, acc->fieldName());
+  const char *fqn = enumFqn(arena, receiverName, acc->fieldName());
   const ValueRef *constV = findValueInScopes(fqn);
 
   if (!constV) {
@@ -3667,7 +3659,7 @@ void CheckerVisitor::checkEnumConstUsage(const GetFieldExpr *acc) {
   constV->info->used = true;
 }
 
-void CheckerVisitor::visitTableDecl(TableDecl *table) {
+void CheckerVisitor::visitTableExpr(TableExpr *table) {
   checkFunctionSimilarity(table);
 
   for (auto &member : table->members()) {
@@ -3684,7 +3676,7 @@ void CheckerVisitor::visitTableDecl(TableDecl *table) {
   }
 }
 
-void CheckerVisitor::visitClassDecl(ClassDecl *klass) {
+void CheckerVisitor::visitClassExpr(ClassExpr *klass) {
   nodeStack.push_back({ SST_NODE, klass });
 
   if (klass->classKey())
@@ -3693,12 +3685,12 @@ void CheckerVisitor::visitClassDecl(ClassDecl *klass) {
   if (klass->classBase())
     klass->classBase()->visit(this);
 
-  visitTableDecl(klass);
+  visitTableExpr(klass);
 
   nodeStack.pop_back();
 }
 
-void CheckerVisitor::visitFunctionDecl(FunctionDecl *func) {
+void CheckerVisitor::visitFunctionExpr(FunctionExpr *func) {
   VarScope *parentScope = currentScope;
   VarScope *copyScope = parentScope->copy(arena, true);
   VarScope functionScope(func, copyScope);
@@ -3723,7 +3715,7 @@ void CheckerVisitor::visitFunctionDecl(FunctionDecl *func) {
 
   checkFunctionReturns(func);
 
-  Visitor::visitFunctionDecl(func);
+  Visitor::visitFunctionExpr(func);
 
   if (oldInfo) {
     oldInfo->joinModifiable(newInfo);
@@ -3735,7 +3727,7 @@ void CheckerVisitor::visitFunctionDecl(FunctionDecl *func) {
   currentScope = parentScope;
 }
 
-ValueRef *CheckerVisitor::findValueInScopes(const SQChar *ref) {
+ValueRef *CheckerVisitor::findValueInScopes(const char *ref) {
   if (!ref)
     return nullptr;
 
@@ -3764,7 +3756,7 @@ void CheckerVisitor::applyAssignmentToScope(const BinExpr *bin) {
   if (lhs->op() != TO_ID)
     return;
 
-  const SQChar *name = lhs->asId()->name();
+  const char *name = lhs->asId()->name();
   ValueRef *v = findValueInScopes(name);
 
   if (!v) {
@@ -3797,8 +3789,8 @@ void CheckerVisitor::applyAssignEqToScope(const BinExpr *bin) {
 
   const Expr *lhs = bin->lhs();
 
-  SQChar buffer[128] = { 0 };
-  const SQChar *name = computeNameRef(lhs, buffer, sizeof buffer);
+  char buffer[128] = { 0 };
+  const char *name = computeNameRef(lhs, buffer, sizeof buffer);
   if (!name)
     return;
 
@@ -3845,7 +3837,7 @@ int32_t CheckerVisitor::computeNameLength(const Expr *e) {
   }
 }
 
-void CheckerVisitor::computeNameRef(const Expr *e, SQChar *b, int32_t &ptr, int32_t size) {
+void CheckerVisitor::computeNameRef(const Expr *e, char *b, int32_t &ptr, int32_t size) {
   switch (e->op())
   {
   case TO_GETFIELD: return computeNameRef(e->asGetField(), b, ptr, size);
@@ -3868,15 +3860,15 @@ void CheckerVisitor::computeNameRef(const Expr *e, SQChar *b, int32_t &ptr, int3
   }
 }
 
-const SQChar *CheckerVisitor::computeNameRef(const Expr *lhs, SQChar *buffer, size_t bufferSize) {
+const char *CheckerVisitor::computeNameRef(const Expr *lhs, char *buffer, size_t bufferSize) {
   int32_t length = computeNameLength(lhs);
   if (length < 0)
     return nullptr;
 
-  SQChar *result = buffer;
+  char *result = buffer;
 
   if (!result || bufferSize < (length + 1)) {
-    result = (SQChar *)arena->allocate(length + 1);
+    result = (char *)arena->allocate(length + 1);
   }
 
   int32_t ptr = 0;
@@ -3887,9 +3879,9 @@ const SQChar *CheckerVisitor::computeNameRef(const Expr *lhs, SQChar *buffer, si
 
 void CheckerVisitor::setValueFlags(const Expr *lvalue, unsigned pf, unsigned nf) {
 
-  SQChar buffer[128] = { 0 };
+  char buffer[128] = { 0 };
 
-  const SQChar *name = computeNameRef(lvalue, buffer, sizeof buffer);
+  const char *name = computeNameRef(lvalue, buffer, sizeof buffer);
 
   if (!name)
     return;
@@ -3911,9 +3903,9 @@ const ValueRef *CheckerVisitor::findValueForExpr(const Expr *e) {
   if (auto it = astValues.find(e); it != astValues.end())
     return it->second;
 
-  SQChar buffer[128] = { 0 };
+  char buffer[128] = { 0 };
 
-  const SQChar *n = computeNameRef(e, buffer, sizeof buffer);
+  const char *n = computeNameRef(e, buffer, sizeof buffer);
 
   if (!n) {
     return nullptr;
@@ -3989,7 +3981,7 @@ bool CheckerVisitor::isPotentiallyNullable(const Expr *e, std::unordered_set<con
       return true;
     }
 
-    const SQChar *funcName = nullptr;
+    const char *funcName = nullptr;
     const Expr *callee = call->callee();
 
     if (callee->op() == TO_ID) {
@@ -4048,7 +4040,7 @@ bool CheckerVisitor::couldBeString(const Expr *e) {
   }
 
   if (e->op() == TO_CALL) { // -V522
-    const SQChar *name = nullptr;
+    const char *name = nullptr;
     const Expr *callee = static_cast<const CallExpr *>(e)->callee();
 
     if (callee->op() == TO_ID)
@@ -4103,6 +4095,14 @@ const Expr *CheckerVisitor::maybeEval(const Expr *e, int32_t &evalId, std::unord
   if (v->hasValue()) {
     if (!allow_external && v->expression && v->expression->op() == TO_EXTERNAL_VALUE)
       return e;
+    // If this variable was initialized from another variable (aliased) and that source
+    // variable has been reassigned since, stop evaluating the expression chain.
+    // Example: let a = null; let b = a; a = 123; return b ?? 2
+    if (v->origin && v->expression && v->expression->op() == TO_ID) {
+      if (v->origin->evalIndex != v->originEvalIndex) {
+        return e;
+      }
+    }
     return maybeEval(v->expression, evalId, visited, allow_external);
   }
   else {
@@ -4110,7 +4110,7 @@ const Expr *CheckerVisitor::maybeEval(const Expr *e, int32_t &evalId, std::unord
   }
 }
 
-const SQChar *CheckerVisitor::findFieldName(const Expr *e) {
+const char *CheckerVisitor::findFieldName(const Expr *e) {
   if (e->op() == TO_ID)
     return e->asId()->name();
 
@@ -4122,11 +4122,8 @@ const SQChar *CheckerVisitor::findFieldName(const Expr *e) {
 
   const ValueRef *v = findValueForExpr(e);
 
-  if (v && v->expression && v->expression->op() == TO_DECL_EXPR) {
-    const Decl *d = static_cast<const DeclExpr *>(v->expression)->declaration();
-    if (d->op() == TO_FUNCTION) {
-      return static_cast<const FunctionDecl *>(d)->name();
-    }
+  if (v && v->expression && v->expression->op() == TO_FUNCTION) {
+    return v->expression->asFunctionExpr()->name();
   }
 
   return "";
@@ -4144,7 +4141,7 @@ int32_t CheckerVisitor::computeNameLength(const GetFieldExpr *acc) {
   return size;
 }
 
-void CheckerVisitor::computeNameRef(const GetFieldExpr *access, SQChar *b, int32_t &ptr, int32_t size) {
+void CheckerVisitor::computeNameRef(const GetFieldExpr *access, char *b, int32_t &ptr, int32_t size) {
   computeNameRef(access->receiver(), b, ptr, size);
   b[ptr++] = '.';
   int32_t l = snprintf(&b[ptr], size - ptr, "%s", access->fieldName());
@@ -4157,8 +4154,8 @@ const ExternalValueExpr *CheckerVisitor::findExternalValue(const Expr *e) {
   if (ee->op() == TO_EXTERNAL_VALUE)
     return static_cast<const ExternalValueExpr *>(ee);
 
-  SQChar buffer[128] = { 0 };
-  const SQChar *name = computeNameRef(ee, buffer, sizeof buffer);
+  char buffer[128] = { 0 };
+  const char *name = computeNameRef(ee, buffer, sizeof buffer);
   if (!name)
     return nullptr;
 
@@ -4179,16 +4176,13 @@ const ExternalValueExpr *CheckerVisitor::findExternalValue(const Expr *e) {
 const FunctionInfo *CheckerVisitor::findFunctionInfo(const Expr *e, bool &isCtor) {
   const Expr *ee = maybeEval(e);
 
-  if (ee->op() == TO_DECL_EXPR) { //-V522
-    const Decl *decl = ee->asDeclExpr()->declaration();
-    if (decl->op() == TO_FUNCTION || decl->op() == TO_CLASS) {
-      return functionInfoMap[static_cast<const FunctionDecl *>(decl)];
-    }
+  if (ee->op() == TO_FUNCTION) {
+    return functionInfoMap[ee->asFunctionExpr()];
   }
 
-  SQChar buffer[128] = { 0 };
+  char buffer[128] = { 0 };
 
-  const SQChar *name = computeNameRef(ee, buffer, sizeof buffer);
+  const char *name = computeNameRef(ee, buffer, sizeof buffer);
 
   if (!name)
     return nullptr;
@@ -4200,26 +4194,14 @@ const FunctionInfo *CheckerVisitor::findFunctionInfo(const Expr *e, bool &isCtor
 
   const Expr *expr = maybeEval(v->expression);
 
-  if (expr->op() != TO_DECL_EXPR) // -V522
-    return nullptr;
-
-  const Decl *decl = static_cast<const DeclExpr *>(expr)->declaration();
-
-  if (decl->op() == TO_FUNCTION || decl->op() == TO_CONSTRUCTOR) {
-    return functionInfoMap[static_cast<const FunctionDecl *>(decl)];
+  if (expr->op() == TO_FUNCTION) {
+    return functionInfoMap[expr->asFunctionExpr()];
   }
-  else if (decl->op() == TO_CLASS) {
-    const ClassDecl *klass = static_cast<const ClassDecl *>(decl);
+  else if (expr->op() == TO_CLASS) {
+    const ClassExpr *klass = expr->asClassExpr();
     isCtor = true;
-    for (auto &m : klass->members()) {
-      const Expr *me = m.value;
-      if (me->op() == TO_DECL_EXPR) {
-        const Decl *de = static_cast<const DeclExpr *>(m.value)->declaration();
-        if (de->op() == TO_CONSTRUCTOR) {
-          return functionInfoMap[static_cast<const FunctionDecl *>(de)];
-        }
-      }
-    }
+    if (FunctionExpr *ctor = klass->findConstructor())
+      return functionInfoMap[ctor];
   }
 
   return nullptr;
@@ -4232,28 +4214,16 @@ void CheckerVisitor::applyKnownInvocationToScope(const ValueRef *value) {
     const Expr *expr = maybeEval(value->expression);
     assert(expr != nullptr);
 
-    if (expr->op() == TO_DECL_EXPR) { //-V522
-      const Decl *decl = static_cast<const DeclExpr *>(expr)->declaration();
-      if (decl->op() == TO_FUNCTION || decl->op() == TO_CONSTRUCTOR) {
-        info = functionInfoMap[static_cast<const FunctionDecl *>(decl)];
-      }
-      else if (decl->op() == TO_CLASS) {
-        const ClassDecl *klass = static_cast<const ClassDecl *>(decl);
-        for (auto &m : klass->members()) {
-          const Expr *me = m.value;
-          if (me->op() == TO_DECL_EXPR) {
-            const Decl *de = static_cast<const DeclExpr *>(m.value)->declaration();
-            if (de->op() == TO_CONSTRUCTOR) {
-              info = functionInfoMap[static_cast<const FunctionDecl *>(de)];
-              break;
-            }
-          }
-        }
-      }
-      else {
-        applyUnknownInvocationToScope();
-        return;
-      }
+    if (expr->op() == TO_FUNCTION) {
+      info = functionInfoMap[expr->asFunctionExpr()];
+    }
+    else if (expr->op() == TO_CLASS) {
+      const ClassExpr *klass = expr->asClassExpr();
+      if (FunctionExpr *ctor = klass->findConstructor())
+        info = functionInfoMap[ctor];
+    }
+    else if (expr->op() == TO_TABLE) {
+      // Tables don't have function info
     }
     else if (expr->op() == TO_EXTERNAL_VALUE) {
       applyUnknownInvocationToScope();
@@ -4317,8 +4287,8 @@ void CheckerVisitor::applyCallToScope(const CallExpr *call) {
     }
   }
   else if (callee->op() == TO_GETFIELD) {
-    SQChar buffer[128] = { 0 };
-    const SQChar *ref = computeNameRef(callee, buffer, sizeof buffer);
+    char buffer[128] = { 0 };
+    const char *ref = computeNameRef(callee, buffer, sizeof buffer);
     const ValueRef *value = findValueInScopes(ref);
     if (value) {
       applyKnownInvocationToScope(value);
@@ -4334,7 +4304,7 @@ void CheckerVisitor::applyCallToScope(const CallExpr *call) {
   }
 }
 
-void CheckerVisitor::pushFunctionScope(VarScope *functionScope, const FunctionDecl *decl) {
+void CheckerVisitor::pushFunctionScope(VarScope *functionScope, const FunctionExpr *decl) {
 
   FunctionInfo *info = functionInfoMap[decl];
 
@@ -4346,7 +4316,7 @@ void CheckerVisitor::pushFunctionScope(VarScope *functionScope, const FunctionDe
   currentScope = functionScope;
 }
 
-void CheckerVisitor::declareSymbol(const SQChar *nameRef, ValueRef *v) {
+void CheckerVisitor::declareSymbol(const char *nameRef, ValueRef *v) {
   currentScope->symbols[nameRef] = v;
 }
 
@@ -4469,7 +4439,7 @@ void CheckerVisitor::visitEnumDecl(EnumDecl *enm) {
     constInfo->ownedScope = currentScope;
     constInfo->used = enm->isGlobal();
 
-    const SQChar *fqn = enumFqn(arena, enm->name(), c.id);
+    const char *fqn = enumFqn(arena, enm->name(), c.id);
     declareSymbol(fqn, cv);
 
     c.val->visit(this);
@@ -4595,7 +4565,7 @@ void CheckerVisitor::visitDestructuringDecl(DestructuringDecl *d) {
     else if (v->expression->op() == TO_TABLE) {
       // TODO: check table destructuring
     }
-    else if (v->expression->op() == TO_ARRAYEXPR) {
+    else if (v->expression->op() == TO_ARRAY) {
       // TODO: check array destructuring
     }
   }
@@ -4684,7 +4654,7 @@ void CheckerVisitor::analyze(RootBlock *root, const HSQOBJECT *bindings) {
 
     while ((idx = table->Next(false, pos, key, val)) >= 0) {
       if (sq_isstring(key)) {
-        const SQChar *name = _string(key)->_val;
+        const char *name = _string(key)->_val;
         declareSymbol(name, addExternalValue(val, root));
       }
       pos._unVal.nInteger = idx;

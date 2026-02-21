@@ -292,7 +292,7 @@ struct Var<Array> {
         value = Array(obj, vm);
         SQObjectType value_type = sq_gettype(vm, idx);
         if (value_type != OT_ARRAY && value_type != OT_NULL) {
-            SQRAT_ASSERTF(0, FormatTypeError(vm, idx, _SC("array")).c_str());
+            SQRAT_ASSERTF(0, FormatTypeError(vm, idx, "array").c_str());
         }
     }
 
@@ -306,7 +306,7 @@ struct Var<Array> {
         sq_pushobject(vm,obj);
     }
 
-    static const SQChar * getVarTypeName() { return _SC("array"); }
+    static const char * getVarTypeName() { return "array"; }
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) {
         return sq_gettype(vm, idx) == OT_ARRAY || sq_gettype(vm, idx) == OT_NULL;
     }

@@ -23,12 +23,12 @@ struct SQLexer
     ~SQLexer();
     void Init(const char *code, size_t codeSize);
     SQInteger Lex();
-    const SQChar *Tok2Str(SQInteger tok);
+    const char *Tok2Str(SQInteger tok);
     void SetStringValue();
 private:
     void nextLine();
     SQInteger LexSingleToken();
-    SQInteger GetIDType(const SQChar *s,SQInteger len);
+    SQInteger GetIDType(const char *s,SQInteger len);
     SQInteger ReadString(SQInteger ndelim,bool verbatim, bool advance = true);
     SQInteger ReadNumber();
     void LexBlockComment();
@@ -37,7 +37,7 @@ private:
     SQInteger ReadDirective();
     void Next();
     SQInteger AddUTF8(SQUnsignedInteger ch);
-    SQInteger ProcessStringHexEscape(SQChar *dest, SQInteger maxdigits);
+    SQInteger ProcessStringHexEscape(char *dest, SQInteger maxdigits);
     SQCompilation::Comments::LineCommentsList &CurLineComments() { assert(_comments);  return _comments->commentsList().back(); }
 
     void AddComment(enum SQCompilation::CommentKind kind, SQInteger line, SQInteger start, SQInteger end);
@@ -51,7 +51,7 @@ private:
     size_t _sourceTextSize = 0;
     size_t _sourceTextPtr = 0;
     SQCompilation::Comments *_comments = nullptr;
-    sqvector<SQChar> _currentComment;
+    sqvector<char> _currentComment;
 
 public:
     SQCompilation::SourceSpan tokenSpan() const {
@@ -80,12 +80,12 @@ public:
     unsigned _prevflags = 0;
     unsigned _flags = 0;
     enum SQLexerState _state = LS_REGULAR;
-    const SQChar *_svalue = nullptr;
+    const char *_svalue = nullptr;
     SQInteger _nvalue = 0;
     SQFloat _fvalue = 0.0f;
     LexChar _currdata = 0;
     SQSharedState *_sharedstate = nullptr;
-    sqvector<SQChar> _longstr;
+    sqvector<char> _longstr;
 };
 
 #endif

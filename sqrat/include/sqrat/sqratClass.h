@@ -149,7 +149,7 @@ public:
     /// See Sqrat::Class::Prop to work around this requirement
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     template<class V>
-    Class& Var(const SQChar* name, V C::* var) {
+    Class& Var(const char* name, V C::* var) {
         ClassData<C>* cd = ClassType<C>::getClassData(vm);
 
         // Add the getter
@@ -169,7 +169,7 @@ public:
     /// See Sqrat::Class::Prop to work around this requirement
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     template<class V>
-    Class& ConstVar(const SQChar* name, V C::* var) {
+    Class& ConstVar(const char* name, V C::* var) {
         ClassData<C>* cd = ClassType<C>::getClassData(vm);
 
         // Add the getter
@@ -186,7 +186,7 @@ public:
     /// See Sqrat::Class::Prop to work around this requirement
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     template<class V>
-    Class& StaticVar(const SQChar* name, V* var) {
+    Class& StaticVar(const char* name, V* var) {
         ClassData<C>* cd = ClassType<C>::getClassData(vm);
 
         // Add the getter
@@ -200,7 +200,7 @@ public:
 
     /// Binds a class property
     template<class F1, class F2>
-    Class& Prop(const SQChar* name, F1 getMethod, F2 setMethod) {
+    Class& Prop(const char* name, F1 getMethod, F2 setMethod) {
         ClassData<C>* cd = ClassType<C>::getClassData(vm);
 
         if(getMethod != NULL) {
@@ -218,7 +218,7 @@ public:
 
     /// Binds a class property (using global functions instead of member functions)
     template<class F1, class F2>
-    Class& GlobalProp(const SQChar* name, F1 getMethod, F2 setMethod) {
+    Class& GlobalProp(const char* name, F1 getMethod, F2 setMethod) {
         ClassData<C>* cd = ClassType<C>::getClassData(vm);
 
         if(getMethod != NULL) {
@@ -236,14 +236,14 @@ public:
 
     /// Binds a read-only class property
     template<class F>
-    Class& Prop(const SQChar* name, F getMethod) {
+    Class& Prop(const char* name, F getMethod) {
         // Add the getter
         BindAccessor(name, &getMethod, sizeof(getMethod), SqMemberFunc<C, F>(), ClassType<C>::getClassData(vm)->getTable);
 
         return *this;
     }
 
-    Class& SquirrelProp(const SQChar* name, SQFUNCTION getMethod, const SQChar *docstring=nullptr) {
+    Class& SquirrelProp(const char* name, SQFUNCTION getMethod, const char *docstring=nullptr) {
         // getter
         sq_pushobject(vm, ClassType<C>::getClassData(vm)->getTable); // Push table
         sq_pushstring(vm, name, -1);
@@ -257,7 +257,7 @@ public:
         return *this;
     }
 
-    Class& SquirrelProp(const SQChar* name, SQFUNCTION getMethod, SQFUNCTION setMethod, const SQChar *docstring=nullptr) {
+    Class& SquirrelProp(const char* name, SQFUNCTION getMethod, SQFUNCTION setMethod, const char *docstring=nullptr) {
         // getter
         sq_pushobject(vm, ClassType<C>::getClassData(vm)->getTable); // Push table
         sq_pushstring(vm, name, -1);
@@ -283,7 +283,7 @@ public:
 
     /// Binds a read-only class property (using a global function instead of a member function)
     template<class F>
-    Class& GlobalProp(const SQChar* name, F getMethod) {
+    Class& GlobalProp(const char* name, F getMethod) {
         // Add the getter
         BindAccessor(name, &getMethod, sizeof(getMethod), SqMemberGlobalThunk<F>(), ClassType<C>::getClassData(vm)->getTable);
 
@@ -292,21 +292,21 @@ public:
 
     /// Binds a class function
     template<class F>
-    Class& Func(const SQChar* name, F method, const SQChar *docstring=nullptr) { //-V1071
+    Class& Func(const char* name, F method, const char *docstring=nullptr) { //-V1071
         BindFunc(name, method, SqMemberFunc<C, F>(), 1+SqGetArgCount<F>(), false, docstring);
         return *this;
     }
 
     /// Binds a global function as a class function
     template<class F>
-    Class& GlobalFunc(const SQChar* name, F method, const SQChar *docstring=nullptr) { //-V1071
+    Class& GlobalFunc(const char* name, F method, const char *docstring=nullptr) { //-V1071
         BindFunc(name, method, SqMemberGlobalThunk<F>(), SqGetArgCount<F>(), false, docstring);
         return *this;
     }
 
     /// Binds a static class function
     template<class F>
-    Class& StaticFunc(const SQChar* name, F method, const SQChar *docstring=nullptr) { //-V1071
+    Class& StaticFunc(const char* name, F method, const char *docstring=nullptr) { //-V1071
         BindFunc(name, method, SqGlobalThunk<F>(), 1+SqGetArgCount<F>(), false, docstring);
         return *this;
     }
@@ -318,8 +318,8 @@ public:
     /// Inside of the function, the class instance the function was called with will be at index 1 on the
     /// stack and all arguments will be after that index in the order they were given to the function.
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    Class& SquirrelFunc(const SQChar* name, SQFUNCTION func, SQInteger nparamscheck, const SQChar *typemask=nullptr,
-                        const SQChar *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr, //-V1071
+    Class& SquirrelFunc(const char* name, SQFUNCTION func, SQInteger nparamscheck, const char *typemask=nullptr,
+                        const char *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr, //-V1071
                         FunctionPurity purity=FunctionPurity::SideEffects) {
         sq_pushobject(vm, ClassType<C>::getClassData(vm)->classObj);
         sq_pushstring(vm, name, -1);
@@ -338,8 +338,8 @@ public:
         return *this;
     }
 
-    TableBase& SquirrelFuncDeclString(SQFUNCTION func, const SQChar *function_decl,
-                                      const SQChar *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr) {
+    TableBase& SquirrelFuncDeclString(SQFUNCTION func, const char *function_decl,
+                                      const char *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr) {
         sq_pushobject(vm, ClassType<C>::getClassData(vm)->classObj);
         for (SQInteger i=0; i<nfreevars; ++i)
             sq_pushobject(vm, freevars[i].GetObject());
@@ -351,7 +351,7 @@ public:
 
 
     /// Gets a Function from a name in the Class (returns null if failed)
-    Function GetFunction(const SQChar* name) {
+    Function GetFunction(const char* name) {
         ClassData<C>* cd = ClassType<C>::getClassData(vm);
         HSQOBJECT funcObj;
         sq_pushobject(vm, cd->classObj);
@@ -376,7 +376,7 @@ public:
 protected:
 
     template<class Func>
-    void BindFunc(const SQChar* name, Func func, SQFUNCTION func_thunk, SQInteger nparamscheck, bool staticVar = false, const SQChar *docstring=nullptr)
+    void BindFunc(const char* name, Func func, SQFUNCTION func_thunk, SQInteger nparamscheck, bool staticVar = false, const char *docstring=nullptr)
     {
       sq_pushobject(vm, GetObject());
       sq_pushstring(vm, name, -1);
@@ -427,7 +427,7 @@ protected:
         // add the set table (static)
         HSQOBJECT& setTable = cd->setTable;
         sq_resetobject(&setTable);
-        sq_pushstring(vm, _SC("__setTable"), -1);
+        sq_pushstring(vm, "__setTable", -1);
         sq_newtable(vm);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &setTable)));
         sq_addref(vm, &setTable);
@@ -436,41 +436,41 @@ protected:
         // add the get table (static)
         HSQOBJECT& getTable = cd->getTable;
         sq_resetobject(&getTable);
-        sq_pushstring(vm, _SC("__getTable"), -1);
+        sq_pushstring(vm, "__getTable", -1);
         sq_newtable(vm);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &getTable)));
         sq_addref(vm, &getTable);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, true)));
 
         // override _set
-        sq_pushstring(vm, _SC("_set"), -1);
+        sq_pushstring(vm, "_set", -1);
         sq_pushobject(vm, setTable); // Push the set table as a free variable
         sq_newclosure(vm, &sqVarSet, 1);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
 
         // override _get
-        sq_pushstring(vm, _SC("_get"), -1);
+        sq_pushstring(vm, "_get", -1);
         sq_pushobject(vm, getTable); // Push the get table as a free variable
         sq_newclosure(vm, &sqVarGet, 1);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
 
         // add weakref (apparently not provided by default)
-        sq_pushstring(vm, _SC("weakref"), -1);
+        sq_pushstring(vm, "weakref", -1);
         sq_newclosure(vm, &Class::ClassWeakref, 0);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
 
         // add _typeof
-        sq_pushstring(vm, _SC("_typeof"), -1);
+        sq_pushstring(vm, "_typeof", -1);
         sq_newclosure(vm, &Class::ClassTypeof, 0);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
 
         // add _cloned
-        sq_pushstring(vm, _SC("_cloned"), -1);
+        sq_pushstring(vm, "_cloned", -1);
         sq_newclosure(vm, &Class::ClassCloned, 0);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
 
         // add _tostring
-        sq_pushstring(vm, _SC("_tostring"), -1);
+        sq_pushstring(vm, "_tostring", -1);
         sq_newclosure(vm, InstanceToString<C>::Format, 0);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
 
@@ -479,7 +479,7 @@ protected:
     }
 
     // Helper function used to bind getters and setters
-    inline void BindAccessor(const SQChar* name, void* var, size_t varSize, SQFUNCTION func, HSQOBJECT table) {
+    inline void BindAccessor(const char* name, void* var, size_t varSize, SQFUNCTION func, HSQOBJECT table) {
         // Push the get or set table
         sq_pushobject(vm, table);
         sq_pushstring(vm, name, -1);
@@ -501,11 +501,11 @@ protected:
     // constructor binding
     Class& BindConstructor(SQFUNCTION method, SQInteger nParams) {
         // assert would be useful if there wasn't automatically registered default constructor
-        //SQRAT_ASSERT(!Table(ClassType<C>::getClassData(vm)->classObj, vm).RawHasKey(_SC("constructor")));
+        //SQRAT_ASSERT(!Table(ClassType<C>::getClassData(vm)->classObj, vm).RawHasKey("constructor"));
 
         sq_pushobject(vm, ClassType<C>::getClassData(vm)->classObj);
 
-        sq_pushstring(vm, _SC("constructor"), 11);
+        sq_pushstring(vm, "constructor", 11);
         sq_newclosure(vm, method, 0);
         sq_setparamscheck(vm, nParams+1, NULL);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
@@ -525,10 +525,10 @@ public:
         return BindConstructor(A::template iNew<Arg...>, sizeof...(Arg));
     }
 
-    Class& SquirrelCtor(SQFUNCTION func, SQInteger nparamscheck=0, const SQChar *typemask=nullptr,
-                        const SQChar *docstring=nullptr) {
+    Class& SquirrelCtor(SQFUNCTION func, SQInteger nparamscheck=0, const char *typemask=nullptr,
+                        const char *docstring=nullptr) {
         sq_pushobject(vm, ClassType<C>::getClassData(vm)->classObj);
-        sq_pushstring(vm, _SC("constructor"), 11);
+        sq_pushstring(vm, "constructor", 11);
         sq_newclosure(vm, func, 0);
         sq_setparamscheck(vm, nparamscheck, typemask);
         if (docstring)
@@ -648,7 +648,7 @@ protected:
         HSQOBJECT& setTable = cd->setTable;
         sq_resetobject(&setTable);
         sq_pushobject(vm, bd->setTable);
-        sq_pushstring(vm, _SC("__setTable"), -1);
+        sq_pushstring(vm, "__setTable", -1);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_clone(vm, -2)));
         sq_remove(vm, -3);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &setTable)));
@@ -659,7 +659,7 @@ protected:
         HSQOBJECT& getTable = cd->getTable;
         sq_resetobject(&getTable);
         sq_pushobject(vm, bd->getTable);
-        sq_pushstring(vm, _SC("__getTable"), -1);
+        sq_pushstring(vm, "__getTable", -1);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_clone(vm, -2)));
         sq_remove(vm, -3);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &getTable)));
@@ -667,34 +667,34 @@ protected:
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, true)));
 
         // override _set
-        sq_pushstring(vm, _SC("_set"), -1);
+        sq_pushstring(vm, "_set", -1);
         sq_pushobject(vm, setTable); // Push the set table as a free variable
         sq_newclosure(vm, sqVarSet, 1);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
 
         // override _get
-        sq_pushstring(vm, _SC("_get"), -1);
+        sq_pushstring(vm, "_get", -1);
         sq_pushobject(vm, getTable); // Push the get table as a free variable
         sq_newclosure(vm, sqVarGet, 1);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
 
         // add weakref (apparently not provided by default)
-        sq_pushstring(vm, _SC("weakref"), -1);
+        sq_pushstring(vm, "weakref", -1);
         sq_newclosure(vm, &Class<C, A>::ClassWeakref, 0);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
 
         // add _typeof
-        sq_pushstring(vm, _SC("_typeof"), -1);
+        sq_pushstring(vm, "_typeof", -1);
         sq_newclosure(vm, &Class<C, A>::ClassTypeof, 0);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
 
         // add _cloned
-        sq_pushstring(vm, _SC("_cloned"), -1);
+        sq_pushstring(vm, "_cloned", -1);
         sq_newclosure(vm, &Class<C, A>::ClassCloned, 0);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
 
         // add _tostring
-        sq_pushstring(vm, _SC("_tostring"), -1);
+        sq_pushstring(vm, "_tostring", -1);
         sq_newclosure(vm, InstanceToString<C>::Format, 0);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
 

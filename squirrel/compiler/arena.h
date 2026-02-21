@@ -8,6 +8,7 @@
 #include <map>
 #include <set>
 #include <unordered_map>
+#include <unordered_set>
 
 #define ARENA_USE_SYSTEM_ALLOC 0
 
@@ -46,7 +47,7 @@
 class Arena {
 public:
 
-    Arena(SQAllocContext alloc_ctx, const SQChar *name, size_t chunkSize = 4 * PAGE_SIZE)
+    Arena(SQAllocContext alloc_ctx, const char *name, size_t chunkSize = 4 * PAGE_SIZE)
         : _alloc_ctx(alloc_ctx), _name(name), _chunks(NULL), _bigChunks(NULL)
         , _chunkSize(ALIGN_SIZE_TO_PAGE(chunkSize)) {
     }
@@ -199,7 +200,7 @@ private:
 
     struct BigChunk *_bigChunks;
 
-    const SQChar *_name;
+    const char *_name;
 
     size_t _chunkSize;
 
@@ -354,10 +355,18 @@ struct ArenaSet : public std::set<V, Cmp, StdArenaAllocator<V>> {
   ArenaSet(const Allocator &allocator) : std::set<V, Cmp, Allocator>(allocator) {}
 };
 
+template<typename V, typename Hasher = std::hash<V>, typename KeyEq = std::equal_to<V>>
+struct ArenaUnorderedSet : public std::unordered_set<V, Hasher, KeyEq, StdArenaAllocator<V>> {
+
+  typedef StdArenaAllocator<V> Allocator;
+
+  ArenaUnorderedSet(const Allocator &allocator) : std::unordered_set<V, Hasher, KeyEq, Allocator>(allocator) {}
+};
+
 template<typename K, typename V, typename Hasher = std::hash<K>, typename KeyEq = std::equal_to<K>>
-struct ArenaUnorederMap : public std::unordered_map<K, V, Hasher, KeyEq, StdArenaAllocator<std::pair<const K, V>>> {
+struct ArenaUnorderedMap : public std::unordered_map<K, V, Hasher, KeyEq, StdArenaAllocator<std::pair<const K, V>>> {
 
   typedef StdArenaAllocator<std::pair<const K, V>> Allocator;
 
-  ArenaUnorederMap(const Allocator &allocator) : std::unordered_map<K, V, Hasher, KeyEq, Allocator>(allocator) {}
+  ArenaUnorderedMap(const Allocator &allocator) : std::unordered_map<K, V, Hasher, KeyEq, Allocator>(allocator) {}
 };

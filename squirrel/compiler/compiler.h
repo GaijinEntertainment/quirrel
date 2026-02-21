@@ -14,15 +14,15 @@ class Comments;
 struct SqASTData {
   Arena *astArena;
   RootBlock *root;
-  SQChar sourceName[256];
+  char sourceName[256];
   Comments *comments;
 };
 
 
-typedef void(*CompilerErrorFunc)(void *ud, const SQChar *s);
-bool Compile(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror);
+typedef void(*CompilerErrorFunc)(void *ud, const char *s);
+bool Compile(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const char *sourcename, SQObjectPtr &out, bool raiseerror);
 
-SqASTData *ParseToAST(SQVM *vm, const char *sourceText, size_t sourceTextSize, const SQChar *sourcename, bool preserveComments, bool raiseerror);
+SqASTData *ParseToAST(SQVM *vm, const char *sourceText, size_t sourceTextSize, const char *sourcename, bool preserveComments, bool raiseerror);
 bool TranslateASTToBytecode(SQVM *vm, SqASTData *astData, const HSQOBJECT *bindings, const char *sourceText, size_t sourceTextSize, SQObjectPtr &out, bool raiseerror);
 void AnalyzeCode(SQVM *vm, SqASTData *astData, const HSQOBJECT *bindings, const char *sourceText, size_t sourceTextSize);
 bool AstGetImports(HSQUIRRELVM v, SQCompilation::SqASTData *astData, SQInteger *num, SQModuleImport **imports);

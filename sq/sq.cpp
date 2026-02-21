@@ -43,7 +43,7 @@ SQInteger quit(HSQUIRRELVM v)
     return 0;
 }
 
-void printfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const SQChar *s,...)
+void printfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const char *s,...)
 {
     va_list vl;
     va_start(vl, s);
@@ -53,7 +53,7 @@ void printfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const SQChar *s,...)
 
 static FILE *errorStream = stderr;
 
-void errorfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const SQChar *s,...)
+void errorfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const char *s,...)
 {
     va_list vl;
     va_start(vl, s);
@@ -63,29 +63,29 @@ void errorfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const SQChar *s,...)
 
 void PrintVersionInfos()
 {
-    fprintf(stdout,_SC("%s %s (%d bits)\n"),SQUIRREL_VERSION,SQUIRREL_COPYRIGHT,((int)(sizeof(SQInteger)*8)));
+    fprintf(stdout,"%s %s (%d bits)\n",SQUIRREL_VERSION,SQUIRREL_COPYRIGHT,((int)(sizeof(SQInteger)*8)));
 }
 
 void PrintUsage()
 {
-    fprintf(stderr,_SC("Usage: sq <scriptpath [args]> [options]\n")
-        _SC("Available options are:\n")
-        _SC("  -c                        compiles the file to bytecode (default output 'out.cnut')\n")
-        _SC("  -o <out-file>             specifies output file for the -c option\n")
-        _SC("  -ast-dump [out-file]      dump AST into console or file if specified\n")
-        _SC("  -nodes-location           print AST nodes locations\n")
-        _SC("  -absolute-path            use absolute path when print diangostics\n")
-        _SC("  -bytecode-dump [out-file] dump SQ bytecode into console or file if specified\n")
-        _SC("  -diag-file file           write diagnostics into specified file\n")
-        _SC("  -sa                       enable static analyzer\n")
-        _SC("  --check-stack             check stack after each script execution\n")
-        _SC("  --warnings-list           print all warnings and exit\n")
-        _SC("  --parse-types             parse function types from file\n")
-        _SC("  --D:<diagnostic-name>     disable diagnostic by text id\n")
-        _SC("  -optCH                    enable Closure Hoisting Optimization\n")
-        _SC("  -d                        generates debug infos\n")
-        _SC("  -v                        displays version\n")
-        _SC("  -h                        prints help\n"));
+    fprintf(stderr,"Usage: sq <scriptpath [args]> [options]\n"
+        "Available options are:\n"
+        "  -c                        compiles the file to bytecode (default output 'out.cnut')\n"
+        "  -o <out-file>             specifies output file for the -c option\n"
+        "  -ast-dump [out-file]      dump AST into console or file if specified\n"
+        "  -nodes-location           print AST nodes locations\n"
+        "  -absolute-path            use absolute path when print diangostics\n"
+        "  -bytecode-dump [out-file] dump SQ bytecode into console or file if specified\n"
+        "  -diag-file file           write diagnostics into specified file\n"
+        "  -sa                       enable static analyzer\n"
+        "  --check-stack             check stack after each script execution\n"
+        "  --warnings-list           print all warnings and exit\n"
+        "  --parse-types             parse function types from file\n"
+        "  --D:<diagnostic-name>     disable diagnostic by text id\n"
+        "  -optCH                    enable Closure Hoisting Optimization\n"
+        "  -d                        generates debug infos\n"
+        "  -v                        displays version\n"
+        "  -h                        prints help\n");
 }
 
 std::string read_file_ignoring_utf8bom(const char *filename)
@@ -172,7 +172,7 @@ static void dumpAst_callback(HSQUIRRELVM vm, SQCompilation::SqASTData *astData, 
             }
             else
             {
-                printf(_SC("Error: cannot open AST dump file '%s'\n"), dumpOpt->astDumpFileName);
+                printf("Error: cannot open AST dump file '%s'\n", dumpOpt->astDumpFileName);
             }
         }
         else
@@ -199,7 +199,7 @@ static void dumpBytecodeAst_callback(HSQUIRRELVM vm, HSQOBJECT obj, void *opts)
             }
             else
             {
-                printf(_SC("Error: cannot open Bytecode dump file '%s'\n"), dumpOpt->bytecodeDumpFileName);
+                printf("Error: cannot open Bytecode dump file '%s'\n", dumpOpt->bytecodeDumpFileName);
             }
         }
         else
@@ -407,13 +407,13 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                     diagFile = fopen(fileName, "wb");
                     if (diagFile == NULL)
                     {
-                        printf(_SC("Cannot open diagnostic output file '%s'\n"), fileName);
+                        printf("Cannot open diagnostic output file '%s'\n", fileName);
                         return _ERROR;
                     }
                 }
                 else
                 {
-                    printf(_SC("-diag-file option requires file name to be specified\n"));
+                    printf("-diag-file option requires file name to be specified\n");
                     return _ERROR;
                 }
             }
@@ -450,9 +450,9 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             else if (strcmp("-sa", arg) == 0) {
                 static_analysis = true;
             }
-            else if (static_analysis && strncmp("--D:", arg, 4) == 0) {
-                if (!sq_setdiagnosticstatebyname(&arg[5], false))
-                    printf("Unknown warning ID: '%s'\n", &arg[5]);
+            else if (static_analysis && strncmp("-D:", arg, 3) == 0) {
+                if (!sq_setdiagnosticstatebyname(&arg[3], false))
+                    printf("Unknown warning ID: '%s'\n", &arg[3]);
             }
             else if (strcmp(arg, "-warnings-list") == 0) {
                 sq_printwarningslist(stdout);
@@ -460,7 +460,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             }
             else if (arg[0] == '-') {
                 PrintVersionInfos();
-                printf(_SC("unknown argument '%s'\n"), arg);
+                printf("unknown argument '%s'\n", arg);
                 PrintUsage();
                 *retval = -1;
                 return _ERROR;
@@ -503,7 +503,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
         }
 
         for (const std::string & fn : listOfNutFiles) {
-            const SQChar *filename=fn.c_str();
+            const char *filename=fn.c_str();
 
             if (static_analysis) {
               sq_resetanalyzerconfig();
@@ -518,7 +518,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 
             if (compiles_only) {
                 if(SQ_SUCCEEDED(sqstd_loadfile(v,filename,SQTrue))){
-                    const SQChar *outfile = _SC("out.cnut");
+                    const char *outfile = "out.cnut";
                     if(output) {
                         outfile = output;
                     }
@@ -546,11 +546,11 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 }
 
                 if (retCode != _DONE) {
-                  fprintf(stderr, _SC("Error [%s]\n"), errMsg.c_str());
+                  fprintf(stderr, "Error [%s]\n", errMsg.c_str());
                 }
 
                 if (!check_stack(v, top)) {
-                    fprintf(stderr, _SC("Stack check failed after execution of '%s'\n"), filename);
+                    fprintf(stderr, "Stack check failed after execution of '%s'\n", filename);
                     *retval = -3;
                     retCode = _ERROR;
                 }
@@ -560,10 +560,10 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 
             //if this point is reached an error occurred
             {
-                const SQChar *err;
+                const char *err;
                 sq_getlasterror(v);
                 if(SQ_SUCCEEDED(sq_getstring(v,-1,&err))) {
-                    printf(_SC("Error [%s]\n"),err);
+                    printf("Error [%s]\n",err);
                     *retval = -2;
                     return _ERROR;
                 }
@@ -579,7 +579,7 @@ void Interactive(HSQUIRRELVM v)
 {
 
 #define MAXINPUT 1024
-    SQChar buffer[MAXINPUT];
+    char buffer[MAXINPUT];
     SQInteger blocks =0;
     SQInteger string=0;
     SQInteger retval=0;
@@ -593,7 +593,7 @@ void Interactive(HSQUIRRELVM v)
 
     sq_registerbaselib(v);
 
-    sq_pushstring(v,_SC("quit"),-1);
+    sq_pushstring(v,"quit",-1);
     sq_pushuserpointer(v,&done);
     sq_newclosure(v,quit,1);
     sq_setparamscheck(v,1,NULL);
@@ -604,58 +604,58 @@ void Interactive(HSQUIRRELVM v)
     while (!done)
     {
         SQInteger i = 0;
-        printf(_SC("\nsq>"));
+        printf("\nsq>");
         for(;;) {
             int c;
             if(done)return;
             c = getchar();
-            if (c == _SC('\n')) {
-                if (i>0 && buffer[i-1] == _SC('\\'))
+            if (c == '\n') {
+                if (i>0 && buffer[i-1] == '\\')
                 {
-                    buffer[i-1] = _SC('\n');
+                    buffer[i-1] = '\n';
                 }
                 else if(blocks==0)break;
-                buffer[i++] = _SC('\n');
+                buffer[i++] = '\n';
             }
-            else if (c==_SC('}')) {blocks--; buffer[i++] = (SQChar)c;}
-            else if(c==_SC('{') && !string){
+            else if (c=='}') {blocks--; buffer[i++] = (char)c;}
+            else if(c=='{' && !string){
                     blocks++;
-                    buffer[i++] = (SQChar)c;
+                    buffer[i++] = (char)c;
             }
-            else if(c==_SC('"') || c==_SC('\'')){
+            else if(c=='"' || c=='\''){
                     string=!string;
-                    buffer[i++] = (SQChar)c;
+                    buffer[i++] = (char)c;
             }
             else if (i >= MAXINPUT-1) {
-                fprintf(stderr, _SC("sq : input line too long\n"));
+                fprintf(stderr, "sq : input line too long\n");
                 break;
             }
             else{
-                buffer[i++] = (SQChar)c;
+                buffer[i++] = (char)c;
             }
         }
-        buffer[i] = _SC('\0');
+        buffer[i] = '\0';
 
-        if(buffer[0]==_SC('=')){
-            scsprintf(sq_getscratchpad(v,MAXINPUT),(size_t)MAXINPUT,_SC("return (%s)"),&buffer[1]);
-            memcpy(buffer,sq_getscratchpad(v,-1),(strlen(sq_getscratchpad(v,-1))+1)*sizeof(SQChar));
+        if(buffer[0]=='='){
+            scsprintf(sq_getscratchpad(v,MAXINPUT),(size_t)MAXINPUT,"return (%s)",&buffer[1]);
+            memcpy(buffer,sq_getscratchpad(v,-1),(strlen(sq_getscratchpad(v,-1))+1)*sizeof(char));
             retval=1;
         }
         i=strlen(buffer);
         if(i>0){
             SQInteger oldtop=sq_gettop(v);
-            if(SQ_SUCCEEDED(sq_compile(v,buffer,i,_SC("interactive console"),SQTrue,&bindingsTable))){
+            if(SQ_SUCCEEDED(sq_compile(v,buffer,i,"interactive console",SQTrue,&bindingsTable))){
                 sq_pushroottable(v);
                 if(SQ_SUCCEEDED(sq_call(v,1,retval,SQTrue)) &&  retval){
-                    printf(_SC("\n"));
+                    printf("\n");
                     sq_pushroottable(v);
-                    sq_pushstring(v,_SC("print"),-1);
+                    sq_pushstring(v,"print",-1);
                     sq_get(v,-2);
                     sq_pushroottable(v);
                     sq_push(v,-4);
                     sq_call(v,2,SQFalse,SQTrue);
                     retval=0;
-                    printf(_SC("\n"));
+                    printf("\n");
                 }
             }
 

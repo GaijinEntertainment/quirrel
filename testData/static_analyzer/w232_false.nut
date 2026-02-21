@@ -1,4 +1,3 @@
-//expect:w232
 local a = 1
 ::XEnum <- {
   PARAM_A = 1

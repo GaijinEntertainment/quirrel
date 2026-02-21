@@ -23,7 +23,7 @@ void NameShadowingChecker::loadBindings(const HSQOBJECT *bindings) {
 
     while ((idx = table->Next(false, pos, key, val)) >= 0) {
       if (sq_isstring(key)) {
-        const SQChar *s = _string(key)->_val;
+        const char *s = _string(key)->_val;
         SymbolInfo *info = newSymbolInfo(SK_EXTERNAL_BINDING);
         declareSymbol(s, info);
       }
@@ -63,10 +63,10 @@ const Node *NameShadowingChecker::extractPointedNode(const SymbolInfo *info) {
   }
 }
 
-void NameShadowingChecker::declareSymbol(const SQChar *name, SymbolInfo *info) {
+void NameShadowingChecker::declareSymbol(const char *name, SymbolInfo *info) {
   const SymbolInfo *existedInfo = scope->findSymbol(name);
   if (existedInfo) {
-    bool warn = name[0] != '_';
+    bool warn = name[0] != '_' && name[0] != '@';
     if (strcmp(name, "this") == 0) {
       warn = false;
     }
@@ -74,18 +74,18 @@ void NameShadowingChecker::declareSymbol(const SQChar *name, SymbolInfo *info) {
     if (existedInfo->ownerScope == info->ownerScope) { // something like `let foo = expr<function foo() { .. }>`
       if ((info->kind == SK_BINDING || info->kind == SK_VAR) && existedInfo->kind == SK_FUNCTION) {
         const VarDecl *vardecl = info->declaration.v;
-        const FunctionDecl *funcdecl = existedInfo->declaration.f;
+        const FunctionExpr *funcdecl = existedInfo->declaration.f;
         const Expr *varinit = vardecl->initializer();
 
-        if (varinit && varinit->op() == TO_DECL_EXPR && varinit->asDeclExpr()->declaration() == funcdecl) {
+        if (varinit == funcdecl) {
           warn = false;
         }
       }
     }
 
     if (existedInfo->kind == SK_FUNCTION && info->kind == SK_FUNCTION) {
-      const FunctionDecl *existed = existedInfo->declaration.f;
-      const FunctionDecl *_new = info->declaration.f;
+      const FunctionExpr *existed = existedInfo->declaration.f;
+      const FunctionExpr *_new = info->declaration.f;
       if (existed->name()[0] == '(' && _new->name()[0] == '(') {
         warn = false;
       }
@@ -110,7 +110,7 @@ void NameShadowingChecker::declareSymbol(const SQChar *name, SymbolInfo *info) {
   scope->symbols[name] = info;
 }
 
-NameShadowingChecker::SymbolInfo *NameShadowingChecker::Scope::findSymbol(const SQChar *name) const {
+NameShadowingChecker::SymbolInfo *NameShadowingChecker::Scope::findSymbol(const char *name) const {
   auto it = symbols.find(name);
   if (it != symbols.end()) {
     return it->second;
@@ -126,15 +126,12 @@ void NameShadowingChecker::visitNode(Node *n) {
 }
 
 void NameShadowingChecker::declareVar(enum SymbolKind k, const VarDecl *var) {
-  const FunctionDecl *f = nullptr;
+  const FunctionExpr *f = nullptr;
   if (k == SK_BINDING) {
     const Expr *init = var->initializer();
-    if (init && init->op() == TO_DECL_EXPR) {
-      const Decl *d = init->asDeclExpr()->declaration();
-      if (d->op() == TO_FUNCTION) {
-        k = SK_FUNCTION;
-        f = static_cast<const FunctionDecl *>(d);
-      }
+    if (init && init->op() == TO_FUNCTION) {
+      k = SK_FUNCTION;
+      f = init->asFunctionExpr();
     }
   }
 
@@ -187,7 +184,7 @@ void NameShadowingChecker::visitEnumDecl(EnumDecl *e) {
   for (auto &ec : e->consts()) {
     SymbolInfo *cinfo = newSymbolInfo(SK_ENUM_CONST);
     // Are these fully qualified names ever used?
-    const SQChar *fqn = enumFqn(_ctx.arena(), e->name(), ec.id);
+    const char *fqn = enumFqn(_ctx.arena(), e->name(), ec.id);
 
     cinfo->declaration.ec = &ec;
     cinfo->ownerScope = scope;
@@ -197,7 +194,7 @@ void NameShadowingChecker::visitEnumDecl(EnumDecl *e) {
   }
 }
 
-void NameShadowingChecker::visitFunctionDecl(FunctionDecl *f) {
+void NameShadowingChecker::visitFunctionExpr(FunctionExpr *f) {
   Scope *p = scope;
 
   Scope funcScope(this, f);
@@ -212,10 +209,10 @@ void NameShadowingChecker::visitFunctionDecl(FunctionDecl *f) {
     declareSymbol(f->name(), info);
   }
 
-  Visitor::visitFunctionDecl(f);
+  Visitor::visitFunctionExpr(f);
 }
 
-void NameShadowingChecker::visitTableDecl(TableDecl *t) {
+void NameShadowingChecker::visitTableExpr(TableExpr *t) {
   Scope tableScope(this, t);
 
   nodeStack.push_back(t);
@@ -223,7 +220,7 @@ void NameShadowingChecker::visitTableDecl(TableDecl *t) {
   nodeStack.pop_back();
 }
 
-void NameShadowingChecker::visitClassDecl(ClassDecl *k) {
+void NameShadowingChecker::visitClassExpr(ClassExpr *k) {
   Scope klassScope(this, k);
 
   nodeStack.push_back(k);

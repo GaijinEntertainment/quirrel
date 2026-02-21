@@ -77,6 +77,8 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(LOCAL_SLOT_CREATE, ERROR, SEMA, -1, "", "can't 'create' a local slot"), \
   DEF_DIAGNOSTIC(CANNOT_INC_DEC, ERROR, SEMA, -1, "", "can't '++' or '--' %s"), \
   DEF_DIAGNOSTIC(VARNAME_CONFLICTS, ERROR, SEMA, -1, "", "Variable name %s conflicts with function name"), \
+  DEF_DIAGNOSTIC(ONLY_SINGLE_VARIABLE_DECLARATION, ERROR, SEMA, -1, "", "Only single variable declaration is allowed here"), \
+  DEF_DIAGNOSTIC(INITIALIZATION_REQUIRED, ERROR, SEMA, -1, "", "Initialization required"), \
   DEF_DIAGNOSTIC(INVALID_ENUM, ERROR, SEMA, -1, "", "invalid enum [no '%s' field in '%s']"), \
   DEF_DIAGNOSTIC(UNKNOWN_SYMBOL, ERROR, SEMA, -1, "", "Unknown variable [%s]"), \
   DEF_DIAGNOSTIC(CANNOT_EVAL_UNARY, ERROR, SEMA, -1, "", "cannot evaluate unary-op"), \
@@ -213,11 +215,11 @@ enum CommentKind {
 struct CommentData {
 
   CommentData() : kind(CK_NONE), size(0), text(nullptr), commentLine(-1), begin(-1), end(-1) {}
-  CommentData(enum CommentKind k, size_t s, const SQChar *t, SQInteger n, SQInteger b, SQInteger e) : kind(k), size(s), text(t), commentLine(n), begin(b), end(e) {}
+  CommentData(enum CommentKind k, size_t s, const char *t, SQInteger n, SQInteger b, SQInteger e) : kind(k), size(s), text(t), commentLine(n), begin(b), end(e) {}
 
   const enum CommentKind kind;
   const size_t size;
-  const SQChar *text;
+  const char *text;
 
   const SQInteger commentLine; // stand for line number in multiline block comment, or 0 otherwise
   const SQInteger begin, end;
@@ -249,10 +251,10 @@ private:
 class SQCompilationContext
 {
 public:
-  SQCompilationContext(SQVM *vm, Arena *a, const SQChar *sn, const char *code, size_t csize, const Comments *comments, bool raiseError);
+  SQCompilationContext(SQVM *vm, Arena *a, const char *sn, const char *code, size_t csize, const Comments *comments, bool raiseError);
   ~SQCompilationContext();
 
-  const SQChar *sourceName() const { return _sourceName; }
+  const char *sourceName() const { return _sourceName; }
 
   SQAllocContext allocContext() const { return _ss(_vm)->_alloc_ctx; }
   SQVM *getVm() const { return _vm; }
@@ -279,11 +281,11 @@ private:
   const char *findLine(int lineNo);
   bool isBlankLine(const char *l);
 
-  const SQChar *_sourceName;
+  const char *_sourceName;
 
   SQVM *_vm;
 
-  const SQChar *_code;
+  const char *_code;
   size_t _codeSize;
 
   Arena *_arena;

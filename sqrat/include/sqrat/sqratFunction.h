@@ -75,7 +75,7 @@ public:
     /// \param slot Name of the slot to look for the Squirrel function in
     ///
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    Function(const Object& e, const SQChar* slot) : vm(e.GetVM()), env(e.GetObject()) {
+    Function(const Object& e, const char* slot) : vm(e.GetVM()), env(e.GetObject()) {
         sq_addref(vm, &env);
         Object so = e.GetSlot(slot);
         obj = so.GetObject();
@@ -85,7 +85,7 @@ public:
         if (value_type != OT_CLOSURE && value_type != OT_NATIVECLOSURE
           && value_type != OT_CLASS && value_type != OT_NULL) {
             // Note that classes can also be considered functions in Squirrel
-            SQRAT_ASSERTF(0, _SC("function not found in slot"));
+            SQRAT_ASSERTF(0, "function not found in slot");
         }
     }
 
@@ -321,9 +321,9 @@ private:
         sq_pushobject(vm, obj);
         if (SQ_SUCCEEDED(sq_getclosurename(vm, -1)))
         {
-            const SQChar *name;
+            const char *name;
             if (SQ_SUCCEEDED(sq_getstring(vm, -1, &name)))
-                errpf(vm, _SC("Failed to call squirrel function %s\n"), name);
+                errpf(vm, "Failed to call squirrel function %s\n", name);
             sq_pop(vm, 1);
         }
         sq_pop(vm, 1);
@@ -358,7 +358,7 @@ struct Var<Function> {
         if (value_type != OT_CLOSURE && value_type != OT_NATIVECLOSURE
           && value_type != OT_CLASS && value_type != OT_NULL)
         {
-            SQRAT_ASSERTF(0, FormatTypeError(vm, idx, _SC("closure")).c_str());
+            SQRAT_ASSERTF(0, FormatTypeError(vm, idx, "closure").c_str());
         }
     }
 
@@ -373,7 +373,7 @@ struct Var<Function> {
         if (value_type != OT_CLOSURE && value_type != OT_NATIVECLOSURE
           && value_type != OT_CLASS && value_type != OT_NULL)
         {
-            SQRAT_ASSERTF(0, FormatTypeError(vm, idx, _SC("closure")).c_str());
+            SQRAT_ASSERTF(0, FormatTypeError(vm, idx, "closure").c_str());
         }
     }
 
@@ -383,7 +383,7 @@ struct Var<Function> {
     }
 
 
-    static const SQChar * getVarTypeName() { return _SC("closure"); }
+    static const char * getVarTypeName() { return "closure"; }
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) {
         SQObjectType type = sq_gettype(vm, idx);
         return type == OT_CLOSURE || type == OT_NATIVECLOSURE || type == OT_NULL || type == OT_CLASS;

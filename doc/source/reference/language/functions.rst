@@ -68,9 +68,9 @@ when the function *test* is invoked and parameter c or d is not specified,
 the VM automatically assigns the default value to the unspecified parameter. A default parameter can be
 any valid quirrel expression. The expression is evaluated at runtime.
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Functions with variable number of parameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. index::
     single: Functions with variable number of parameters
@@ -119,6 +119,64 @@ or, in lambda form ::
     @[pure](a, b) {
         return a + b
     }
+
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Type Annotations in Functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. index::
+    single: Function Type Annotations
+
+Quirrel supports optional **type annotations** for function parameters and return values. Type annotations are validated during execution; passing a value of an incompatible type to a parameter or returning a mismatched type results in a runtime error. Type annotations improve code readability, enable better tooling support, and help document expected interfaces.
+
+A function with type annotations uses the following syntax::
+
+    function name(param1: Type1, param2: Type2, ...: VarargType): ReturnType {
+        // body
+    }
+
+Parameter types are specified after a colon following the parameter name, and the return type is declared after the closing parenthesis of the parameter list, also preceded by a colon.
+
+Supported types include:
+
+- Primitive types: ``int``, ``float``, ``number`` (shorthand for ``int | float``), ``bool``, ``string``
+- Container and system types: ``table``, ``array``, ``function``, ``thread``, ``userdata``, ``generator``, ``userpointer``, ``instance``, ``class``, ``weakref``
+- Special types: ``null``, ``any``
+- Union types using the ``|`` operator: e.g., ``number | null``
+
+Union types may be wrapped in parentheses for clarity::
+
+    function f(x: (number | null)): (null | number)
+
+Variadic parameters (``...``) can also be annotated to indicate the expected type of extra arguments::
+
+    function type_test2(x: int, ...: float): int {
+        return 1 + x
+    }
+
+Here, ``...: float`` documents that all variadic arguments are expected to be of type ``float``.
+
+Default parameters may carry type annotations as well::
+
+    function type_test4(x: number|null = null): null|number {
+        return 1.0 + (x ?? 6)
+    }
+
+Lambda (anonymous) functions fully support type annotations::
+
+    let type_test8 = @(x: bool|number|string, y: any): any (
+        x + y
+    )
+
+The ``any`` type disables static checking for that position and accepts any value. It is useful when exact types are unknown or intentionally flexible.
+
+Function attributes (such as ``[pure]``) can be combined with type annotations::
+
+    let type_test10 = (@ [pure] type_test10(x: bool|number|int|null, y: any): any (
+        x + y
+    ))
+
 
 ---------------
 Function calls

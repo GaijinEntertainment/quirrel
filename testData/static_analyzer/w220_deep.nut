@@ -1,6 +1,4 @@
-//expect:w220
-
-function foo(a){ //-declared-never-used
+function _foo(a) {
   local container = a?.y()
   foreach(x in container) {
     print(x)

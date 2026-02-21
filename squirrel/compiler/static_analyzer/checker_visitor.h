@@ -107,7 +107,7 @@ class CheckerVisitor : public Visitor
   NodeEqualChecker _equalChecker;
 
   void report(const Node *n, int32_t id, ...);
-  void reportImportSlot(int line, int column, const SQChar *name);
+  void reportImportSlot(int line, int column, const char *name);
 
   void checkKeyNameMismatch(const Expr *key, const Expr *expr);
 
@@ -184,8 +184,8 @@ class CheckerVisitor : public Visitor
     return false;
   }
 
-  const SQChar *normalizeParamName(const SQChar *name, SQChar *buffer = nullptr);
-  int32_t normalizeParamNameLength(const SQChar *n);
+  const char *normalizeParamName(const char *name, char *buffer = nullptr);
+  int32_t normalizeParamNameLength(const char *n);
 
   void checkDuplicateSwitchCases(SwitchStatement *swtch);
   void checkDuplicateIfBranches(IfStatement *ifStmt);
@@ -215,7 +215,7 @@ class CheckerVisitor : public Visitor
     return CheckModificationVisitor().check(key, tree);
   }
 
-  bool shouldCallResultBeUtilized(const SQChar *name, const CallExpr *call);
+  bool shouldCallResultBeUtilized(const char *name, const CallExpr *call);
 
   void checkUnterminatedLoop(LoopStatement *loop);
   void checkVariableMismatchForLoop(ForStatement *loop);
@@ -226,16 +226,16 @@ class CheckerVisitor : public Visitor
   void checkAssignedTwice(const Block *b);
 
   void checkFunctionSimilarity(const Block *b);
-  void checkFunctionSimilarity(const TableDecl *table);
-  void checkFunctionPairSimilarity(const FunctionDecl *f1, const FunctionDecl *f2);
+  void checkFunctionSimilarity(const TableExpr *table);
+  void checkFunctionPairSimilarity(const FunctionExpr *f1, const FunctionExpr *f2);
 
   void checkAssignExpressionSimilarity(const Block *b);
   void checkUnutilizedResult(const ExprStatement *b);
   void checkNullableContainer(const ForeachStatement *loop);
   void checkMissedBreak(const SwitchStatement *swtch);
 
-  const SQChar *findSlotNameInStack(const Decl *);
-  void checkFunctionReturns(FunctionDecl *func);
+  const char *findSlotNameInStack(const Node *);
+  void checkFunctionReturns(FunctionExpr *func);
 
   void checkAccessNullable(const DestructuringDecl *d);
   void checkAccessNullable(const AccessExpr *acc);
@@ -259,7 +259,7 @@ class CheckerVisitor : public Visitor
   VarScope *currentScope;
   BreakableScope *breakScope;
 
-  FunctionInfo *makeFunctionInfo(const FunctionDecl *d, const FunctionDecl *o) {
+  FunctionInfo *makeFunctionInfo(const FunctionExpr *d, const FunctionExpr *o) {
     void *mem = arena->allocate(sizeof(FunctionInfo));
     return new(mem) FunctionInfo(d, o);
   }
@@ -274,10 +274,10 @@ class CheckerVisitor : public Visitor
     return new (mem) SymbolInfo(kind);
   }
 
-  std::unordered_map<const FunctionDecl *, FunctionInfo *> functionInfoMap;
+  std::unordered_map<const FunctionExpr *, FunctionInfo *> functionInfoMap;
 
-  std::unordered_set<const SQChar *, StringHasher, StringEqualer> requiredModules;
-  std::unordered_set<const SQChar *, StringHasher, StringEqualer> persistedKeys;
+  std::unordered_set<const char *, StringHasher, StringEqualer> requiredModules;
+  std::unordered_set<const char *, StringHasher, StringEqualer> persistedKeys;
 
   std::unordered_map<const Node *, ValueRef *> astValues;
   std::vector<ExternalValueExpr *> externalValues;
@@ -286,8 +286,8 @@ class CheckerVisitor : public Visitor
 
   FunctionInfo *currentInfo;
 
-  void declareSymbol(const SQChar *name, ValueRef *v);
-  void pushFunctionScope(VarScope *functionScope, const FunctionDecl *decl);
+  void declareSymbol(const char *name, ValueRef *v);
+  void pushFunctionScope(VarScope *functionScope, const FunctionExpr *decl);
 
   void applyCallToScope(const CallExpr *call);
   void applyBinaryToScope(const BinExpr *bin);
@@ -295,12 +295,12 @@ class CheckerVisitor : public Visitor
   void applyAssignEqToScope(const BinExpr *bin);
 
   int32_t computeNameLength(const GetFieldExpr *access);
-  void computeNameRef(const GetFieldExpr *access, SQChar *b, int32_t &ptr, int32_t size);
+  void computeNameRef(const GetFieldExpr *access, char *b, int32_t &ptr, int32_t size);
   int32_t computeNameLength(const Expr *e);
-  void computeNameRef(const Expr *lhs, SQChar *buffer, int32_t &ptr, int32_t size);
-  const SQChar *computeNameRef(const Expr *lhs, SQChar *buffer, size_t bufferSize);
+  void computeNameRef(const Expr *lhs, char *buffer, int32_t &ptr, int32_t size);
+  const char *computeNameRef(const Expr *lhs, char *buffer, size_t bufferSize);
 
-  ValueRef *findValueInScopes(const SQChar *ref);
+  ValueRef *findValueInScopes(const char *ref);
   void applyKnownInvocationToScope(const ValueRef *ref);
   void applyUnknownInvocationToScope();
 
@@ -313,7 +313,7 @@ class CheckerVisitor : public Visitor
   const Expr *maybeEval(const Expr *e, int32_t &evalId, bool allow_external = false);
   const Expr *maybeEval(const Expr *e, bool allow_external = false);
 
-  const SQChar *findFieldName(const Expr *e);
+  const char *findFieldName(const Expr *e);
 
   bool isSafeAccess(const AccessExpr *acc);
   bool isPotentiallyNullable(const Expr *e);
@@ -327,15 +327,15 @@ class CheckerVisitor : public Visitor
   bool detectNullCPattern(TreeOp op, const Expr *expr, const Expr *&checkee);
 
   void checkAssertCall(const CallExpr *call);
-  const SQChar *extractFunctionName(const CallExpr *call);
+  const char *extractFunctionName(const CallExpr *call);
 
   LiteralExpr trueValue, falseValue, nullValue;
 
   bool isEffectsGatheringPass;
 
-  void putIntoGlobalNamesMap(std::unordered_map<std::string, std::vector<IdLocation>> &map, enum DiagnosticsId diag, const SQChar *name, const Node *d);
-  void storeGlobalDeclaration(const SQChar *name, const Node *d);
-  void storeGlobalUsage(const SQChar *name, const Node *d);
+  void putIntoGlobalNamesMap(std::unordered_map<std::string, std::vector<IdLocation>> &map, enum DiagnosticsId diag, const char *name, const Node *d);
+  void storeGlobalDeclaration(const char *name, const Node *d);
+  void storeGlobalUsage(const char *name, const Node *d);
 
 public:
 
@@ -380,10 +380,10 @@ public:
 
   void visitTryStatement(TryStatement *tryStmt);
 
-  void visitFunctionDecl(FunctionDecl *func);
+  void visitFunctionExpr(FunctionExpr *func);
 
-  void visitTableDecl(TableDecl *table);
-  void visitClassDecl(ClassDecl *klass);
+  void visitTableExpr(TableExpr *table);
+  void visitClassExpr(ClassExpr *klass);
 
   void visitParamDecl(ParamDecl *p);
   void visitVarDecl(VarDecl *decl);

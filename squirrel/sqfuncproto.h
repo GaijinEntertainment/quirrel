@@ -19,7 +19,7 @@ enum SQLangFeature {
     // code generation stage
     LF_DISABLE_OPTIMIZER = 0x000200,
     LF_FORBID_GLOBAL_CONST_REWRITE = 0x000400,
-    LF_FORBID_IMPLICIT_DEF_DELEGATE = 0x000800,
+    LF_FORBID_IMPLICIT_TYPE_METHODS = 0x000800,
     LF_ALLOW_AUTO_FREEZE = 0x001000,
     LF_ALLOW_COMPILER_INTERNALS = 0x002000,
 
@@ -211,7 +211,7 @@ public:
         sq_vm_free(ctx, this, size);
     }
 
-    const SQChar* GetLocal(SQVM *v,SQUnsignedInteger stackbase,SQUnsignedInteger nseq,SQUnsignedInteger nop);
+    const char* GetLocal(SQVM *v,SQUnsignedInteger stackbase,SQUnsignedInteger nseq,SQUnsignedInteger nop);
     static SQInteger GetLine(SQLineInfosHeader *lineinfos, int nlineinfos, int instruction_index, int *hint, bool *is_dbg_step_point = nullptr);
     SQInteger GetLine(const SQInstruction *curr, int *hint = nullptr, bool *is_dbg_step_point = nullptr);
     bool Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write);

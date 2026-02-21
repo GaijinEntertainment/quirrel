@@ -103,18 +103,15 @@ static Expr *unwrapExprStatement(Statement *stmt) {
 }
 
 
-static const FunctionDecl *extractFunction(const Node *n) {
+static const FunctionExpr *extractFunction(const Node *n) {
   if (!n)
     return nullptr;
 
-  if (n->op() == TO_FUNCTION || n->op() == TO_CONSTRUCTOR)
-    return static_cast<const FunctionDecl *>(n);
+  if (n->op() == TO_FUNCTION)
+    return static_cast<const FunctionExpr *>(n);
 
   if (n->op() == TO_VAR)
     return extractFunction(n->asDeclaration()->asVarDecl()->initializer());
-
-  if (n->op() == TO_DECL_EXPR)
-    return extractFunction(n->asExpression()->asDeclExpr()->declaration());
 
   return nullptr;
 }

@@ -54,7 +54,7 @@ static const std::string vaformat(const char * const fmt, ...)
   return res;
 }
 
-static void script_print_func(HSQUIRRELVM /*v*/, const SQChar* s,...)
+static void script_print_func(HSQUIRRELVM /*v*/, const char* s,...)
 {
   va_list vl;
   va_start(vl, s);
@@ -63,7 +63,7 @@ static void script_print_func(HSQUIRRELVM /*v*/, const SQChar* s,...)
 }
 
 
-static void script_err_print_func(HSQUIRRELVM /*v*/, const SQChar* s,...)
+static void script_err_print_func(HSQUIRRELVM /*v*/, const char* s,...)
 {
   va_list vl;
   va_start(vl, s);
@@ -72,10 +72,10 @@ static void script_err_print_func(HSQUIRRELVM /*v*/, const SQChar* s,...)
 }
 
 
-static void compile_error_handler(HSQUIRRELVM /*v*/, SQMessageSeverity sev, const SQChar *desc, const SQChar *source,
-                        SQInteger line, SQInteger column, const SQChar *extra_info)
+static void compile_error_handler(HSQUIRRELVM /*v*/, SQMessageSeverity sev, const char *desc, const char *source,
+                        SQInteger line, SQInteger column, const char *extra_info)
 {
-  const SQChar *sevName = "error";
+  const char *sevName = "error";
   if (sev == SEV_HINT) sevName = "hint";
   else if (sev == SEV_WARNING) sevName = "warning";
   output += vaformat("Squirrel compile %s: %s (%d:%d): %s", sevName, source, int(line), int(column), desc);
@@ -158,7 +158,7 @@ static std::string runScript(const std::string &source_text)
       {
         if (SQ_SUCCEEDED(sq_tostring(vm, -1)))
         {
-          const SQChar *resStr = nullptr;
+          const char *resStr = nullptr;
           sq_getstring(vm, -1, &resStr);
           output += "\n";
           output += resStr;

@@ -41,7 +41,7 @@ void FunctionInfo::joinModifiable(const FunctionInfo *other) {
   }
 }
 
-void FunctionInfo::addModifiable(const SQChar *name, const FunctionDecl *o) {
+void FunctionInfo::addModifiable(const char *name, const FunctionExpr *o) {
   for (auto &m : modifiable) {
     if (m.owner == o && strcmp(name, m.name) == 0)
       return;
@@ -70,7 +70,7 @@ void StaticAnalyzer::reportGlobalNamesWarnings(HSQUIRRELVM vm) {
   std::string message;
 
   for (auto it = declaredGlobals.begin(); it != declaredGlobals.end(); ++it) {
-    const SQChar *name = it->first.c_str();
+    const char *name = it->first.c_str();
     const auto &declarations = it->second;
 
     if (declarations.size() == 1)
@@ -113,9 +113,9 @@ void StaticAnalyzer::reportGlobalNamesWarnings(HSQUIRRELVM vm) {
   }
 }
 
-static bool isSpaceOrTab(SQChar c) { return c == '\t' || c == ' '; }
+static bool isSpaceOrTab(char c) { return c == '\t' || c == ' '; }
 
-void StaticAnalyzer::checkTrailingWhitespaces(HSQUIRRELVM vm, const SQChar *sourceName, const SQChar *code, size_t codeSize) {
+void StaticAnalyzer::checkTrailingWhitespaces(HSQUIRRELVM vm, const char *sourceName, const char *code, size_t codeSize) {
   Arena arena(_ss(vm)->_alloc_ctx, "tmp");
   SQCompilationContext ctx(vm, &arena, sourceName, code, codeSize, nullptr, true);
 
@@ -146,7 +146,7 @@ void StaticAnalyzer::mergeKnownBindings(const HSQOBJECT *bindings) {
     while ((idx = table->Next(false, pos, key, val)) >= 0) {
       if (sq_isstring(key)) {
         SQInteger len = _string(key)->_len;
-        const SQChar *s = _string(key)->_val;
+        const char *s = _string(key)->_val;
         knownBindings.emplace(std::string(s, s+len));
       }
       pos._unVal.nInteger = idx;

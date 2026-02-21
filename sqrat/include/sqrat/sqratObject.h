@@ -65,8 +65,7 @@ public:
     }
 
     Object(const Object& so) : vm(so.vm), obj(so.obj) {
-        if (ISREFCOUNTED(sq_type(obj)))
-            sq_addref(vm, &obj);
+      sq_addref(vm, &obj);
     }
 
     Object(Object && so) : vm(so.vm), obj(so.obj) {
@@ -76,8 +75,7 @@ public:
     Object(const Object &&)=delete;
 
     Object(HSQOBJECT o, HSQUIRRELVM v) : vm(v), obj(o) {
-        if (ISREFCOUNTED(sq_type(obj)))
-            sq_addref(vm, &obj);
+      sq_addref(vm, &obj);
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -97,7 +95,7 @@ public:
         sq_poptop(vm);
     }
 
-    Object(const SQChar *str, HSQUIRRELVM v, SQInteger str_len = -1) : vm(v) {
+    Object(const char *str, HSQUIRRELVM v, SQInteger str_len = -1) : vm(v) {
         if (str) {
             sq_pushstring(vm, str, str_len);
             SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &obj)));
@@ -108,7 +106,7 @@ public:
             sq_resetobject(&obj);
     }
 
-    Object(SQChar *str, HSQUIRRELVM v, SQInteger str_len = -1) : vm(v) {
+    Object(char *str, HSQUIRRELVM v, SQInteger str_len = -1) : vm(v) {
         if (str) {
             sq_pushstring(vm, str, str_len);
             SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &obj)));
@@ -150,8 +148,7 @@ public:
           Release();
           vm = so.vm;
           obj = so.obj;
-          if (ISREFCOUNTED(sq_type(obj)))
-            sq_addref(vm, &obj);
+          sq_addref(vm, &obj);
         }
         return *this;
     }
@@ -196,8 +193,7 @@ public:
     }
 
     void Release() {
-        if (ISREFCOUNTED(sq_type(obj)))
-            sq_release(vm, &obj);
+        sq_release(vm, &obj);
         sq_resetobject(&obj);
     }
 
@@ -215,7 +211,7 @@ public:
     /// \return An Object representing the value of the slot (can be a null object if nothing was found)
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     template <bool raw>
-    Object GetSlotImpl(const SQChar* slot, int slen) const {
+    Object GetSlotImpl(const char* slot, int slen) const {
         HSQOBJECT slotObj;
         sq_pushobject(vm, GetObject());
         sq_pushstring(vm, slot, slen);
@@ -232,11 +228,11 @@ public:
         }
     }
 
-    Object GetSlot(const SQChar* slot) const {
+    Object GetSlot(const char* slot) const {
         return GetSlotImpl<false>(slot, strlen(slot));
     }
 
-    Object RawGetSlot(const SQChar* slot) const {
+    Object RawGetSlot(const char* slot) const {
         return GetSlotImpl<true>(slot, strlen(slot));
     }
 
@@ -315,7 +311,7 @@ public:
 
     /// Gets object slot value as a certain C++ type
     template<class T, bool raw>
-    T GetSlotValueImpl(const SQChar* slot, int slen, T def_val) const {
+    T GetSlotValueImpl(const char* slot, int slen, T def_val) const {
         static_assert(VarControlsValueLifeTime<T>::value == 0,
                       "direct cast to T failed due to value is bound to Var<T>");
         sq_pushobject(vm, GetObject());
@@ -336,12 +332,12 @@ public:
     }
 
     template<class T>
-    T GetSlotValue(const SQChar* slot, T def_val) const {
+    T GetSlotValue(const char* slot, T def_val) const {
         return GetSlotValueImpl<T, false>(slot, strlen(slot), def_val);
     }
 
     template<class T>
-    T RawGetSlotValue(const SQChar* slot, T def_val) const {
+    T RawGetSlotValue(const char* slot, T def_val) const {
         return GetSlotValueImpl<T, true>(slot, strlen(slot), def_val);
     }
 
@@ -448,7 +444,7 @@ public:
 
 protected:
     template<class Func>
-    void BindFunc(const SQChar* name, Func func, SQFUNCTION func_thunk, SQInteger nparamscheck, bool staticVar = false, const SQChar *docstring=nullptr)
+    void BindFunc(const char* name, Func func, SQFUNCTION func_thunk, SQInteger nparamscheck, bool staticVar = false, const char *docstring=nullptr)
     {
       sq_pushobject(vm, GetObject());
       sq_pushstring(vm, name, -1);
@@ -469,7 +465,7 @@ protected:
     }
 
     template<class Func>
-    void BindFunc(SQInteger index, Func func, SQFUNCTION func_thunk, SQInteger nparamscheck, bool staticVar = false, const SQChar *docstring=nullptr)
+    void BindFunc(SQInteger index, Func func, SQFUNCTION func_thunk, SQInteger nparamscheck, bool staticVar = false, const char *docstring=nullptr)
     {
       sq_pushobject(vm, GetObject());
       sq_pushinteger(vm, index);
@@ -495,7 +491,7 @@ protected:
 #elif defined(__GNUC__)
     __attribute__((noinline))
 #endif
-    inline void BindValue(const SQChar* name, int nlen, const V& val, bool staticVar = false) {
+    inline void BindValue(const char* name, int nlen, const V& val, bool staticVar = false) {
         sq_pushobject(vm, GetObject());
         sq_pushstring(vm, name, nlen);
         PushVar(vm, val);
@@ -532,7 +528,7 @@ protected:
 
     // Set the value of an instance on the object. Changes to values set this way are reciprocated back to the source instance
     template<class V>
-    inline void BindInstance(const SQChar* name, V* val, bool staticVar = false) {
+    inline void BindInstance(const char* name, V* val, bool staticVar = false) {
         sq_pushobject(vm, GetObject());
         sq_pushstring(vm, name, -1);
         PushVar(vm, val);
@@ -579,7 +575,7 @@ template<>
 #elif defined(__GNUC__)
   __attribute__((noinline))
 #endif
-inline void Object::BindValue<int>(const SQChar* name, int nlen, const int & val, bool staticVar /* = false */) {
+inline void Object::BindValue<int>(const char* name, int nlen, const int & val, bool staticVar /* = false */) {
     sq_pushobject(vm, GetObject());
     sq_pushstring(vm, name, nlen);
     PushVar<int>(vm, val);
@@ -608,7 +604,7 @@ struct Var<Object> {
         sq_pushobject(vm, value.GetObject());
     }
 
-    static const SQChar * getVarTypeName() { return _SC("object"); }
+    static const char * getVarTypeName() { return "object"; }
     static bool check_type(HSQUIRRELVM /*vm*/, SQInteger /*idx*/) {
         return true;
     }
@@ -627,7 +623,7 @@ struct Var<const Object&> : Var<Object> {Var(HSQUIRRELVM vm, SQInteger idx) : Va
 struct Object::iterator {
     friend class Object;
 
-    const SQChar* getName() {
+    const char* getName() {
         HSQOBJECT hKey = key.GetObject();
         return sq_objtostring(&hKey);
     }

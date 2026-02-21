@@ -230,7 +230,7 @@ struct SQObjectPtr : public SQObject
     _SCALAR_TYPE_DECL(OT_FLOAT,SQFloat,fFloat)
     _SCALAR_TYPE_DECL(OT_USERPOINTER,SQUserPointer,pUserPointer)
 
-    SQObjectPtr(SQVM *vm, const SQChar *str, SQInteger len = -1);
+    SQObjectPtr(SQVM *vm, const char *str, SQInteger len = -1);
 
     explicit SQObjectPtr(bool bBool)
     {
@@ -290,7 +290,7 @@ struct SQObjectPtr : public SQObject
         __Release(tOldType ,unOldVal);
     }
     private:
-        SQObjectPtr(const SQChar *){} //safety
+        SQObjectPtr(const char *){} //safety
 };
 
 
@@ -357,8 +357,8 @@ inline SQUnsignedInteger TranslateIndex(const SQObjectPtr &idx)
 
 typedef sqvector<SQObjectPtr> SQObjectPtrVec;
 typedef sqvector<SQInteger> SQIntVec;
-const SQChar *GetTypeName(const SQObject &obj1);
-const SQChar *IdType2Name(SQObjectType type);
+const char *GetTypeName(const SQObject &obj1);
+const char *IdType2Name(SQObjectType type);
 
 
 

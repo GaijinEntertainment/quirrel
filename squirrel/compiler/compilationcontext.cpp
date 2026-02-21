@@ -32,12 +32,12 @@ static const char *severityNames[] = {
 };
 
 static DiagnosticDescriptor diagnosticDescriptors[] = {
-#define DEF_DIAGNOSTIC(_, severity, subsytem, num_id, text_id, fmt) { _SC(fmt), DS_##severity, DSS_##subsytem, num_id, _SC(text_id), false }
+#define DEF_DIAGNOSTIC(_, severity, subsytem, num_id, text_id, fmt) { fmt, DS_##severity, DSS_##subsytem, num_id, text_id, false }
   DIAGNOSTICS
 #undef DEF_DIAGNOSTIC
 };
 
-SQCompilationContext::SQCompilationContext(SQVM *vm, Arena *arena, const SQChar *sn, const char *code, size_t csize, const Comments *comments, bool raiseError)
+SQCompilationContext::SQCompilationContext(SQVM *vm, Arena *arena, const char *sn, const char *code, size_t csize, const Comments *comments, bool raiseError)
   : _vm(vm)
   , _arena(arena)
   , _sourceName(sn)

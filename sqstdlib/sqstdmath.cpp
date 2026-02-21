@@ -38,7 +38,7 @@ static SQInteger math_srand(HSQUIRRELVM v)
 {
     SQInteger i;
     if(SQ_FAILED(sq_getinteger(v,2,&i)))
-        return sq_throwerror(v,_SC("invalid param"));
+        return sq_throwerror(v,"invalid param");
     v->_sharedstate->rand_seed = SQUnsignedInteger32(i);
     return 0;
 }
@@ -119,7 +119,7 @@ static SQInteger math_min_max(HSQUIRRELVM v)
 
     SQInteger cres = 0;
     if (!sq_cmpraw(v, cur, objRes, cres))
-      return sq_throwerror(v, _SC("Internal error, comparison failed"));
+      return sq_throwerror(v, "Internal error, comparison failed");
 
     if (cres == CmpRes)
       objRes = cur;
@@ -148,13 +148,13 @@ static SQInteger math_clamp(HSQUIRRELVM v)
   sq_getstackobj(v, 3, &lo);
   sq_getstackobj(v, 4, &hi);
 
-  const SQChar *cmpFailedErrText = _SC("Internal error, comparison failed");
+  const char *cmpFailedErrText = "Internal error, comparison failed";
 
   if (!sq_cmpraw(v, lo, hi, cres))
     return sq_throwerror(v, cmpFailedErrText);
 
   if (cres > 0)
-    return sq_throwerror(v, _SC("Invalid clamp range: min>max"));
+    return sq_throwerror(v, "Invalid clamp range: min>max");
 
   if (!sq_cmpraw(v, x, lo, cres))
     return sq_throwerror(v, cmpFailedErrText);
@@ -219,16 +219,16 @@ SQRESULT sqstd_register_mathlib(HSQUIRRELVM v)
     }
 
     // Constants
-    sq_pushstring(v,_SC("RAND_MAX"),-1);
+    sq_pushstring(v,"RAND_MAX",-1);
     sq_pushinteger(v,SQ_MAX_INT_RANDOM);
     sq_newslot(v,-3,SQFalse);
-    sq_pushstring(v,_SC("PI"),-1);
+    sq_pushstring(v,"PI",-1);
     sq_pushfloat(v,(SQFloat)M_PI);
     sq_newslot(v,-3,SQFalse);
-    sq_pushstring(v,_SC("FLT_MAX"),-1);
+    sq_pushstring(v,"FLT_MAX",-1);
     sq_pushfloat(v,(SQFloat)FLT_MAX);
     sq_newslot(v,-3,SQFalse);
-    sq_pushstring(v,_SC("FLT_MIN"),-1);
+    sq_pushstring(v,"FLT_MIN",-1);
     sq_pushfloat(v,(SQFloat)FLT_MIN);
     sq_newslot(v,-3,SQFalse);
 

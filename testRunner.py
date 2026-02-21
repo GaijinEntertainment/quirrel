@@ -77,8 +77,10 @@ def compareFilesLineByLine(marker, testFile, actualFile, expectedFile):
 def updateExpectedFromActualIfNeed(marker, actualFile, expectedFile):
     if (not path.exists(expectedFile)):
         xprint(f"  info: no {marker} expected file, create it")
-        result = open(actualFile).read()
-        open(expectedFile, 'w+').write(result)
+        with open(actualFile) as f:
+            result = f.read()
+        with open(expectedFile, 'w') as f:
+            f.write(result)
 
 
 def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs, stdoutFile):
@@ -128,9 +130,14 @@ def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs,
         with lock:
             proc.kill()
             outs, errs = proc.communicate()
+            if stdoutFile and outredirect:
+                outredirect.close()
             xprint("\nTIMEOUT: sq froze on test: {0}\n".format(testFilePath), CBOLD + CRED)
             numOfFailedTests = numOfFailedTests + 1
         return
+
+    if stdoutFile and outredirect:
+        outredirect.close()
 
     with lock:
         if proc.returncode != 0:
@@ -200,23 +207,17 @@ def runTestForData(filePath, compiler, workingDir, testMode):
             xprint(f"Unknown test mode {testMode}")
 
 
-def walkDirectoryImpl(counter, path, indent, block):
-    for file in path.iterdir():
-        # print('\t' * indent + f"Walk path {file}")
-        if file.is_dir():
-            walkDirectoryImpl(counter, file, indent + 1, block)
-        else:
-            counter = counter + 1
-            if counter == THREADS:
-                counter = 0
-                block(file)
-
-
 def walkDirectory(path, indent, block):
-    threads = []
+    files = sorted(f for f in path.rglob('*') if f.is_file())
 
+    def process_chunk(chunk):
+        for f in chunk:
+            block(f)
+
+    threads = []
     for i in range(THREADS):
-        thread = threading.Thread(target=walkDirectoryImpl, args=(i, path, indent, block))
+        chunk = files[i::THREADS]
+        thread = threading.Thread(target=process_chunk, args=(chunk,))
         thread.start()
         threads.append(thread)
 

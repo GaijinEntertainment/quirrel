@@ -7,14 +7,14 @@ Compiler
 
 .. _sq_compile:
 
-.. c:function:: SQRESULT sq_compile(HSQUIRRELVM v, const SQChar* s, SQInteger size, const SQChar * sourcename, SQBool raiseerror, const HSQOBJECT *bindings = nullptr)
+.. c:function:: SQRESULT sq_compile(HSQUIRRELVM v, const char* s, SQInteger size, const char * sourcename, SQBool raiseerror, const HSQOBJECT *bindings = nullptr)
 
     :param HSQUIRRELVM v: the target VM
-    :param const SQChar* s: a pointer to the buffer that has to be compiled.
+    :param const char* s: a pointer to the buffer that has to be compiled.
     :param SQInteger size: size in characters of the buffer passed in the parameter 's'.
-    :param const SQChar * sourcename: the symbolic name of the program (used only for more meaningful runtime errors)
+    :param const char * sourcename: the symbolic name of the program (used only for more meaningful runtime errors)
     :param SQBool raiseerror: if this value true the compiler error handler will be called in case of an error
-    :param const HSQOBJECT *bindings: optional compile-time bindings object (default: nullptr)
+    :param const HSQOBJECT \*bindings: optional compile-time bindings object (default: nullptr)
     :returns: a SQRESULT. If the sq_compile fails nothing is pushed in the stack.
     :remarks: in case of an error the function will call the function set by sq_setcompilererrorhandler().
 

@@ -1,5 +1,6 @@
 #include "sqpcheader.h"
 #ifndef NO_COMPILER
+#include <stdarg.h>
 #include "opcodes.h"
 #include "sqstring.h"
 #include "sqfuncproto.h"
@@ -22,6 +23,16 @@ void ConstGenVisitor::throwUnsupported(Node *n, const char *type)
 void ConstGenVisitor::throwGeneralError(Node *n, const char *msg)
 {
     _ctx.reportDiagnostic(DiagnosticsId::DI_GENERAL_COMPILE_ERROR, n->lineStart(), n->columnStart(), n->textWidth(), msg);
+}
+
+void ConstGenVisitor::throwGeneralErrorFmt(Node *n, const char *fmt, ...)
+{
+    char buf[256];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    _ctx.reportDiagnostic(DiagnosticsId::DI_GENERAL_COMPILE_ERROR, n->lineStart(), n->columnStart(), n->textWidth(), buf);
 }
 
 void ConstGenVisitor::process(Expr *expr, SQObjectPtr &out)
@@ -66,16 +77,11 @@ void ConstGenVisitor::visitArrayExpr(ArrayExpr *expr)
     _call_target.Null();
 }
 
-void ConstGenVisitor::visitDeclExpr(DeclExpr *expr)
+void ConstGenVisitor::visitTableExpr(TableExpr *tblExpr)
 {
-    expr->visitChildren(this);
-}
+    SQTable *table = SQTable::Create(_ss(_vm), tblExpr->members().size());
 
-void ConstGenVisitor::visitTableDecl(TableDecl *tblDecl)
-{
-    SQTable *table = SQTable::Create(_ss(_vm), tblDecl->members().size());
-
-    const auto &members = tblDecl->members();
+    const auto &members = tblExpr->members();
     for (SQUnsignedInteger i = 0; i < members.size(); ++i) {
         const TableMember &m = members[i];
 
@@ -179,6 +185,13 @@ void ConstGenVisitor::visitGetFieldExpr(GetFieldExpr *expr)
         _result = SQObjectPtr(value);
     }
     else if (expr->isNullable()) {
+        if (!sq_isnull(_vm->_lasterror)) {
+            SQObjectPtr err = _vm->_lasterror;
+            sq_reseterror(_vm);
+            sq_settop(_vm, prevTop);
+            throwGeneralErrorFmt(expr, "error in get operation: %s",
+                sq_isstring(err) ? _stringval(err) : "<unknown>");
+        }
         _result.Null();
     }
     else {
@@ -212,10 +225,16 @@ void ConstGenVisitor::visitGetSlotExpr(GetSlotExpr *expr)
         _result = SQObjectPtr(value);
     }
     else if (expr->isNullable()) {
+        if (!sq_isnull(_vm->_lasterror)) {
+            SQObjectPtr err = _vm->_lasterror;
+            sq_reseterror(_vm);
+            sq_settop(_vm, prevTop);
+            throwGeneralErrorFmt(expr, "error in get operation: %s",
+                sq_isstring(err) ? _stringval(err) : "<unknown>");
+        }
         _result.Null();
     }
     else {
-
         SQObjectPtr keyAsString;
         sq_pushobject(_vm, key);
         if (SQ_SUCCEEDED(sq_tostring(_vm, -1))) {
@@ -223,7 +242,7 @@ void ConstGenVisitor::visitGetSlotExpr(GetSlotExpr *expr)
             sq_getstackobj(_vm, -1, &t);
             keyAsString = t;
         } else {
-            key = _fs->CreateString("<???>", 5);
+            keyAsString = _fs->CreateString("<???>", 5);
         }
 
         sq_settop(_vm, prevTop);
@@ -246,7 +265,12 @@ void ConstGenVisitor::visitUnExpr(UnExpr *unary)
     {
     case TO_NEG:
         unary->argument()->visit(this);
-        _vm->NEG_OP(_result, _result);
+        if (!_vm->NEG_OP(_result, _result)) {
+            SQObjectPtr err = _vm->_lasterror;
+            sq_reseterror(_vm);
+            throwGeneralError(unary->argument(),
+                sq_isstring(err) ? _stringval(err) : "negation failed");
+        }
         break;
     case TO_NOT:
         unary->argument()->visit(this);
@@ -299,6 +323,8 @@ void ConstGenVisitor::visitBinExpr(BinExpr *expr)
 
     expr->rhs()->visit(this);
     SQObjectPtr rhs(_result);
+
+    assert(sq_isnull(_vm->_lasterror) && "Error thrown while evaluating binary expression operands");
 
     bool ok = true;
 
@@ -371,17 +397,19 @@ void ConstGenVisitor::visitBinExpr(BinExpr *expr)
 
         case TO_IN: {
             SQObjectPtr tmpVal;
-            bool exists = _vm->Get(rhs, lhs, tmpVal, GET_FLAG_DO_NOT_RAISE_ERROR | GET_FLAG_NO_DEF_DELEGATE);
+            bool exists = _vm->Get(rhs, lhs, tmpVal, GET_FLAG_DO_NOT_RAISE_ERROR | GET_FLAG_NO_TYPE_METHODS);
             _result = SQObjectPtr(exists);
+            if (!sq_isnull(_vm->_lasterror)) { // handle errors that can happen in _get() metamethod
+                ok = false;
+                _vm->Raise_Error("Error while applying 'in' operator: %s",
+                    sq_isstring(_vm->_lasterror) ? _stringval(_vm->_lasterror) : "<unknown>");
+            }
             break;
         }
         case TO_INSTANCEOF: {
             if (sq_type(rhs) != OT_CLASS)
                 throwGeneralError(expr->rhs(), "checking instance with non-class");
-            if (sq_type(lhs) == OT_INSTANCE)
-                _result = SQObjectPtr(_instance(lhs)->InstanceOf(_class(rhs)));
-            else
-                _result = SQObjectPtr(false);
+            _result = SQObjectPtr(SQVM::IsInstanceOf(lhs, _class(rhs)));
             break;
         }
         default:
@@ -408,10 +436,10 @@ void ConstGenVisitor::visitTerExpr(TerExpr *expr)
 }
 
 
-void ConstGenVisitor::visitFunctionDecl(FunctionDecl *funcDecl)
+void ConstGenVisitor::visitFunctionExpr(FunctionExpr *funcExpr)
 {
     _call_target.Null();
-    _result = _codegen.compileConstFunc(funcDecl);
+    _result = _codegen.compileConstFunc(funcExpr);
 }
 
 }

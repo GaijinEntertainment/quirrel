@@ -5,20 +5,21 @@
 #include "opcodes.h"
 #include "sqfuncstate.h"
 #include "optimizer.h"
+#include "sq_safe_shift.h"
 
 SQOptimizer::SQOptimizer(SQFuncState & func_state) : fs(&func_state), jumps(func_state._full_line_infos._alloc_ctx), codeChanged(false) {}
 #undef _DEBUG_DUMP
 
 #ifdef _DEBUG_DUMP
- void SQOptimizer::debugPrintInstructionPos(const SQChar * message, int instructionIndex)
+ void SQOptimizer::debugPrintInstructionPos(const char * message, int instructionIndex)
  {
     for (int i = 0; i < fs->_full_line_infos.size(); i++)
         if (fs->_full_line_infos[i]._op >= instructionIndex) {
-            printf(_SC("OPTIMIZER: %s  %s:%d\n"), message, _stringval(fs->_sourcename), fs->_full_line_infos[i]._line);
+            printf("OPTIMIZER: %s  %s:%d\n", message, _stringval(fs->_sourcename), fs->_full_line_infos[i]._line);
             return;
         }
     if (fs->_full_line_infos.size() > 0)
-        printf(_SC("OPTIMIZER: %s  %s:%d\n"), message, _stringval(fs->_sourcename), fs->_full_line_infos.top()._line);
+        printf("OPTIMIZER: %s  %s:%d\n", message, _stringval(fs->_sourcename), fs->_full_line_infos.top()._line);
  }
 #endif
 
@@ -47,6 +48,17 @@ bool SQOptimizer::isLocalVarInstructions(int start, int count) const
 bool SQOptimizer::isUnsafeRange(int start, int count) const
 {
     return isUnsafeJumpRange(start, count) || isLocalVarInstructions(start, count);
+}
+
+bool SQOptimizer::isLocalVarRegister(int reg, int instrIndex) const
+{
+    for (int i = 0, ie = fs->_localvarinfos.size(); i < ie; i++) {
+        const SQLocalVarInfo & v = fs->_localvarinfos[i];
+        if ((int)v._pos == reg && (int)v._start_op <= instrIndex &&
+            (v._end_op == UINT32_MINUS_ONE || (int)v._end_op > instrIndex))
+            return true;
+    }
+    return false;
 }
 
 void SQOptimizer::cutRange(int start, int old_count, int new_count)
@@ -114,6 +126,7 @@ void SQOptimizer::optimizeConstFolding()
                 if ((s == _OP_ADD || s == _OP_SUB || s == _OP_MUL || s == _OP_DIV || s == _OP_MOD || s == _OP_BITW) &&
                         (loadA.op == _OP_LOADINT || loadA.op == _OP_LOADFLOAT) &&
                         (loadB.op == _OP_LOADINT || loadB.op == _OP_LOADFLOAT) &&
+                        loadA._arg0 != loadB._arg0 &&
                         ((loadB._arg0 == operation._arg2 && loadA._arg0 == operation._arg1) ||
                         (loadB._arg0 == operation._arg1 && loadA._arg0 == operation._arg2))
                         && !isUnsafeJumpRange(i, 3)) {
@@ -127,6 +140,12 @@ void SQOptimizer::optimizeConstFolding()
                         removeLoadAVar = true;
                     else if (!isLocalVarInstructions(i + 1, 2))
                         removeLoadBVar = true;
+                    if (removeLoadAVar && isLocalVarRegister(loadA._arg0, i))
+                        removeLoadAVar = false;
+                    if (removeLoadBVar && isLocalVarRegister(loadB._arg0, i + 1))
+                        removeLoadBVar = false;
+                    if (removeLoadAVar && !removeLoadBVar)
+                        removeLoadAVar = false;
                     const int targetInst = removeLoadAVar ? i : removeLoadBVar ? i + 1 : i + 2;
 
                     if (loadA.op == _OP_LOADINT && loadB.op == _OP_LOADINT) {
@@ -158,7 +177,7 @@ void SQOptimizer::optimizeConstFolding()
                                     case BW_AND: res = lv & rv; break;
                                     case BW_OR: res = lv | rv; break;
                                     case BW_XOR: res = lv ^ rv; break;
-                                    case BW_SHIFTL: res = SQInteger(lv) << rv; break;
+                                    case BW_SHIFTL: res = sq_safe_shift_left(SQInteger(lv), rv); break;
                                     default: applyOpt = false; break;
                                 }
                                 break;
@@ -179,7 +198,7 @@ void SQOptimizer::optimizeConstFolding()
                             changed = true;
                             codeChanged = true;
                             #ifdef _DEBUG_DUMP
-                                debugPrintInstructionPos(_SC("Const folding"), i);
+                                debugPrintInstructionPos("Const folding", i);
                             #endif
                         }
                     } else { // float
@@ -211,7 +230,7 @@ void SQOptimizer::optimizeConstFolding()
                             changed = true;
                             codeChanged = true;
                             #ifdef _DEBUG_DUMP
-                                debugPrintInstructionPos(_SC("Const folding"), i);
+                                debugPrintInstructionPos("Const folding", i);
                             #endif
                         }
                     }
@@ -235,7 +254,9 @@ void SQOptimizer::optimizeConstFolding()
 
                 if (s == _OP_ADDI && (loadA.op == _OP_LOADINT || loadA.op == _OP_LOADFLOAT) && loadA._arg0 == operation._arg2 && !isUnsafeJumpRange(i, 2)){
                     bool applyOpt = true;
-                    const bool removeLoadAVar = !isLocalVarInstructions(i, 2);
+                    bool removeLoadAVar = !isLocalVarInstructions(i, 2);
+                    if (removeLoadAVar && isLocalVarRegister(loadA._arg0, i))
+                        removeLoadAVar = false;
                     const int targetInst = removeLoadAVar ? i : i + 1;
 
                     if (loadA.op == _OP_LOADINT) {
@@ -261,7 +282,7 @@ void SQOptimizer::optimizeConstFolding()
                             changed = true;
                             codeChanged = true;
                             #ifdef _DEBUG_DUMP
-                                debugPrintInstructionPos(_SC("Const folding"), i);
+                                debugPrintInstructionPos("Const folding", i);
                             #endif
                         }
                     } else { // float
@@ -281,7 +302,7 @@ void SQOptimizer::optimizeConstFolding()
                             changed = true;
                             codeChanged = true;
                             #ifdef _DEBUG_DUMP
-                                debugPrintInstructionPos(_SC("Const folding"), i);
+                                debugPrintInstructionPos("Const folding", i);
                             #endif
                         }
                     }
@@ -290,10 +311,13 @@ void SQOptimizer::optimizeConstFolding()
                 }
                 if (s == _OP_JCMP && (loadA.op == _OP_LOADINT || loadA.op == _OP_LOADFLOAT || loadA.op == _OP_LOAD) &&
                     loadA._arg0 == operation._arg0 &&
+                    loadA._arg0 != operation._arg2 &&
                     ( loadA._arg1 <= 255 || (loadA.op != _OP_LOAD && operation._arg1 >= -128 && operation._arg1 <= 127) ) &&
                     !isUnsafeJumpRange(i, 2))
                 {
-                    const bool removeLoadAVar = !isLocalVarInstructions(i, 2);
+                    bool removeLoadAVar = !isLocalVarInstructions(i, 2);
+                    if (removeLoadAVar && isLocalVarRegister(loadA._arg0, i))
+                        removeLoadAVar = false;
                     const int targetInst = removeLoadAVar ? i : i + 1;
                     bool applyOpt = true;
                     if (loadA.op == _OP_LOAD)
@@ -340,7 +364,7 @@ void SQOptimizer::optimizeConstFolding()
                         changed = true;
                         codeChanged = true;
                         #ifdef _DEBUG_DUMP
-                            debugPrintInstructionPos(_SC("Jump Const folding"), i);
+                            debugPrintInstructionPos("Jump Const folding", i);
                         #endif
                     }
 
@@ -367,7 +391,7 @@ void SQOptimizer::optimizeJumpFolding()
                     codeChanged = true;
                     instr[i]._arg1 += instr[to]._arg1 + 1;
                     #ifdef _DEBUG_DUMP
-                        debugPrintInstructionPos(_SC("Jump folding"), i);
+                        debugPrintInstructionPos("Jump folding", i);
                     #endif
                 }
             }
@@ -381,7 +405,7 @@ void SQOptimizer::optimizeJumpFolding()
                         codeChanged = true;
                         instr[i]._arg0 = nextJumpOfs;
                         #ifdef _DEBUG_DUMP
-                            debugPrintInstructionPos(_SC("Jump folding"), i);
+                            debugPrintInstructionPos("Jump folding", i);
                         #endif
                     }
                 }
@@ -402,7 +426,7 @@ void SQOptimizer::optimizeEmptyJumps()
             codeChanged = true;
             cutRange(i, 1, 0);
             #ifdef _DEBUG_DUMP
-                debugPrintInstructionPos(_SC("Empty jump"), i);
+                debugPrintInstructionPos("Empty jump", i);
             #endif
         }
     }
@@ -513,7 +537,7 @@ void SQOptimizer::optimize()
 
 #ifdef _DEBUG_DUMP
     for (int i = 0; i < jumps.size(); i++)
-        printf(_SC("JUMPS:  instruction: %d  to: %d\n"), jumps[i].instructionIndex, jumps[i].jumpTo);
+        printf("JUMPS:  instruction: %d  to: %d\n", jumps[i].instructionIndex, jumps[i].jumpTo);
 #endif
 
 }

@@ -1,4 +1,3 @@
-//expect:w212
 local x = 1
 
 function foo() { return 10 }

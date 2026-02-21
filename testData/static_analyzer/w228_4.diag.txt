@@ -1,5 +1,5 @@
 WARNING: w228 (declared-never-used) binding 'f' was declared but never used.
-testData/static_analyzer/w228_4.nut:3:4
+testData/static_analyzer/w228_4.nut:1:4
 
 let f = function foo() {}
     ^
@@ -7,7 +7,7 @@ let c = class {}
 
 
 WARNING: w228 (declared-never-used) binding 'c' was declared but never used.
-testData/static_analyzer/w228_4.nut:4:4
+testData/static_analyzer/w228_4.nut:2:4
 
 let f = function foo() {}
 let c = class {}

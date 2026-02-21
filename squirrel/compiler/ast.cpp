@@ -83,9 +83,13 @@ void Node::visitChildren(Visitor *visitor) {
         static_cast<RootTableAccessExpr *>(this)->visitChildren(visitor); return;
     case TO_INC:
         static_cast<IncExpr *>(this)->visitChildren(visitor); return;
-    case TO_DECL_EXPR:
-        static_cast<DeclExpr *>(this)->visitChildren(visitor); return;
-    case TO_ARRAYEXPR:
+    case TO_TABLE:
+        static_cast<TableExpr *>(this)->visitChildren(visitor); return;
+    case TO_CLASS:
+        static_cast<ClassExpr *>(this)->visitChildren(visitor); return;
+    case TO_FUNCTION:
+        static_cast<FunctionExpr *>(this)->visitChildren(visitor); return;
+    case TO_ARRAY:
         static_cast<ArrayExpr *>(this)->visitChildren(visitor); return;
     case TO_GETFIELD:
         static_cast<GetFieldExpr *>(this)->visitChildren(visitor); return;
@@ -110,16 +114,8 @@ void Node::visitChildren(Visitor *visitor) {
         static_cast<DeclGroup *>(this)->visitChildren(visitor); return;
     case TO_DESTRUCTURE:
         static_cast<DestructuringDecl *>(this)->visitChildren(visitor); return;
-    case TO_FUNCTION:
-        static_cast<FunctionDecl *>(this)->visitChildren(visitor); return;
-    case TO_CONSTRUCTOR:
-        static_cast<ConstructorDecl *>(this)->visitChildren(visitor); return;
-    case TO_CLASS:
-        static_cast<ClassDecl *>(this)->visitChildren(visitor); return;
     case TO_ENUM:
         static_cast<EnumDecl *>(this)->visitChildren(visitor); return;
-    case TO_TABLE:
-        static_cast<TableDecl *>(this)->visitChildren(visitor); return;
     default:
         break;
     }
@@ -198,9 +194,13 @@ void Node::transformChildren(Transformer *transformer) {
     static_cast<RootTableAccessExpr *>(this)->transformChildren(transformer); return;
   case TO_INC:
     static_cast<IncExpr *>(this)->transformChildren(transformer); return;
-  case TO_DECL_EXPR:
-    static_cast<DeclExpr *>(this)->transformChildren(transformer); return;
-  case TO_ARRAYEXPR:
+  case TO_TABLE:
+    static_cast<TableExpr *>(this)->transformChildren(transformer); return;
+  case TO_CLASS:
+    static_cast<ClassExpr *>(this)->transformChildren(transformer); return;
+  case TO_FUNCTION:
+    static_cast<FunctionExpr *>(this)->transformChildren(transformer); return;
+  case TO_ARRAY:
     static_cast<ArrayExpr *>(this)->transformChildren(transformer); return;
   case TO_GETFIELD:
     static_cast<GetFieldExpr *>(this)->transformChildren(transformer); return;
@@ -225,16 +225,8 @@ void Node::transformChildren(Transformer *transformer) {
     static_cast<DeclGroup *>(this)->transformChildren(transformer); return;
   case TO_DESTRUCTURE:
     static_cast<DestructuringDecl *>(this)->transformChildren(transformer); return;
-  case TO_FUNCTION:
-    static_cast<FunctionDecl *>(this)->transformChildren(transformer); return;
-  case TO_CONSTRUCTOR:
-    static_cast<ConstructorDecl *>(this)->transformChildren(transformer); return;
-  case TO_CLASS:
-    static_cast<ClassDecl *>(this)->transformChildren(transformer); return;
   case TO_ENUM:
     static_cast<EnumDecl *>(this)->transformChildren(transformer); return;
-  case TO_TABLE:
-    static_cast<TableDecl *>(this)->transformChildren(transformer); return;
   default:
     break;
   }
@@ -321,14 +313,6 @@ void IncExpr::transformChildren(Transformer *transformer) {
   _arg = _arg->transform(transformer)->asExpression();
 }
 
-DeclExpr::DeclExpr(Decl *decl) : Expr(TO_DECL_EXPR, decl->sourceSpan()), _decl(decl) {}
-
-void DeclExpr::visitChildren(Visitor *visitor) { _decl->visit(visitor); }
-
-void DeclExpr::transformChildren(Transformer *transformer) {
-  _decl = _decl->transform(transformer)->asDeclaration();
-}
-
 void CallExpr::visitChildren(Visitor *visitor) {
     _callee->visit(visitor);
     for (auto arg : arguments())
@@ -372,51 +356,70 @@ void ValueDecl::transformChildren(Transformer *transformer) {
   }
 }
 
-void TableDecl::visitChildren(Visitor *visitor) {
+void TableExpr::visitChildren(Visitor *visitor) {
     for (auto &member : members()) {
         member.key->visit(visitor);
         member.value->visit(visitor);
     }
 }
 
-void TableDecl::transformChildren(Transformer *transformer) {
+void TableExpr::transformChildren(Transformer *transformer) {
   for (auto &member : members()) {
     member.key = member.key->transform(transformer)->asExpression();
     member.value = member.value->transform(transformer)->asExpression();
   }
 }
 
-void ClassDecl::visitChildren(Visitor *visitor)  {
+void ClassExpr::visitChildren(Visitor *visitor)  {
     if (_key) _key->visit(visitor);
     if (_base) _base->visit(visitor);
-    TableDecl::visitChildren(visitor);
+    TableExpr::visitChildren(visitor);
 }
 
-void ClassDecl::transformChildren(Transformer *transformer) {
+void ClassExpr::transformChildren(Transformer *transformer) {
   if (_key) _key = _key->transform(transformer)->asExpression();
   if (_base) _base = _base->transform(transformer)->asExpression();
-  TableDecl::transformChildren(transformer);
+  TableExpr::transformChildren(transformer);
 }
 
-void FunctionDecl::visitChildren(Visitor *visitor) {
+void FunctionExpr::visitChildren(Visitor *visitor) {
     for (auto param : parameters())
         param->visit(visitor);
+
+    for (auto param : parameters())
+       if (param->getDestructuring())
+           param->getDestructuring()->visit(visitor);
 
     body()->visit(visitor);
 }
 
-void FunctionDecl::transformChildren(Transformer *transformer) {
+void FunctionExpr::transformChildren(Transformer *transformer) {
   for (auto &param : parameters()) {
     param = param->transform(transformer)->asDeclaration()->asParam();
   }
 
+  for (auto param : parameters())
+    if (param->getDestructuring())
+      param->setDestructuring(param->getDestructuring()->transform(transformer)->asDestructuringDecl());
+
   setBody(body()->transform(transformer)->asStatement()->asBlock());
 }
 
-void FunctionDecl::setBody(Block *body) {
+void FunctionExpr::setBody(Block *body) {
     _body = body;
     body->setIsBody();
     setSpanEnd(body->sourceSpan().end);
+}
+
+FunctionExpr *ClassExpr::findConstructor() const {
+  for (const auto &m : members()) {
+    if (m.value->op() == TO_FUNCTION) {
+      FunctionExpr *f = m.value->asFunctionExpr();
+      if (f->name() && strcmp(f->name(), "constructor") == 0)
+        return f;
+    }
+  }
+  return nullptr;
 }
 
 void ConstDecl::visitChildren(Visitor *visitor) {

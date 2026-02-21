@@ -111,7 +111,7 @@ void VarScope::merge(const VarScope *other) {
   evalId = std::max(evalId, other->evalId) + 1;
 }
 
-VarScope *VarScope::findScope(const FunctionDecl *own) {
+VarScope *VarScope::findScope(const FunctionExpr *own) {
   VarScope *s = this;
 
   while (s) {
@@ -130,7 +130,7 @@ VarScope *VarScope::copy(Arena *a, bool forClosure) const {
   VarScope *thisCopy = new(mem) VarScope(owner, parentCopy);
 
   for (auto &kv : symbols) {
-    const SQChar *k = kv.first;
+    const char *k = kv.first;
     ValueRef *v = kv.second;
     void *mem = a->allocate(sizeof(ValueRef));
     ValueRef *vcopy = new(mem) ValueRef(v->info, v->evalIndex);
@@ -165,7 +165,7 @@ static SourceLoc getSymbolLocation(const SymbolInfo *info) {
 }
 
 void VarScope::checkUnusedSymbols(CheckerVisitor *checker) {
-  std::vector<std::pair<const SQChar *, ValueRef *>> sorted(symbols.begin(), symbols.end());
+  std::vector<std::pair<const char *, ValueRef *>> sorted(symbols.begin(), symbols.end());
   std::sort(sorted.begin(), sorted.end(), [](const auto &a, const auto &b) {
     SourceLoc locA = getSymbolLocation(a.second->info);
     SourceLoc locB = getSymbolLocation(b.second->info);
@@ -175,10 +175,10 @@ void VarScope::checkUnusedSymbols(CheckerVisitor *checker) {
   });
 
   for (auto &s : sorted) {
-    const SQChar *n = s.first;
+    const char *n = s.first;
     const ValueRef *v = s.second;
 
-    if (strcmp(n, "this") == 0)
+    if (strcmp(n, "this") == 0 || n[0] == '@')
       continue;
 
     SymbolInfo *info = v->info;

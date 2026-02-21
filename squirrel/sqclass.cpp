@@ -231,9 +231,9 @@ bool SQInstance::GetMetaMethod(SQVM* SQ_UNUSED_ARG(v),SQMetaMethod mm,SQObjectPt
     return false;
 }
 
-bool SQInstance::InstanceOf(SQClass *trg)
+bool SQInstance::InstanceOf(const SQClass *trg) const
 {
-    SQClass *parent = _class;
+    const SQClass *parent = _class;
     while(parent != NULL) {
         if(parent == trg)
             return true;

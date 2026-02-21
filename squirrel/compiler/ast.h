@@ -77,8 +77,10 @@
     DEF_TREE_OP(BASE), \
     DEF_TREE_OP(ROOT_TABLE_ACCESS), \
     DEF_TREE_OP(INC), \
-    DEF_TREE_OP(DECL_EXPR), \
-    DEF_TREE_OP(ARRAYEXPR), \
+    DEF_TREE_OP(ARRAY), \
+    DEF_TREE_OP(TABLE), \
+    DEF_TREE_OP(CLASS), \
+    DEF_TREE_OP(FUNCTION), \
     DEF_TREE_OP(GETFIELD), \
     DEF_TREE_OP(SETFIELD), \
     DEF_TREE_OP(GETSLOT), \
@@ -94,11 +96,7 @@
     DEF_TREE_OP(CONST), \
     DEF_TREE_OP(DECL_GROUP), \
     DEF_TREE_OP(DESTRUCTURE), \
-    DEF_TREE_OP(FUNCTION), \
-    DEF_TREE_OP(CONSTRUCTOR), \
-    DEF_TREE_OP(CLASS), \
     DEF_TREE_OP(ENUM), \
-    DEF_TREE_OP(TABLE), \
     DEF_TREE_OP(DECLARATION_MARK), \
 
 enum TreeOp {
@@ -119,6 +117,7 @@ class Transformer;
 class Expr;
 class Statement;
 class Decl;
+class DestructuringDecl;
 
 class Id;
 class GetFieldExpr;
@@ -156,6 +155,7 @@ public:
     const Id *asId() const { assert(_op == TO_ID); return (const Id*)this; }
     GetFieldExpr *asGetField() const { assert(_op == TO_GETFIELD); return (GetFieldExpr*)this; }
     GetSlotExpr *asGetSlot() const { assert(_op == TO_GETSLOT); return (GetSlotExpr*)this; }
+    DestructuringDecl *asDestructuringDecl() const { assert(_op == TO_DESTRUCTURE); return (DestructuringDecl*)this; }
 
     SourceSpan sourceSpan() const { return _span; }
 
@@ -177,21 +177,23 @@ private:
 
 struct DocObject {
     DocObject() : docString(nullptr) {}
-    void setDocString(const SQChar *doc_string) { docString = doc_string; }
-    const SQChar *getDocString() const { return docString; }
+    void setDocString(const char *doc_string) { docString = doc_string; }
+    const char *getDocString() const { return docString; }
     bool isEmpty() const { return docString == nullptr; }
     // TODO: set/get DocTable (use SQObjectPtr ?)
 private:
-    const SQChar *docString;
+    const char *docString;
 };
 
 
 class AccessExpr;
 class LiteralExpr;
-class DeclExpr;
 class BinExpr;
 class CallExpr;
 class ExternalValueExpr;
+class TableExpr;
+class ClassExpr;
+class FunctionExpr;
 
 class Expr : public Node {
 protected:
@@ -201,24 +203,26 @@ public:
     bool isAccessExpr() const { return TO_GETFIELD <= op() && op() <= TO_SETSLOT; }
     AccessExpr *asAccessExpr() const { assert(isAccessExpr()); return (AccessExpr*)this; }
     LiteralExpr *asLiteral() const { assert(op() == TO_LITERAL); return (LiteralExpr *)this; }
-    DeclExpr *asDeclExpr() const { assert(op() == TO_DECL_EXPR); return (DeclExpr *)this; }
     BinExpr *asBinExpr() const { assert(TO_NULLC <= op() && op() <= TO_MODEQ); return (BinExpr *)this; }
     CallExpr *asCallExpr() const { assert(op() == TO_CALL); return (CallExpr *)this; }
     ExternalValueExpr *asExternal() const { assert(op() == TO_EXTERNAL_VALUE); return (ExternalValueExpr *)this; }
+    TableExpr *asTableExpr() const { assert(op() == TO_TABLE || op() == TO_CLASS); return (TableExpr *)this; }
+    ClassExpr *asClassExpr() const { assert(op() == TO_CLASS); return (ClassExpr *)this; }
+    FunctionExpr *asFunctionExpr() const { assert(op() == TO_FUNCTION); return (FunctionExpr *)this; }
 };
 
 
 class Id : public Expr {
 public:
-    Id(SourceSpan span, const SQChar *name) : Expr(TO_ID, span), _name(name) {}
+    Id(SourceSpan span, const char *name) : Expr(TO_ID, span), _name(name) {}
 
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
 
-    const SQChar *name() const { return _name; }
+    const char *name() const { return _name; }
 
 private:
-    const SQChar *_name;
+    const char *_name;
 };
 
 class UnExpr : public Expr {
@@ -290,16 +294,16 @@ protected:
 
 class FieldAccessExpr : public AccessExpr {
 protected:
-    FieldAccessExpr(enum TreeOp op, SourceSpan span, Expr *receiver, const SQChar *field, bool nullable)
+    FieldAccessExpr(enum TreeOp op, SourceSpan span, Expr *receiver, const char *field, bool nullable)
         : AccessExpr(op, span, receiver, nullable), _fieldName(field) {}
 
 public:
 
-    bool canBeLiteral(bool defaultDelegate) const { return receiver()->op() != TO_BASE && !isNullable() && !defaultDelegate; }
-    const SQChar *fieldName() const { return _fieldName; }
+    bool canBeLiteral(bool typeMethod) const { return receiver()->op() != TO_BASE && !isNullable() && !typeMethod; }
+    const char *fieldName() const { return _fieldName; }
 
 private:
-    const SQChar *_fieldName;
+    const char *_fieldName;
 
 };
 
@@ -307,7 +311,7 @@ class GetFieldExpr : public FieldAccessExpr {
     bool _isTypeMethod;
 public:
     // Constructor computes span from receiver start to end of field name
-    GetFieldExpr(Expr *receiver, const SQChar *field, bool nullable, bool is_type_method, SourceLoc end)
+    GetFieldExpr(Expr *receiver, const char *field, bool nullable, bool is_type_method, SourceLoc end)
         : FieldAccessExpr(TO_GETFIELD, {receiver->sourceSpan().start, end}, receiver, field, nullable)
         , _isTypeMethod(is_type_method) {}
 
@@ -321,7 +325,7 @@ public:
 class SetFieldExpr : public FieldAccessExpr {
 public:
     // Constructor computes span from receiver start to value end
-    SetFieldExpr(Expr *receiver, const SQChar *field, Expr *value, bool nullable)
+    SetFieldExpr(Expr *receiver, const char *field, Expr *value, bool nullable)
         : FieldAccessExpr(TO_SETFIELD, {receiver->sourceSpan().start, value->sourceSpan().end}, receiver, field, nullable)
         , _value(value) {}
 
@@ -396,7 +400,7 @@ enum LiteralKind {
 class LiteralExpr : public Expr {
 public:
     LiteralExpr(SourceSpan span) : Expr(TO_LITERAL, span), _kind(LK_NULL) { _v.raw = 0; }
-    LiteralExpr(SourceSpan span, const SQChar *s) : Expr(TO_LITERAL, span), _kind(LK_STRING) { _v.s = s; }
+    LiteralExpr(SourceSpan span, const char *s) : Expr(TO_LITERAL, span), _kind(LK_STRING) { _v.s = s; }
     LiteralExpr(SourceSpan span, SQFloat f) : Expr(TO_LITERAL, span), _kind(LK_FLOAT) { _v.f = f; }
     LiteralExpr(SourceSpan span, SQInteger i) : Expr(TO_LITERAL, span), _kind(LK_INT) { _v.i = i; }
     LiteralExpr(SourceSpan span, bool b) : Expr(TO_LITERAL, span), _kind(LK_BOOL) { _v.b = b; }
@@ -409,14 +413,14 @@ public:
     SQFloat f() const { assert(_kind == LK_FLOAT); return _v.f; }
     SQInteger i() const { assert(_kind == LK_INT); return _v.i; }
     bool b() const { assert(_kind == LK_BOOL); return _v.b; }
-    const SQChar *s() const { assert(_kind == LK_STRING); return _v.s; }
+    const char *s() const { assert(_kind == LK_STRING); return _v.s; }
     void *null() const { assert(_kind == LK_NULL); return nullptr; }
     SQUnsignedInteger raw() const { return _v.raw; }
 
 private:
     enum LiteralKind _kind;
     union {
-        const SQChar *s;
+        const char *s;
         SQInteger i;
         SQFloat f;
         bool b;
@@ -470,21 +474,6 @@ private:
     enum IncForm _form;
 };
 
-class Decl;
-
-class DeclExpr : public Expr {
-public:
-    DeclExpr(Decl *decl);
-
-    void visitChildren(Visitor *visitor);
-    void transformChildren(Transformer *transformer);
-
-    Decl *declaration() const { return _decl; }
-
-private:
-    Decl *_decl;
-};
-
 class CallExpr : public Expr {
 public:
     // For incremental building - call setSpanEnd() after adding arguments
@@ -517,7 +506,7 @@ class ArrayExpr : public Expr {
 public:
     // Incremental building - call setSpanEnd() after adding values
     ArrayExpr(Arena *arena, SourceLoc start)
-        : Expr(TO_ARRAYEXPR, {start, SourceLoc::invalid()}), _inits(arena) {}
+        : Expr(TO_ARRAY, {start, SourceLoc::invalid()}), _inits(arena) {}
 
     void addValue(Expr *v) { _inits.push_back(v); }
 
@@ -610,34 +599,41 @@ public:
 
 class ValueDecl : public Decl {
 protected:
-    ValueDecl(enum TreeOp op, SourceSpan span, const SQChar *name, Expr *expr)
+    ValueDecl(enum TreeOp op, SourceSpan span, const char *name, Expr *expr)
         : Decl(op, span), _name(name), _expr(expr) {}
 public:
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
 
     Expr *expression() const { return _expr; }
-    const SQChar *name() const { return _name; }
+    const char *name() const { return _name; }
 
 private:
-    const SQChar *_name;
+    const char *_name;
     Expr *_expr;
 };
 
+class DestructuringDecl;
+
 class ParamDecl : public ValueDecl {
-  bool _isVararg;
+    bool _isVararg;
+    DestructuringDecl *_destructuring;
 public:
-    ParamDecl(SourceSpan nameSpan, const SQChar *name, Expr *defaultVal)
+    ParamDecl(SourceSpan nameSpan, const char *name, Expr *defaultVal)
         : ValueDecl(TO_PARAM,
             {nameSpan.start, defaultVal ? defaultVal->sourceSpan().end : nameSpan.end},
             name, defaultVal)
-        , _isVararg(false) {}
+        , _isVararg(false)
+        , _destructuring(nullptr) {}
 
     bool hasDefaultValue() const { return expression() != NULL; }
     Expr *defaultValue() const { return expression(); }
 
     void setVararg() { _isVararg = true; };
     bool isVararg() const { return _isVararg; }
+
+    void setDestructuring(DestructuringDecl *destructuring) { _destructuring = destructuring; }
+    DestructuringDecl *getDestructuring() const { return _destructuring; }
 };
 
 class VarDecl : public ValueDecl {
@@ -678,11 +674,11 @@ struct TableMember {
     bool isJson() const { return (flags & TMF_JSON) != 0; }
 };
 
-class TableDecl : public Decl {
+class TableExpr : public Expr {
 public:
     // Incremental building - call setSpanEnd() after adding members
-    TableDecl(Arena *arena, SourceLoc start)
-        : Decl(TO_TABLE, {start, SourceLoc::invalid()}), _members(arena) {}
+    TableExpr(Arena *arena, SourceLoc start)
+        : Expr(TO_TABLE, {start, SourceLoc::invalid()}), _members(arena) {}
 
     void addMember(Expr *key, Expr *value, unsigned keys = 0) { _members.push_back({ key, value, keys }); }
 
@@ -695,18 +691,18 @@ public:
     DocObject docObject;
 
 protected:
-    TableDecl(Arena *arena, enum TreeOp op, SourceLoc start)
-        : Decl(op, {start, SourceLoc::invalid()}), _members(arena) {}
+    TableExpr(Arena *arena, enum TreeOp op, SourceLoc start)
+        : Expr(op, {start, SourceLoc::invalid()}), _members(arena) {}
 
 private:
     ArenaVector<TableMember> _members;
 };
 
-class ClassDecl : public TableDecl {
+class ClassExpr : public TableExpr {
 public:
     // Incremental building - span starts at class keyword, call setSpanEnd() after body
-    ClassDecl(Arena *arena, SourceLoc classKeywordStart, Expr *key, Expr *base)
-        : TableDecl(arena, TO_CLASS, classKeywordStart), _key(key), _base(base) {}
+    ClassExpr(Arena *arena, SourceLoc classKeywordStart, Expr *key, Expr *base)
+        : TableExpr(arena, TO_CLASS, classKeywordStart), _key(key), _base(base) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -717,6 +713,8 @@ public:
     void setClassBase(Expr *b) { _base = b; }
     void setClassKey(Expr *k) { _key = k; }
 
+    FunctionExpr *findConstructor() const;
+
 private:
     Expr *_key;
     Expr *_base;
@@ -725,24 +723,24 @@ private:
 
 class Block;
 
-class FunctionDecl : public Decl {
+class FunctionExpr : public Expr {
     Id *_nameId;       // Name identifier (for diagnostics)
 protected:
     // Incremental building - call setSpanEnd() after body is set
-    FunctionDecl(enum TreeOp op, Arena *arena, SourceLoc start, const SQChar *name, Id *nameId = nullptr)
-        : Decl(op, {start, SourceLoc::invalid()}), _arena(arena), _parameters(arena), _name(name), _nameId(nameId),
+    FunctionExpr(enum TreeOp op, Arena *arena, SourceLoc start, const char *name, Id *nameId = nullptr)
+        : Expr(op, {start, SourceLoc::invalid()}), _arena(arena), _parameters(arena), _name(name), _nameId(nameId),
         _vararg(false), _body(NULL), _lambda(false), _pure(false), _nodiscard(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
 
 public:
-    FunctionDecl(Arena *arena, SourceLoc start, Id *nameId)
-        : Decl(TO_FUNCTION, {start, SourceLoc::invalid()}), _arena(arena), _parameters(arena), _name(nameId->name()), _nameId(nameId),
+    FunctionExpr(Arena *arena, SourceLoc start, Id *nameId)
+        : Expr(TO_FUNCTION, {start, SourceLoc::invalid()}), _arena(arena), _parameters(arena), _name(nameId->name()), _nameId(nameId),
         _vararg(false), _body(NULL), _lambda(false), _pure(false), _nodiscard(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
 
-    FunctionDecl(Arena *arena, SourceLoc start, const SQChar *name)
-        : Decl(TO_FUNCTION, {start, SourceLoc::invalid()}), _arena(arena), _parameters(arena), _name(name), _nameId(nullptr),
+    FunctionExpr(Arena *arena, SourceLoc start, const char *name)
+        : Expr(TO_FUNCTION, {start, SourceLoc::invalid()}), _arena(arena), _parameters(arena), _name(name), _nameId(nullptr),
         _vararg(false), _body(NULL), _lambda(false), _pure(false), _nodiscard(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
 
-    void addParameter(SourceSpan nameSpan, const SQChar *name, Expr *defaultVal = NULL) {
+    void addParameter(SourceSpan nameSpan, const char *name, Expr *defaultVal = NULL) {
         _parameters.push_back(new (_arena) ParamDecl(nameSpan, name, defaultVal));
     }
 
@@ -755,14 +753,14 @@ public:
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
 
-    void setName(const SQChar *newName) { _name = newName; }
-    const SQChar *name() const { return _name; }
+    void setName(const char *newName) { _name = newName; }
+    const char *name() const { return _name; }
     Id *nameId() const { return _nameId; }
     bool isVararg() const { return _vararg; }
     Block *body() const { return _body; }
 
-    void setSourceName(const SQChar *sn) { _sourcename = sn; }
-    const SQChar *sourceName() const { return _sourcename; }
+    void setSourceName(const char *sn) { _sourcename = sn; }
+    const char *sourceName() const { return _sourcename; }
 
     bool isLambda() const { return _lambda; }
     void setLambda(bool v) { _lambda = v; }
@@ -783,7 +781,7 @@ public:
 
 private:
     Arena *_arena;
-    const SQChar *_name;
+    const char *_name;
     ArenaVector<ParamDecl *> _parameters;
     Block * _body;
     unsigned _resultTypeMask;
@@ -792,28 +790,22 @@ private:
     bool _pure;
     bool _nodiscard;
 
-    const SQChar *_sourcename;
+    const char *_sourcename;
     int _hoistingLevel;
 };
 
-class ConstructorDecl : public FunctionDecl {
-public:
-    ConstructorDecl(Arena *arena, SourceLoc start, const SQChar *name)
-        : FunctionDecl(TO_CONSTRUCTOR, arena, start, name) {}
-};
-
 struct EnumConst {
-    const SQChar *id;
+    const char *id;
     LiteralExpr *val;
 };
 
 class EnumDecl : public Decl {
 public:
     // Incremental building - call setSpanEnd() after constants are added
-    EnumDecl(Arena *arena, SourceLoc start, const SQChar *id, bool global)
+    EnumDecl(Arena *arena, SourceLoc start, const char *id, bool global)
         : Decl(TO_ENUM, {start, SourceLoc::invalid()}), _id(id), _consts(arena), _global(global) {}
 
-    void addConst(const SQChar *id, LiteralExpr *val) { _consts.push_back({ id, val }); }
+    void addConst(const char *id, LiteralExpr *val) { _consts.push_back({ id, val }); }
 
     ArenaVector<EnumConst> &consts() { return _consts; }
     const ArenaVector<EnumConst> &consts() const { return _consts; }
@@ -821,29 +813,29 @@ public:
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
 
-    const SQChar *name() const { return _id; }
+    const char *name() const { return _id; }
     bool isGlobal() const { return _global; }
 
 private:
     ArenaVector<EnumConst> _consts;
-    const SQChar *_id;
+    const char *_id;
     bool _global;
 };
 
 class ConstDecl : public Decl {
 public:
-    ConstDecl(SourceLoc start, const SQChar *id, Expr *value, bool global)
+    ConstDecl(SourceLoc start, const char *id, Expr *value, bool global)
         : Decl(TO_CONST, {start, value->sourceSpan().end}), _id(id), _value(value), _global(global) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
 
-    const SQChar *name() const { return _id; }
+    const char *name() const { return _id; }
     Expr *value() const { return _value; }
     bool isGlobal() const { return _global; }
 
 private:
-    const SQChar *_id;
+    const char *_id;
     Expr *_value;
     bool _global;
 };
@@ -1211,8 +1203,10 @@ public:
     virtual void visitRootTableAccessExpr(RootTableAccessExpr *expr) { visitExpr(expr); }
     virtual void visitLiteralExpr(LiteralExpr *expr) { visitExpr(expr); }
     virtual void visitIncExpr(IncExpr *expr) { visitExpr(expr); }
-    virtual void visitDeclExpr(DeclExpr *expr) { visitExpr(expr); }
     virtual void visitArrayExpr(ArrayExpr *expr) { visitExpr(expr); }
+    virtual void visitTableExpr(TableExpr *tbl) { visitExpr(tbl); }
+    virtual void visitClassExpr(ClassExpr *cls) { visitTableExpr(cls); }
+    virtual void visitFunctionExpr(FunctionExpr *f) { visitExpr(f); }
     virtual void visitCommaExpr(CommaExpr *expr) { visitExpr(expr); }
     virtual void visitExternalValueExpr(ExternalValueExpr *expr) { visitExpr(expr); }
 
@@ -1240,10 +1234,6 @@ public:
     virtual void visitValueDecl(ValueDecl *decl) { visitDecl(decl); }
     virtual void visitVarDecl(VarDecl *decl) { visitValueDecl(decl); }
     virtual void visitParamDecl(ParamDecl *decl) { visitValueDecl(decl); }
-    virtual void visitTableDecl(TableDecl *tbl) { visitDecl(tbl); }
-    virtual void visitClassDecl(ClassDecl *cls) { visitTableDecl(cls); }
-    virtual void visitFunctionDecl(FunctionDecl *f) { visitDecl(f); }
-    virtual void visitConstructorDecl(ConstructorDecl *ctr) { visitFunctionDecl(ctr); }
     virtual void visitConstDecl(ConstDecl *cnst) { visitDecl(cnst); }
     virtual void visitEnumDecl(EnumDecl *enm) { visitDecl(enm); }
     virtual void visitDeclGroup(DeclGroup *grp) { visitDecl(grp); }
@@ -1275,8 +1265,10 @@ public:
   virtual Node *transformRootTableAccessExpr(RootTableAccessExpr *expr) { return transformExpr(expr); }
   virtual Node *transformLiteralExpr(LiteralExpr *expr) { return transformExpr(expr); }
   virtual Node *transformIncExpr(IncExpr *expr) { return transformExpr(expr); }
-  virtual Node *transformDeclExpr(DeclExpr *expr) { return transformExpr(expr); }
   virtual Node *transformArrayExpr(ArrayExpr *expr) { return transformExpr(expr); }
+  virtual Node *transformTableExpr(TableExpr *tbl) { return transformExpr(tbl); }
+  virtual Node *transformClassExpr(ClassExpr *cls) { return transformTableExpr(cls); }
+  virtual Node *transformFunctionExpr(FunctionExpr *f) { return transformExpr(f); }
   virtual Node *transformCommaExpr(CommaExpr *expr) { return transformExpr(expr); }
   virtual Node *transformExternalValueExpr(ExternalValueExpr *expr) { return transformExpr(expr); }
 
@@ -1304,10 +1296,6 @@ public:
   virtual Node *transformValueDecl(ValueDecl *decl) { return transformDecl(decl); }
   virtual Node *transformVarDecl(VarDecl *decl) { return transformValueDecl(decl); }
   virtual Node *transformParamDecl(ParamDecl *decl) { return transformValueDecl(decl); }
-  virtual Node *transformTableDecl(TableDecl *tbl) { return transformDecl(tbl); }
-  virtual Node *transformClassDecl(ClassDecl *cls) { return transformTableDecl(cls); }
-  virtual Node *transformFunctionDecl(FunctionDecl *f) { return transformDecl(f); }
-  virtual Node *transformConstructorDecl(ConstructorDecl *ctr) { return transformFunctionDecl(ctr); }
   virtual Node *transformConstDecl(ConstDecl *cnst) { return transformDecl(cnst); }
   virtual Node *transformEnumDecl(EnumDecl *enm) { return transformDecl(enm); }
   virtual Node *transformDeclGroup(DeclGroup *grp) { return transformDecl(grp); }
@@ -1388,10 +1376,14 @@ void Node::visit(V *visitor) {
         visitor->visitRootTableAccessExpr(static_cast<RootTableAccessExpr *>(this)); return;
     case TO_INC:
         visitor->visitIncExpr(static_cast<IncExpr *>(this)); return;
-    case TO_DECL_EXPR:
-        visitor->visitDeclExpr(static_cast<DeclExpr *>(this)); return;
-    case TO_ARRAYEXPR:
+    case TO_ARRAY:
         visitor->visitArrayExpr(static_cast<ArrayExpr *>(this)); return;
+    case TO_TABLE:
+        visitor->visitTableExpr(static_cast<TableExpr *>(this)); return;
+    case TO_CLASS:
+        visitor->visitClassExpr(static_cast<ClassExpr *>(this)); return;
+    case TO_FUNCTION:
+        visitor->visitFunctionExpr(static_cast<FunctionExpr *>(this)); return;
     case TO_GETFIELD:
         visitor->visitGetFieldExpr(static_cast<GetFieldExpr *>(this)); return;
     case TO_SETFIELD:
@@ -1417,16 +1409,8 @@ void Node::visit(V *visitor) {
         visitor->visitDeclGroup(static_cast<DeclGroup *>(this)); return;
     case TO_DESTRUCTURE:
         visitor->visitDestructuringDecl(static_cast<DestructuringDecl  *>(this)); return;
-    case TO_FUNCTION:
-        visitor->visitFunctionDecl(static_cast<FunctionDecl *>(this)); return;
-    case TO_CONSTRUCTOR:
-        visitor->visitConstructorDecl(static_cast<ConstructorDecl *>(this)); return;
-    case TO_CLASS:
-        visitor->visitClassDecl(static_cast<ClassDecl *>(this)); return;
     case TO_ENUM:
         visitor->visitEnumDecl(static_cast<EnumDecl *>(this)); return;
-    case TO_TABLE:
-        visitor->visitTableDecl(static_cast<TableDecl *>(this)); return;
     case TO_DIRECTIVE:
         visitor->visitDirectiveStatement(static_cast<DirectiveStmt *>(this)); return;
     case TO_IMPORT:
@@ -1510,10 +1494,14 @@ Node *Node::transform(T *transformer) {
     return transformer->transformRootTableAccessExpr(static_cast<RootTableAccessExpr *>(this));
   case TO_INC:
     return transformer->transformIncExpr(static_cast<IncExpr *>(this));
-  case TO_DECL_EXPR:
-    return transformer->transformDeclExpr(static_cast<DeclExpr *>(this));
-  case TO_ARRAYEXPR:
+  case TO_ARRAY:
     return transformer->transformArrayExpr(static_cast<ArrayExpr *>(this));
+  case TO_TABLE:
+    return transformer->transformTableExpr(static_cast<TableExpr *>(this));
+  case TO_CLASS:
+    return transformer->transformClassExpr(static_cast<ClassExpr *>(this));
+  case TO_FUNCTION:
+    return transformer->transformFunctionExpr(static_cast<FunctionExpr *>(this));
   case TO_GETFIELD:
     return transformer->transformGetFieldExpr(static_cast<GetFieldExpr *>(this));
   case TO_SETFIELD:
@@ -1539,16 +1527,8 @@ Node *Node::transform(T *transformer) {
     return transformer->transformDeclGroup(static_cast<DeclGroup *>(this));
   case TO_DESTRUCTURE:
     return transformer->transformDestructuringDecl(static_cast<DestructuringDecl  *>(this));
-  case TO_FUNCTION:
-    return transformer->transformFunctionDecl(static_cast<FunctionDecl *>(this));
-  case TO_CONSTRUCTOR:
-    return transformer->transformConstructorDecl(static_cast<ConstructorDecl *>(this));
-  case TO_CLASS:
-    return transformer->transformClassDecl(static_cast<ClassDecl *>(this));
   case TO_ENUM:
     return transformer->transformEnumDecl(static_cast<EnumDecl *>(this));
-  case TO_TABLE:
-    return transformer->transformTableDecl(static_cast<TableDecl *>(this));
   case TO_DIRECTIVE:
     return this; //-V1037
   case TO_IMPORT:

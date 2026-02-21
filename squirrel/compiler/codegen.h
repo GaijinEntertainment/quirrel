@@ -32,7 +32,7 @@ class CodeGenVisitor : public Visitor {
     bool _inside_static_memo;
     int _complexity_level;
 
-    const SQChar *_sourceName;
+    const char *_sourceName;
 
     Arena *_arena;
 
@@ -43,7 +43,7 @@ class CodeGenVisitor : public Visitor {
     SQCompilationContext &_ctx;
 
 public:
-    CodeGenVisitor(Arena *arena, const HSQOBJECT *bindings, SQVM *vm, const SQChar *sourceName, SQCompilationContext &ctx);
+    CodeGenVisitor(Arena *arena, const HSQOBJECT *bindings, SQVM *vm, const char *sourceName, SQCompilationContext &ctx);
 
     bool generate(RootBlock *root, SQObjectPtr &out);
 
@@ -52,13 +52,13 @@ public:
     bool IsLocalConstant(const SQObject &name, SQObjectPtr &e);
     bool IsGlobalConstant(const SQObject &name, SQObjectPtr &e);
 
-    SQObjectPtr compileConstFunc(FunctionDecl *funcDecl);
+    SQObjectPtr compileConstFunc(FunctionExpr *funcExpr);
 
 private:
 
     void reportDiagnostic(Node *n, int32_t id, ...);
 
-    void CheckDuplicateLocalIdentifier(Node *n, SQObject name, const SQChar *desc, bool ignore_global_consts);
+    void CheckDuplicateLocalIdentifier(Node *n, SQObject name, const char *desc, bool ignore_global_consts);
     bool CheckMemberUniqueness(ArenaVector<Expr *> &vec, Expr *obj);
 
     void EmitLoadConstInt(SQInteger value, SQInteger target);
@@ -70,7 +70,7 @@ private:
     void EmitDerefOp(SQOpcode op);
     void EmitCheckType(int target, uint32_t type_mask);
 
-    void generateTableDecl(TableDecl *tableDecl);
+    void generateTableExpr(TableExpr *tableExpr);
 
     SQTable* GetScopedConstsTable();
     void SaveDocstringToVM(void *key, const DocObject &docObject);
@@ -87,15 +87,20 @@ private:
     Node *_variable_node;
     int getSubtreeConstScore(Node *node, bool visit_arrays_and_tables);
     int getSubtreeConstScoreImpl(Node *node);
+    bool findConstScoredVar(const SQObjectPtr &name, SQCompiletimeVarInfo &varInfo,
+                            unsigned requiredFlags);
+    SQInteger inferReceiverType(Expr *receiver);
+    bool isConstScoredMethodCall(GetFieldExpr *getField);
+    bool isConstScoredDirectCall(CallExpr *callExpr);
 
     void emitNewSlot(Expr *lvalue, Expr *rvalue);
     void emitAssign(Expr *lvalue, Expr * rvalue);
     void emitFieldAssign(int isLiteralIndex);
 
-    bool CanBeTypeMethod(const SQChar *key);
-    bool CanBeTableTypeMethod(const SQChar *key);
+    bool CanBeTypeMethod(const char *key);
+    bool CanBeTableTypeMethod(const char *key);
     bool canBeLiteral(AccessExpr *expr);
-    SQObjectPtr GetTypeMethod(SQInteger sq_type, const SQChar* key);
+    SQObjectPtr GetTypeMethod(SQInteger sq_type, const char* key);
 
     void MoveIfCurrentTargetIsLocal();
 
@@ -107,7 +112,7 @@ private:
 
     void maybeAddInExprLine(Expr *expr);
 
-    void addLineNumber(Statement *stmt);
+    void addLineNumber(Node *node);
 
     void visitForTarget(Node *n);
     void visitForValue(Node *n);
@@ -122,7 +127,7 @@ private:
     Expr *skipConstFreezePure(Expr *expr);
     bool isPureFunctionCall(Expr *node);
 
-    SQObjectPtr compileFunc(FunctionDecl *funcDecl, bool is_const, sqvector<SQObjectPtr> *out_defparam_values);
+    SQObjectPtr compileFunc(FunctionExpr *funcExpr, bool is_const, sqvector<SQObjectPtr> *out_defparam_values);
 
 public:
 
@@ -142,13 +147,13 @@ public:
     void visitYieldStatement(YieldStatement *yieldStmt) override;
     void visitThrowStatement(ThrowStatement *throwStmt) override;
     void visitExprStatement(ExprStatement *stmt) override;
-    void visitTableDecl(TableDecl *tableDecl) override;
-    void visitClassDecl(ClassDecl *klass) override;
+    void visitTableExpr(TableExpr *tableExpr) override;
+    void visitClassExpr(ClassExpr *klass) override;
     void visitParamDecl(ParamDecl *param) override;
     void visitVarDecl(VarDecl *var) override;
     void visitDeclGroup(DeclGroup *group) override;
     void visitDestructuringDecl(DestructuringDecl *destruct) override;
-    void visitFunctionDecl(FunctionDecl *func) override;
+    void visitFunctionExpr(FunctionExpr *func) override;
     void visitConstDecl(ConstDecl *decl) override;
     void visitEnumDecl(EnumDecl *enums) override;
     void visitCallExpr(CallExpr *call) override;

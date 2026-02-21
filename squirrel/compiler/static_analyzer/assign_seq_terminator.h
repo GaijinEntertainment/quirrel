@@ -35,7 +35,7 @@ public:
       foundUsage = true;
   }
 
-  void visitFunctionDecl(FunctionDecl *e) { /* skip */ }
+  void visitFunctionExpr(FunctionExpr *e) { /* skip */ }
 
   bool check(Node *tree) {
     tree->visit(this);

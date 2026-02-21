@@ -168,10 +168,6 @@ class NodeEqualChecker
     return check(l->argument(), r->argument());
   }
 
-  bool cmpDeclExpr(const DeclExpr *l, const DeclExpr *r) const {
-    return check(l->declaration(), r->declaration());
-  }
-
   bool cmpCallExpr(const CallExpr *l, const CallExpr *r) const {
     if (l->isNullable() != r->isNullable())
       return false;
@@ -235,7 +231,7 @@ class NodeEqualChecker
     return l->type() == r->type() && check(l->initExpression(), r->initExpression());
   }
 
-  bool cmpFunction(const FunctionDecl *l, const FunctionDecl *r) const {
+  bool cmpFunction(const FunctionExpr *l, const FunctionExpr *r) const {
     if (l->isVararg() != r->isVararg())
       return false;
 
@@ -251,7 +247,7 @@ class NodeEqualChecker
     return check(l->body(), r->body());
   }
 
-  bool cmpTable(const TableDecl *l, const TableDecl *r) const {
+  bool cmpTable(const TableExpr *l, const TableExpr *r) const {
     const auto &lmems = l->members();
     const auto &rmems = r->members();
 
@@ -275,7 +271,7 @@ class NodeEqualChecker
     return true;
   }
 
-  bool cmpClass(const ClassDecl *l, const ClassDecl *r) const {
+  bool cmpClass(const ClassExpr *l, const ClassExpr *r) const {
     if (!check(l->classBase(), r->classBase()))
       return false;
 
@@ -399,9 +395,13 @@ public:
       return cmpLiterals((const LiteralExpr *)lhs, (const LiteralExpr *)rhs);
     case TO_INC:
       return cmpIncExpr((const IncExpr *)lhs, (const IncExpr *)rhs);
-    case TO_DECL_EXPR:
-      return cmpDeclExpr((const DeclExpr *)lhs, (const DeclExpr *)rhs);
-    case TO_ARRAYEXPR:
+    case TO_TABLE:
+      return cmpTable((const TableExpr *)lhs, (const TableExpr *)rhs);
+    case TO_CLASS:
+      return cmpClass((const ClassExpr *)lhs, (const ClassExpr *)rhs);
+    case TO_FUNCTION:
+      return cmpFunction((const FunctionExpr *)lhs, (const FunctionExpr *)rhs);
+    case TO_ARRAY:
       return cmpArrayExpr((const ArrayExpr *)lhs, (const ArrayExpr *)rhs);
     case TO_GETFIELD:
       return cmpGetField((const GetFieldExpr *)lhs, (const GetFieldExpr *)rhs);
@@ -422,15 +422,8 @@ public:
       return cmpDeclGroup((const DeclGroup *)lhs, (const DeclGroup *)rhs);
     case TO_DESTRUCTURE:
       return cmpDestructDecl((const DestructuringDecl *)lhs, (const DestructuringDecl *)rhs);
-    case TO_FUNCTION:
-    case TO_CONSTRUCTOR:
-      return cmpFunction((const FunctionDecl *)lhs, (const FunctionDecl *)rhs);
-    case TO_CLASS:
-      return cmpClass((const ClassDecl *)lhs, (const ClassDecl *)rhs);
     case TO_ENUM:
       return cmpEnumDecl((const EnumDecl *)lhs, (const EnumDecl *)rhs);
-    case TO_TABLE:
-      return cmpTable((const TableDecl *)lhs, (const TableDecl *)rhs);
     case TO_SETFIELD:
     case TO_SETSLOT:
     default:

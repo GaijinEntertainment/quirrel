@@ -248,7 +248,7 @@ returns a weak reference to the object.
 
 .. sq:function:: string.subst(...)
 
-This delegate is used to format strings. A format string can contain variable positional arguments and table keys.
+Formats strings. A format string can contain variable positional arguments and table keys.
 As parameters, you can pass an arbitrary number of tables and an arbitrary number of positional arguments. If the key is found in several tables,
 then the value from the leftmost table will be used.
 
@@ -435,17 +435,28 @@ Iteration order is not determined.
 
 .. sq:function:: table.__merge(table_1, [table_2], [table_3], ...)
 
-This delegate is used to create a new table from the old and given ones.
+Creates a new table from the old and given ones.
 Arguments to merge fields from can be tables, classes, and instances.
 
+.. sq:function:: table.__update(table_1, [table_2], [table_3], ...)
+
+Copies all key-value pairs from each argument into the target table, **modifying it in-place**.
+If multiple arguments contain the same key, the value from the last argument wins.
+Arguments can be tables, classes, or instances. Returns the target table.
+
+Throws an error if the target table is frozen (immutable).
+
+.. note::
+
+    To create a new table without modifying the original, use :sq:func:`table.__merge` instead.
+
+Example: ::
+
+    let foo = {fizz=1}
+    let bar = foo.__update({buzz=2})
+    => foo == {fizz=1, buzz=2}; bar={fizz=1, buzz=2}
+
 .. sq:function:: table.getfuncinfos()
-
-If the table has a delegate with the _call() metamethod, gets info about it (see function.getfuncinfos() for details).
-
-.. sq:function:: table.swap(index1, index2)
-
-Swaps two values in the table by indices.
-Returns table
 
 Example: ::
 
@@ -453,17 +464,13 @@ Example: ::
     let bar = foo.__merge({buzz=2})
     => foo == {fizz=1}; bar={fizz=1, buzz=2}
 
+If the table has a delegate with the _call() metamethod, gets info about it (see function.getfuncinfos() for details).
 
-.. sq:function:: table.__update(table_1, [table_2], [table_3], ...)
 
-This delegate is used to update a new table with values from the given ones.
-In other words, it mutates the table with data from the provided tables.
+.. sq:function:: table.swap(index1, index2)
 
-Example: ::
-
-    let foo = {fizz=1}
-    let bar = foo.__update({buzz=2})
-    => foo == {fizz=1, buzz=2}; bar={fizz=1, buzz=2}
+Swaps two values in the table by indices.
+Returns table
 
 
 .. sq:function:: table.replace_with(source_tbl)
@@ -773,8 +780,8 @@ Arguments to merge fields from can be tables, classes, and instances.
 
 .. sq:function:: class.__update(table_1, [table_2], [table_3], ...)
 
-This delegate is used to update a new table with values from the given ones.
-In other words, it mutates the table with data from the provided tables.
+Copies all members from each argument into the class, modifying it in-place.
+Arguments can be tables, classes, or instances. Returns the class.
 
 .. sq:function:: class.lock()
 

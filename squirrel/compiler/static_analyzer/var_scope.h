@@ -13,7 +13,7 @@ class CheckerVisitor;
 
 struct VarScope
 {
-  VarScope(const FunctionDecl *o, VarScope *p = nullptr)
+  VarScope(const FunctionExpr *o, VarScope *p = nullptr)
     : owner(o), parent(p), depth(p ? p->depth + 1 : 0), evalId(p ? p->evalId + 1 : 0)
   {}
 
@@ -27,9 +27,9 @@ struct VarScope
 
   int32_t evalId;
   const int32_t depth;
-  const FunctionDecl *owner;
+  const FunctionExpr *owner;
   VarScope *parent;
-  std::unordered_map<const SQChar *, ValueRef *, StringHasher, StringEqualer> symbols;
+  std::unordered_map<const char *, ValueRef *, StringHasher, StringEqualer> symbols;
 
   void intersectScopes(const VarScope *other);
 
@@ -39,7 +39,7 @@ struct VarScope
 
   void mergeUnbalanced(const VarScope *other);
 
-  VarScope *findScope(const FunctionDecl *own);
+  VarScope *findScope(const FunctionExpr *own);
   void checkUnusedSymbols(CheckerVisitor *v);
 };
 

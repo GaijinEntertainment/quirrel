@@ -77,8 +77,8 @@ namespace SQCompilation
 #include <stdio.h>
 
 #define SQUIRREL_VERSION_NUMBER_MAJOR 4
-#define SQUIRREL_VERSION_NUMBER_MINOR 13
-#define SQUIRREL_VERSION_NUMBER_PATCH 7
+#define SQUIRREL_VERSION_NUMBER_MINOR 15
+#define SQUIRREL_VERSION_NUMBER_PATCH 3
 
 #define SQ_STRINGIFY_HELPER(x) #x
 #define SQ_STRINGIFY(x) SQ_STRINGIFY_HELPER(x)
@@ -193,8 +193,8 @@ typedef struct  tagSQMemberHandle{
 }SQMemberHandle;
 
 typedef struct tagSQStackInfos{
-    const SQChar* funcname;
-    const SQChar* source;
+    const char* funcname;
+    const char* source;
     SQInteger line;
 }SQStackInfos;
 
@@ -209,10 +209,10 @@ typedef SQObject HSQOBJECT;
 typedef SQMemberHandle HSQMEMBERHANDLE;
 typedef SQInteger (*SQFUNCTION)(HSQUIRRELVM);
 typedef SQInteger (*SQRELEASEHOOK)(SQUserPointer,SQInteger size);
-typedef void (*SQCOMPILERERROR)(HSQUIRRELVM,SQMessageSeverity /*severity*/,const SQChar * /*desc*/,const SQChar * /*source*/,SQInteger /*line*/,SQInteger /*column*/, const SQChar * /*extra info*/);
-typedef void (*SQPRINTFUNCTION)(HSQUIRRELVM,const SQChar * ,...);
-typedef void (*SQDEBUGHOOK)(HSQUIRRELVM /*v*/, SQInteger /*type*/, const SQChar * /*sourcename*/, SQInteger /*line*/, const SQChar * /*funcname*/);
-typedef void (*SQCOMPILELINEHOOK)(HSQUIRRELVM /*v*/, const SQChar * /*sourcename*/, SQInteger /*line*/);
+typedef void (*SQCOMPILERERROR)(HSQUIRRELVM,SQMessageSeverity /*severity*/,const char * /*desc*/,const char * /*source*/,SQInteger /*line*/,SQInteger /*column*/, const char * /*extra info*/);
+typedef void (*SQPRINTFUNCTION)(HSQUIRRELVM,const char * ,...);
+typedef void (*SQDEBUGHOOK)(HSQUIRRELVM /*v*/, SQInteger /*type*/, const char * /*sourcename*/, SQInteger /*line*/, const char * /*funcname*/);
+typedef void (*SQCOMPILELINEHOOK)(HSQUIRRELVM /*v*/, const char * /*sourcename*/, SQInteger /*line*/);
 typedef SQInteger (*SQWRITEFUNC)(SQUserPointer,SQUserPointer,SQInteger);
 typedef SQInteger (*SQREADFUNC)(SQUserPointer,SQUserPointer,SQInteger);
 typedef SQInteger (*SQGETTHREAD)();
@@ -222,25 +222,25 @@ typedef bool (*SQWATCHDOGHOOK)(HSQUIRRELVM, bool kick);
 typedef SQInteger (*SQLEXREADFUNC)(SQUserPointer);
 
 typedef struct tagSQRegFunction{
-    const SQChar *name;
+    const char *name;
     SQFUNCTION f;
     SQInteger nparamscheck;
-    const SQChar *typemask;
-    const SQChar *docstring;
+    const char *typemask;
+    const char *docstring;
     bool pure;
     bool nodiscard;
 }SQRegFunction;
 
 typedef struct tagSQRegFunctionFromStr{
     SQFUNCTION f;
-    const SQChar *declstring;
-    const SQChar *docstring;
+    const char *declstring;
+    const char *docstring;
 }SQRegFunctionFromStr;
 
 typedef struct tagSQFunctionInfo {
     SQUserPointer funcid;
-    const SQChar *name;
-    const SQChar *source;
+    const char *name;
+    const char *source;
     SQInteger line;
 }SQFunctionInfo;
 
@@ -307,12 +307,12 @@ SQUIRREL_API SQRESULT sq_registerbaselib(HSQUIRRELVM v);
 SQUIRREL_API SQRESULT sq_registertypeslib(HSQUIRRELVM v);
 
 /*compiler*/
-SQUIRREL_API SQRESULT sq_compile(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, const HSQOBJECT *bindings = nullptr);
+SQUIRREL_API SQRESULT sq_compile(HSQUIRRELVM v, const char *s, SQInteger size, const char *sourcename, SQBool raiseerror, const HSQOBJECT *bindings = nullptr);
 
-SQUIRREL_API SQCompilation::SqASTData *sq_parsetoast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool preserveComments, SQBool raiseerror);
-SQUIRREL_API SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size, SQBool raiseerror);
-SQUIRREL_API void sq_analyzeast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size);
-SQUIRREL_API void sq_checktrailingspaces(HSQUIRRELVM v, const SQChar *sourceName, const SQChar *s, SQInteger size);
+SQUIRREL_API SQCompilation::SqASTData *sq_parsetoast(HSQUIRRELVM v, const char *s, SQInteger size, const char *sourcename, SQBool preserveComments, SQBool raiseerror);
+SQUIRREL_API SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const char *s, SQInteger size, SQBool raiseerror);
+SQUIRREL_API void sq_analyzeast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const char *s, SQInteger size);
+SQUIRREL_API void sq_checktrailingspaces(HSQUIRRELVM v, const char *sourceName, const char *s, SQInteger size);
 SQUIRREL_API SQRESULT sq_getimports(HSQUIRRELVM v, SQCompilation::SqASTData *astData, SQInteger *num, SQModuleImport **imports);
 SQUIRREL_API void sq_freeimports(HSQUIRRELVM v, SQInteger num, SQModuleImport *imports);
 
@@ -352,11 +352,11 @@ SQUIRREL_API SQUserPointer sq_newuserdata(HSQUIRRELVM v,SQUnsignedInteger size);
 SQUIRREL_API void sq_newtable(HSQUIRRELVM v);
 SQUIRREL_API void sq_newtableex(HSQUIRRELVM v,SQInteger initialcapacity);
 SQUIRREL_API void sq_newarray(HSQUIRRELVM v,SQInteger size);
-SQUIRREL_API SQRESULT sq_new_closure_slot_from_decl_string(HSQUIRRELVM v, SQFUNCTION func, SQUnsignedInteger nfreevars, const SQChar *function_decl, const SQChar *docstring);
+SQUIRREL_API SQRESULT sq_new_closure_slot_from_decl_string(HSQUIRRELVM v, SQFUNCTION func, SQUnsignedInteger nfreevars, const char *function_decl, const char *docstring);
 SQUIRREL_API void sq_newclosure(HSQUIRRELVM v,SQFUNCTION func,SQUnsignedInteger nfreevars);
-SQUIRREL_API SQRESULT sq_setparamscheck(HSQUIRRELVM v,SQInteger nparamscheck,const SQChar *typemask);
+SQUIRREL_API SQRESULT sq_setparamscheck(HSQUIRRELVM v,SQInteger nparamscheck,const char *typemask);
 SQUIRREL_API SQRESULT sq_bindenv(HSQUIRRELVM v,SQInteger idx);
-SQUIRREL_API void sq_pushstring(HSQUIRRELVM v,const SQChar *s,SQInteger len);
+SQUIRREL_API void sq_pushstring(HSQUIRRELVM v,const char *s,SQInteger len);
 SQUIRREL_API void sq_pushfloat(HSQUIRRELVM v,SQFloat f);
 SQUIRREL_API void sq_pushinteger(HSQUIRRELVM v,SQInteger n);
 SQUIRREL_API void sq_pushbool(HSQUIRRELVM v,SQBool b);
@@ -371,8 +371,8 @@ SQUIRREL_API SQRESULT sq_getbase(HSQUIRRELVM v,SQInteger idx);
 SQUIRREL_API SQBool sq_instanceof(HSQUIRRELVM v);
 SQUIRREL_API SQRESULT sq_tostring(HSQUIRRELVM v,SQInteger idx);
 SQUIRREL_API void sq_tobool(HSQUIRRELVM v, SQInteger idx, SQBool *b);
-SQUIRREL_API SQRESULT sq_getstringandsize(HSQUIRRELVM v,SQInteger idx,const SQChar **c,SQInteger *size);
-SQUIRREL_API SQRESULT sq_getstring(HSQUIRRELVM v,SQInteger idx,const SQChar **c);
+SQUIRREL_API SQRESULT sq_getstringandsize(HSQUIRRELVM v,SQInteger idx,const char **c,SQInteger *size);
+SQUIRREL_API SQRESULT sq_getstring(HSQUIRRELVM v,SQInteger idx,const char **c);
 SQUIRREL_API SQRESULT sq_getinteger(HSQUIRRELVM v,SQInteger idx,SQInteger *i);
 SQUIRREL_API SQRESULT sq_getfloat(HSQUIRRELVM v,SQInteger idx,SQFloat *f);
 SQUIRREL_API SQRESULT sq_getbool(HSQUIRRELVM v,SQInteger idx,SQBool *b);
@@ -383,13 +383,13 @@ SQUIRREL_API SQRESULT sq_settypetag(HSQUIRRELVM v,SQInteger idx,SQUserPointer ty
 SQUIRREL_API SQRESULT sq_gettypetag(HSQUIRRELVM v,SQInteger idx,SQUserPointer *typetag);
 SQUIRREL_API void sq_setreleasehook(HSQUIRRELVM v,SQInteger idx,SQRELEASEHOOK hook);
 SQUIRREL_API SQRELEASEHOOK sq_getreleasehook(HSQUIRRELVM v,SQInteger idx);
-SQUIRREL_API SQChar *sq_getscratchpad(HSQUIRRELVM v,SQInteger minsize);
+SQUIRREL_API char *sq_getscratchpad(HSQUIRRELVM v,SQInteger minsize);
 SQUIRREL_API SQRESULT sq_getfunctioninfo(HSQUIRRELVM v,SQInteger level,SQFunctionInfo *fi);
 SQUIRREL_API SQRESULT sq_getclosureinfo(HSQUIRRELVM v,SQInteger idx,SQInteger *nparams,SQInteger *nfreevars);
 SQUIRREL_API SQRESULT sq_getclosurename(HSQUIRRELVM v,SQInteger idx);
-SQUIRREL_API SQRESULT sq_setnativeclosurename(HSQUIRRELVM v,SQInteger idx,const SQChar *name);
-SQUIRREL_API SQRESULT sq_setnativeclosuredocstring(HSQUIRRELVM v,SQInteger idx,const SQChar *docstring);
-SQUIRREL_API SQRESULT sq_setobjectdocstring(HSQUIRRELVM v, const HSQOBJECT *obj, const SQChar *docstring);
+SQUIRREL_API SQRESULT sq_setnativeclosurename(HSQUIRRELVM v,SQInteger idx,const char *name);
+SQUIRREL_API SQRESULT sq_setnativeclosuredocstring(HSQUIRRELVM v,SQInteger idx,const char *docstring);
+SQUIRREL_API SQRESULT sq_setobjectdocstring(HSQUIRRELVM v, const HSQOBJECT *obj, const char *docstring);
 SQUIRREL_API SQRESULT sq_setinstanceup(HSQUIRRELVM v, SQInteger idx, SQUserPointer p);
 SQUIRREL_API SQRESULT sq_getinstanceup(HSQUIRRELVM v, SQInteger idx, SQUserPointer *p,SQUserPointer typetag);
 SQUIRREL_API SQRESULT sq_setclassudsize(HSQUIRRELVM v, SQInteger idx, SQInteger udsize);
@@ -437,12 +437,12 @@ SQUIRREL_API bool sq_is_pure_function(HSQOBJECT *func);
 /*calls*/
 SQUIRREL_API SQRESULT sq_call(HSQUIRRELVM v,SQInteger params,SQBool retval,SQBool invoke_err_handler);
 SQUIRREL_API SQRESULT sq_resume(HSQUIRRELVM v,SQBool retval,SQBool invoke_err_handler);
-SQUIRREL_API const SQChar *sq_getlocal(HSQUIRRELVM v,SQUnsignedInteger level,SQUnsignedInteger idx);
+SQUIRREL_API const char *sq_getlocal(HSQUIRRELVM v,SQUnsignedInteger level,SQUnsignedInteger idx);
 SQUIRREL_API SQRESULT sq_getcallee(HSQUIRRELVM v);
-SQUIRREL_API const SQChar *sq_getfreevariable(HSQUIRRELVM v,SQInteger idx,SQUnsignedInteger nval);
+SQUIRREL_API const char *sq_getfreevariable(HSQUIRRELVM v,SQInteger idx,SQUnsignedInteger nval);
 SQUIRREL_API void sq_throwparamtypeerror(HSQUIRRELVM v, SQInteger nparam, SQInteger typemask, SQInteger type);
-SQUIRREL_API SQRESULT sq_throwerror(HSQUIRRELVM v,const SQChar *err);
-// see also: sqstd_throwerrorf(HSQUIRRELVM v,const SQChar *err,...)
+SQUIRREL_API SQRESULT sq_throwerror(HSQUIRRELVM v,const char *err);
+// see also: sqstd_throwerrorf(HSQUIRRELVM v,const char *err,...)
 SQUIRREL_API SQRESULT sq_throwobject(HSQUIRRELVM v);
 SQUIRREL_API void sq_reseterror(HSQUIRRELVM v);
 SQUIRREL_API void sq_getlasterror(HSQUIRRELVM v);
@@ -456,20 +456,26 @@ static inline void sq_pushobject(HSQUIRRELVM v, const HSQOBJECT &o) { return sq_
 #else
 static inline void sq_pushobject(HSQUIRRELVM v, HSQOBJECT o) { return sq_pushobj(v, &o); }
 #endif
-SQUIRREL_API void sq_addref(HSQUIRRELVM v,HSQOBJECT *po);
-SQUIRREL_API SQBool sq_release(HSQUIRRELVM v,HSQOBJECT *po);
+SQUIRREL_API void sq_addref_refcounted(HSQUIRRELVM v,HSQOBJECT *po);
+SQUIRREL_API SQBool sq_release_refcounted(HSQUIRRELVM v,HSQOBJECT *po);
 SQUIRREL_API SQUnsignedInteger sq_getrefcount(HSQUIRRELVM v,HSQOBJECT *po);
-static inline void sq_resetobject(HSQOBJECT *po) { memset(po, 0, sizeof(*po)); }
-SQUIRREL_API const SQChar *sq_objtostring(const HSQOBJECT *o);
+static inline void sq_resetobject(HSQOBJECT *po)
+{
+#ifdef __cplusplus
+  static_assert((int)OT_NULL == 0);
+#endif
+  memset(po, 0, sizeof(*po));
+}
+SQUIRREL_API const char *sq_objtostring(const HSQOBJECT *o);
 SQUIRREL_API SQBool sq_objtobool(const HSQOBJECT *o);
 SQUIRREL_API SQInteger sq_objtointeger(const HSQOBJECT *o);
 SQUIRREL_API SQFloat sq_objtofloat(const HSQOBJECT *o);
 SQUIRREL_API SQUserPointer sq_objtouserpointer(const HSQOBJECT *o);
 SQUIRREL_API SQRESULT sq_getobjtypetag(const HSQOBJECT *o,SQUserPointer * typetag);
 SQUIRREL_API SQUnsignedInteger sq_getvmrefcount(HSQUIRRELVM v, const HSQOBJECT *po);
-SQUIRREL_API const SQChar* sq_objtypestr(SQObjectType tp);
+SQUIRREL_API const char* sq_objtypestr(SQObjectType tp);
 
-SQUIRREL_API SQBool sq_tracevar(HSQUIRRELVM v, const HSQOBJECT * container, const HSQOBJECT * key, SQChar * buf, int buf_size);
+SQUIRREL_API SQBool sq_tracevar(HSQUIRRELVM v, const HSQOBJECT * container, const HSQOBJECT * key, char * buf, int buf_size);
 
 /*GC*/
 SQUIRREL_API SQInteger sq_collectgarbage(HSQUIRRELVM v);
@@ -555,6 +561,16 @@ SQUIRREL_API void sq_mergeglobalnames(const HSQOBJECT *bindings);
 } /*extern "C"*/
 #endif
 
+static inline void sq_addref(HSQUIRRELVM v,HSQOBJECT *po)
+{
+  if (ISREFCOUNTED(sq_type(*po)))
+    sq_addref_refcounted(v, po);
+}
+
+static inline SQBool sq_release(HSQUIRRELVM v,HSQOBJECT *po)
+{
+  return !ISREFCOUNTED(sq_type(*po)) || sq_release_refcounted(v, po);
+}
 
 /*
   Removed SQObjectPtr overload to forbid dangerous cast to SQObjectPtr.

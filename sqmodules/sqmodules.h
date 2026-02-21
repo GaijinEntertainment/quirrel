@@ -70,7 +70,7 @@ public:
   using string = Sqrat::string;
 
   typedef bool (*BeforeImportModuleCallback)(SqModules *sq_modules, const char *module_name);
-  typedef void (*SQOnCompileFileCb)(HSQUIRRELVM, const SQChar *);
+  typedef void (*SQOnCompileFileCb)(HSQUIRRELVM, const char *);
 
   struct Module
   {

@@ -12,7 +12,7 @@ struct SQFunctionType
     sqvector<SQObjectPtr> argNames;
     sqvector<SQUnsignedInteger32> argTypeMask;
     sqvector<SQObjectPtr> defaultValues; // null|string
-    SQInteger requiredArgs;
+    SQInteger requiredArgs; // Not including `this`
     SQUnsignedInteger32 ellipsisArgTypeMask; // 0 if no ellipsis
     bool pure;
     bool nodiscard;
@@ -31,7 +31,7 @@ struct SQFunctionType
     }
 };
 
-bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& res, SQInteger& error_pos, SQObjectPtr& error_string);
+bool sq_parse_function_type_string(SQVM* vm, const char* s, SQFunctionType& res, SQInteger& error_pos, SQObjectPtr& error_string);
 SQObjectPtr sq_stringify_function_type(SQVM* vm, const SQFunctionType& ft);
-bool sq_type_string_to_mask(const SQChar* type_name, SQUnsignedInteger32& mask, const SQChar*& suggestion);
-void sq_stringify_type_mask(SQChar* buffer, int buffer_length, SQUnsignedInteger32 mask);
+bool sq_type_string_to_mask(const char* type_name, SQUnsignedInteger32& mask, const char*& suggestion);
+void sq_stringify_type_mask(char* buffer, int buffer_length, SQUnsignedInteger32 mask);

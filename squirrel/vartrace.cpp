@@ -60,7 +60,7 @@ void VarTrace::saveStack(const SQObject & value, HSQUIRRELVM vm)
   SQObjectPtr res;
   if (vm->ToString(obj, res))
   {
-    const SQChar *valueAsString = sq_objtostring(&res);
+    const char *valueAsString = sq_objtostring(&res);
     if (valueAsString)
     {
       strncpy(history[pos].val, valueAsString, valSize);
@@ -76,7 +76,7 @@ void VarTrace::saveStack(const SQObject & value, HSQUIRRELVM vm)
   int count = 0;
   while (SQ_SUCCEEDED(sq_stackinfos(vm, level, &si)))
   {
-    const SQChar *src = _SC("unknown");
+    const char *src = "unknown";
     if (si.source)
       src = si.source;
     history[pos].stack[count].fileName = src;
@@ -118,7 +118,7 @@ void VarTrace::saveStack(const SQObject & value, HSQUIRRELVM vm)
 #define VT_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define VT_APRINTF(...) { written += scsprintf(buf + written, VT_MAX(size - written, 0), __VA_ARGS__); }
 
-void VarTrace::printStack(SQChar * buf, int size)
+void VarTrace::printStack(char * buf, int size)
 {
   size--;
   int written = 0;
@@ -131,22 +131,22 @@ void VarTrace::printStack(SQChar * buf, int size)
 
     bool stackPresent = hist.stack[0].line != STACK_NOT_INITIALIZED;
     if (size > written)
-      VT_APRINTF(_SC("%d:"), h);
+      VT_APRINTF("%d:", h);
 
 #if VAR_TRACE_SAVE_VALUES != 0
     bool showCount = history[historyPos].count > 1 && stackPresent;
 
     if (showCount)
-      VT_APRINTF(_SC(" x%d"), history[historyPos].count);
+      VT_APRINTF(" x%d", history[historyPos].count);
 
     if (stackPresent)
-      VT_APRINTF((history[historyPos].flags & VT_FLAG_STRING) ? _SC(" value='%s%s'") : _SC(" value=%s%s"),
+      VT_APRINTF((history[historyPos].flags & VT_FLAG_STRING) ? " value='%s%s'" : " value=%s%s",
         history[historyPos].val,
-        (history[historyPos].flags & VT_FLAG_ELLIPSIS) ? _SC("...") : _SC(""));
+        (history[historyPos].flags & VT_FLAG_ELLIPSIS) ? "..." : "");
 
-    VT_APRINTF(_SC("\n"));
+    VT_APRINTF("\n");
 #endif
-    VT_APRINTF(_SC("\n"));
+    VT_APRINTF("\n");
 
     for (int i = 0; i < VAR_TRACE_STACK_DEPTH; i++)
     {
@@ -154,13 +154,13 @@ void VarTrace::printStack(SQChar * buf, int size)
         break;
 
       if (size > written)
-        VT_APRINTF(_SC("  %s:%d\n"), hist.stack[i].fileName, hist.stack[i].line);
+        VT_APRINTF("  %s:%d\n", hist.stack[i].fileName, hist.stack[i].line);
     }
 
-    VT_APRINTF(_SC("\n"));
+    VT_APRINTF("\n");
   }
 
-  VT_APRINTF(_SC("set counter = %d\n"), setCnt);
+  VT_APRINTF("set counter = %d\n", setCnt);
 }
 
 #endif

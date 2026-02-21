@@ -49,9 +49,11 @@ public:
     virtual void visitLiteralExpr(LiteralExpr *expr);
 
     virtual void visitIncExpr(IncExpr *expr) { throwUnsupported(expr, "increment expression"); }
-    virtual void visitDeclExpr(DeclExpr *expr);
 
     virtual void visitArrayExpr(ArrayExpr *expr);
+    virtual void visitTableExpr(TableExpr *tbl);
+    virtual void visitClassExpr(ClassExpr *cls) { visitTableExpr(cls); }
+    virtual void visitFunctionExpr(FunctionExpr *f);
 
     virtual void visitCommaExpr(CommaExpr *expr) { throwUnsupported(expr, "comma expression"); }
     virtual void visitExternalValueExpr(ExternalValueExpr *expr) { throwUnsupported(expr, "external value expression"); }
@@ -80,12 +82,6 @@ public:
     virtual void visitValueDecl(ValueDecl *decl) { throwUnsupported(decl, "value declaration"); }
     virtual void visitVarDecl(VarDecl *decl) { throwUnsupported(decl, "variable declaration"); }
     virtual void visitParamDecl(ParamDecl *decl) { throwUnsupported(decl, "parameter declaration"); }
-
-    virtual void visitTableDecl(TableDecl *tbl);
-
-    virtual void visitClassDecl(ClassDecl *cls) { visitTableDecl(cls); }
-    virtual void visitFunctionDecl(FunctionDecl *f);
-    virtual void visitConstructorDecl(ConstructorDecl *ctr) { visitFunctionDecl(ctr); }
     virtual void visitConstDecl(ConstDecl *cnst) { visitDecl(cnst); }
     virtual void visitEnumDecl(EnumDecl *enm) { visitDecl(enm); }
     virtual void visitDeclGroup(DeclGroup *grp) { visitDecl(grp); }
@@ -95,7 +91,8 @@ public:
 
 private:
     void throwUnsupported(Node *n, const char *type);
-    void throwGeneralError(Node *n, const char *type);
+    void throwGeneralError(Node *n, const char *msg);
+    void throwGeneralErrorFmt(Node *n, const char *fmt, ...);
     SQObjectPtr convertLiteral(LiteralExpr *lit);
 };
 

@@ -9,7 +9,7 @@ namespace SQCompilation
 struct ImportInfo {
   int line;
   int column;
-  const SQChar *name;
+  const char *name;
 };
 
 enum SymbolKind {
@@ -34,11 +34,11 @@ const char *symbolContextName(SymbolKind k);
 struct SymbolInfo {
   union {
     const Id *x;
-    const FunctionDecl *f;
-    const ClassDecl *k;
+    const FunctionExpr *f;
+    const ClassExpr *k;
     const TableMember *m;
     const VarDecl *v;
-    const TableDecl *t;
+    const TableExpr *t;
     const ParamDecl *p;
     const EnumDecl *e;
     const ConstDecl *c;

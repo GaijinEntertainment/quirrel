@@ -34,7 +34,7 @@ SQSharedState::SQSharedState(SQAllocContext allocctx) :
 }
 
 
-bool CompileTypemask(SQIntVec &res,const SQChar *typemask)
+bool CompileTypemask(SQIntVec &res,const char *typemask)
 {
     SQInteger i = 0;
     SQInteger mask = 0;
@@ -75,7 +75,7 @@ bool CompileTypemask(SQIntVec &res,const SQChar *typemask)
     return true;
 }
 
-static SQClass *CreateBuiltInTypeClass(SQSharedState *ss, const SQChar *name, const SQRegFunction *funcz, SQObjectType type_id)
+static SQClass *CreateBuiltInTypeClass(SQSharedState *ss, const char *name, const SQRegFunction *funcz, SQObjectType type_id)
 {
     SQClass *cls = (SQClass *)SQ_MALLOC(ss->_alloc_ctx, sizeof(SQClass));
     new (cls) SQClass(ss, NULL);
@@ -136,21 +136,21 @@ void SQSharedState::Init()
 
     //adding type strings to avoid memory trashing
     //types names
-    newsysstring(_SC("null"));
-    newsysstring(_SC("table"));
-    newsysstring(_SC("array"));
-    newsysstring(_SC("closure"));
-    newsysstring(_SC("string"));
-    newsysstring(_SC("userdata"));
-    newsysstring(_SC("integer"));
-    newsysstring(_SC("float"));
-    newsysstring(_SC("userpointer"));
-    newsysstring(_SC("function"));
-    newsysstring(_SC("generator"));
-    newsysstring(_SC("thread"));
-    newsysstring(_SC("class"));
-    newsysstring(_SC("instance"));
-    newsysstring(_SC("bool"));
+    newsysstring("null");
+    newsysstring("table");
+    newsysstring("array");
+    newsysstring("closure");
+    newsysstring("string");
+    newsysstring("userdata");
+    newsysstring("integer");
+    newsysstring("float");
+    newsysstring("userpointer");
+    newsysstring("function");
+    newsysstring("generator");
+    newsysstring("thread");
+    newsysstring("class");
+    newsysstring("instance");
+    newsysstring("bool");
 #undef newsysstring
 
     //meta methods
@@ -163,25 +163,25 @@ void SQSharedState::Init()
 
 #undef MM_IMPL
 
-    _constructorstr = SQString::Create(this,_SC("constructor"));
+    _constructorstr = SQString::Create(this,"constructor");
     _registry = SQTable::Create(this,0);
     _consts = SQTable::Create(this,0);
     doc_objects = SQTable::Create(this,0);
 
-    _null_class     = CreateBuiltInTypeClass(this, "Null", _null_default_delegate_funcz, OT_NULL);
-    _integer_class  = CreateBuiltInTypeClass(this, "Integer", _integer_default_delegate_funcz, OT_INTEGER);
-    _float_class    = CreateBuiltInTypeClass(this, "Float", _float_default_delegate_funcz, OT_FLOAT);
-    _bool_class     = CreateBuiltInTypeClass(this, "Bool", _bool_default_delegate_funcz, OT_BOOL);
-    _string_class   = CreateBuiltInTypeClass(this, "String", _string_default_delegate_funcz, OT_STRING);
-    _array_class    = CreateBuiltInTypeClass(this, "Array", _array_default_delegate_funcz, OT_ARRAY);
-    _table_class    = CreateBuiltInTypeClass(this, "Table", _table_default_delegate_funcz, OT_TABLE);
-    _function_class = CreateBuiltInTypeClass(this, "Function", _closure_default_delegate_funcz, OT_CLOSURE);
-    _generator_class= CreateBuiltInTypeClass(this, "Generator", _generator_default_delegate_funcz, OT_GENERATOR);
-    _thread_class   = CreateBuiltInTypeClass(this, "Thread", _thread_default_delegate_funcz, OT_THREAD);
-    _class_class    = CreateBuiltInTypeClass(this, "Class", _class_default_delegate_funcz, OT_CLASS);
-    _instance_class = CreateBuiltInTypeClass(this, "Instance", _instance_default_delegate_funcz, OT_INSTANCE);
-    _weakref_class  = CreateBuiltInTypeClass(this, "WeakRef", _weakref_default_delegate_funcz, OT_WEAKREF);
-    _userdata_class = CreateBuiltInTypeClass(this, "UserData", _userdata_default_delegate_funcz, OT_USERDATA);
+    _null_class     = CreateBuiltInTypeClass(this, "Null", _null_default_type_methods_funcz, OT_NULL);
+    _integer_class  = CreateBuiltInTypeClass(this, "Integer", _integer_default_type_methods_funcz, OT_INTEGER);
+    _float_class    = CreateBuiltInTypeClass(this, "Float", _float_default_type_methods_funcz, OT_FLOAT);
+    _bool_class     = CreateBuiltInTypeClass(this, "Bool", _bool_default_type_methods_funcz, OT_BOOL);
+    _string_class   = CreateBuiltInTypeClass(this, "String", _string_default_type_methods_funcz, OT_STRING);
+    _array_class    = CreateBuiltInTypeClass(this, "Array", _array_default_type_methods_funcz, OT_ARRAY);
+    _table_class    = CreateBuiltInTypeClass(this, "Table", _table_default_type_methods_funcz, OT_TABLE);
+    _function_class = CreateBuiltInTypeClass(this, "Function", _closure_default_type_methods_funcz, OT_CLOSURE);
+    _generator_class= CreateBuiltInTypeClass(this, "Generator", _generator_default_type_methods_funcz, OT_GENERATOR);
+    _thread_class   = CreateBuiltInTypeClass(this, "Thread", _thread_default_type_methods_funcz, OT_THREAD);
+    _class_class    = CreateBuiltInTypeClass(this, "Class", _class_default_type_methods_funcz, OT_CLASS);
+    _instance_class = CreateBuiltInTypeClass(this, "Instance", _instance_default_type_methods_funcz, OT_INSTANCE);
+    _weakref_class  = CreateBuiltInTypeClass(this, "WeakRef", _weakref_default_type_methods_funcz, OT_WEAKREF);
+    _userdata_class = CreateBuiltInTypeClass(this, "UserData", _userdata_default_type_methods_funcz, OT_USERDATA);
 }
 
 SQSharedState::~SQSharedState()
@@ -416,18 +416,18 @@ void SQCollectable::RemoveFromChain(SQCollectable **chain,SQCollectable *c)
 }
 #endif
 
-SQChar* SQSharedState::GetScratchPad(SQInteger size)
+char* SQSharedState::GetScratchPad(SQInteger size)
 {
     SQInteger newsize;
     if(size>0) {
         if(_scratchpadsize < size) {
             newsize = size + (size>>1);
-            _scratchpad = (SQChar *)SQ_REALLOC(_alloc_ctx, _scratchpad, _scratchpadsize, newsize);
+            _scratchpad = (char *)SQ_REALLOC(_alloc_ctx, _scratchpad, _scratchpadsize, newsize);
             _scratchpadsize = newsize;
 
         }else if(_scratchpadsize >= (size<<5)) {
             newsize = _scratchpadsize >> 1;
-            _scratchpad = (SQChar *)SQ_REALLOC(_alloc_ctx, _scratchpad, _scratchpadsize, newsize);
+            _scratchpad = (char *)SQ_REALLOC(_alloc_ctx, _scratchpad, _scratchpadsize, newsize);
             _scratchpadsize = newsize;
         }
     }
@@ -623,7 +623,7 @@ void SQStringTable::AllocNodes(SQInteger size)
     memset(_strings,0,sizeof(SQString*)*_numofslots);
 }
 
-SQString *SQStringTable::Add(const SQChar *news,SQInteger len)
+SQString *SQStringTable::Add(const char *news,SQInteger len)
 {
     if(len<0)
         len = (SQInteger)strlen(news);
@@ -639,7 +639,7 @@ SQString *SQStringTable::Add(const SQChar *news,SQInteger len)
     new (t) SQString;
     t->_sharedstate = _sharedstate;
     memcpy(t->_val,news,len);
-    t->_val[len] = _SC('\0');
+    t->_val[len] = '\0';
     t->_len = len;
     t->_hash = newhash;
     t->_next = _strings[h];

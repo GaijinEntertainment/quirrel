@@ -101,7 +101,7 @@ return the integer value of a raw object reference.
 
 .. _sq_objtostring:
 
-.. c:function:: const SQChar* sq_objtostring(HSQOBJECT* po)
+.. c:function:: const char* sq_objtostring(HSQOBJECT* po)
 
     :param HSQOBJECT* po: pointer to an object handler
     :remarks: If the object doesn't reference a string it returns NULL.

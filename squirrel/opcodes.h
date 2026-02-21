@@ -130,7 +130,7 @@ enum SQOpcode
 #undef SQ_OPCODE
 
 struct SQInstructionDesc {
-    const SQChar *name;
+    const char *name;
 };
 
 struct SQInstruction
@@ -166,7 +166,7 @@ typedef sqvector<SQInstruction> SQInstructionVec;
 
 #define NEW_SLOT_STATIC_FLAG        0x02
 
-#define OP_GET_FLAG_ALLOW_DEF_DELEGATE  0x01
+#define OP_GET_FLAG_ALLOW_TYPE_METHODS  0x01
 #define OP_GET_FLAG_NO_ERROR            0x02
 #define OP_GET_FLAG_KEEP_VAL            0x04 //< only used with OP_GET_FLAG_NO_ERROR
 #define OP_GET_FLAG_TYPE_METHODS_ONLY   0x08

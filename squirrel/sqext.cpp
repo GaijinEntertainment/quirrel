@@ -22,8 +22,8 @@ SQRESULT sq_ext_getfuncinfo(HSQOBJECT obj, SQFunctionInfo *fi)
       return SQ_ERROR;
 
     fi->funcid = proto;
-    fi->name = sq_type(proto->_name) == OT_STRING?_stringval(proto->_name):_SC("unknown");
-    fi->source = sq_type(proto->_sourcename) == OT_STRING?_stringval(proto->_sourcename):_SC("unknown");
+    fi->name = sq_type(proto->_name) == OT_STRING?_stringval(proto->_name):"unknown";
+    fi->source = sq_type(proto->_sourcename) == OT_STRING?_stringval(proto->_sourcename):"unknown";
     fi->line = proto->_lineinfos->_first_line;
   }
   else
@@ -31,8 +31,8 @@ SQRESULT sq_ext_getfuncinfo(HSQOBJECT obj, SQFunctionInfo *fi)
     SQNativeClosure *c = _nativeclosure(obj);
 
     fi->funcid = (SQUserPointer)c->_function;
-    fi->name = sq_type(c->_name) == OT_STRING?_stringval(c->_name):_SC("unknown");
-    fi->source = _SC("native");
+    fi->name = sq_type(c->_name) == OT_STRING?_stringval(c->_name):"unknown";
+    fi->source = "native";
     fi->line = -1;
   }
 

@@ -219,6 +219,20 @@ function coroutine_fn() {
 
 println(resume coroutine_fn())
 
+
+function des1({x}) { return x + 1 }
+function des2([x]) { return x + 1 }
+function des3([x], {y}) { return x + y }
+function des4([x, z, w,], {y}) { return x + y }
+function des5(x, {y = null}) { return x + (y ?? 2) }
+function des6(x, {y = null, z: int|float = 1000}) { return x + (y ?? 2) + z }
+
+function [nodiscard, pure] des7([x: function = @() @() @() null, t, r: string = "abc555", g = "abc666"], {y = null, z: int|float = 1000,}, ...) {
+  let {p, i} = t
+  println()
+  return x + (y ?? 2) + z;
+}
+
 let i0 = 1 + 2
 let i1 = 1 - 2
 let i2 = 1 * 2
@@ -294,6 +308,26 @@ else if (708 == 709)
   fa2(710, 711)
 else
   fa2(712, 713)
+
+
+if (local cv = iv)
+  println(cv)
+
+
+if (local cv: int|null = iv)
+  println(cv)
+else
+  println(cv - 1)
+
+
+if (let cv: int = iv; cv > -1000000)
+  println(cv)
+
+
+if (local cv = iv)
+  println(cv)
+else if (local cv2 = iv)
+  println("fail")
 
 
 while (iv--)

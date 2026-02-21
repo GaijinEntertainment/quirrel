@@ -151,7 +151,7 @@ public:
         }
         return false;
     }
-    __forceinline void SetMemberField(uint32_t idx, const SQObjectPtr &val) {
+    void SetMemberField(uint32_t idx, const SQObjectPtr &val) {
         _values[_member_idxi(idx)] = val;
     }
     bool Set(const SQObjectPtr &key,const SQObjectPtr &val) {
@@ -177,7 +177,7 @@ public:
     void Mark(SQCollectable ** );
     SQObjectType GetType() {return OT_INSTANCE;}
 #endif
-    bool InstanceOf(SQClass *trg);
+    bool InstanceOf(const SQClass *trg) const;
     bool GetMetaMethod(SQVM *v,SQMetaMethod mm,SQObjectPtr &res);
 
     SQClass *_class;

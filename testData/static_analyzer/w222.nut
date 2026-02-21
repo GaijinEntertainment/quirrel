@@ -1,5 +1,3 @@
-//expect:w222
-
-function foo(a,x,y) { //-declared-never-used
+function _foo(a,x,y) {
   print(a[x < y])
 }

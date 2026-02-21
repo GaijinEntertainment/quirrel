@@ -1,0 +1,9 @@
+
+AN ERROR HAS OCCURRED [type 'string' differs from the declared type 'int']
+
+CALLSTACK
+*FUNCTION [__main__()] testData/diagnostics/compilation_errors/sema_errors/type_differs.nut:2
+
+LOCALS
+[vargv] ARRAY=[]
+[this] NULL

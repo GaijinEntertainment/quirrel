@@ -368,7 +368,7 @@ public:
                 break;
             }
 
-            case TO_ARRAYEXPR: {
+            case TO_ARRAY: {
                 ArrayExpr* expr = static_cast<ArrayExpr*>(node);
                 writeIndentedFmtString("ArrayExpr%s\n", loc);
                 if (!expr->initializers().empty()) {
@@ -604,14 +604,6 @@ public:
                 break;
             }
 
-            case TO_DECL_EXPR: {
-                DeclExpr* declExpr = static_cast<DeclExpr*>(node);
-                writeIndentedFmtString("DeclExpr%s\n", loc);
-                ++_indent;
-                declExpr->declaration()->visit(this);
-                --_indent;
-                break;
-            }
 
             case TO_VAR: {
                 VarDecl* decl = static_cast<VarDecl*>(node);
@@ -697,8 +689,8 @@ public:
             }
 
             case TO_TABLE: {
-                TableDecl* tbl = static_cast<TableDecl*>(node);
-                writeIndentedFmtString("TableDecl%s\n", loc);
+                TableExpr* tbl = static_cast<TableExpr*>(node);
+                writeIndentedFmtString("TableExpr%s\n", loc);
                 ++_indent;
                 for (auto& m : tbl->members()) {
                     writeIndentedFmtString("Field\n");
@@ -718,8 +710,8 @@ public:
             }
 
             case TO_CLASS: {
-                ClassDecl* cls = static_cast<ClassDecl*>(node);
-                writeIndentedFmtString("ClassDecl%s\n", loc);
+                ClassExpr* cls = static_cast<ClassExpr*>(node);
+                writeIndentedFmtString("ClassExpr%s\n", loc);
                 if (cls->classKey()) {
                     ++_indent;
                     writeIndentedFmtString("Key\n");
@@ -753,14 +745,13 @@ public:
                 break;
             }
 
-            case TO_CONSTRUCTOR:
             case TO_FUNCTION: {
-                FunctionDecl* fn = static_cast<FunctionDecl*>(node);
+                FunctionExpr* fn = static_cast<FunctionExpr*>(node);
                 sq_stringify_type_mask(scratchpad, sizeof(scratchpad), fn->getResultTypeMask());
 
-                writeIndentedFmtString("%s name = '%s', resultType = '%s'%s\n",
-                    op == TO_CONSTRUCTOR ? "ConstructorDecl" : fn->isLambda() ? "FunctionDecl 'lambda'" : "FunctionDecl",
-                    fn->name() ? fn->name() : "<anonymous>", scratchpad, loc);
+                writeIndentedFmtString("%s name = '%s', pure = %d, nodiscard = %d, resultType = '%s'%s\n",
+                    fn->isLambda() ? "FunctionExpr 'lambda'" : "FunctionExpr",
+                    fn->name() ? fn->name() : "<anonymous>", fn->isPure(), fn->isNodiscard(), scratchpad, loc);
 
                 ++_indent;
                 writeIndentedFmtString("Parameters count = %d\n", (int)fn->parameters().size());
@@ -774,6 +765,15 @@ public:
                         writeIndentedFmtString("DefaultValue\n");
                         ++_indent;
                         fn->parameters()[i]->defaultValue()->visit(this);
+                        --_indent;
+                        --_indent;
+                    }
+
+                    if (fn->parameters()[i]->getDestructuring()) {
+                        ++_indent;
+                        writeIndentedFmtString("Destructuring\n");
+                        ++_indent;
+                        fn->parameters()[i]->getDestructuring()->visit(this);
                         --_indent;
                         --_indent;
                     }

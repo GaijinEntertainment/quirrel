@@ -8,9 +8,9 @@ Quirrel documentation
 
 .. toctree::
    :maxdepth: 1
-
+   
    introduction.rst
-   diff_from_original.rst
+   diff_from_squirrel.rst
    reference/index.rst
    stdlib/index.rst
    modules/index.rst

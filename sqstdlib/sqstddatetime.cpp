@@ -19,7 +19,7 @@ static SQInteger _datetime_time(HSQUIRRELVM v)
     return 1;
 }
 
-static void _set_integer_slot(HSQUIRRELVM v,const SQChar *name,SQInteger val)
+static void _set_integer_slot(HSQUIRRELVM v,const char *name,SQInteger val)
 {
     sq_pushstring(v,name,-1);
     sq_pushinteger(v,val);
@@ -47,26 +47,26 @@ static SQInteger _datetime_date(HSQUIRRELVM v)
     else
         date = localtime(&t);
     if(!date)
-        return sq_throwerror(v,_SC("crt api failure"));
+        return sq_throwerror(v,"crt api failure");
     sq_newtable(v);
-    _set_integer_slot(v, _SC("sec"), date->tm_sec);
-    _set_integer_slot(v, _SC("min"), date->tm_min);
-    _set_integer_slot(v, _SC("hour"), date->tm_hour);
-    _set_integer_slot(v, _SC("day"), date->tm_mday);
-    _set_integer_slot(v, _SC("month"), date->tm_mon);
-    _set_integer_slot(v, _SC("year"), date->tm_year+1900);
-    _set_integer_slot(v, _SC("wday"), date->tm_wday);
-    _set_integer_slot(v, _SC("yday"), date->tm_yday);
+    _set_integer_slot(v, "sec", date->tm_sec);
+    _set_integer_slot(v, "min", date->tm_min);
+    _set_integer_slot(v, "hour", date->tm_hour);
+    _set_integer_slot(v, "day", date->tm_mday);
+    _set_integer_slot(v, "month", date->tm_mon);
+    _set_integer_slot(v, "year", date->tm_year+1900);
+    _set_integer_slot(v, "wday", date->tm_wday);
+    _set_integer_slot(v, "yday", date->tm_yday);
     return 1;
 }
 
 
 
-#define _DECL_FUNC(name,nparams,pmask) {_SC(#name),_datetime_##name,nparams,pmask}
+#define _DECL_FUNC(name,nparams,pmask) {#name,_datetime_##name,nparams,pmask}
 static const SQRegFunction datetimelib_funcs[]={
     _DECL_FUNC(clock,0,NULL),
     _DECL_FUNC(time,1,NULL),
-    _DECL_FUNC(date,-1,_SC(".nn")),
+    _DECL_FUNC(date,-1,".nn"),
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 #undef _DECL_FUNC

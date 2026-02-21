@@ -42,13 +42,13 @@ struct SQStreamSerializer {
 
     struct ClassDesc {
         int index; // -1 if not serialized yet
-        const SQChar *className;
+        const char *className;
     };
 
     HSQUIRRELVM vm;
     SQStream *stream;
-    const SQChar *errorString;
-    STDLIB::unordered_map<SQChar *, uint32_t> stringTable; // string -> index mapping
+    const char *errorString;
+    STDLIB::unordered_map<char *, uint32_t> stringTable; // string -> index mapping
     STDLIB::vector<SQObjectPtr> stringList; // to keep track of strings
     STDLIB::unordered_map<SQClass *, ClassDesc> classTable;
     STDLIB::vector<SQObjectPtr> classList; // to keep track of classes
@@ -79,7 +79,7 @@ struct SQStreamSerializer {
             return true;
 
         if (!sq_istable(availableClasses)) {
-            errorString = _SC("Available classes must be a table (class_name -> class)");
+            errorString = "Available classes must be a table (class_name -> class)";
             return false;
         }
 
@@ -96,13 +96,13 @@ struct SQStreamSerializer {
             if (!sq_isclass(value))
                 continue;
 
-            const SQChar *className = _stringval(key);
+            const char *className = _stringval(key);
             SQClass *cls = _class(value);
             classTable[cls] = { -1, className };
         }
 
-        getstateProcName = SQString::Create(_ss(vm), _SC("__getstate"));
-        setstateProcName = SQString::Create(_ss(vm), _SC("__setstate"));
+        getstateProcName = SQString::Create(_ss(vm), "__getstate");
+        setstateProcName = SQString::Create(_ss(vm), "__setstate");
         return true;
     }
 
@@ -197,7 +197,7 @@ struct SQStreamSerializer {
             }
             else {
                 // check if the string is new or already in the table
-                SQChar *str = _stringval(obj);
+                char *str = _stringval(obj);
                 auto it = stringTable.find(str);
                 if (it == stringTable.end()) {
                     if (len <= UINT8_MAX) {
@@ -205,21 +205,21 @@ struct SQStreamSerializer {
                         stream->Write(&v, sizeof(v));
                         uint8_t index = static_cast<uint8_t>(len);
                         stream->Write(&index, sizeof(uint8_t));
-                        stream->Write(str, len * sizeof(SQChar));
+                        stream->Write(str, len * sizeof(char));
                     }
                     else if (len <= UINT16_MAX) {
                         v |= 2; // 2-byte string
                         stream->Write(&v, sizeof(v));
                         uint16_t index = static_cast<uint16_t>(len);
                         stream->Write(&index, sizeof(uint16_t));
-                        stream->Write(str, len * sizeof(SQChar));
+                        stream->Write(str, len * sizeof(char));
                     }
                     else {
                         v |= 3; // 4-byte string
                         stream->Write(&v, sizeof(v));
                         uint32_t index = static_cast<uint32_t>(len);
                         stream->Write(&index, sizeof(uint32_t));
-                        stream->Write(str, len * sizeof(SQChar));
+                        stream->Write(str, len * sizeof(char));
                     }
 
                     stringTable[str] = stringCounter++;
@@ -250,7 +250,7 @@ struct SQStreamSerializer {
         else if (sq_isarray(obj)) {
             depth++;
             if (depth > MAX_DEPTH) {
-                errorString = _SC("Maximum serialization depth exceeded");
+                errorString = "Maximum serialization depth exceeded";
                 return false;
             }
 
@@ -284,7 +284,7 @@ struct SQStreamSerializer {
         else if (sq_istable(obj)) {
             depth++;
             if (depth > MAX_DEPTH) {
-                errorString = _SC("Maximum serialization depth exceeded");
+                errorString = "Maximum serialization depth exceeded";
                 return false;
             }
 
@@ -326,7 +326,7 @@ struct SQStreamSerializer {
         else if (sq_isinstance(obj)) {
             depth++;
             if (depth > MAX_DEPTH) {
-                errorString = _SC("Maximum serialization depth exceeded");
+                errorString = "Maximum serialization depth exceeded";
                 return false;
             }
 
@@ -336,19 +336,19 @@ struct SQStreamSerializer {
 
             auto it = classTable.find(cls);
             if (it == classTable.end()) {
-                errorString = _SC("Unsupported class for serialization");
+                errorString = "Unsupported class for serialization";
                 return false;
             }
 
             SQObjectPtr closure;
             if (_instance(obj)->Get(getstateProcName, closure)) {
                 if (!sq_isclosure(closure) && !sq_isnativeclosure(closure)) {
-                    errorString = _SC("Instance method __getstate must be a closure");
+                    errorString = "Instance method __getstate must be a closure";
                     return false;
                 }
             }
             else {
-                errorString = _SC("Instance must have __getstate method for serialization");
+                errorString = "Instance must have __getstate method for serialization";
                 return false;
             }
 
@@ -358,7 +358,7 @@ struct SQStreamSerializer {
                 // New class, write class name
                 int classNameLen = strlen(classDesc.className);
                 if (classNameLen > UINT8_MAX) {
-                    errorString = _SC("Class name too long for serialization");
+                    errorString = "Class name too long for serialization";
                     return false;
                 }
 
@@ -366,12 +366,12 @@ struct SQStreamSerializer {
                 uint8_t v = TP_INSTANCE | 0x0F; // 0x0F indicates a new class
                 stream->Write(&v, sizeof(v));
                 stream->Write(&classNameLen8, sizeof(classNameLen8));
-                stream->Write(classDesc.className, classNameLen * sizeof(SQChar));
+                stream->Write(classDesc.className, classNameLen * sizeof(char));
 
                 classDesc.index = classCounter++;
 
                 if (classCounter >= 0x0EFF) {
-                    errorString = _SC("Too many different classes for serialization");
+                    errorString = "Too many different classes for serialization";
                     return false;
                 }
             }
@@ -396,7 +396,7 @@ struct SQStreamSerializer {
             SQInteger top = sq_gettop(vm);
             SQRESULT res = sq_call(vm, countOfParams > 1 ? 2 : 1, SQTrue, SQTrue);
             if (SQ_FAILED(res)) {
-                errorString = _SC("Failed to call __getstate method");
+                errorString = "Failed to call __getstate method";
                 sq_pop(vm, countOfParams > 1 ? 2 : 1); // pop arguments
                 return false;
             }
@@ -412,7 +412,7 @@ struct SQStreamSerializer {
             SQInteger newTop = sq_gettop(vm);
             if (newTop != referenceStackTop) {
                 assert(newTop == referenceStackTop);
-                errorString = _SC("Unexpected stack size after __getstate call");
+                errorString = "Unexpected stack size after __getstate call";
                 return false;
             }
 
@@ -420,7 +420,7 @@ struct SQStreamSerializer {
             return true;
         }
         else {
-            errorString = _SC("Unsupported object type for serialization");
+            errorString = "Unsupported object type for serialization";
             return false;
         }
 
@@ -444,7 +444,7 @@ struct SQStreamSerializer {
         stream->Write(&startMarker, sizeof(startMarker));
 
         if (!serializeObject(obj))
-            return sq_throwerror(vm, errorString ? errorString : _SC("Serialization failed"));
+            return sq_throwerror(vm, errorString ? errorString : "Serialization failed");
 
         uint8_t endMarker = END_MARKER;
         stream->Write(&endMarker, sizeof(endMarker));
@@ -453,7 +453,7 @@ struct SQStreamSerializer {
 
     bool unexpectedEndOfData()
     {
-        errorString = _SC("Unexpected end of data during deserialization");
+        errorString = "Unexpected end of data during deserialization";
         return false;
     }
 
@@ -512,7 +512,7 @@ struct SQStreamSerializer {
                         return true;
                     }
                     default:
-                        errorString = _SC("Invalid integer type during deserialization");
+                        errorString = "Invalid integer type during deserialization";
                         return false;
                 }
                 break;
@@ -541,7 +541,7 @@ struct SQStreamSerializer {
                         return true;
                     }
                     default:
-                        errorString = _SC("Invalid float type during deserialization");
+                        errorString = "Invalid float type during deserialization";
                         return false;
                 }
                 break;
@@ -549,11 +549,11 @@ struct SQStreamSerializer {
 
             case TP_STRING: {
                 uint32_t len = 0;
-                const SQChar *data = nullptr;
+                const char *data = nullptr;
 
                 if (v < 4) {
                     switch (v) {
-                        case 0: sq_pushstring(vm, _SC(""), 0); return true; // Empty string
+                        case 0: sq_pushstring(vm, "", 0); return true; // Empty string
                         case 1: {
                             uint8_t len8 = 0;
                             if (stream->Read(&len8, sizeof(len8)) != sizeof(len8))
@@ -577,8 +577,8 @@ struct SQStreamSerializer {
                         break;
                     }
                     assert(len < 80 * 1024 * 1024); // 80 Mb string is too much
-                    data = sq_getscratchpad(vm, len * sizeof(SQChar));
-                    if (stream->Read((void *)data, len * sizeof(SQChar)) != len * sizeof(SQChar))
+                    data = sq_getscratchpad(vm, len * sizeof(char));
+                    if (stream->Read((void *)data, len * sizeof(char)) != len * sizeof(char))
                         return unexpectedEndOfData();
 
                     SQObjectPtr s(SQString::Create(_ss(vm), data, len));
@@ -607,12 +607,12 @@ struct SQStreamSerializer {
                             return unexpectedEndOfData();
                     }
                     else {
-                        errorString = _SC("Invalid string type during deserialization");
+                        errorString = "Invalid string type during deserialization";
                         return false;
                     }
 
                     if (index >= stringList.size()) {
-                        errorString = _SC("String index out of bounds during deserialization");
+                        errorString = "String index out of bounds during deserialization";
                         return false;
                     }
 
@@ -640,7 +640,7 @@ struct SQStreamSerializer {
                     size = size32;
                 }
                 else {
-                    errorString = _SC("Invalid array type during deserialization");
+                    errorString = "Invalid array type during deserialization";
                     return false;
                 }
 
@@ -677,7 +677,7 @@ struct SQStreamSerializer {
                     size = size32;
                 }
                 else {
-                    errorString = _SC("Invalid table type during deserialization");
+                    errorString = "Invalid table type during deserialization";
                     return false;
                 }
 
@@ -709,21 +709,21 @@ struct SQStreamSerializer {
                     if (stream->Read(&classNameLen8, sizeof(classNameLen8)) != sizeof(classNameLen8))
                         return unexpectedEndOfData();
                     uint32_t classNameLen = static_cast<uint32_t>(classNameLen8);
-                    SQChar *className = sq_getscratchpad(vm, classNameLen * sizeof(SQChar));
-                    if (stream->Read(className, classNameLen * sizeof(SQChar)) != classNameLen * sizeof(SQChar))
+                    char *className = sq_getscratchpad(vm, classNameLen * sizeof(char));
+                    if (stream->Read(className, classNameLen * sizeof(char)) != classNameLen * sizeof(char))
                         return unexpectedEndOfData();
 
                     SQString *classNameStr = SQString::Create(_ss(vm), className, classNameLen);
 
                     if (!sq_istable(availableClasses)) {
-                        errorString = _SC("Instance found during deserialization, but available classes not set or not a table");
+                        errorString = "Instance found during deserialization, but available classes not set or not a table";
                         return false;
                     }
 
                     SQTable *tbl = _table(availableClasses);
                     SQObjectPtr classObj;
                     if (!tbl->Get(SQObjectPtr(classNameStr), classObj)) {
-                        errorString = _SC("Class not found in available classes during deserialization");
+                        errorString = "Class not found in available classes during deserialization";
                         return false;
                     }
 
@@ -745,7 +745,7 @@ struct SQStreamSerializer {
                         return unexpectedEndOfData();
                     index = ((v & 0x0F) << 8) | static_cast<uint32_t>(restOfIndex);
                     if (index >= classList.size()) {
-                        errorString = _SC("Class index out of bounds during deserialization");
+                        errorString = "Class index out of bounds during deserialization";
                         return false;
                     }
                 }
@@ -755,12 +755,12 @@ struct SQStreamSerializer {
                 SQObjectPtr setStateClosure;
                 if (_class(classObj)->Get(setstateProcName, setStateClosure)) {
                     if (!sq_isclosure(setStateClosure) && !sq_isnativeclosure(setStateClosure)) {
-                        errorString = _SC("Class method __setstate must be a closure");
+                        errorString = "Class method __setstate must be a closure";
                         return false;
                     }
                 }
                 else {
-                    errorString = _SC("Class must have __setstate method for deserialization");
+                    errorString = "Class must have __setstate method for deserialization";
                     return false;
                 }
 
@@ -771,7 +771,7 @@ struct SQStreamSerializer {
                 sq_pushobject(vm, classObj);
                 sq_pushnull(vm); // environment
                 if (SQ_FAILED(sq_call(vm, 1, SQTrue, SQTrue))) {
-                    errorString = _SC("Failed to instantiate class during deserialization");
+                    errorString = "Failed to instantiate class during deserialization";
                     sq_settop(vm, stackbase);
                     return false;
                 }
@@ -793,7 +793,7 @@ struct SQStreamSerializer {
                 SQInteger top = sq_gettop(vm);
                 SQRESULT res = sq_call(vm, countOfSetStateParams > 2 ? 3 : 2, SQTrue, SQTrue);
                 if (SQ_FAILED(res)) {
-                    errorString = _SC("Failed to call __setstate method");
+                    errorString = "Failed to call __setstate method";
                     sq_settop(vm, stackbase); // restore stack
                     return false;
                 }
@@ -803,7 +803,7 @@ struct SQStreamSerializer {
             }
 
             default:
-                errorString = _SC("Unsupported object type during deserialization");
+                errorString = "Unsupported object type during deserialization";
                 return false;
         }
     }
@@ -821,7 +821,7 @@ struct SQStreamSerializer {
 
         if (paramssize != nargs && !(ndef && nargs < paramssize && (paramssize - nargs) <= ndef))
         {
-          errorString = _SC("Class constructor must accept call with all default arguments during deserialization");
+          errorString = "Class constructor must accept call with all default arguments during deserialization";
           return false;
         }
         return true;
@@ -831,13 +831,13 @@ struct SQStreamSerializer {
         SQNativeClosure *nativeClosure = _nativeclosure(constructor);
         if (nativeClosure->_nparamscheck > 1)
         {
-          errorString = _SC("Class constructor must accept call with all default arguments during deserialization");
+          errorString = "Class constructor must accept call with all default arguments during deserialization";
           return false;
         }
         return true;
       }
 
-      errorString = _SC("Class constructor must be a closure or native closure during deserialization");
+      errorString = "Class constructor must be a closure or native closure during deserialization";
       return false;
     }
 
@@ -856,18 +856,18 @@ struct SQStreamSerializer {
 
         uint8_t startMarker = 0;
         if (stream->Read(&startMarker, sizeof(startMarker)) != sizeof(startMarker))
-            return sq_throwerror(vm, _SC("Unexpected end of data during deserialization"));
+            return sq_throwerror(vm, "Unexpected end of data during deserialization");
         if (startMarker != START_MARKER)
-            return sq_throwerror(vm, _SC("Invalid start marker during deserialization"));
+            return sq_throwerror(vm, "Invalid start marker during deserialization");
 
         if (!deserializeObject())
-            return sq_throwerror(vm, errorString ? errorString : _SC("Deserialization failed"));
+            return sq_throwerror(vm, errorString ? errorString : "Deserialization failed");
 
         uint8_t endMarker = 0;
         if (stream->Read(&endMarker, sizeof(endMarker)) != sizeof(endMarker))
-            return sq_throwerror(vm, _SC("Unexpected end of data during deserialization"));
+            return sq_throwerror(vm, "Unexpected end of data during deserialization");
         if (endMarker != END_MARKER)
-            return sq_throwerror(vm, _SC("Invalid end marker during deserialization"));
+            return sq_throwerror(vm, "Invalid end marker during deserialization");
 
         return SQ_OK;
     }

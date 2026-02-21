@@ -58,7 +58,7 @@ struct SQFuncState
     SQInteger GetUpTarget(SQInteger n);
     void DiscardTarget();
     bool IsLocal(SQUnsignedInteger stkpos);
-    SQObjectPtr CreateString(const SQChar *s,SQInteger len = -1);
+    SQObjectPtr CreateString(const char *s,SQInteger len = -1);
     void CheckForPurity();
     SQUnsignedInteger lang_features;
     SQInteger _returnexp;

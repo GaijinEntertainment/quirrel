@@ -1,6 +1,4 @@
-//expect:w220
-
-function foo(a){ //-declared-never-used
+function _foo(a) {
   foreach(x in a?.y()) {
     print(x)
   }

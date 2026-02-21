@@ -11,12 +11,14 @@
 // and another 256 slots for stack operations from native code
 #define STACK_GROW_THRESHOLD (256 * 2)
 
+#define MAX_SQ_STACK_SIZE 100000
+
 #define SQ_SUSPEND_FLAG -666
 #define SQ_TAILCALL_FLAG -777
 
 #define GET_FLAG_RAW                0x00000001
 #define GET_FLAG_DO_NOT_RAISE_ERROR 0x00000002
-#define GET_FLAG_NO_DEF_DELEGATE    0x00000004
+#define GET_FLAG_NO_TYPE_METHODS    0x00000004
 #define GET_FLAG_TYPE_METHODS_ONLY  0x00000008
 
 //base lib
@@ -52,8 +54,8 @@ struct SQVM : public CHAINABLE_OBJ
 
 typedef sqvector<CallInfo> CallInfoVec;
 public:
-    void DebugHookProxy(SQInteger type, const SQChar * sourcename, SQInteger line, const SQChar * funcname);
-    static void _DebugHookProxy(HSQUIRRELVM v, SQInteger type, const SQChar * sourcename, SQInteger line, const SQChar * funcname);
+    void DebugHookProxy(SQInteger type, const char * sourcename, SQInteger line, const char * funcname);
+    static void _DebugHookProxy(HSQUIRRELVM v, SQInteger type, const char * sourcename, SQInteger line, const char * funcname);
     enum ExecutionType { ET_CALL, ET_RESUME_GENERATOR, ET_RESUME_VM,ET_RESUME_THROW_VM };
     SQVM(SQSharedState *ss);
     ~SQVM();
@@ -73,14 +75,14 @@ public:
     bool Call(const SQObjectPtr &closure, SQInteger nparams, SQInteger stackbase, SQObjectPtr &outres,SQBool invoke_err_handler);
     SQRESULT Suspend();
 
-    bool GetVarTrace(const SQObjectPtr &self, const SQObjectPtr &key, SQChar * buf, int buf_size);
+    bool GetVarTrace(const SQObjectPtr &self, const SQObjectPtr &key, char * buf, int buf_size);
 
     void CallDebugHook(SQInteger type,SQInteger forcedline=0);
     void CallErrorHandler(const SQObjectPtr &e);
     SQInteger GetImpl(const SQObjectPtr &self, const SQObjectPtr &key, SQObjectPtr &dest, SQUnsignedInteger getflags);
     bool Get(const SQObjectPtr &self, const SQObjectPtr &key, SQObjectPtr &dest, SQUnsignedInteger getflags);
     SQInteger FallBackGet(const SQObjectPtr &self,const SQObjectPtr &key,SQObjectPtr &dest);
-    bool InvokeDefaultDelegate(const SQObjectPtr &self,const SQObjectPtr &key,SQObjectPtr &dest);
+    bool InvokeTypeMethod(const SQObjectPtr &self,const SQObjectPtr &key,SQObjectPtr &dest);
     SQClass* GetBuiltInClassForType(SQObjectType type);
     bool Set(const SQObjectPtr &self, const SQObjectPtr &key, const SQObjectPtr &val);
     SQInteger FallBackSet(const SQObjectPtr &self,const SQObjectPtr &key,const SQObjectPtr &val);
@@ -90,13 +92,15 @@ public:
     bool ObjCmp(const SQObjectPtr &o1, const SQObjectPtr &o2,SQInteger &res);
     bool StringCat(const SQObjectPtr &str, const SQObjectPtr &obj, SQObjectPtr &dest);
     static bool IsEqual(const SQObject &o1,const SQObject &o2);
+    static bool IsInstanceOf(const SQObject &obj, const SQClass *cls);
     bool ToString(const SQObjectPtr &o,SQObjectPtr &res);
     SQString *PrintObjVal(const SQObject &o);
 
 
-    void Raise_Error(const SQChar *s, ...);
+    void Raise_Error(const char *s, ...);
     void Raise_Error(const SQObjectPtr &desc);
     void Raise_IdxError(const SQObjectPtr &o);
+    void Raise_MetamethodError(const char *mmname);
     void Raise_CompareError(const SQObject &o1, const SQObject &o2);
     void Raise_ParamTypeError(SQInteger nparam,SQInteger typemask,SQInteger type);
 

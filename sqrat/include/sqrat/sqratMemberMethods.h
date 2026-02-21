@@ -45,7 +45,7 @@ struct SqMemberThunkGen<C, MemberFunc, R(A...)>
   static SQInteger Func(HSQUIRRELVM vm)
   {
     if (sq_gettop(vm) != 2 + sizeof...(A))
-      return sq_throwerror(vm, _SC("wrong number of parameters"));
+      return sq_throwerror(vm, "wrong number of parameters");
 
     if (!vargs::check_var_types<A...>(vm, 2))
       return SQ_ERROR;
@@ -69,7 +69,7 @@ struct SqMemberThunkGen<C, MemberFunc, void(A...)>
   static SQInteger Func(HSQUIRRELVM vm)
   {
     if (sq_gettop(vm) != 2 + sizeof...(A))
-      return sq_throwerror(vm, _SC("wrong number of parameters"));
+      return sq_throwerror(vm, "wrong number of parameters");
 
     if (!vargs::check_var_types<A...>(vm, 2))
       return SQ_ERROR;

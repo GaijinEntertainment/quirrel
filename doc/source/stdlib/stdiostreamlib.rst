@@ -1,8 +1,8 @@
 .. _stdlib_stdbloblib:
 
-==================
+====================
 The IOstream library
-==================
+====================
 The iostream library implements binary data manipulations routines. The library is
 based on `blob objects` that represent a buffer of arbitrary
 binary data.

@@ -101,7 +101,7 @@ In script:
 
 Full signature of SquirrelFunc:
 
-.. cpp:function:: TableBase& Table::SquirrelFunc(const SQChar* name, SQFUNCTION func, SQInteger nparamscheck, const SQChar *typemask=nullptr, const SQChar *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr)
+.. cpp:function:: TableBase& Table::SquirrelFunc(const char* name, SQFUNCTION func, SQInteger nparamscheck, const char *typemask=nullptr, const char *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr)
 
   :param name: should be string, func should be function that works with Quirrel
   :param nparamscheck: number of arguments of function. If negative - function can have at least this number of arguments but can accept more.

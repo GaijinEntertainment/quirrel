@@ -137,7 +137,7 @@ public:
 
     /// Called by Sqrat to set up an instance on the stack for the template class (not allowed in this allocator)
     static SQInteger New(HSQUIRRELVM vm) {
-        return sqstd_throwerrorf(vm, _SC("Construction of %s is not allowed"), ClassType<C>::ClassName().c_str());
+        return sqstd_throwerrorf(vm, "Construction of %s is not allowed", ClassType<C>::ClassName().c_str());
     }
 
     /// Called by Sqrat to set up the instance at idx on the stack as a copy of a value of the same type (not used in this allocator)
@@ -145,7 +145,7 @@ public:
         SQRAT_UNUSED(vm);
         SQRAT_UNUSED(idx);
         SQRAT_UNUSED(value);
-        return sqstd_throwerrorf(vm, _SC("Cloning of %s is not allowed"), ClassType<C>::ClassName().c_str());
+        return sqstd_throwerrorf(vm, "Cloning of %s is not allowed", ClassType<C>::ClassName().c_str());
     }
 };
 
@@ -157,7 +157,7 @@ class CopyOnly {
 public:
     /// Called by Sqrat to set up an instance on the stack for the template class (not allowed in this allocator)
     static SQInteger New(HSQUIRRELVM vm) {
-        return sqstd_throwerrorf(vm, _SC("Construction of %s is not allowed"), ClassType<C>::ClassName().c_str());
+        return sqstd_throwerrorf(vm, "Construction of %s is not allowed", ClassType<C>::ClassName().c_str());
     }
 
     /// Called by Sqrat to set up the instance at idx on the stack as a copy of a value of the same type
@@ -204,7 +204,7 @@ public:
         SQRAT_UNUSED(vm);
         SQRAT_UNUSED(idx);
         SQRAT_UNUSED(value);
-        return sqstd_throwerrorf(vm, _SC("Cloning of %s is not allowed"), ClassType<C>::ClassName().c_str());
+        return sqstd_throwerrorf(vm, "Cloning of %s is not allowed", ClassType<C>::ClassName().c_str());
     }
 };
 

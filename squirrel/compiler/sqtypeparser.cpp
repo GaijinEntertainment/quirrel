@@ -4,39 +4,39 @@
 
 struct SQRawTypeDecl
 {
-    const SQChar * names[3]; // only [0] is valid, the rest are synonyms
+    const char * names[3]; // only [0] is valid, the rest are synonyms
     SQUnsignedInteger32 typeMask;
 };
 
 static SQRawTypeDecl rawTypeDecls[] = {
-    { { _SC("bool"), _SC("boolean"), NULL }, _RT_BOOL },
-    { { _SC("number"), _SC("num"), NULL }, (_RT_FLOAT | _RT_INTEGER) },
-    { { _SC("int"), _SC("integer"), NULL }, _RT_INTEGER },
-    { { _SC("float"), _SC("double"), _SC("real") }, _RT_FLOAT },
-    { { _SC("string"), _SC("str"), NULL }, _RT_STRING },
-    { { _SC("table"), _SC("dict"), _SC("map") }, _RT_TABLE },
-    { { _SC("array"), _SC("list"), _SC("vector") }, _RT_ARRAY },
-    { { _SC("userdata"), _SC("user"), _SC("object") }, _RT_USERDATA },
-    { { _SC("function"), _SC("func"), _SC("closure") }, (_RT_CLOSURE | _RT_NATIVECLOSURE) },
-    { { _SC("generator"), _SC("gen"), _SC("yield") }, _RT_GENERATOR },
-    { { _SC("userpointer"), _SC("ptr"), _SC("pointer") }, _RT_USERPOINTER },
-    { { _SC("thread"), _SC("coroutine"), _SC("fiber") }, _RT_THREAD },
-    { { _SC("instance"), _SC("inst"), _SC("object") }, _RT_INSTANCE },
-    { { _SC("class"), NULL, NULL }, _RT_CLASS },
-    { { _SC("weakref"), _SC("reference"), _SC("ref") }, _RT_WEAKREF },
-    { { _SC("null"), _SC("nil"), _SC("none") }, _RT_NULL },
-    { { _SC("any"), NULL, NULL }, ~0u },
+    { { "bool", "boolean", NULL }, _RT_BOOL },
+    { { "number", "num", NULL }, (_RT_FLOAT | _RT_INTEGER) },
+    { { "int", "integer", NULL }, _RT_INTEGER },
+    { { "float", "double", "real" }, _RT_FLOAT },
+    { { "string", "str", NULL }, _RT_STRING },
+    { { "table", "dict", "map" }, _RT_TABLE },
+    { { "array", "list", "vector" }, _RT_ARRAY },
+    { { "userdata", "user", "object" }, _RT_USERDATA },
+    { { "function", "func", "closure" }, (_RT_CLOSURE | _RT_NATIVECLOSURE) },
+    { { "generator", "gen", "yield" }, _RT_GENERATOR },
+    { { "userpointer", "ptr", "pointer" }, _RT_USERPOINTER },
+    { { "thread", "coroutine", "fiber" }, _RT_THREAD },
+    { { "instance", "inst", "object" }, _RT_INSTANCE },
+    { { "class", NULL, NULL }, _RT_CLASS },
+    { { "weakref", "reference", "ref" }, _RT_WEAKREF },
+    { { "null", "nil", "none" }, _RT_NULL },
+    { { "any", NULL, NULL }, ~0u },
     { { NULL, NULL, NULL }, 0 }
 };
 
-static const SQChar* skip_spaces(const SQChar* s)
+static const char* skip_spaces(const char* s)
 {
     while (*s && sq_isspace(*s))
         s++;
     return s;
 }
 
-static bool is_str_equal_ignore_case(const SQChar* str1, const SQChar* str2)
+static bool is_str_equal_ignore_case(const char* str1, const char* str2)
 {
     while (*str1 && *str2 && sq_tolower(*str1) == sq_tolower(*str2))
     {
@@ -46,20 +46,20 @@ static bool is_str_equal_ignore_case(const SQChar* str1, const SQChar* str2)
     return *str1 == *str2;
 }
 
-static bool parse_identifier(SQVM* vm, const SQChar*& s, SQObjectPtr& res)
+static bool parse_identifier(SQVM* vm, const char*& s, SQObjectPtr& res)
 {
-    const SQChar* p = s;
-    if (!sq_isalpha(*p) && *p != _SC('_'))
+    const char* p = s;
+    if (!sq_isalpha(*p) && *p != '_')
         return false;
     p++;
-    while (sq_isalnum(*p) || *p == _SC('_'))
+    while (sq_isalnum(*p) || *p == '_')
         p++;
     res = SQString::Create(_ss(vm), s, p - s);
     s = p;
     return true;
 }
 
-bool sq_type_string_to_mask(const SQChar* type_name, SQUnsignedInteger32& mask, const SQChar*& suggestion)
+bool sq_type_string_to_mask(const char* type_name, SQUnsignedInteger32& mask, const char*& suggestion)
 {
     bool found = false;
     mask = 0;
@@ -80,10 +80,10 @@ bool sq_type_string_to_mask(const SQChar* type_name, SQUnsignedInteger32& mask, 
     return found;
 }
 
-static bool parse_type_mask(SQVM* vm, const SQChar*& s, SQUnsignedInteger32& mask, SQInteger& error_pos, SQObjectPtr& error_string)
+static bool parse_type_mask(SQVM* vm, const char*& s, SQUnsignedInteger32& mask, SQInteger& error_pos, SQObjectPtr& error_string)
 {
     mask = 0;
-    const SQChar* p = skip_spaces(s);
+    const char* p = skip_spaces(s);
     bool hasBrackets = false;
 
     if (*p == '(')
@@ -99,11 +99,11 @@ static bool parse_type_mask(SQVM* vm, const SQChar*& s, SQUnsignedInteger32& mas
         if (!parse_identifier(vm, p, typeName))
         {
             error_pos = p - s;
-            error_string = SQString::Create(_ss(vm), _SC("Expected type name"));
+            error_string = SQString::Create(_ss(vm), "Expected type name");
             return false;
         }
 
-        const SQChar* suggestion = nullptr;
+        const char* suggestion = nullptr;
         SQUnsignedInteger32 currentTypeMask = 0;
 
         bool found = sq_type_string_to_mask(_stringval(typeName), currentTypeMask, suggestion);
@@ -111,11 +111,11 @@ static bool parse_type_mask(SQVM* vm, const SQChar*& s, SQUnsignedInteger32& mas
         if (!found)
         {
             error_pos = p - s;
-            SQChar buf[256];
+            char buf[256];
             if (suggestion)
-                scsprintf(buf, 256, _SC("Invalid type name '%s', did you mean '%s'?"), _stringval(typeName), suggestion);
+                scsprintf(buf, 256, "Invalid type name '%s', did you mean '%s'?", _stringval(typeName), suggestion);
             else
-                scsprintf(buf, 256, _SC("Invalid type name '%s'"), _stringval(typeName));
+                scsprintf(buf, 256, "Invalid type name '%s'", _stringval(typeName));
             error_string = SQString::Create(_ss(vm), buf);
             return false;
         }
@@ -139,7 +139,7 @@ static bool parse_type_mask(SQVM* vm, const SQChar*& s, SQUnsignedInteger32& mas
         if (*p != ')')
         {
             error_pos = p - s;
-            error_string = SQString::Create(_ss(vm), _SC("Expected ')' after type list"));
+            error_string = SQString::Create(_ss(vm), "Expected ')' after type list");
             return false;
         }
         p++;
@@ -150,16 +150,16 @@ static bool parse_type_mask(SQVM* vm, const SQChar*& s, SQUnsignedInteger32& mas
     return true;
 }
 
-bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& res, SQInteger& error_pos, SQObjectPtr& error_string)
+bool sq_parse_function_type_string(SQVM* vm, const char* s, SQFunctionType& res, SQInteger& error_pos, SQObjectPtr& error_string)
 {
     if (!s || !*s)
     {
         error_pos = 1;
-        error_string = SQString::Create(_ss(vm), _SC("Empty function type string"));
+        error_string = SQString::Create(_ss(vm), "Empty function type string");
         return false;
     }
 
-    const SQChar* p = skip_spaces(s);
+    const char* p = skip_spaces(s);
     res.objectTypeMask = ~0u;
     res.returnTypeMask = _RT_NULL;
     res.requiredArgs = 0;
@@ -194,7 +194,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
         if (*p != '.')
         {
             error_pos = p - s + 1;
-            error_string = SQString::Create(_ss(vm), _SC("Expected '.' after object type"));
+            error_string = SQString::Create(_ss(vm), "Expected '.' after object type");
             return false;
         }
         p++;
@@ -202,18 +202,18 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
         if (!parse_identifier(vm, p, res.functionName))
         {
             error_pos = p - s + 1;
-            error_string = SQString::Create(_ss(vm), _SC("Expected function name after '.'"));
+            error_string = SQString::Create(_ss(vm), "Expected function name after '.'");
             return false;
         }
     }
     else
     {
         SQObjectPtr identifier1;
-        const SQChar* p_initial = p;
+        const char* p_initial = p;
         if (!parse_identifier(vm, p, identifier1))
         {
             error_pos = p - s + 1;
-            error_string = SQString::Create(_ss(vm), _SC("Expected function name"));
+            error_string = SQString::Create(_ss(vm), "Expected function name");
             return false;
         }
 
@@ -224,12 +224,12 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
             if (!parse_identifier(vm, p, res.functionName))
             {
                 error_pos = p - s + 1;
-                error_string = SQString::Create(_ss(vm), _SC("Expected function name after '.'"));
+                error_string = SQString::Create(_ss(vm), "Expected function name after '.'");
                 return false;
             }
 
-            const SQChar* typeStr = _stringval(identifier1);
-            const SQChar* typeStrPtr = typeStr;
+            const char* typeStr = _stringval(identifier1);
+            const char* typeStrPtr = typeStr;
             SQUnsignedInteger32 objectTypeMask;
             SQInteger error_pos_local;
             SQObjectPtr error_string_local;
@@ -244,7 +244,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
             if (*typeStrPtr != '\0')
             {
                 error_pos = (p_initial - s) + (typeStrPtr - typeStr);
-                error_string = SQString::Create(_ss(vm), _SC("Invalid object type"));
+                error_string = SQString::Create(_ss(vm), "Invalid object type");
                 return false;
             }
 
@@ -261,7 +261,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
     if (*p != '(')
     {
         error_pos = p - s + 1;
-        error_string = SQString::Create(_ss(vm), _SC("Expected '(' after function name"));
+        error_string = SQString::Create(_ss(vm), "Expected '(' after function name");
         return false;
     }
 
@@ -278,7 +278,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
         if (*p == '\0')
         {
             error_pos = p - s + 1;
-            error_string = SQString::Create(_ss(vm), _SC("Unterminated argument list"));
+            error_string = SQString::Create(_ss(vm), "Unterminated argument list");
             return false;
         }
 
@@ -287,13 +287,13 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
             if (insideOptional)
             {
                 error_pos = p - s + 1;
-                error_string = SQString::Create(_ss(vm), _SC("Nested optional blocks are not allowed"));
+                error_string = SQString::Create(_ss(vm), "Nested optional blocks are not allowed");
                 return false;
             }
             if (optionalBlockFinished)
             {
                 error_pos = p - s + 1;
-                error_string = SQString::Create(_ss(vm), _SC("Optional block must be the last argument"));
+                error_string = SQString::Create(_ss(vm), "Optional block must be the last argument");
                 return false;
             }
             insideOptional = true;
@@ -307,7 +307,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
             if (!insideOptional)
             {
                 error_pos = p - s + 1;
-                error_string = SQString::Create(_ss(vm), _SC("Unmatched ']'"));
+                error_string = SQString::Create(_ss(vm), "Unmatched ']'");
                 return false;
             }
             insideOptional = false;
@@ -322,7 +322,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
             if (!argumentProcessed)
             {
                 error_pos = p - s + 1;
-                error_string = SQString::Create(_ss(vm), _SC("Argument expected before ','"));
+                error_string = SQString::Create(_ss(vm), "Argument expected before ','");
                 return false;
             }
             p++;
@@ -331,14 +331,14 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
             continue;
         }
 
-        if (strncmp(p, _SC("..."), 3) == 0)
+        if (strncmp(p, "...", 3) == 0)
         {
             argumentProcessed = true;
 
             if (res.ellipsisArgTypeMask != 0)
             {
                 error_pos = p - s + 1;
-                error_string = SQString::Create(_ss(vm), _SC("Multiple ellipsis arguments"));
+                error_string = SQString::Create(_ss(vm), "Multiple ellipsis arguments");
                 return false;
             }
 
@@ -365,7 +365,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
             if (*p != ')' && *p != ']')
             {
                 error_pos = p - s + 1;
-                error_string = SQString::Create(_ss(vm), _SC("Expected ')' after ellipsis argument"));
+                error_string = SQString::Create(_ss(vm), "Expected ')' after ellipsis argument");
                 return false;
             }
 
@@ -375,7 +375,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
         if (optionalBlockFinished)
         {
             error_pos = p - s + 1;
-            error_string = SQString::Create(_ss(vm), _SC("Argument after optional block"));
+            error_string = SQString::Create(_ss(vm), "Argument after optional block");
             return false;
         }
 
@@ -383,7 +383,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
         if (!parse_identifier(vm, p, argName))
         {
             error_pos = p - s + 1;
-            error_string = SQString::Create(_ss(vm), _SC("Expected argument name"));
+            error_string = SQString::Create(_ss(vm), "Expected argument name");
             return false;
         }
 
@@ -404,12 +404,12 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
         else if (*p != ',' && *p != ')' && *p != ']' && *p != '[' && *p != '=')
         {
             error_pos = p - s + 1;
-            error_string = SQString::Create(_ss(vm), _SC("Expected ':' after argument name"));
+            error_string = SQString::Create(_ss(vm), "Expected ':' after argument name");
             return false;
         }
 
         SQObjectPtr defaultValue;
-        SQChar stringOpener = '\0';
+        char stringOpener = '\0';
 
         if (*p == '=')
         {
@@ -419,7 +419,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
             char stack[40];
             int stackIndex = 0;
 
-            const SQChar * startDefaultValue = p;
+            const char * startDefaultValue = p;
             while (*p != '\0')
             {
                 if (insideString)
@@ -436,7 +436,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
                         if (*p == '\0')
                         {
                             error_pos = p - s + 1;
-                            error_string = SQString::Create(_ss(vm), _SC("Unterminated string in default value"));
+                            error_string = SQString::Create(_ss(vm), "Unterminated string in default value");
                             return false;
                         }
                     }
@@ -455,7 +455,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
                 if (stackIndex >= sizeof(stack) - 1)
                 {
                     error_pos = p - s + 1;
-                    error_string = SQString::Create(_ss(vm), _SC("Default value too complex. Too many nested structures"));
+                    error_string = SQString::Create(_ss(vm), "Default value too complex. Too many nested structures");
                     return false;
                 }
 
@@ -469,7 +469,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
                     if (stack[stackIndex - 1] != '(')
                     {
                         error_pos = p - s + 1;
-                        error_string = SQString::Create(_ss(vm), _SC("Unmatched ')' in default value"));
+                        error_string = SQString::Create(_ss(vm), "Unmatched ')' in default value");
                         return false;
                     }
                     stackIndex--;
@@ -484,7 +484,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
                     if (stack[stackIndex - 1] != '[')
                     {
                         error_pos = p - s + 1;
-                        error_string = SQString::Create(_ss(vm), _SC("Unmatched ']' in default value"));
+                        error_string = SQString::Create(_ss(vm), "Unmatched ']' in default value");
                         return false;
                     }
                     stackIndex--;
@@ -496,7 +496,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
                     if (stackIndex == 0 || stack[stackIndex - 1] != '{')
                     {
                         error_pos = p - s + 1;
-                        error_string = SQString::Create(_ss(vm), _SC("Unmatched '}' in default value"));
+                        error_string = SQString::Create(_ss(vm), "Unmatched '}' in default value");
                         return false;
                     }
                     stackIndex--;
@@ -513,14 +513,14 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
             if (stackIndex > 0)
             {
                 error_pos = p - s + 1;
-                error_string = SQString::Create(_ss(vm), _SC("Unfinished default value, unmatched brackets"));
+                error_string = SQString::Create(_ss(vm), "Unfinished default value, unmatched brackets");
                 return false;
             }
 
             if (*p == '\0')
             {
                 error_pos = p - s + 1;
-                error_string = SQString::Create(_ss(vm), _SC("Unterminated function type string"));
+                error_string = SQString::Create(_ss(vm), "Unterminated function type string");
                 return false;
             }
 
@@ -530,7 +530,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
             else
             {
                 error_pos = p - s + 1;
-                error_string = SQString::Create(_ss(vm), _SC("Expected default value after '='"));
+                error_string = SQString::Create(_ss(vm), "Expected default value after '='");
                 return false;
             }
         }
@@ -539,7 +539,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
             if (!insideOptional && res.defaultValues.size() > 0 && !sq_isnull(res.defaultValues.back()))
             {
                 error_pos = p - s + 1;
-                error_string = SQString::Create(_ss(vm), _SC("Default value expected after optional argument"));
+                error_string = SQString::Create(_ss(vm), "Default value expected after optional argument");
                 return false;
             }
         }
@@ -562,7 +562,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
         else if (*p != ')' && *p != ']' && *p != '[')
         {
             error_pos = p - s + 1;
-            error_string = SQString::Create(_ss(vm), _SC("Expected ',' or ')'"));
+            error_string = SQString::Create(_ss(vm), "Expected ',' or ')'");
             return false;
         }
     }
@@ -572,14 +572,14 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
     if (insideOptional)
     {
         error_pos = p - s + 1;
-        error_string = SQString::Create(_ss(vm), _SC("Unmatched '['"));
+        error_string = SQString::Create(_ss(vm), "Unmatched '['");
         return false;
     }
 
     if (insideString)
     {
         error_pos = p - s + 1;
-        error_string = SQString::Create(_ss(vm), _SC("Unterminated string in function type"));
+        error_string = SQString::Create(_ss(vm), "Unterminated string in function type");
         return false;
     }
 
@@ -601,7 +601,7 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
     if (*p != '\0')
     {
         error_pos = p - s + 1;
-        error_string = SQString::Create(_ss(vm), _SC("Unexpected characters after function type string"));
+        error_string = SQString::Create(_ss(vm), "Unexpected characters after function type string");
         return false;
     }
 
@@ -609,17 +609,17 @@ bool sq_parse_function_type_string(SQVM* vm, const SQChar* s, SQFunctionType& re
 }
 
 
-void sq_stringify_type_mask(SQChar* buffer, int buffer_length, SQUnsignedInteger32 mask)
+void sq_stringify_type_mask(char* buffer, int buffer_length, SQUnsignedInteger32 mask)
 {
     assert(buffer_length > 128);
 
     if ((mask & _RT_CLOSURE) || (mask & _RT_NATIVECLOSURE))
         mask |= _RT_CLOSURE | _RT_NATIVECLOSURE;
 
-    SQChar* p = buffer;
-    SQChar* end = buffer + buffer_length - 1;
+    char* p = buffer;
+    char* end = buffer + buffer_length - 1;
 
-    auto append = [&](const SQChar* str)
+    auto append = [&](const char* str)
     {
         while (*str && p < end)
             *p++ = *str++;
@@ -627,7 +627,7 @@ void sq_stringify_type_mask(SQChar* buffer, int buffer_length, SQUnsignedInteger
 
     if (mask == ~0u)
     {
-        append(_SC("any"));
+        append("any");
         *p = '\0';
         return;
     }
@@ -637,7 +637,7 @@ void sq_stringify_type_mask(SQChar* buffer, int buffer_length, SQUnsignedInteger
         if ((mask & decl->typeMask) == decl->typeMask)
         {
             if (!first)
-                append(_SC("|"));
+                append("|");
 
             append(decl->names[0]);
             first = false;
@@ -651,9 +651,9 @@ void sq_stringify_type_mask(SQChar* buffer, int buffer_length, SQUnsignedInteger
 SQObjectPtr sq_stringify_function_type(SQVM* vm, const SQFunctionType& ft)
 {
     const SQInteger bufferSize = 2048; // 2KB buffer
-    SQChar buffer[bufferSize];
-    SQChar* p = buffer;
-    SQChar* end = buffer + bufferSize - 1;
+    char buffer[bufferSize];
+    char* p = buffer;
+    char* end = buffer + bufferSize - 1;
 
     if (sq_isnull(ft.functionName))
     {
@@ -661,7 +661,7 @@ SQObjectPtr sq_stringify_function_type(SQVM* vm, const SQFunctionType& ft)
         return tmp;
     }
 
-    auto append = [&](const SQChar* str)
+    auto append = [&](const char* str)
     {
         while (*str && p < end)
         {
@@ -672,7 +672,7 @@ SQObjectPtr sq_stringify_function_type(SQVM* vm, const SQFunctionType& ft)
     auto appendTypeMask = [&](SQUnsignedInteger32 typeMask) {
         if (typeMask == ~0u)
         {
-            append(_SC("any"));
+            append("any");
             return;
         }
 
@@ -683,7 +683,7 @@ SQObjectPtr sq_stringify_function_type(SQVM* vm, const SQFunctionType& ft)
             {
                 if (!first)
                 {
-                    append(_SC("|"));
+                    append("|");
                 }
                 append(decl->names[0]);
                 first = false;
@@ -693,10 +693,10 @@ SQObjectPtr sq_stringify_function_type(SQVM* vm, const SQFunctionType& ft)
     };
 
     if (ft.pure)
-        append(_SC("pure "));
+        append("pure ");
 
     if (ft.nodiscard)
-        append(_SC("nodiscard "));
+        append("nodiscard ");
 
     if (ft.objectTypeMask != ~0u)
     {
@@ -709,76 +709,67 @@ SQObjectPtr sq_stringify_function_type(SQVM* vm, const SQFunctionType& ft)
             }
 
         if (isComplexType)
-            append(_SC("("));
+            append("(");
 
         appendTypeMask(ft.objectTypeMask);
 
         if (isComplexType)
-            append(_SC(")"));
+            append(")");
 
-        append(_SC("."));
+        append(".");
     }
 
     append(_stringval(ft.functionName));
 
-    append(_SC("("));
+    append("(");
     for (SQInteger i = 0; i < ft.argNames.size(); i++)
     {
-        if (i >= ft.requiredArgs)
-        {
-            if (i == ft.requiredArgs)
-            {
-                append(i == 0 ? _SC("[") : _SC(", ["));
-            }
-        }
+        if (i > 0)
+            append(", ");
 
-        if (i > 0 && i != ft.requiredArgs)
-        {
-            append(_SC(", "));
-        }
+        if (i == ft.requiredArgs)
+            append("[");
 
         append(_stringval(ft.argNames[i]));
 
         if (ft.argTypeMask[i] != ~0u)
         {
-            append(_SC(": "));
+            append(": ");
             appendTypeMask(ft.argTypeMask[i]);
         }
 
         if (!sq_isnull(ft.defaultValues[i]))
         {
-            append(_SC(" = "));
+            append(" = ");
             if (sq_isstring(ft.defaultValues[i]))
                 append(_stringval(ft.defaultValues[i]));
             else
-                append(_SC("<default value>"));
+                append("<default value>");
         }
     }
 
     if (ft.argNames.size() > ft.requiredArgs)
-    {
-        append(_SC("]"));
-    }
+        append("]");
 
     if (ft.ellipsisArgTypeMask != 0)
     {
         if (ft.argNames.size() > 0)
         {
-            append(_SC(", "));
+            append(", ");
         }
-        append(_SC("..."));
+        append("...");
         if (ft.ellipsisArgTypeMask != ~0u)
         {
-            append(_SC(": "));
+            append(": ");
             appendTypeMask(ft.ellipsisArgTypeMask);
         }
     }
 
-    append(_SC(")"));
+    append(")");
 
     if (ft.returnTypeMask != _RT_NULL)
     {
-        append(_SC(": "));
+        append(": ");
         appendTypeMask(ft.returnTypeMask);
     }
 

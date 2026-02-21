@@ -7,7 +7,7 @@ namespace SQCompilation
 {
 
 bool looksLikeElementCount(const Expr *e) {
-  const SQChar *checkee = nullptr;
+  const char *checkee = nullptr;
 
   if (e->op() == TO_ID)
     checkee = e->asId()->name();

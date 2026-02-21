@@ -72,7 +72,7 @@
 namespace SQCompilation {
 
 
-CodeGenVisitor::CodeGenVisitor(Arena *arena, const HSQOBJECT *bindings, SQVM *vm, const SQChar *sourceName, SQCompilationContext &ctx)
+CodeGenVisitor::CodeGenVisitor(Arena *arena, const HSQOBJECT *bindings, SQVM *vm, const char *sourceName, SQCompilationContext &ctx)
     : Visitor(),
     _fs(NULL),
     _childFs(NULL),
@@ -114,9 +114,9 @@ bool CodeGenVisitor::generate(RootBlock *root, SQObjectPtr &out) {
         _fs = &funcstate;
         _childFs = NULL;
 
-        _fs->_name = SQString::Create(_ss(_vm), _SC("__main__"));
-        _fs->AddParameter(_fs->CreateString(_SC("this")), _RT_NULL);
-        _fs->AddParameter(_fs->CreateString(_SC("vargv")), _RT_ARRAY);
+        _fs->_name = SQString::Create(_ss(_vm), "__main__");
+        _fs->AddParameter(_fs->CreateString("this"), _RT_NULL);
+        _fs->AddParameter(_fs->CreateString("vargv"), _RT_ARRAY);
         _fs->_varparams = true;
         _fs->_sourcename = SQString::Create(_ss(_vm), _sourceName);
 
@@ -146,7 +146,7 @@ bool CodeGenVisitor::generate(RootBlock *root, SQObjectPtr &out) {
     }
 }
 
-void CodeGenVisitor::CheckDuplicateLocalIdentifier(Node *n, SQObject name, const SQChar *desc, bool ignore_global_consts) {
+void CodeGenVisitor::CheckDuplicateLocalIdentifier(Node *n, SQObject name, const char *desc, bool ignore_global_consts) {
     SQCompiletimeVarInfo varInfo;
     if (_fs->GetLocalVariable(name, varInfo) >= 0)
         reportDiagnostic(n, DiagnosticsId::DI_CONFLICTS_WITH, desc, _string(name)->_val, "existing local variable");
@@ -471,7 +471,7 @@ void CodeGenVisitor::visitForeachStatement(ForeachStatement *foreachLoop) {
         //foreachLoop->idx()->visit(this);
     }
     else {
-        idxName = _fs->CreateString(_SC("@INDEX@"));
+        idxName = _fs->CreateString("@INDEX@");
     }
     indexpos = _fs->PushLocalVariable(idxName, SQCompiletimeVarInfo{});
 
@@ -482,7 +482,7 @@ void CodeGenVisitor::visitForeachStatement(ForeachStatement *foreachLoop) {
     //SQInteger valuepos = _fs->_vlocals.back()._pos;
 
     //push reference index
-    SQInteger itrpos = _fs->PushLocalVariable(_fs->CreateString(_SC("@ITERATOR@")), SQCompiletimeVarInfo{}); //use invalid id to make it inaccessible
+    SQInteger itrpos = _fs->PushLocalVariable(_fs->CreateString("@ITERATOR@"), SQCompiletimeVarInfo{}); //use invalid id to make it inaccessible
 
     _fs->AddInstruction(_OP_PREFOREACH, container, 0, indexpos);
     SQInteger preForEachPos = _fs->GetCurrentPos();
@@ -812,6 +812,72 @@ bool CodeGenVisitor::IsGuaranteedPureFunction(Node *expr) {
     return visitor.pure;
 }
 
+bool CodeGenVisitor::isConstScoredMethodCall(GetFieldExpr *getField) {
+    Expr *receiver = deparen(getField->receiver());
+    if (getSubtreeConstScoreImpl(receiver) == 0) {
+        _variable_node = getField->receiver();
+        return false;
+    }
+    SQInteger type = inferReceiverType(receiver);
+    SQObjectPtr method = GetTypeMethod(type, getField->fieldName());
+    return sq_is_pure_function(&method);
+}
+
+bool CodeGenVisitor::isConstScoredDirectCall(CallExpr *callExpr) {
+    if (isPureFunctionCall(callExpr))
+        return true;
+    Expr *callee = deparen(callExpr->callee());
+    SQObjectPtr calleeName = _fs->CreateString(callee->asId()->name());
+    SQCompiletimeVarInfo varInfo;
+    if (findConstScoredVar(calleeName, varInfo, VF_INIT_WITH_PURE))
+        return true;
+    SQObjectPtr c;
+    return IsConstant(calleeName, c) && sq_is_pure_function(&c);
+}
+
+SQInteger CodeGenVisitor::inferReceiverType(Expr *receiver) {
+    if (receiver->op() == TO_ID) {
+        SQObjectPtr c;
+        SQObjectPtr name = _fs->CreateString(receiver->asId()->name());
+        if (IsConstant(name, c)) {
+            SQInteger type = sq_type(c);
+            if ((type == OT_TABLE || type == OT_CLASS || type == OT_ARRAY) &&
+                (c._flags & SQOBJ_FLAG_IMMUTABLE) == 0)
+                return -1;
+            return type;
+        }
+        SQCompiletimeVarInfo varInfo;
+        if (findConstScoredVar(name, varInfo,
+                VF_INIT_WITH_CONST | VF_INIT_WITH_FREEZE | VF_INIT_WITH_PURE))
+            receiver = skipConstFreezePure(varInfo.initializer);
+    }
+
+    if (receiver->op() == TO_LITERAL) {
+        switch (receiver->asLiteral()->kind()) {
+            case LK_STRING: return OT_STRING;
+            case LK_INT:    return OT_INTEGER;
+            case LK_FLOAT:  return OT_FLOAT;
+            case LK_BOOL:   return OT_BOOL;
+            case LK_NULL:   return OT_NULL;
+            default:        return -1;
+        }
+    }
+    if (receiver->op() == TO_TABLE) return OT_TABLE;
+    if (receiver->op() == TO_CLASS) return OT_CLASS;
+    if (receiver->op() == TO_ARRAY) return OT_ARRAY;
+    return -1;
+}
+
+bool CodeGenVisitor::findConstScoredVar(const SQObjectPtr &name,
+    SQCompiletimeVarInfo &varInfo, unsigned requiredFlags)
+{
+    if (_fs->GetLocalVariable(name, varInfo) == -1 &&
+        _fs->GetOuterVariable(name, varInfo) == -1)
+        return false;
+    return (varInfo.var_flags & requiredFlags) != 0 &&
+           (varInfo.var_flags & (VF_DESTRUCTURED | VF_ASSIGNABLE)) == 0;
+}
+
 // 0 - not const
 int CodeGenVisitor::getSubtreeConstScore(Node *node, bool visit_arrays_and_tables) {
     _variable_node = nullptr;
@@ -887,114 +953,29 @@ int CodeGenVisitor::getSubtreeConstScoreImpl(Node *node) {
             Expr *callee = deparen(callExpr->callee());
 
             if (callee->op() == TO_GETFIELD) {
-                GetFieldExpr* getField = callee->asGetField();
-                Expr *receiver = deparen(getField->receiver());
-
-                if (getSubtreeConstScoreImpl(receiver) == 0) {
-                    _variable_node = getField->receiver();
-                    return 0;
-                }
-
-                SQInteger type = -1;
-
-                if (receiver->op() == TO_ID) {
-                    SQObjectPtr c;
-                    Id *id = receiver->asId();
-                    SQObjectPtr name = _fs->CreateString(id->name());
-                    SQCompiletimeVarInfo varInfo;
-                    if (IsConstant(name, c)) {
-                        type = sq_type(c);
-                        if ((type == OT_TABLE || type == OT_CLASS || type == OT_ARRAY) && (c._flags & SQOBJ_FLAG_IMMUTABLE) == 0)
-                            type = -1;
-                    }
-                    else if (_fs->GetLocalVariable(name, varInfo) != -1) {
-                        if ((varInfo.var_flags & (VF_INIT_WITH_CONST | VF_INIT_WITH_FREEZE | VF_INIT_WITH_PURE)) && !(varInfo.var_flags & (VF_DESTRUCTURED | VF_ASSIGNABLE)))
-                            receiver = skipConstFreezePure(varInfo.initializer);
-                    }
-                    else if (_fs->GetOuterVariable(name, varInfo) != -1) {
-                        if ((varInfo.var_flags & (VF_INIT_WITH_CONST | VF_INIT_WITH_FREEZE | VF_INIT_WITH_PURE)) && !(varInfo.var_flags & (VF_DESTRUCTURED | VF_ASSIGNABLE)))
-                            receiver = skipConstFreezePure(varInfo.initializer);
-                    }
-                }
-
-
-                if (receiver->op() == TO_LITERAL) {
-                    LiteralKind kind = receiver->asLiteral()->kind();
-                    switch (kind) {
-                        case LK_STRING: type = OT_STRING; break;
-                        case LK_INT: type = OT_INTEGER; break;
-                        case LK_FLOAT: type = OT_FLOAT; break;
-                        case LK_BOOL: type = OT_BOOL; break;
-                        case LK_NULL: type = OT_NULL; break;
-                        default:
-                            _variable_node = getField->receiver();
-                            return 0;
-                    }
-                }
-                else if (receiver->op() == TO_DECL_EXPR) {
-                    DeclExpr *declExpr = receiver->asDeclExpr();
-                    if (declExpr->declaration()->op() == TO_TABLE)
-                        type = OT_TABLE;
-                    else if (declExpr->declaration()->op() == TO_CLASS)
-                        type = OT_CLASS;
-                    else {
-                        _variable_node = getField->receiver();
-                        return 0;
-                    }
-                }
-                else if (receiver->op() == TO_ARRAYEXPR) {
-                    type = OT_ARRAY;
-                }
-
-                SQObjectPtr delegate = GetTypeMethod(type, getField->fieldName());
-                if (!sq_is_pure_function(&delegate)) {
-                    _variable_node = node;
+                if (!isConstScoredMethodCall(callee->asGetField())) {
+                    if (!_variable_node) _variable_node = node;
                     return 0;
                 }
             }
             else if (callee->op() == TO_ID) {
-                SQObjectPtr calleeName = _fs->CreateString(callee->asId()->name());
-                SQObjectPtr c;
-
-                bool isPureCallResult = isPureFunctionCall(callExpr); // this call is a call of a pure function
-                bool pureLocalFunction = false;
-                if (!isPureCallResult)
-                {
-                    // Not sure if we are checking the right thing here, but
-                    // isPureFunctionCall() for AST nodes and sq_is_pure_function() for constants are correct
-                    SQCompiletimeVarInfo varInfo;
-                    if (_fs->GetLocalVariable(calleeName, varInfo) != -1) {
-                        if ((varInfo.var_flags & (VF_INIT_WITH_PURE)) && !(varInfo.var_flags & (VF_DESTRUCTURED | VF_ASSIGNABLE)))
-                            pureLocalFunction = true;
-                    }
-                    else if (_fs->GetOuterVariable(calleeName, varInfo) != -1) {
-                        if ((varInfo.var_flags & (VF_INIT_WITH_PURE)) && !(varInfo.var_flags & (VF_DESTRUCTURED | VF_ASSIGNABLE)))
-                            pureLocalFunction = true;
-                    }
-                }
-
-                if (!isPureCallResult && !pureLocalFunction && !(IsConstant(calleeName, c) && sq_is_pure_function(&c))) {
+                if (!isConstScoredDirectCall(callExpr)) {
                     _variable_node = node;
                     return 0;
                 }
             }
             else {
-                if (callee->op() != TO_ID)
-                    _variable_node = node;
-                return 0; // TODO: process const table values
+                _variable_node = node;
+                return 0;
             }
 
-            ArenaVector<Expr *> &args = callExpr->arguments();
             int res = 20;
-
-            for (Expr *arg : args) {
+            for (Expr *arg : callExpr->arguments()) {
                 int s = getSubtreeConstScoreImpl(arg);
                 if (s == 0)
                     return 0;
-
                 res += s + 1;
             }
-
             return res;
         }
 
@@ -1004,22 +985,10 @@ int CodeGenVisitor::getSubtreeConstScoreImpl(Node *node) {
 
             SQObjectPtr c;
             if (IsConstant(name, c))
-              return 1;
-
-            if (IsSimpleConstant(name))
                 return 1;
 
             SQCompiletimeVarInfo varInfo;
-            if (_fs->GetLocalVariable(name, varInfo) != -1) {
-                if ((varInfo.var_flags & (VF_INIT_WITH_CONST | VF_INIT_WITH_FREEZE)) && !(varInfo.var_flags & (VF_DESTRUCTURED | VF_ASSIGNABLE)))
-                    return 1;
-            }
-            else if (_fs->GetOuterVariable(name, varInfo) != -1) {
-                if ((varInfo.var_flags & (VF_INIT_WITH_CONST | VF_INIT_WITH_FREEZE)) && !(varInfo.var_flags & (VF_DESTRUCTURED | VF_ASSIGNABLE)))
-                    return 2;
-            }
-
-            if ((varInfo.var_flags & VF_FIRST_LEVEL) && !(varInfo.var_flags & VF_ASSIGNABLE))
+            if (findConstScoredVar(name, varInfo, VF_INIT_WITH_CONST | VF_INIT_WITH_FREEZE))
                 return 1;
 
             _variable_node = node;
@@ -1037,17 +1006,10 @@ int CodeGenVisitor::getSubtreeConstScoreImpl(Node *node) {
             }
 
             if (receiver->op() == TO_ID) {
-                Id *id = receiver->asId();
-                SQObjectPtr name = _fs->CreateString(id->name());
+                SQObjectPtr name = _fs->CreateString(receiver->asId()->name());
                 SQCompiletimeVarInfo varInfo;
-                if (_fs->GetLocalVariable(name, varInfo) != -1) {
-                    if ((varInfo.var_flags & (VF_INIT_WITH_CONST | VF_INIT_WITH_FREEZE | VF_INIT_WITH_PURE)) && !(varInfo.var_flags & (VF_DESTRUCTURED | VF_ASSIGNABLE)))
-                        receiver = skipConstFreezePure(varInfo.initializer);
-                }
-                else if (_fs->GetOuterVariable(name, varInfo) != -1) {
-                    if ((varInfo.var_flags & (VF_INIT_WITH_CONST | VF_INIT_WITH_FREEZE | VF_INIT_WITH_PURE)) && !(varInfo.var_flags & (VF_DESTRUCTURED | VF_ASSIGNABLE)))
-                        receiver = skipConstFreezePure(varInfo.initializer);
-                }
+                if (findConstScoredVar(name, varInfo, VF_INIT_WITH_CONST | VF_INIT_WITH_FREEZE | VF_INIT_WITH_PURE))
+                    receiver = skipConstFreezePure(varInfo.initializer);
             }
 
             if (receiver->op() == TO_LITERAL) {
@@ -1056,12 +1018,8 @@ int CodeGenVisitor::getSubtreeConstScoreImpl(Node *node) {
                     return 0;
                 }
             }
-            else if (receiver->op() == TO_DECL_EXPR) {
-                DeclExpr *declExpr = receiver->asDeclExpr();
-                if (declExpr->declaration()->op() != TO_TABLE) {
-                    _variable_node = expr->receiver();
-                    return 0;
-                }
+            else if (receiver->op() == TO_TABLE || receiver->op() == TO_CLASS) {
+                // Table and class expressions are allowed
             }
             else if (receiver->op() == TO_ID) {
                 SQObjectPtr name = _fs->CreateString(receiver->asId()->name());
@@ -1070,7 +1028,7 @@ int CodeGenVisitor::getSubtreeConstScoreImpl(Node *node) {
                     return 0;
                 }
             }
-            else if (receiver->op() != TO_ARRAYEXPR) {
+            else if (receiver->op() != TO_ARRAY) {
                 _variable_node = expr->receiver();
                 return 0;
             }
@@ -1110,11 +1068,6 @@ int CodeGenVisitor::getSubtreeConstScoreImpl(Node *node) {
         case TO_LITERAL:
             return 1;
 
-        case TO_DECL_EXPR: {
-            Decl *decl = static_cast<DeclExpr *>(node)->declaration();
-            return getSubtreeConstScoreImpl(decl);
-        }
-
         case TO_FUNCTION: {
             if (IsGuaranteedPureFunction(node))
                 return 10;
@@ -1124,25 +1077,18 @@ int CodeGenVisitor::getSubtreeConstScoreImpl(Node *node) {
             }
         }
 
-        case TO_TABLE: {
+        case TO_TABLE:
+        case TO_CLASS: {
             if (!_visit_arrays_and_tables) {
                 _variable_node = node;
                 return 0;
             }
 
-            ArenaVector<TableMember> &members = static_cast<TableDecl *>(node)->members();
+            ArenaVector<TableMember> &members = static_cast<TableExpr *>(node)->members();
             int res = 50;
             for (TableMember &m : members) {
                 int s1 = getSubtreeConstScoreImpl(m.key);
                 int s2 = getSubtreeConstScoreImpl(m.value);
-
-                if (s2 == 0 && m.value->op() == TO_ID) {
-                    SQObjectPtr name = _fs->CreateString(m.value->asId()->name());
-                    SQObjectPtr c;
-                    if (IsConstant(name, c))
-                        s2 = 1;
-                }
-
                 if (s1 == 0 || s2 == 0)
                     return 0;
 
@@ -1152,7 +1098,7 @@ int CodeGenVisitor::getSubtreeConstScoreImpl(Node *node) {
             return res;
         }
 
-        case TO_ARRAYEXPR: {
+        case TO_ARRAY: {
             if (!_visit_arrays_and_tables) {
                 _variable_node = node;
                 return 0;
@@ -1162,14 +1108,6 @@ int CodeGenVisitor::getSubtreeConstScoreImpl(Node *node) {
             int res = 50;
             for (Expr *expr : initializers) {
                 int s = getSubtreeConstScoreImpl(expr);
-
-                if (s == 0 && expr->op() == TO_ID) {
-                    SQObjectPtr name = _fs->CreateString(expr->asId()->name());
-                    SQObjectPtr c;
-                    if (IsConstant(name, c))
-                        s = 1;
-                }
-
                 if (s == 0)
                     return 0;
 
@@ -1221,7 +1159,7 @@ void CodeGenVisitor::visitExprStatement(ExprStatement *stmt) {
     _fs->DiscardTarget();
 }
 
-void CodeGenVisitor::generateTableDecl(TableDecl *tableDecl) {
+void CodeGenVisitor::generateTableExpr(TableExpr *tableDecl) {
     bool isKlass = tableDecl->op() == TO_CLASS;
     const auto &members = tableDecl->members();
 
@@ -1276,16 +1214,16 @@ void CodeGenVisitor::addPatchDocObjectInstruction(const DocObject &docObject) {
     _fs->AddInstruction(_OP_PATCH_DOCOBJ, _fs->TopTarget(), idx, 0, 0);
 }
 
-void CodeGenVisitor::visitTableDecl(TableDecl *tableDecl) {
-    addLineNumber(tableDecl);
-    _fs->AddInstruction(_OP_NEWOBJ, _fs->PushTarget(), tableDecl->members().size(), 0, NEWOBJ_TABLE);
-    if (!tableDecl->docObject.isEmpty())
-        addPatchDocObjectInstruction(tableDecl->docObject);
+void CodeGenVisitor::visitTableExpr(TableExpr *tableExpr) {
+    addLineNumber(tableExpr);
+    _fs->AddInstruction(_OP_NEWOBJ, _fs->PushTarget(), tableExpr->members().size(), 0, NEWOBJ_TABLE);
+    if (!tableExpr->docObject.isEmpty())
+        addPatchDocObjectInstruction(tableExpr->docObject);
 
-    generateTableDecl(tableDecl);
+    generateTableExpr(tableExpr);
 }
 
-void CodeGenVisitor::visitClassDecl(ClassDecl *klass) {
+void CodeGenVisitor::visitClassExpr(ClassExpr *klass) {
     addLineNumber(klass);
 
     Expr *baseExpr = klass->classBase();
@@ -1299,34 +1237,27 @@ void CodeGenVisitor::visitClassDecl(ClassDecl *klass) {
     if (!klass->docObject.isEmpty())
         addPatchDocObjectInstruction(klass->docObject);
 
-    generateTableDecl(klass);
+    generateTableExpr(klass);
 }
 
-static const SQChar *varDeclKindDescription(VarDecl *var) {
+static const char *varDeclKindDescription(VarDecl *var) {
     Expr *init = var->initializer();
     if (init == NULL) {
-        return var->isAssignable() ? _SC("Local variable") : _SC("Named binding");
+        return var->isAssignable() ? "Local variable" : "Named binding";
     }
     else {
-        if (init->op() == TO_DECL_EXPR) {
-            Decl *decl = static_cast<DeclExpr *>(init)->declaration();
-            switch (decl->op())
-            {
-            case TO_FUNCTION: return _SC("Function");
-            case TO_CLASS: return _SC("Class");
-            case TO_TABLE:
-                return _SC("Named binding"); // <== is that correct?
-            default:
-                assert(0 && "Unexpected declaration kind");
-                break;
-            }
-        }
-        else {
-            return var->isAssignable() ? _SC("Local variable") : _SC("Named binding");
+        switch (init->op())
+        {
+        case TO_FUNCTION:
+            return "Function";
+        case TO_CLASS:
+            return "Class";
+        case TO_TABLE:
+            return "Named binding"; // <== is that correct?
+        default:
+            return var->isAssignable() ? "Local variable" : "Named binding";
         }
     }
-    assert(0);
-    return "<error>";
 }
 
 bool CodeGenVisitor::isFreezeCall(Expr *node) {
@@ -1354,13 +1285,10 @@ bool CodeGenVisitor::isPureFunctionCall(Expr *node) {
             SQCompiletimeVarInfo varInfo;
             if ((pos = _fs->GetLocalVariable(name, varInfo)) != -1
              || (pos = _fs->GetOuterVariable(name, varInfo)) != -1) {
-                if (varInfo.initializer && varInfo.initializer->op() == TO_DECL_EXPR) {
-                    Decl *decl = static_cast<DeclExpr *>(varInfo.initializer)->declaration();
-                    if (decl->op() == TO_FUNCTION) {
-                        FunctionDecl *funcDecl = static_cast<FunctionDecl *>(decl);
-                        if (funcDecl->isPure()) {
-                            return true;
-                        }
+                if (varInfo.initializer && varInfo.initializer->op() == TO_FUNCTION) {
+                    FunctionExpr *funcExpr = varInfo.initializer->asFunctionExpr();
+                    if (funcExpr->isPure()) {
+                        return true;
                     }
                 }
             }
@@ -1376,7 +1304,7 @@ bool CodeGenVisitor::isPureFunctionCall(Expr *node) {
 
 void CodeGenVisitor::visitVarDecl(VarDecl *var) {
     addLineNumber(var);
-    const SQChar *name = var->name();
+    const char *name = var->name();
     char varFlags = var->isAssignable() ? VF_ASSIGNABLE : 0;
     if (var->isDestructured())
         varFlags |= VF_DESTRUCTURED;
@@ -1463,10 +1391,14 @@ void CodeGenVisitor::visitParamDecl(ParamDecl *param) {
 }
 
 
-SQObjectPtr CodeGenVisitor::compileFunc(FunctionDecl *funcDecl, bool is_const, sqvector<SQObjectPtr> *out_defparam_values) {
+SQObjectPtr CodeGenVisitor::compileFunc(FunctionExpr *funcDecl, bool is_const, sqvector<SQObjectPtr> *out_defparam_values) {
     _complexity_level++;
 
-    addLineNumber(funcDecl);
+    // For hoisted closures, skip overriding the parent's line number —
+    // the enclosing VarDecl already set the correct line for the _OP_CLOSURE
+    // instruction. Using the original lambda line would corrupt stack traces.
+    if (funcDecl->hoistingLevel() == 0)
+        addLineNumber(funcDecl);
 
     SQFuncState *savedChildFsAtRoot = _childFs; // may be non-null when processing default argument that is declared as function/lambda
     _childFs = _fs->PushChildState(_ss(_vm));
@@ -1521,16 +1453,21 @@ SQObjectPtr CodeGenVisitor::compileFunc(FunctionDecl *funcDecl, bool is_const, s
     }
 
     Block *body = funcDecl->body();
-    SQInteger startLine = body->lineStart();
-    if (startLine != -1) {
-        _childFs->AddLineInfos(startLine, true, false);
-    }
 
     {
         assert(_childFs->_parent == _fs);
         SQFuncState *savedChildFsAtBody = _childFs;
         _fs = _childFs;
         _childFs = NULL;
+
+        for (auto param : funcDecl->parameters()) {
+            if (param->getDestructuring())
+                param->getDestructuring()->visit(this);
+        }
+
+        SQInteger startLine = body->lineStart();
+        if (startLine != -1)
+          savedChildFsAtBody->AddLineInfos(startLine, true, false);
 
         funcDecl->body()->visit(this);
 
@@ -1562,7 +1499,7 @@ SQObjectPtr CodeGenVisitor::compileFunc(FunctionDecl *funcDecl, bool is_const, s
 }
 
 
-void CodeGenVisitor::visitFunctionDecl(FunctionDecl *funcDecl) {
+void CodeGenVisitor::visitFunctionExpr(FunctionExpr *funcDecl) {
     bool old_inside_static_memo = _inside_static_memo;
     _inside_static_memo = false;
 
@@ -1575,7 +1512,7 @@ void CodeGenVisitor::visitFunctionDecl(FunctionDecl *funcDecl) {
 }
 
 
-SQObjectPtr CodeGenVisitor::compileConstFunc(FunctionDecl *funcDecl)
+SQObjectPtr CodeGenVisitor::compileConstFunc(FunctionExpr *funcDecl)
 {
     sqvector<SQObjectPtr> defParamValues(nullptr);
     SQObjectPtr objFuncProto = compileFunc(funcDecl, true, &defParamValues);
@@ -1631,7 +1568,7 @@ void CodeGenVisitor::visitConstDecl(ConstDecl *decl) {
 
     SQObjectPtr id = _fs->CreateString(decl->name());
 
-    CheckDuplicateLocalIdentifier(decl, id, _SC("Constant"), decl->isGlobal() && !(_fs->lang_features & LF_FORBID_GLOBAL_CONST_REWRITE));
+    CheckDuplicateLocalIdentifier(decl, id, "Constant", decl->isGlobal() && !(_fs->lang_features & LF_FORBID_GLOBAL_CONST_REWRITE));
 
     SQTable *constantsTbl = decl->isGlobal() ? _table(_ss(_vm)->_consts) : GetScopedConstsTable();
 
@@ -1651,7 +1588,7 @@ void CodeGenVisitor::visitEnumDecl(EnumDecl *enums) {
 
     SQObjectPtr id = _fs->CreateString(enums->name());
 
-    CheckDuplicateLocalIdentifier(enums, id, _SC("Enum"), enums->isGlobal() && !(_fs->lang_features & LF_FORBID_GLOBAL_CONST_REWRITE));
+    CheckDuplicateLocalIdentifier(enums, id, "Enum", enums->isGlobal() && !(_fs->lang_features & LF_FORBID_GLOBAL_CONST_REWRITE));
 
     for (auto &c : enums->consts()) {
         SQObjectPtr key = _fs->CreateString(c.id);
@@ -1678,8 +1615,8 @@ void CodeGenVisitor::maybeAddInExprLine(Expr *expr) {
     }
 }
 
-void CodeGenVisitor::addLineNumber(Statement *stmt) {
-    SQInteger line = stmt->lineStart();
+void CodeGenVisitor::addLineNumber(Node *node) {
+    SQInteger line = node->lineStart();
     if (line != -1) {
         _fs->AddLineInfos(line, true, false);
     }
@@ -1707,6 +1644,10 @@ static bool isCalleeAnOuter(SQFuncState *_fs, const Expr *expr, SQInteger &outer
 
     SQObjectPtr nameObj(_fs->CreateString(expr->asId()->name()));
     SQCompiletimeVarInfo varInfo;
+
+    if (_fs->GetLocalVariable(nameObj, varInfo) != -1)
+        return false;
+
     outer_pos = _fs->GetOuterVariable(nameObj, varInfo);
 
     return outer_pos != -1;
@@ -1727,7 +1668,7 @@ void CodeGenVisitor::visitCallExpr(CallExpr *call) {
     SQInteger outerPos = -1;
 
     if (isCalleeAnObject(callee)) {
-        if (!isNullCall && !isTypeMethod && ((_fs->lang_features & LF_FORBID_IMPLICIT_DEF_DELEGATE) == 0)) {
+        if (!isNullCall && !isTypeMethod && ((_fs->lang_features & LF_FORBID_IMPLICIT_TYPE_METHODS) == 0)) {
             SQInteger key = _fs->PopTarget();  /* location of the key */
             SQInteger table = _fs->PopTarget();  /* location of the object */
             SQInteger closure = _fs->PushTarget(); /* location for the closure */
@@ -1743,8 +1684,8 @@ void CodeGenVisitor::visitCallExpr(CallExpr *call) {
             SQInteger flags = 0;
             if (isTypeMethod) {
                 flags |= OP_GET_FLAG_TYPE_METHODS_ONLY;
-            } else if ((_fs->lang_features & LF_FORBID_IMPLICIT_DEF_DELEGATE) == 0) {
-                flags |= OP_GET_FLAG_ALLOW_DEF_DELEGATE;
+            } else if ((_fs->lang_features & LF_FORBID_IMPLICIT_TYPE_METHODS) == 0) {
+                flags |= OP_GET_FLAG_ALLOW_TYPE_METHODS;
             }
             if (isNullCall)
               flags |= OP_GET_FLAG_NO_ERROR;
@@ -1940,8 +1881,8 @@ void CodeGenVisitor::visitUnExpr(UnExpr *unary) {
 }
 
 void CodeGenVisitor::emitSimpleBinaryOp(SQOpcode op, Expr *lhs, Expr *rhs, SQInteger op3) {
-    visitForValue(lhs);
-    visitForValue(rhs);
+    visitForValueMaybeStaticMemo(lhs);
+    visitForValueMaybeStaticMemo(rhs);
     SQInteger op1 = _fs->PopTarget();
     SQInteger op2 = _fs->PopTarget();
     _fs->AddInstruction(op, _fs->PushTarget(), op1, op2, op3);
@@ -2149,9 +2090,9 @@ bool CodeGenVisitor::canBeLiteral(AccessExpr *expr) {
 }
 
 
-bool CodeGenVisitor::CanBeTypeMethod(const SQChar *key)
+bool CodeGenVisitor::CanBeTypeMethod(const char *key)
 {
-    if (_fs->lang_features & LF_FORBID_IMPLICIT_DEF_DELEGATE)
+    if (_fs->lang_features & LF_FORBID_IMPLICIT_TYPE_METHODS)
       return false;
 
     // Check if key exists in any built-in type class
@@ -2181,7 +2122,7 @@ bool CodeGenVisitor::CanBeTypeMethod(const SQChar *key)
     return false;
 }
 
-SQObjectPtr CodeGenVisitor::GetTypeMethod(SQInteger sq_type, const SQChar* key) {
+SQObjectPtr CodeGenVisitor::GetTypeMethod(SQInteger sq_type, const char* key) {
     SQObjectPtr res;
     SQClass *builtinClass = nullptr;
     switch (sq_type) {
@@ -2203,8 +2144,8 @@ SQObjectPtr CodeGenVisitor::GetTypeMethod(SQInteger sq_type, const SQChar* key) 
         case OT_INSTANCE: builtinClass = _class(_fs->_sharedstate->_instance_class); break;
         case OT_WEAKREF: builtinClass = _class(_fs->_sharedstate->_weakref_class); break;
         case OT_USERDATA: builtinClass = _class(_fs->_sharedstate->_userdata_class); break;
-        case OT_USERPOINTER: // no default delegate for user pointers
-        case OT_FUNCPROTO: // no default delegate for function prototypes
+        case OT_USERPOINTER: // no type methods for user pointers
+        case OT_FUNCPROTO: // no type methods for function prototypes
             return res;
 
         default:
@@ -2218,9 +2159,9 @@ SQObjectPtr CodeGenVisitor::GetTypeMethod(SQInteger sq_type, const SQChar* key) 
     return res;
 }
 
-bool CodeGenVisitor::CanBeTableTypeMethod(const SQChar *key)
+bool CodeGenVisitor::CanBeTableTypeMethod(const char *key)
 {
-    if (_fs->lang_features & LF_FORBID_IMPLICIT_DEF_DELEGATE)
+    if (_fs->lang_features & LF_FORBID_IMPLICIT_TYPE_METHODS)
       return false;
 
     SQObjectPtr tmp;
@@ -2280,10 +2221,10 @@ void CodeGenVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
 
     SQInteger flags = expr->isNullable() ? OP_GET_FLAG_NO_ERROR : 0;
 
-    bool defaultDelegate = CanBeTypeMethod(expr->fieldName());
+    bool typeMethod = CanBeTypeMethod(expr->fieldName());
 
-    if (defaultDelegate) {
-        flags |= OP_GET_FLAG_ALLOW_DEF_DELEGATE;
+    if (typeMethod) {
+        flags |= OP_GET_FLAG_ALLOW_TYPE_METHODS;
     }
 
     if (expr->isTypeMethod()) {
@@ -2297,7 +2238,7 @@ void CodeGenVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
     } else if (_resolve_mode == ExprChainResolveMode::Value) {
         SQInteger key = _fs->PopTarget();
         SQInteger src = _fs->PopTarget();
-        if (expr->canBeLiteral(defaultDelegate)) {
+        if (expr->canBeLiteral(typeMethod)) {
             _fs->AddInstruction(_OP_GET_LITERAL, _fs->PushTarget(), constantI, src, flags);
             SQ_STATIC_ASSERT(_OP_DATA_NOP == 0);
             _fs->AddInstruction(SQOpcode(0), 0, 0, 0, 0); //hint
@@ -2365,7 +2306,7 @@ void CodeGenVisitor::visitBinExpr(BinExpr *expr) {
           emitSimpleBinaryOp(_OP_ADD, expr->lhs(), expr->rhs());
     break;
     case TO_SUB:
-        if ( is_literal_in_int_range(expr->rhs()) )
+        if ( is_literal_in_int_range(expr->rhs()) && expr->rhs()->asLiteral()->i() != SQInteger(INT_MIN) )
         {
             visitForValue(expr->lhs());
             SQInteger op2 = _fs->PopTarget();
@@ -2608,7 +2549,7 @@ bool CodeGenVisitor::visitMaybeStaticMemo(Node *n) {
     }
     else {
         if ((_fs->lang_features & LF_ALLOW_AUTO_FREEZE) != 0 &&
-            (n->op() == TO_ARRAYEXPR || (n->op() == TO_DECL_EXPR && static_cast<DeclExpr *>(n)->declaration()->op() == TO_TABLE))) {
+            (n->op() == TO_ARRAY || n->op() == TO_TABLE || n->op() == TO_CLASS)) {
 
             visitForValue(n);
             SQInteger src = _fs->PopTarget();

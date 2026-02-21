@@ -86,19 +86,19 @@ EA_DISABLE_ALL_VC_WARNINGS()
 namespace Sqrat {
 
 #if defined(SQRAT_HAS_EASTL)
-  using string = eastl::basic_string<SQChar>;
-  using string_view = eastl::basic_string_view<SQChar>;
+  using string = eastl::basic_string<char>;
+  using string_view = eastl::basic_string_view<char>;
   template <class T> using hash = eastl::hash<T>;
   template <class T> using shared_ptr = eastl::shared_ptr<T>;
   template <class T> using weak_ptr = eastl::weak_ptr<T>;
 # define SQRAT_HAS_STRING_VIEW 1
 #else
-  using string = std::basic_string<SQChar>;
+  using string = std::basic_string<char>;
   template <class T> using hash = std::hash<T>;
   template <class T> using shared_ptr = std::shared_ptr<T>;
   template <class T> using weak_ptr = std::weak_ptr<T>;
 # if defined(SQRAT_STD_CPP17)
-  using string_view = std::basic_string_view<SQChar>;
+  using string_view = std::basic_string_view<char>;
 # define SQRAT_HAS_STRING_VIEW 1
 # endif
 #endif //defined(SQRAT_HAS_EASTL)
@@ -155,15 +155,15 @@ void SQRAT_UNUSED(const T&) {}
 /// \return String containing a nice type error message
 ///
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-inline string FormatTypeError(HSQUIRRELVM vm, SQInteger idx, const SQChar *expectedType) {
+inline string FormatTypeError(HSQUIRRELVM vm, SQInteger idx, const char *expectedType) {
     SQInteger prevTop = sq_gettop(vm);
-    const SQChar* actualType = _SC("unknown");
+    const char* actualType = "unknown";
     if (SQ_SUCCEEDED(sq_typeof(vm, idx))) {
         sq_tostring(vm, -1);
         sq_getstring(vm, -1, &actualType);
     }
 
-    const SQChar *fmtString = _SC("wrong type (%s expected, got %s)");
+    const char *fmtString = "wrong type (%s expected, got %s)";
     int l = snprintf(nullptr, 0, fmtString, expectedType, actualType);
     string err(l + 1, '\0');
     snprintf(&err[0], err.size(), fmtString, expectedType, actualType);
@@ -175,7 +175,7 @@ inline string FormatTypeError(HSQUIRRELVM vm, SQInteger idx, const SQChar *expec
 
 /// Returns the last error that occurred with a Squirrel VM (not associated with Sqrat errors)
 inline string LastErrorString(HSQUIRRELVM vm) {
-    const SQChar* sqErr = _SC("n/a");
+    const char* sqErr = "n/a";
     sq_getlasterror(vm);
     if (sq_gettype(vm, -1) == OT_NULL) {
         sq_pop(vm, 1);

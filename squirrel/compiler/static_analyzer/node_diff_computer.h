@@ -302,10 +302,6 @@ class NodeDiffComputer
     return result + argDiff;
   }
 
-  int32_t diffDeclExpr(const DeclExpr *lhs, const DeclExpr *rhs) {
-    return diffNodes(lhs->declaration(), rhs->declaration());
-  }
-
   int32_t diffArrayExpr(const ArrayExpr *lhs, const ArrayExpr *rhs) {
     const auto &leftInits = lhs->initializers();
     const auto &rightInits = rhs->initializers();
@@ -475,8 +471,8 @@ class NodeDiffComputer
     return valueDiff + groupDiff;
   }
 
-  const SQChar *realFunctionName(const FunctionDecl *f) const {
-    const SQChar *name = f->name();
+  const char *realFunctionName(const FunctionExpr *f) const {
+    const char *name = f->name();
     assert(name);
 
     if (name[0] == '(') // anonymous
@@ -492,7 +488,7 @@ class NodeDiffComputer
       return DiffCosts.OpDiffCost;
   }
 
-  int32_t diffFunction(const FunctionDecl *lhs, const FunctionDecl *rhs) {
+  int32_t diffFunction(const FunctionExpr *lhs, const FunctionExpr *rhs) {
     int32_t nameDiff = strcmp(realFunctionName(lhs), realFunctionName(rhs)) != 0 ? DiffCosts.NameDiffCost : 0;
 
     const auto &leftParams = lhs->parameters();
@@ -523,7 +519,7 @@ class NodeDiffComputer
     return nameDiff + paramDiff + bodyDiff;
   }
 
-  int32_t diffTable(const TableDecl *lhs, const TableDecl *rhs) {
+  int32_t diffTable(const TableExpr *lhs, const TableExpr *rhs) {
     const auto &leftMembers = lhs->members();
     const auto &rightMembers = rhs->members();
 
@@ -555,7 +551,7 @@ class NodeDiffComputer
     return tableDiff;
   }
 
-  int32_t diffClass(const ClassDecl *lhs, const ClassDecl *rhs) {
+  int32_t diffClass(const ClassExpr *lhs, const ClassExpr *rhs) {
     int32_t keyDiff = diffNodes(lhs->classKey(), rhs->classKey());
 
     if (keyDiff > limit)
@@ -685,9 +681,13 @@ class NodeDiffComputer
       return diffLiterals((const LiteralExpr *)lhs, (const LiteralExpr *)rhs);
     case TO_INC:
       return diffIncExpr((const IncExpr *)lhs, (const IncExpr *)rhs);
-    case TO_DECL_EXPR:
-      return diffDeclExpr((const DeclExpr *)lhs, (const DeclExpr *)rhs);
-    case TO_ARRAYEXPR:
+    case TO_TABLE:
+      return diffTable((const TableExpr *)lhs, (const TableExpr *)rhs);
+    case TO_CLASS:
+      return diffClass((const ClassExpr *)lhs, (const ClassExpr *)rhs);
+    case TO_FUNCTION:
+      return diffFunction((const FunctionExpr *)lhs, (const FunctionExpr *)rhs);
+    case TO_ARRAY:
       return diffArrayExpr((const ArrayExpr *)lhs, (const ArrayExpr *)rhs);
     case TO_GETFIELD:
       return diffGetField((const GetFieldExpr *)lhs, (const GetFieldExpr *)rhs);
@@ -708,15 +708,8 @@ class NodeDiffComputer
       return diffDeclGroup((const DeclGroup *)lhs, (const DeclGroup *)rhs);
     case TO_DESTRUCTURE:
       return diffDestructDecl((const DestructuringDecl *)lhs, (const DestructuringDecl *)rhs);
-    case TO_FUNCTION:
-    case TO_CONSTRUCTOR:
-      return diffFunction((const FunctionDecl *)lhs, (const FunctionDecl *)rhs);
-    case TO_CLASS:
-      return diffClass((const ClassDecl *)lhs, (const ClassDecl *)rhs);
     case TO_ENUM:
       return diffEnumDecl((const EnumDecl *)lhs, (const EnumDecl *)rhs);
-    case TO_TABLE:
-      return diffTable((const TableDecl *)lhs, (const TableDecl *)rhs);
     case TO_SETFIELD:
     case TO_SETSLOT:
     default:

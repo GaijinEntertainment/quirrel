@@ -273,13 +273,13 @@ public:
             }
 
             if (instance == NULL) {
-                SQRAT_ASSERTF(0, _SC("got unconstructed native class (call base.constructor in the constructor of Squirrel classes that extend native classes)"));
+                SQRAT_ASSERTF(0, "got unconstructed native class (call base.constructor in the constructor of Squirrel classes that extend native classes)");
                 return NULL;
             }
         }
         else /* value is likely of integral type like enums, cannot return a pointer */
         {
-            SQRAT_ASSERTF(sq_gettype(vm, idx) == OT_INTEGER, FormatTypeError(vm, idx, _SC("unknown")).c_str());
+            SQRAT_ASSERTF(sq_gettype(vm, idx) == OT_INTEGER, FormatTypeError(vm, idx, "unknown").c_str());
             return NULL;
         }
         AbstractStaticClassData* actualType;
@@ -338,9 +338,9 @@ public:
     static SQInteger ToString(HSQUIRRELVM vm) {
         HSQOBJECT ho;
         sq_getstackobj(vm, 1, &ho);
-        int l = snprintf(nullptr, 0, _SC("%s (0x%p)"), ClassName().c_str(), ho._unVal.pInstance);
+        int l = snprintf(nullptr, 0, "%s (0x%p)", ClassName().c_str(), ho._unVal.pInstance);
         string str(l+1, '\0');
-        snprintf(&str[0], str.size(), _SC("%s (0x%p)"), ClassName().c_str(), ho._unVal.pInstance);
+        snprintf(&str[0], str.size(), "%s (0x%p)", ClassName().c_str(), ho._unVal.pInstance);
         sq_pushstring(vm, str.c_str(), l);
         return 1;
     }

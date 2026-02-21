@@ -5,22 +5,22 @@ namespace SQCompilation
 
 struct FunctionInfo {
 
-  FunctionInfo(const FunctionDecl *d, const FunctionDecl *o) : declaration(d), owner(o) {}
+  FunctionInfo(const FunctionExpr *d, const FunctionExpr *o) : declaration(d), owner(o) {}
 
   ~FunctionInfo() = default;
 
   struct Modifiable {
-    const FunctionDecl *owner;
-    const SQChar *name;
+    const FunctionExpr *owner;
+    const char *name;
   };
 
-  const FunctionDecl *owner;
+  const FunctionExpr *owner;
   std::vector<Modifiable> modifiable;
-  const FunctionDecl *declaration;
-  std::vector<const SQChar *> parameters;
+  const FunctionExpr *declaration;
+  std::vector<const char *> parameters;
 
   void joinModifiable(const FunctionInfo *other);
-  void addModifiable(const SQChar *name, const FunctionDecl *o);
+  void addModifiable(const char *name, const FunctionExpr *o);
 
 };
 

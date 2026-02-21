@@ -1,11 +1,11 @@
-.. _diff_from_original:
+.. _diff_from_squirrel:
 
 *******************************************
 Differences from Squirrel language
 *******************************************
 
 .. index::
-    single: diff_from_original
+    single: diff_from_squirrel
 
 
 Squirrel language was used a lot in all Gaijin projects since 2006.
@@ -30,9 +30,9 @@ Language syntax
 * Template strings: ``$"Hello {name}"`` for string interpolation
 * Documentation strings: ``@@"docstring"`` for inline documentation
 * Compiler directives: ``#pragma`` for configuring compiler options
-* Type method access: ``obj.$method`` and ``obj?.$method`` for explicit access to type default delegates
+* Type method access: ``obj.$method`` and ``obj?.$method``
 * Numeric literal separators: ``1_000_000`` for better readability
-* Destructuring assignment for unpacking values from arrays and tables (``let {a, b} = table``)
+* Supports destructuring assignment to unpack values from arrays and objects (e.g., ``let {a, b} = table``), including destructuring in function parameters with default values and type annotations
 * ES2015-style shorthand table initialization: ``{x, y}`` instead of ``{x=x, y=y}``
 * Named functions in expressions: ``let foo = function foo() {}``
 * Null-safety operators:
@@ -88,27 +88,27 @@ Standard library
   * ``print()``, ``println()``, ``error()``, ``errorln()`` accept arbitrary number of parameters to print
   * ``freeze(obj)`` - return an immutable reference to an object
     (also ``getobjflags(obj)`` to get object flags (e.g., SQOBJ_FLAG_IMMUTABLE) and
-    ``is_frozen()`` default delegate for container types.
+    ``is_frozen()`` for container types.
   * ``deduplicate_object(obj)`` - deduplicate table/array contents for memory efficiency
   * Enhanced ``assert()`` - accepts closures for lazy message evaluation
-  * Support for ``call()``/``acall()`` delegates for classes
+  * Support for ``call()``/``acall()`` type methods for classes
   * Support negative indexes in ``array.slice()`` and ``string.slice()``
 
-* String default delegates:
+* String type methods:
 
   * Added: ``.hash()``, ``.contains()``, ``.hasindex()``, ``.subst()``, ``.replace()``, ``.join()``, ``.concat()``,
-    ``.clone()``, plus moved from stdlib to default delegate: ``.strip()``, ``.lstrip()``, ``.rstrip()``, ``.split()``,
+    ``.clone()``, plus moved from stdlib: ``.strip()``, ``.lstrip()``, ``.rstrip()``, ``.split()``,
     ``.split_by_chars()``, ``.escape()``, ``.startswith()``, ``.endswith()`` (some are shared with the string stardard library)
   * Changed: ``.find()`` renamed to ``.indexof()`` to reduce ambiguity
 
-* Table default delegates:
+* Table type methods:
 
   * Added:** ``.each()``, ``.reduce()``, ``.findindex()``, ``.findvalue()``, ``.topairs()``, ``.swap()``,
     ``.__merge()``, ``.__update()``, ``.replace_with()``, ``.hasindex()``, ``.hasvalue()``, ``.clone()``,
     ``.is_frozen()``, ``.getfuncinfos()``
   * Removed: ``.setdelegate()``, ``.getdelegate()``
 
-* Array default delegates:
+* Array type methods:
 
   * Added: ``.each()``, ``.findindex()``, ``.findvalue()``, ``.contains()``, ``.hasindex()``, ``.hasvalue()``,
     ``.totable()``, ``.replace_with()``, ``.swap()``, ``.clone()``, ``.is_frozen()``
@@ -120,7 +120,7 @@ Standard library
 * Standard library modules:
 
   * Added: datetime, debug, and serialization modules
-  * String module: Functions moved to string default delegates for convenience (still available as module functions)
+  * String module: Functions moved to string type methods for convenience (still available as module functions)
 
 Module system
 =============
@@ -196,7 +196,7 @@ Operators
   * Now configurable via pragmas: ``#forbid-delete-operator`` / ``#allow-delete-operator``
   * Recommended to use ``table.$rawdelete()`` or ``table.rawdelete()`` instead
 
-Default delegates
+Type methods
 =================
 
 * ``.find()`` renamed to ``.indexof()`` for arrays and strings

@@ -25,7 +25,7 @@
 
 namespace SQCompilation {
 
-static RootBlock *parseASTImpl(Arena *astArena, SQVM *vm, const char *sourceText, size_t sourceTextSize, const SQChar *sourcename, Comments *comments, bool raiseerror) {
+static RootBlock *parseASTImpl(Arena *astArena, SQVM *vm, const char *sourceText, size_t sourceTextSize, const char *sourcename, Comments *comments, bool raiseerror) {
   Arena parseArena(_ss(vm)->_alloc_ctx, "Parser");
   SQCompilationContext ctx(vm, &parseArena, sourcename, sourceText, sourceTextSize, comments, raiseerror);
   SQParser p(vm, sourceText, sourceTextSize, sourcename, astArena, ctx, comments);
@@ -34,13 +34,13 @@ static RootBlock *parseASTImpl(Arena *astArena, SQVM *vm, const char *sourceText
 
   if (r) {
     ClosureHoistingOpt opt(_ss(vm), astArena);
-    opt.run(r, sourcename);
+    opt.run(r);
   }
 
   return r;
 }
 
-SqASTData *ParseToAST(SQVM *vm, const char *sourceText, size_t sourceTextSize, const SQChar *sourcename, bool preserveComments, bool raiseerror) {
+SqASTData *ParseToAST(SQVM *vm, const char *sourceText, size_t sourceTextSize, const char *sourcename, bool preserveComments, bool raiseerror) {
 
     SqASTData *astData = sq_allocateASTData(vm);
 
@@ -57,7 +57,7 @@ SqASTData *ParseToAST(SQVM *vm, const char *sourceText, size_t sourceTextSize, c
     return nullptr;
 }
 
-bool Compile(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror)
+bool Compile(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const char *sourcename, SQObjectPtr &out, bool raiseerror)
 {
     Arena astArena(_ss(vm)->_alloc_ctx, "AST");
 
@@ -73,7 +73,7 @@ bool Compile(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQO
     return codegen.generate(r, out);
 }
 
-static bool TranslateASTToBytecodeImpl(SQVM *vm, RootBlock *ast, const HSQOBJECT *bindings, const SQChar *sourcename, const char *sourceText, size_t sourceTextSize, SQObjectPtr &out, const Comments *comments, bool raiseerror)
+static bool TranslateASTToBytecodeImpl(SQVM *vm, RootBlock *ast, const HSQOBJECT *bindings, const char *sourcename, const char *sourceText, size_t sourceTextSize, SQObjectPtr &out, const Comments *comments, bool raiseerror)
 {
     Arena cgArena(_ss(vm)->_alloc_ctx, "Codegen");
     SQCompilationContext ctx(vm, &cgArena, sourcename, sourceText, sourceTextSize, comments, raiseerror);
