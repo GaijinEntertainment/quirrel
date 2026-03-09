@@ -80,7 +80,7 @@ private:
     void emitSimpleBinaryOp(SQOpcode op, Expr *lhs, Expr *rhs, SQInteger op3 = 0);
     void emitShortCircuitLogicalOp(SQOpcode op, Expr *lhs, Expr *rhs);
     void emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lvalue, Expr *rvalue);
-    void emitStaticMemo(Expr *static_memo_arg);
+    void emitStaticMemo(Expr *static_memo_arg, bool is_auto_memo = false);
     void emitInlineConst(Expr *const_initializer);
 
     bool _visit_arrays_and_tables;
@@ -121,6 +121,10 @@ private:
 
     void selectConstant(SQInteger target, const SQObjectPtr &constant);
     void addPatchDocObjectInstruction(const DocObject &docObject);
+
+    unsigned inferExprTypeMask(Expr *expr);
+    unsigned inferExprTypeMaskImpl(Expr *expr);
+    bool checkInferredType(Node *reportNode, Expr *expr, unsigned declaredMask);
 
     Expr *deparen(Expr *e) const;
     bool isFreezeCall(Expr *node);

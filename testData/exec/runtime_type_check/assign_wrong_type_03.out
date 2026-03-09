@@ -1,11 +1,10 @@
+ERROR: expression of type 'table' cannot be assigned to type 'array'
+testData/exec/runtime_type_check/assign_wrong_type_03.nut:3:0
 
-AN ERROR HAS OCCURRED [type 'table' differs from the declared type 'array']
+y.append(333)
+y = {}
+^
+return y
 
-CALLSTACK
-*FUNCTION [__main__()] testData/exec/runtime_type_check/assign_wrong_type_03.nut:3
 
-LOCALS
-[y] TABLE={}
-[vargv] ARRAY=[]
-[this] NULL
-Error [Failed to run script testData/exec/runtime_type_check/assign_wrong_type_03.nut (testData/exec/runtime_type_check/assign_wrong_type_03.nut)]
+Error [Failed to compile file testData/exec/runtime_type_check/assign_wrong_type_03.nut (testData/exec/runtime_type_check/assign_wrong_type_03.nut)]

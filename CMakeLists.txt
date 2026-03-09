@@ -22,6 +22,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     -Wextra
     -pedantic
     -Wcast-qual
+    -Wno-unused-parameter
+    -Wno-missing-field-initializers
     "$<$<CONFIG:Release>:-O3>"
     "$<$<CONFIG:RelWithDebInfo>:-O3;-g>"
     "$<$<CONFIG:MinSizeRel>:-Os>"

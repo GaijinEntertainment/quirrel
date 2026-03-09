@@ -222,6 +222,22 @@ void ClosureHoistingOpt::insertHoistedDecls(Block *block,
 }
 
 //------------------------------------------------------------------------------
+// Typed Default Parameter Safety Check
+//------------------------------------------------------------------------------
+
+// Check if a function has any parameter with both a type annotation and a
+// default value. The type check for such defaults happens at closure creation
+// time and can throw. Hoisting would move that throw to a different scope
+// (e.g. out of a try/catch), changing program behavior.
+static bool hasTypedDefaults(FunctionExpr *f) {
+  for (auto param : f->parameters()) {
+    if (param->getTypeMask() != ~0u && param->hasDefaultValue())
+      return true;
+  }
+  return false;
+}
+
+//------------------------------------------------------------------------------
 // HoistingVisitor Helpers
 //------------------------------------------------------------------------------
 
@@ -270,6 +286,16 @@ void ClosureHoistingOpt::HoistingVisitor::tryHoistFunction(
   if (!parentScope || !parentScope->parent)
     return;
   if (funcScope.isClassMethod())
+    return;
+  // Don't hoist const functions - they are compile-time constants
+  if (insideConstDecl)
+    return;
+
+  // Don't hoist functions with typed default parameters.
+  // The type check for defaults happens at closure creation and can throw.
+  // Hoisting moves the closure creation to a different scope, which can
+  // change error handling behavior (e.g. moving it out of a try/catch).
+  if (hasTypedDefaults(f))
     return;
 
   // Analyze what this closure captures
@@ -383,8 +409,12 @@ void ClosureHoistingOpt::HoistingVisitor::visitParamDecl(ParamDecl *p) {
 
 void ClosureHoistingOpt::HoistingVisitor::visitConstDecl(ConstDecl *c) {
   currentScope->localNames->insert(c->name());
-  if (c->value())
+  if (c->value()) {
+    bool wasInConstDecl = insideConstDecl;
+    insideConstDecl = true;
     c->value()->visit(this);
+    insideConstDecl = wasInConstDecl;
+  }
 }
 
 void ClosureHoistingOpt::HoistingVisitor::visitTryStatement(TryStatement *stmt) {

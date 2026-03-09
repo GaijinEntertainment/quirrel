@@ -197,9 +197,16 @@ class FunctionExpr;
 
 class Expr : public Node {
 protected:
-    Expr(enum TreeOp op, SourceSpan span) : Node(op, span) {}
+    Expr(enum TreeOp op, SourceSpan span) : Node(op, span), _typeMask(~0u), _typeInferred(false) {}
+    unsigned _typeMask;
+    bool _typeInferred;
 
 public:
+    unsigned getTypeMask() const { return _typeMask; }
+    void setTypeMask(unsigned m) { _typeMask = m; }
+    bool isTypeInferred() const { return _typeInferred; }
+    void setTypeInferred() { _typeInferred = true; }
+
     bool isAccessExpr() const { return TO_GETFIELD <= op() && op() <= TO_SETSLOT; }
     AccessExpr *asAccessExpr() const { assert(isAccessExpr()); return (AccessExpr*)this; }
     LiteralExpr *asLiteral() const { assert(op() == TO_LITERAL); return (LiteralExpr *)this; }

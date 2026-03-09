@@ -10,6 +10,7 @@ set(COMPILER_SRC
     optimizer.cpp
     lexer.cpp
     sqtypeparser.cpp
+    typeinference.cpp
     optimizations/closureHoisting.cpp
     static_analyzer/analyzer.cpp
     static_analyzer/checker_visitor.cpp

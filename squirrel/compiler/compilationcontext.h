@@ -89,6 +89,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(CONFLICTS_WITH, ERROR, SEMA, -1, "", "%s name '%s' conflicts with %s"), \
   DEF_DIAGNOSTIC(INC_DEC_NOT_ASSIGNABLE, ERROR, SEMA, -1, "", "argument of inc/dec operation is not assignable"), \
   DEF_DIAGNOSTIC(TYPE_DIFFERS, ERROR, SEMA, -1, "", "%s type differs from the declared type"), \
+  DEF_DIAGNOSTIC(INFERRED_TYPE_MISMATCH, ERROR, SEMA, -1, "", "expression of type '%s' cannot be assigned to type '%s'"), \
   DEF_DIAGNOSTIC(SPACE_SEP_FIELD_NAME, ERROR, SEMA, -1, "", "Separate access operator '%s' with its following name is forbidden"), \
   DEF_DIAGNOSTIC(TOO_MANY_SYMBOLS, ERROR, SEMA, -1, "", "internal compiler error: too many %s"), \
   DEF_DIAGNOSTIC(NOT_ALLOWED_IN_CONST, ERROR, SEMA, -1, "", "%s is not allowed in constant"), \

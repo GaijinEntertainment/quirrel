@@ -37,7 +37,7 @@ static void DumpLiteral(OutputStream *stream, const SQObjectPtr &o)
     switch (sq_type(o)) {
         case OT_NULL: streamprintf(stream, "null"); break;
         case OT_STRING: streamprintf(stream, "string(\"%s\")", _stringval(o)); break;
-        case OT_FLOAT: streamprintf(stream, "float(%f)", _float(o)); break;
+        case OT_FLOAT: streamprintf(stream, "float(%1.9g)", _float(o)); break;
         case OT_INTEGER: streamprintf(stream, "int(" _PRINT_INT_FMT ")", _integer(o)); break;
         case OT_BOOL: streamprintf(stream, "%s", _integer(o) ? "bool(true)" : "bool(false)"); break;
         case OT_ARRAY: streamprintf(stream, "array(0x%p size=%d)", (void*)_rawval(o), int(_array(o)->Size())); break;
@@ -187,7 +187,7 @@ void DumpInstructions(OutputStream *stream, SQLineInfosHeader *lineinfos, int nl
             }
             bool arg1F = inst.op == _OP_JCMPF || inst.op == _OP_LOADFLOAT;
             if (arg1F)
-                streamprintf(stream, "[line%c%03d]%c[op %03d] %15s %d %f %d %d", isStepPoint ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
+                streamprintf(stream, "[line%c%03d]%c[op %03d] %15s %d %1.9g %d %d", isStepPoint ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
                     g_InstrDesc[inst.op].name, inst._arg0, inst._farg1, inst._arg2, inst._arg3);
             else
             {
@@ -248,8 +248,9 @@ void DumpInstructions(OutputStream *stream, SQLineInfosHeader *lineinfos, int nl
                     {
                         int loadInstr = saveInstr + 1 - ((ii[saveInstr]._arg2 << 8) + ii[saveInstr]._arg3);
                         if (loadInstr == i) {
-                            streamprintf(stream, "  // LOAD_STATIC_MEMO: staticmemo[%d] -> [%d], jump to %d",
-                                int(inst._arg1), int(inst._arg0), saveInstr + 1);
+                            streamprintf(stream, "  // LOAD_STATIC_MEMO: staticmemo[%d] -> [%d], jump to %d%s",
+                                int(inst._arg1 & STATIC_MEMO_IDX_MASK), int(inst._arg0), saveInstr + 1,
+                                (inst._arg1 & STATIC_MEMO_AUTO_FLAG) ? " (auto)" : "");
                         }
                     }
                 }
@@ -257,8 +258,9 @@ void DumpInstructions(OutputStream *stream, SQLineInfosHeader *lineinfos, int nl
 
             case _OP_SAVE_STATIC_MEMO: {
                     int loadInstr = i + 1 - ((inst._arg2 << 8) + inst._arg3);
-                    streamprintf(stream, "  // [%d] -> staticmemo[%d], [%d] -> [%d], modify instr at %d",
-                        int(inst._arg0), int(inst._arg1), int(inst._arg0), int(ii[loadInstr]._arg0), loadInstr);
+                    streamprintf(stream, "  // [%d] -> staticmemo[%d], [%d] -> [%d], modify instr at %d%s",
+                        int(inst._arg0), int(inst._arg1 & STATIC_MEMO_IDX_MASK), int(inst._arg0), int(ii[loadInstr]._arg0), loadInstr,
+                        (inst._arg1 & STATIC_MEMO_AUTO_FLAG) ? " (auto)" : "");
                 }
                 break;
 
@@ -308,7 +310,7 @@ void DumpInstructions(OutputStream *stream, SQLineInfosHeader *lineinfos, int nl
                         streamprintf(stream, "%d", int(inst._arg1));
                         break;
                     case AAT_FLOAT:
-                        streamprintf(stream, "%f", *((const SQFloat *)&inst._arg1));
+                        streamprintf(stream, "%1.9g", *((const SQFloat *)&inst._arg1));
                         break;
                     case AAT_BOOL:
                         streamprintf(stream, "%s", inst._arg1 ? "true" : "false");
@@ -449,8 +451,9 @@ void ResetStaticMemos(SQFunctionProto *func, SQSharedState *ss)
 
         for (int i = 0; i < count; i += sq_opcode_length(instr[i].op)) {
             if (instr[i].op == _OP_LOAD_STATIC_MEMO) {
-                assert(unsigned(instr[i]._arg1) < func->_nstaticmemos);
-                SQObjectPtr& storedStatic = func->_staticmemos[instr[i]._arg1];
+                SQInteger staticIdx = instr[i]._arg1;
+                assert(unsigned(staticIdx) < func->_nstaticmemos);
+                SQObjectPtr& storedStatic = func->_staticmemos[staticIdx];
 
                 if (ISREFCOUNTED(sq_type(storedStatic))) {
                 #ifdef NO_GARBAGE_COLLECTOR
@@ -461,7 +464,7 @@ void ResetStaticMemos(SQFunctionProto *func, SQSharedState *ss)
                 #endif
                 }
 
-                func->_staticmemos[instr[i]._arg1].Null();
+                func->_staticmemos[staticIdx].Null();
                 instr[i].op = _OP_DATA_NOP;
             }
         }
@@ -522,11 +525,11 @@ void SQFuncState::SetInstructionParam(SQInteger pos,SQInteger arg,SQInteger val)
 SQInteger SQFuncState::AllocStackPos()
 {
     SQInteger npos=_vlocals.size();
+    if(npos >= MAX_FUNC_STACKSIZE)
+        _ctx.reportDiagnostic(DiagnosticsId::DI_TOO_MANY_SYMBOLS, -1, -1, 0, "locals");
     _vlocals.push_back(SQLocalVarInfo());
     _vlocals_info.push_back(SQCompiletimeVarInfo{});
     if(_vlocals.size()>((SQUnsignedInteger)_stacksize)) {
-        if(_stacksize>MAX_FUNC_STACKSIZE)
-            _ctx.reportDiagnostic(DiagnosticsId::DI_TOO_MANY_SYMBOLS, -1, -1, 0, "locals");
         _stacksize=_vlocals.size();
     }
     return npos;

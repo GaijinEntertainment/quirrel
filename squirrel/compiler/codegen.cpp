@@ -643,28 +643,33 @@ void CodeGenVisitor::visitReturnStatement(ReturnStatement *retStmt) {
     SQInteger retexp = _fs->GetCurrentPos() + 1;
     visitTerminateStatement(retStmt);
 
-    if (_fs->_traps > 0) {
-        _fs->AddInstruction(_OP_POPTRAP, _fs->_traps, 0);
-    }
-
-    if (retStmt->argument()) {
-        if (!_fs->_expr_block_results.empty()) {
+    if (!_fs->_expr_block_results.empty()) {
+        // Inside a CodeBlockExpr: return is compiled as a break (MOVE+JMP),
+        // not a real function return. Only pop traps local to this block,
+        // not the entire function's traps.
+        if (_fs->_breaktargets.top() > 0) {
+            _fs->AddInstruction(_OP_POPTRAP, _fs->_breaktargets.top(), 0);
+        }
+        if (retStmt->argument()) {
             _fs->AddInstruction(_OP_MOVE, _fs->_expr_block_results.back(), _fs->PopTarget());
-            _fs->AddInstruction(_OP_JMP, 0, -1234);
-            _fs->_unresolvedbreaks.push_back(_fs->GetCurrentPos());
         } else {
+            _fs->AddInstruction(_OP_LOADNULLS, _fs->_expr_block_results.back(), 1);
+        }
+        RESOLVE_OUTERS();
+        _fs->AddInstruction(_OP_JMP, 0, -1234);
+        _fs->_unresolvedbreaks.push_back(_fs->GetCurrentPos());
+    } else {
+        if (_fs->_traps > 0) {
+            _fs->AddInstruction(_OP_POPTRAP, _fs->_traps, 0);
+        }
+        if (retStmt->argument()) {
             _fs->_returnexp = retexp;
             int target = _fs->PopTarget();
-            if (!_fs->_bgenerator)
-                EmitCheckType(target, _fs->_result_type_mask); // TODO: try to check type in compiletime
+            if (!_fs->_bgenerator) {
+                if (!checkInferredType(retStmt, retStmt->argument(), _fs->_result_type_mask))
+                    EmitCheckType(target, _fs->_result_type_mask);
+            }
             _fs->AddInstruction(_OP_RETURN, 1, target);
-        }
-    }
-    else {
-        if (!_fs->_expr_block_results.empty()) {
-            _fs->AddInstruction(_OP_LOADNULLS, _fs->_expr_block_results.back(), 1);
-            _fs->AddInstruction(_OP_JMP, 0, -1234);
-            _fs->_unresolvedbreaks.push_back(_fs->GetCurrentPos());
         } else {
             if ((_fs->_result_type_mask & _RT_NULL) == 0 && !_fs->_bgenerator)
                 reportDiagnostic(retStmt, DiagnosticsId::DI_TYPE_DIFFERS, "Return");
@@ -682,7 +687,8 @@ void CodeGenVisitor::visitYieldStatement(YieldStatement *yieldStmt) {
     if (yieldStmt->argument()) {
         _fs->_returnexp = retexp;
         int target = _fs->PopTarget();
-        EmitCheckType(target, _fs->_result_type_mask); // TODO: try to check type in compiletime
+        if (!checkInferredType(yieldStmt, yieldStmt->argument(), _fs->_result_type_mask))
+            EmitCheckType(target, _fs->_result_type_mask);
         _fs->AddInstruction(_OP_YIELD, 1, target, _fs->GetStackSize());
     }
     else {
@@ -1334,7 +1340,8 @@ void CodeGenVisitor::visitVarDecl(VarDecl *var) {
             _fs->AddInstruction(_OP_MOVE, dest, src);
         }
 
-        EmitCheckType(dest, var->getTypeMask()); // TODO: try to check type in compiletime
+        if (!checkInferredType(var, var->initializer(), var->getTypeMask()))
+            EmitCheckType(dest, var->getTypeMask());
     }
     else {
         _fs->AddInstruction(_OP_LOADNULLS, _fs->PushTarget(), 1);
@@ -1386,6 +1393,7 @@ void CodeGenVisitor::visitDestructuringDecl(DestructuringDecl *destruct) {
 
 void CodeGenVisitor::visitParamDecl(ParamDecl *param) {
     if (param->hasDefaultValue()) {
+        checkInferredType(param, param->defaultValue(), param->getTypeMask());
         visitForValueMaybeStaticMemo(param->defaultValue());
     }
 }
@@ -1622,14 +1630,6 @@ void CodeGenVisitor::addLineNumber(Node *node) {
     }
 }
 
-Expr *CodeGenVisitor::deparen(Expr *e) const {
-  if (e->op() == TO_PAREN) {
-    return deparen(((UnExpr *)e)->argument());
-  }
-  return e;
-}
-
-
 static bool isCalleeAnObject(const Expr *expr) {
     if (expr->isAccessExpr())
         return expr->asAccessExpr()->receiver()->op() != TO_BASE;
@@ -1779,7 +1779,7 @@ void CodeGenVisitor::emitUnaryOp(SQOpcode op, UnExpr *u) {
 }
 
 
-void CodeGenVisitor::emitStaticMemo(Expr *static_memo_arg) {
+void CodeGenVisitor::emitStaticMemo(Expr *static_memo_arg, bool is_auto_memo) {
     if (static_memo_arg->op() == TO_STATIC_MEMO) {
         emitStaticMemo(static_cast<UnExpr*>(static_memo_arg)->argument());
         return;
@@ -1789,6 +1789,8 @@ void CodeGenVisitor::emitStaticMemo(Expr *static_memo_arg) {
     _inside_static_memo = true;
 
     SQInteger staticIdx = _fs->_staticmemos_count++;
+    if (staticIdx > STATIC_MEMO_IDX_MASK)
+        reportDiagnostic(static_memo_arg, DiagnosticsId::DI_GENERAL_COMPILE_ERROR, "too many static memos in function");
 
     _fs->AddInstruction(_OP_DATA_NOP); // will be replaced by _OP_LOAD_STATIC_MEMO
     SQInteger loadInstrPos = _fs->GetCurrentPos();
@@ -1806,8 +1808,9 @@ void CodeGenVisitor::emitStaticMemo(Expr *static_memo_arg) {
     if (offset >= 0xFFFF)
         reportDiagnostic(static_memo_arg, DiagnosticsId::DI_TOO_BIG_STATIC_MEMO);
 
-    _fs->SetInstructionParams(loadInstrPos, dst, staticIdx, (offset) >> 8, (offset) & 0xFF);
-    _fs->AddInstruction(_OP_SAVE_STATIC_MEMO, src, staticIdx, (offset + 1) >> 8, (offset + 1) & 0xFF);
+    SQInteger encodedIdx = is_auto_memo ? (staticIdx | STATIC_MEMO_AUTO_FLAG) : staticIdx;
+    _fs->SetInstructionParams(loadInstrPos, dst, encodedIdx, (offset) >> 8, (offset) & 0xFF);
+    _fs->AddInstruction(_OP_SAVE_STATIC_MEMO, src, encodedIdx, (offset + 1) >> 8, (offset + 1) & 0xFF);
 
     _inside_static_memo = old_inside_static_memo;
 }
@@ -2054,7 +2057,8 @@ void CodeGenVisitor::emitAssign(Expr *lvalue, Expr * rvalue) {
             SQInteger src = _fs->PopTarget();
             SQInteger dst = _fs->TopTarget();
             _fs->AddInstruction(_OP_MOVE, dst, src);
-            EmitCheckType(dst, varInfo.type_mask);
+            if (!checkInferredType(lvalue, rvalue, varInfo.type_mask))
+                EmitCheckType(dst, varInfo.type_mask);
         }
         else if ((pos = _fs->GetOuterVariable(nameObj, varInfo)) != -1) {
             if ((varInfo.var_flags & VF_ASSIGNABLE) == 0)
@@ -2062,7 +2066,8 @@ void CodeGenVisitor::emitAssign(Expr *lvalue, Expr * rvalue) {
 
             SQInteger src = _fs->PopTarget();
             _fs->AddInstruction(_OP_SETOUTER, _fs->PushTarget(), pos, src);
-            EmitCheckType(src, varInfo.type_mask);
+            if (!checkInferredType(lvalue, rvalue, varInfo.type_mask))
+                EmitCheckType(src, varInfo.type_mask);
         }
         else {
             reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_EXPR);
@@ -2545,7 +2550,7 @@ bool CodeGenVisitor::visitMaybeStaticMemo(Node *n) {
         !(_fs->lang_features & LF_DISABLE_OPTIMIZER) && _complexity_level > 0) {
         //reportDiagnostic(n, DiagnosticsId::DI_FORGOT_SUBST);
         //printf("static memo applied const score=%d pos:%d:%d\n", getSubtreeConstScore(n->asExpression(), false), n->lineStart(), n->columnStart());
-        emitStaticMemo(n->asExpression());
+        emitStaticMemo(n->asExpression(), /*is_auto_memo=*/true);
     }
     else {
         if ((_fs->lang_features & LF_ALLOW_AUTO_FREEZE) != 0 &&

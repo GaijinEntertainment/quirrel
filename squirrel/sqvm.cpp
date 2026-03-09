@@ -260,7 +260,7 @@ bool SQVM::ObjCmp(const SQObjectPtr &o1,const SQObjectPtr &o2,SQInteger &result)
         case OT_BOOL:
             _RET_SUCCEED((_integer(o1)<_integer(o2))?-1:1);
         case OT_FLOAT:
-            _RET_SUCCEED((_float(o1)<_float(o2))?-1:1);
+            _RET_SUCCEED((_float(o1)<_float(o2))?-1:(_float(o1)==_float(o2))?0:1);
         case OT_TABLE:
         case OT_USERDATA:
         case OT_INSTANCE:
@@ -941,7 +941,7 @@ bool SQVM::Execute(const SQObjectPtr &closure, SQInteger nargs, SQInteger stackb
     _nnativecalls++;
     AutoDec ad(&_nnativecalls);
     SQInteger traps = 0;
-    CallInfo *prevci = ci;
+    SQInteger prevci_idx = _callsstacksize;
 
     switch(et) {
         case ET_CALL: {
@@ -951,7 +951,7 @@ bool SQVM::Execute(const SQObjectPtr &closure, SQInteger nargs, SQInteger stackb
                 if(ci == NULL) CallErrorHandler(_lasterror);
                 return false;
             }
-            if(ci == prevci) {
+            if(_callsstacksize == prevci_idx) {
                 outres = STK(_top-nargs);
                 return true;
             }
@@ -1596,7 +1596,7 @@ exception_restore:
                     traps -= ci->_etraps;
                     if(sarg1 != MAX_FUNC_STACKSIZE) _Swap(STK(arg1),temp_reg);//STK(arg1) = temp_reg;
                 }
-                else { Raise_Error("trying to yield a '%s',only genenerator can be yielded", GetTypeName(SQObjectPtr(ci->_generator))); SQ_THROW();}
+                else { Raise_Error("trying to yield a '%s', only generator can be yielded", GetTypeName(ci->_closure)); SQ_THROW();}
                 if(Return<debughookPresent>(arg0, arg1, temp_reg)){
                     assert(traps == 0);
                     outres = temp_reg;
@@ -1696,10 +1696,19 @@ exception_restore:
                 // modify instruction op at -((arg2 << 8) + arg3) to _OP_LOAD_STATIC_MEMO
                 SQObjectPtr & staticmemo = STK(arg0);
                 SQObjectType tp = sq_type(staticmemo);
-                if (tp == OT_ARRAY || tp == OT_TABLE || tp == OT_INSTANCE || tp == OT_CLASS || tp == OT_USERDATA)
-                    staticmemo._flags |= SQOBJ_FLAG_IMMUTABLE;
+                bool isAutoMemo = (arg1 & STATIC_MEMO_AUTO_FLAG) != 0;
+                SQInteger staticIdx = arg1 & STATIC_MEMO_IDX_MASK;
+                if (isAutoMemo && (tp == OT_ARRAY || tp == OT_TABLE || tp == OT_INSTANCE || tp == OT_CLASS)) {
+                    // don't auto-memoize mutable containers - might change observable behavior
+                    // but still copy result to the LOAD instruction's target register if needed
+                    SQInstruction * loadInstr = (ci->_ip - (arg2 << 8) - arg3);
+                    if (loadInstr->_arg0 != arg0)
+                        STK(loadInstr->_arg0) = staticmemo;
+                    continue;
+                }
+                staticmemo._flags |= SQOBJ_FLAG_IMMUTABLE;
 
-                SQObjectPtr & storedStatic = _closure(ci->_closure)->_function->_staticmemos[arg1]; //-V595
+                SQObjectPtr & storedStatic = _closure(ci->_closure)->_function->_staticmemos[staticIdx]; //-V595
                 storedStatic = staticmemo;
 
                 if (ISREFCOUNTED(tp)) {
@@ -1713,6 +1722,7 @@ exception_restore:
                 SQInstruction * loadInstr = (ci->_ip - (arg2 << 8) - arg3);  //-V595
                 if (loadInstr->_arg0 != arg0)
                     STK(loadInstr->_arg0) = staticmemo;
+                loadInstr->_arg1 = staticIdx; // strip STATIC_MEMO_AUTO_FLAG
                 loadInstr->op = _OP_LOAD_STATIC_MEMO;
                 continue;
                 }

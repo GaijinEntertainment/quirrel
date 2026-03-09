@@ -119,8 +119,9 @@ struct ScopeContext {
   // Trim pending hoists if adding them would exceed the locals limit
   void enforceLocalsLimit() {
     int maxHoists = std::max(0, (int)MAX_LOCALS_FOR_HOISTING - (int)localNames->size());
-    if (pendingHoists.size() > (size_t)maxHoists)
-      pendingHoists.resize(maxHoists);
+    while ((int)pendingHoists.size() > maxHoists) {
+      pendingHoists.pop_back();
+    }
   }
 };
 
@@ -155,6 +156,7 @@ private:
   class HoistingVisitor : public Visitor {
     ClosureHoistingOpt *owner;
     ScopeContext *currentScope;
+    bool insideConstDecl = false;
 
     void registerFunctionParams(FunctionExpr *f, ScopeContext &scope);
     void tryHoistFunction(FunctionExpr *f, ScopeContext &funcScope);

@@ -138,7 +138,7 @@ SQInteger _sq_string_escape_impl(HSQUIRRELVM v, SQInteger arg_stack_start)
         }
         else {
 
-            dest += scsprintf(dest, destcharsize, escpat, c);
+            dest += scsprintf(dest, destcharsize, escpat, (unsigned char)c);
             escaped++;
         }
     }

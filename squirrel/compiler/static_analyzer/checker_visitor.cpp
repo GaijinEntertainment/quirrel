@@ -1993,9 +1993,7 @@ void CheckerVisitor::visitTerExpr(TerExpr *expr) {
 }
 
 void CheckerVisitor::visitIncExpr(IncExpr *expr) {
-
-  char buffer[64] = { 0 };
-  const char *name = computeNameRef(deparenStatic(expr->argument()), buffer, sizeof buffer);
+  const char *name = computeNameRef(deparenStatic(expr->argument()), nullptr, 0);
   if (name) {
     ValueRef *v = findValueInScopes(name);
 
@@ -3788,9 +3786,7 @@ void CheckerVisitor::applyAssignEqToScope(const BinExpr *bin) {
   assert(TO_PLUSEQ <= bin->op() && bin->op() <= TO_MODEQ);
 
   const Expr *lhs = bin->lhs();
-
-  char buffer[128] = { 0 };
-  const char *name = computeNameRef(lhs, buffer, sizeof buffer);
+  const char *name = computeNameRef(lhs, nullptr, 0);
   if (!name)
     return;
 

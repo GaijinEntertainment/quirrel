@@ -5,6 +5,9 @@
 #define MAX_FUNC_STACKSIZE 0xFF
 #define MAX_LITERALS ((SQInteger)0x7FFFFFFF)
 
+#define STATIC_MEMO_AUTO_FLAG  0x8000
+#define STATIC_MEMO_IDX_MASK   0x7FFF
+
 enum BitWiseOP {
     BW_AND = 0,
     BW_OR = 2,
