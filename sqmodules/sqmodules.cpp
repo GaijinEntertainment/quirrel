@@ -8,7 +8,6 @@
 #include <sqstdsystem.h>
 #include <sqstddatetime.h>
 #include <sqstdaux.h>
-#include <sqdirect.h>
 
 #include <stdlib.h>
 #include <limits.h>
@@ -59,9 +58,10 @@ static SQInteger persist_state(HSQUIRRELVM vm)
 
   Sqrat::Object ctor(hCtor, vm);
   Sqrat::Function f(vm, Sqrat::Object(hModuleThis, vm), ctor);
-  Sqrat::Object res;
-  if (!f.Evaluate(res))
+  auto callRes = f.Eval<Sqrat::Object>();
+  if (!callRes)
     return sq_throwerror(vm, "Failed to call initializer");
+  Sqrat::Object &res = callRes.value();
 
   SQObjectType tp = res.GetType();
   bool isMutable = tp == OT_TABLE || tp == OT_ARRAY || tp == OT_USERDATA || tp == OT_CLASS || tp == OT_INSTANCE;

@@ -859,8 +859,6 @@ Expr *SQParser::parseStringTemplate() {
     _lex._state = LS_TEMPLATE;
     _lex._expectedToken = TK_TEMPLATE_PREFIX;
 
-    SourceLoc templateStart = _lex.tokenStart();
-
     Lex();
     int idx = 0;
 

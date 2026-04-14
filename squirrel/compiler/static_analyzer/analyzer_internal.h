@@ -21,7 +21,7 @@ enum ReturnTypeBits
 };
 
 
-static const char *enumFqn(Arena *arena, const char *enumName, const char *cname) {
+inline const char *enumFqn(Arena *arena, const char *enumName, const char *cname) {
   int32_t l1 = strlen(enumName);
   int32_t l2 = strlen(cname);
   int32_t l = l1 + 1 + l2 + 1;
@@ -31,7 +31,7 @@ static const char *enumFqn(Arena *arena, const char *enumName, const char *cname
 }
 
 
-static int32_t strhash(const char *s) {
+inline int32_t strhash(const char *s) {
   int32_t r = 0;
   while (*s) {
     r *= 31;

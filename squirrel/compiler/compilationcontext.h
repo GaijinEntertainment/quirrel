@@ -186,7 +186,9 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(SEE_OTHER, HINT, SEMA, 314, "see-other", "You can find %s here."), \
   DEF_DIAGNOSTIC(INVALID_INDENTATION, WARNING, SYNTAX, 315, "invalid-indentation", "Invalid indentation. Pay attention to lines %s and %s."), \
   DEF_DIAGNOSTIC(NOT_A_CONST, WARNING, COMPILETIME, 316, "not-a-const", "Expression in 'static' context must be a constant expression."), \
-  DEF_DIAGNOSTIC(STATIC_MEMO_TOO_SIMPLE, WARNING, COMPILETIME, 317, "static-too-simple", "'static' is too simple.") \
+  DEF_DIAGNOSTIC(STATIC_MEMO_TOO_SIMPLE, WARNING, COMPILETIME, 317, "static-too-simple", "'static' is too simple."), \
+  DEF_DIAGNOSTIC(MERGE_EMPTY_TABLE, WARNING, SEMA, 318, "merge-empty-table", "'__merge({})' with an empty table is equivalent to 'clone'. Use 'clone' instead."), \
+  DEF_DIAGNOSTIC(EMPTY_ARRAY_RESIZE, WARNING, SEMA, 319, "empty-array-resize", "'[].resize(...)' is slower than 'array(...)'. Use 'array(...)' instead.") \
 
 
 namespace SQCompilation {

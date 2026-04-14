@@ -1,4 +1,4 @@
-add_executable(sq sq.cpp)
+add_executable(sq sq.cpp sq_test_natives.cpp)
 
 target_link_libraries(sq squirrel sqstdlib sqmodules quirrel-compiler)
 target_include_directories(sq PRIVATE

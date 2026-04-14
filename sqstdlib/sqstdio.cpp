@@ -135,7 +135,7 @@ static SQInteger _file__typeof(HSQUIRRELVM v)
     return 1;
 }
 
-static SQInteger _file_releasehook(SQUserPointer p, SQInteger SQ_UNUSED_ARG(size))
+static SQInteger _file_releasehook(HSQUIRRELVM SQ_UNUSED_ARG(vm), SQUserPointer p, SQInteger SQ_UNUSED_ARG(size))
 {
     SQFile *self = (SQFile*)p;
     SQAllocContext alloc_ctx = self->_alloc_ctx;

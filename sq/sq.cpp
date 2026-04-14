@@ -35,14 +35,6 @@ static bool check_stack_mode = false;
 
 void PrintVersionInfos();
 
-SQInteger quit(HSQUIRRELVM v)
-{
-    int *done;
-    sq_getuserpointer(v,-1,(SQUserPointer*)&done);
-    *done=1;
-    return 0;
-}
-
 void printfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const char *s,...)
 {
     va_list vl;
@@ -88,7 +80,7 @@ void PrintUsage()
         "  -h                        prints help\n");
 }
 
-std::string read_file_ignoring_utf8bom(const char *filename)
+static std::string read_file_ignoring_utf8bom(const char *filename)
 {
     FILE *f = fopen(filename, "rb");
     if (!f)
@@ -105,7 +97,8 @@ std::string read_file_ignoring_utf8bom(const char *filename)
     fclose(f);
     result[sz] = 0;
 
-    if (sz >= 3 && result[0] == 0xEF && result[1] == 0xBB && result[2] == 0xBF)
+    static const unsigned char bom[] = {0xEF, 0xBB, 0xBF};
+    if (sz >= 3 && memcmp(result.data(), bom, 3) == 0)
         result.erase(0, 3);
 
     return result;
@@ -345,7 +338,6 @@ static bool parse_types_from_file(HSQUIRRELVM sqvm, const char *filename)
 
 
 
-#define _INTERACTIVE 0
 #define _DONE 2
 #define _ERROR 3
 //<<FIXME>> this func is a mess
@@ -530,7 +522,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 int top = fill_stack(v);
 
                 Sqrat::Object exports;
-                std::string errMsg;
+                SqModules::string errMsg;
                 int retCode = _DONE;
 
                 if (!module_mgr->requireModule(filename, true, static_analysis ? SqModules::__analysis__ : SqModules::__main__, exports, errMsg)) {
@@ -571,99 +563,14 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 
         }
     }
-
-    return _INTERACTIVE;
-}
-
-void Interactive(HSQUIRRELVM v)
-{
-
-#define MAXINPUT 1024
-    char buffer[MAXINPUT];
-    SQInteger blocks =0;
-    SQInteger string=0;
-    SQInteger retval=0;
-    SQInteger done=0;
-    PrintVersionInfos();
-
-    HSQOBJECT bindingsTable;
-    sq_newtable(v);
-    sq_getstackobj(v, -1, &bindingsTable);
-    sq_addref(v, &bindingsTable);
-
-    sq_registerbaselib(v);
-
-    sq_pushstring(v,"quit",-1);
-    sq_pushuserpointer(v,&done);
-    sq_newclosure(v,quit,1);
-    sq_setparamscheck(v,1,NULL);
-    sq_newslot(v,-3,SQFalse);
-
-    sq_pop(v, 1); // bindingsTable
-
-    while (!done)
+    else
     {
-        SQInteger i = 0;
-        printf("\nsq>");
-        for(;;) {
-            int c;
-            if(done)return;
-            c = getchar();
-            if (c == '\n') {
-                if (i>0 && buffer[i-1] == '\\')
-                {
-                    buffer[i-1] = '\n';
-                }
-                else if(blocks==0)break;
-                buffer[i++] = '\n';
-            }
-            else if (c=='}') {blocks--; buffer[i++] = (char)c;}
-            else if(c=='{' && !string){
-                    blocks++;
-                    buffer[i++] = (char)c;
-            }
-            else if(c=='"' || c=='\''){
-                    string=!string;
-                    buffer[i++] = (char)c;
-            }
-            else if (i >= MAXINPUT-1) {
-                fprintf(stderr, "sq : input line too long\n");
-                break;
-            }
-            else{
-                buffer[i++] = (char)c;
-            }
-        }
-        buffer[i] = '\0';
-
-        if(buffer[0]=='='){
-            scsprintf(sq_getscratchpad(v,MAXINPUT),(size_t)MAXINPUT,"return (%s)",&buffer[1]);
-            memcpy(buffer,sq_getscratchpad(v,-1),(strlen(sq_getscratchpad(v,-1))+1)*sizeof(char));
-            retval=1;
-        }
-        i=strlen(buffer);
-        if(i>0){
-            SQInteger oldtop=sq_gettop(v);
-            if(SQ_SUCCEEDED(sq_compile(v,buffer,i,"interactive console",SQTrue,&bindingsTable))){
-                sq_pushroottable(v);
-                if(SQ_SUCCEEDED(sq_call(v,1,retval,SQTrue)) &&  retval){
-                    printf("\n");
-                    sq_pushroottable(v);
-                    sq_pushstring(v,"print",-1);
-                    sq_get(v,-2);
-                    sq_pushroottable(v);
-                    sq_push(v,-4);
-                    sq_call(v,2,SQFalse,SQTrue);
-                    retval=0;
-                    printf("\n");
-                }
-            }
-
-            sq_settop(v,oldtop);
-        }
+        PrintUsage();
+        *retval = -1;
+        return _ERROR;
     }
 
-    sq_release(v, &bindingsTable);
+    return _DONE;
 }
 
 int main(int argc, char* argv[])
@@ -686,17 +593,11 @@ int main(int argc, char* argv[])
 
     sqstd_register_command_line_args(v, argc, argv);
 
+    extern void register_test_natives(SqModules *);
+    register_test_natives(module_mgr);
+
     //gets arguments
-    switch(getargs(v,argc,argv,&retval))
-    {
-    case _INTERACTIVE:
-        Interactive(v);
-        break;
-    case _DONE:
-    case _ERROR:
-    default:
-        break;
-    }
+    getargs(v, argc, argv, &retval);
 
     if (errorStream != stderr)
     {

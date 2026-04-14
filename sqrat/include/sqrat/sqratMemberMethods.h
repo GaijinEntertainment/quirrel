@@ -161,7 +161,7 @@ inline SQInteger sqDefaultSet(HSQUIRRELVM vm) {
     sq_getuserdata(vm, -1, (SQUserPointer*)&memberPtr, NULL); // Get Member...
     M member = *memberPtr;
 
-    if (SQRAT_STD::is_pointer<V>::value || SQRAT_STD::is_reference<V>::value) {
+    if constexpr (SQRAT_STD::is_pointer_v<V> || SQRAT_STD::is_reference_v<V>) {
         ptr->*member = Var<V>(vm, 2).value;
     } else {
         ptr->*member = Var<const V&>(vm, 2).value;
@@ -177,7 +177,7 @@ inline SQInteger sqStaticSet(HSQUIRRELVM vm) {
     sq_getuserdata(vm, -1, (SQUserPointer*)&memberPtr, NULL); // Get Member...
     M member = *memberPtr;
 
-    if (SQRAT_STD::is_pointer<V>::value || SQRAT_STD::is_reference<V>::value) {
+    if constexpr (SQRAT_STD::is_pointer_v<V> || SQRAT_STD::is_reference_v<V>) {
         *member = Var<V>(vm, 2).value;
     } else {
         *member = Var<const V&>(vm, 2).value;

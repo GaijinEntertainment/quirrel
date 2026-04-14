@@ -65,6 +65,20 @@ namespace vargs
     constexpr auto argsN = SQRAT_STD::tuple_size<SQRAT_STD::decay_t<Tuple>>::value;
     return apply_ctor_helper<C>(SQRAT_STD::make_index_sequence<argsN>(), tup);
   }
+
+  template <class C, class Tuple, size_t... Indexes>
+  void apply_placement_ctor_helper(void *mem, SQRAT_STD::index_sequence<Indexes...>, Tuple &&args)
+  {
+    (void)args;
+    new (mem) C(extract(SQRAT_STD::get<Indexes>(args))...);
+  }
+
+  template <class C, class Tuple>
+  void apply_placement_ctor(void *mem, Tuple &&tup)
+  {
+    constexpr auto argsN = SQRAT_STD::tuple_size<SQRAT_STD::decay_t<Tuple>>::value;
+    apply_placement_ctor_helper<C>(mem, SQRAT_STD::make_index_sequence<argsN>(), tup);
+  }
 }
 
 template <class T, bool b>
@@ -87,24 +101,25 @@ struct NewC<T, false>
     }
 };
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// DefaultAllocator is the allocator to use for Class that can both be constructed and copied
-///
-/// \remarks
-/// There is mechanisms defined in this class that allow the Class::Ctor method to work properly (e.g. iNew).
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class C>
 class DefaultAllocator {
 
 public:
 
-    /// Called by Sqrat to set up an instance on the stack for the template class
     static SQInteger New(HSQUIRRELVM vm) {
+        if constexpr (SQRAT_STD::is_default_constructible<C>::value && sizeof(C) <= 256 && alignof(C) <= SQ_ALIGNMENT) {
+            C* ptr = nullptr;
+            sq_getinstanceup(vm, 1, (SQUserPointer*)&ptr, nullptr);
+            if (ptr) {
+                new (ptr) C();
+                sq_setreleasehook(vm, 1, &ClassType<C>::DestructInline);
+                return 0;
+            }
+        }
         ClassType<C>::SetManagedInstance(vm, 1, NewC<C, SQRAT_STD::is_default_constructible<C>::value >().p);
         return 0;
     }
 
-    /// following iNew functions are used only if constructors are bound via Ctor() in Sqrat::Class (safe to ignore)
     static SQInteger iNew(HSQUIRRELVM vm) {
         return New(vm);
     }
@@ -114,6 +129,15 @@ public:
         if (!vargs::check_var_types<A...>(vm, 2))
             return SQ_ERROR;
         auto vars = vargs::make_vars<A...>(vm, 2);
+        if constexpr (sizeof(C) <= 256 && alignof(C) <= SQ_ALIGNMENT) {
+            C* ptr = nullptr;
+            sq_getinstanceup(vm, 1, (SQUserPointer*)&ptr, nullptr);
+            if (ptr) {
+                vargs::apply_placement_ctor<C>(ptr, SQRAT_STD::move(vars));
+                sq_setreleasehook(vm, 1, &ClassType<C>::DestructInline);
+                return 0;
+            }
+        }
         C *inst = vargs::apply_ctor<C>(vars);
         ClassType<C>::SetManagedInstance(vm, 1, inst);
         return 0;
@@ -121,26 +145,33 @@ public:
 
 public:
 
-    /// Called by Sqrat to set up the instance at idx on the stack as a copy of a value of the same type
+    // Copy using inline userdata (placement new into SQInstance's inline space)
+    // or heap allocation as fallback for large types.
     static SQInteger Copy(HSQUIRRELVM vm, SQInteger idx, const void* value) {
+        if constexpr (sizeof(C) <= 256 && alignof(C) <= SQ_ALIGNMENT) {
+            // Inline path: _userpointer already points to inline space from sq_createinstance
+            C* ptr = nullptr;
+            sq_getinstanceup(vm, idx, (SQUserPointer*)&ptr, nullptr);
+            if (ptr) {
+                new (ptr) C(*static_cast<const C*>(value));
+                sq_setreleasehook(vm, idx, &ClassType<C>::DestructInline);
+                return 0;
+            }
+        }
+        // Fallback: heap allocation
         ClassType<C>::SetManagedInstance(vm, idx, new C(*static_cast<const C*>(value)));
         return 0;
     }
 };
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// NoConstructor is the allocator to use for Class that can NOT be constructed or copied
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class C>
 class NoConstructor {
 public:
 
-    /// Called by Sqrat to set up an instance on the stack for the template class (not allowed in this allocator)
     static SQInteger New(HSQUIRRELVM vm) {
         return sqstd_throwerrorf(vm, "Construction of %s is not allowed", ClassType<C>::ClassName().c_str());
     }
 
-    /// Called by Sqrat to set up the instance at idx on the stack as a copy of a value of the same type (not used in this allocator)
     static SQInteger Copy(HSQUIRRELVM vm, SQInteger idx, const void* value) {
         SQRAT_UNUSED(vm);
         SQRAT_UNUSED(idx);
@@ -149,42 +180,39 @@ public:
     }
 };
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// CopyOnly is the allocator to use for Class that can be copied but not constructed
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class C>
 class CopyOnly {
 public:
-    /// Called by Sqrat to set up an instance on the stack for the template class (not allowed in this allocator)
+
     static SQInteger New(HSQUIRRELVM vm) {
         return sqstd_throwerrorf(vm, "Construction of %s is not allowed", ClassType<C>::ClassName().c_str());
     }
 
-    /// Called by Sqrat to set up the instance at idx on the stack as a copy of a value of the same type
     static SQInteger Copy(HSQUIRRELVM vm, SQInteger idx, const void* value) {
+        if constexpr (sizeof(C) <= 256 && alignof(C) <= SQ_ALIGNMENT) {
+            C* ptr = nullptr;
+            sq_getinstanceup(vm, idx, (SQUserPointer*)&ptr, nullptr);
+            if (ptr) {
+                new (ptr) C(*static_cast<const C*>(value));
+                sq_setreleasehook(vm, idx, &ClassType<C>::DestructInline);
+                return 0;
+            }
+        }
         ClassType<C>::SetManagedInstance(vm, idx, new C(*static_cast<const C*>(value)));
         return 0;
     }
 };
 
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// NoCopy is the allocator to use for Class that can be constructed but not copied
-///
-/// \remarks
-/// There is mechanisms defined in this class that allow the Class::Ctor method to work properly (e.g. iNew).
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class C>
 class NoCopy {
 public:
 
-    /// Called by Sqrat to set up an instance on the stack for the template class
     static SQInteger New(HSQUIRRELVM vm) {
         ClassType<C>::SetManagedInstance(vm, 1, NewC<C, SQRAT_STD::is_default_constructible<C>::value >().p);
         return 0;
     }
 
-    /// following iNew functions are used only if constructors are bound via Ctor() in Sqrat::Class (safe to ignore)
     static SQInteger iNew(HSQUIRRELVM vm) {
         return New(vm);
     }
@@ -199,7 +227,6 @@ public:
         return 0;
     }
 
-    /// Called by Sqrat to set up the instance at idx on the stack as a copy of a value of the same type (not used in this allocator)
     static SQInteger Copy(HSQUIRRELVM vm, SQInteger idx, const void* value) {
         SQRAT_UNUSED(vm);
         SQRAT_UNUSED(idx);

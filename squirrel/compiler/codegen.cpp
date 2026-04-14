@@ -476,13 +476,13 @@ void CodeGenVisitor::visitForeachStatement(ForeachStatement *foreachLoop) {
     indexpos = _fs->PushLocalVariable(idxName, SQCompiletimeVarInfo{});
 
     assert(foreachLoop->val()->op() == TO_VAR && ((VarDecl *)foreachLoop->val())->initializer() == nullptr);
-    SQInteger valuepos = _fs->PushLocalVariable(_fs->CreateString(((VarDecl *)foreachLoop->val())->name()), SQCompiletimeVarInfo{});
+    _fs->PushLocalVariable(_fs->CreateString(((VarDecl *)foreachLoop->val())->name()), SQCompiletimeVarInfo{});
 
     //foreachLoop->val()->visit(this);
     //SQInteger valuepos = _fs->_vlocals.back()._pos;
 
     //push reference index
-    SQInteger itrpos = _fs->PushLocalVariable(_fs->CreateString("@ITERATOR@"), SQCompiletimeVarInfo{}); //use invalid id to make it inaccessible
+    _fs->PushLocalVariable(_fs->CreateString("@ITERATOR@"), SQCompiletimeVarInfo{}); //use invalid id to make it inaccessible
 
     _fs->AddInstruction(_OP_PREFOREACH, container, 0, indexpos);
     SQInteger preForEachPos = _fs->GetCurrentPos();
@@ -621,7 +621,7 @@ void CodeGenVisitor::visitBreakStatement(BreakStatement *breakStmt) {
 
 void CodeGenVisitor::visitContinueStatement(ContinueStatement *continueStmt) {
     addLineNumber(continueStmt);
-    if (_fs->_continuetargets.size() <= 0)
+    if (_fs->_continuetargets.size() <= 0 || _fs->_continuetargets.top() < 0)
         reportDiagnostic(continueStmt, DiagnosticsId::DI_LOOP_CONTROLLER_NOT_IN_LOOP, "continue");
     if (_fs->_continuetargets.top() > 0) {
         _fs->AddInstruction(_OP_POPTRAP, _fs->_continuetargets.top(), 0);
@@ -1135,9 +1135,8 @@ void CodeGenVisitor::visitCodeBlockExpr(CodeBlockExpr *expr) {
     BEGIN_SCOPE();
 
     SQInteger nbreaks = _fs->_unresolvedbreaks.size();
-    SQInteger ncontinues = _fs->_unresolvedcontinues.size();
     _fs->_breaktargets.push_back(0);
-    _fs->_continuetargets.push_back(0);
+    _fs->_continuetargets.push_back(-1); // sentinel: not a loop, 'continue' is invalid
     _fs->_blockstacksizes.push_back(_scope.stacksize);
 
     _fs->_expr_block_results.push_back(resultTarget);
@@ -1146,7 +1145,6 @@ void CodeGenVisitor::visitCodeBlockExpr(CodeBlockExpr *expr) {
 
     //_fs->AddInstruction(_OP_LOADNULLS, resultTarget, 1);
 
-    SQInteger endpos = _fs->GetCurrentPos();
     nbreaks = _fs->_unresolvedbreaks.size() - nbreaks;
     if (nbreaks > 0)
         ResolveBreaks(_fs, nbreaks);
@@ -1333,10 +1331,6 @@ void CodeGenVisitor::visitVarDecl(VarDecl *var) {
         SQInteger src = _fs->PopTarget();
         SQInteger dest = _fs->PushTarget();
         if (dest != src) {
-            if (_fs->IsLocal(src)) {
-                _fs->SnoozeOpt();
-            }
-
             _fs->AddInstruction(_OP_MOVE, dest, src);
         }
 
@@ -1378,7 +1372,7 @@ void CodeGenVisitor::visitDestructuringDecl(DestructuringDecl *destruct) {
     visitForValueMaybeStaticMemo(destruct->initExpression());
 
     SQInteger src = _fs->TopTarget();
-    SQInteger key_pos = _fs->PushTarget();
+    _fs->PushTarget(); // key
 
     for (SQUnsignedInteger i = 0; i < declarations.size(); ++i) {
         VarDecl *d = declarations[i];
@@ -1820,7 +1814,7 @@ void CodeGenVisitor::emitInlineConst(Expr *const_initializer) {
     ConstGenVisitor constVisitor(_vm, _fs, _ctx, *this);
     SQObjectPtr value;
     constVisitor.process(const_initializer, value);
-    _fs->AddInstruction(_OP_LOAD, _fs->PushTarget(), _fs->GetConstant(value));
+    selectConstant(_fs->PushTarget(), value);
 }
 
 
@@ -1916,7 +1910,7 @@ void CodeGenVisitor::emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lval
         if (constantI < 256u)
         {
           visitForValue(fieldAccess->receiver());
-          SQInteger constTarget = _fs->PushTarget();
+          _fs->PushTarget();
           visitForValueMaybeStaticMemo(rvalue);
           SQInteger val = _fs->PopTarget();
           _fs->PopTarget();
@@ -2237,11 +2231,11 @@ void CodeGenVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
     }
 
     if (expr->receiver()->op() == TO_BASE) {
-        SQInteger key = _fs->PopTarget();
+        _fs->PopTarget(); // key
         SQInteger src = _fs->PopTarget();
         _fs->AddInstruction(_OP_GETK, _fs->PushTarget(), constantI, src, flags);
     } else if (_resolve_mode == ExprChainResolveMode::Value) {
-        SQInteger key = _fs->PopTarget();
+        _fs->PopTarget(); // key
         SQInteger src = _fs->PopTarget();
         if (expr->canBeLiteral(typeMethod)) {
             _fs->AddInstruction(_OP_GET_LITERAL, _fs->PushTarget(), constantI, src, flags);
@@ -2464,6 +2458,59 @@ bool CodeGenVisitor::IsGlobalConstant(const SQObject &name, SQObjectPtr &e)
     return false;
 }
 
+bool CodeGenVisitor::isConstEvaluable(Expr *expr) {
+    switch (expr->op()) {
+    case TO_PAREN:
+    case TO_INLINE_CONST:
+        return isConstEvaluable(static_cast<UnExpr *>(expr)->argument()); //-V1037
+
+    case TO_LITERAL:
+        return true;
+
+    case TO_ID: {
+        SQObjectPtr name = _fs->CreateString(expr->asId()->name());
+        SQCompiletimeVarInfo varInfo;
+        if (_fs->GetLocalVariable(name, varInfo) != -1 ||
+            _fs->GetOuterVariable(name, varInfo) != -1)
+            return false;  // local/outer shadows any constant
+        SQObjectPtr c;
+        return IsConstant(name, c);
+    }
+
+    case TO_NEG:
+    case TO_NOT:
+    case TO_BNOT:
+    case TO_TYPEOF:
+        return isConstEvaluable(static_cast<UnExpr *>(expr)->argument()); //-V1037
+
+    case TO_ADD: case TO_SUB: case TO_MUL: case TO_DIV: case TO_MOD:
+    case TO_OR: case TO_AND: case TO_XOR:
+    case TO_SHL: case TO_SHR: case TO_USHR:
+    case TO_EQ: case TO_NE: case TO_LT: case TO_LE: case TO_GT: case TO_GE: case TO_3CMP:
+    case TO_OROR: case TO_ANDAND: case TO_NULLC:
+    case TO_IN: case TO_INSTANCEOF: {
+        BinExpr *bin = static_cast<BinExpr *>(expr);
+        return isConstEvaluable(bin->lhs()) && isConstEvaluable(bin->rhs());
+    }
+
+    case TO_TERNARY: {
+        TerExpr *ter = static_cast<TerExpr *>(expr);
+        return isConstEvaluable(ter->a()) && isConstEvaluable(ter->b()) && isConstEvaluable(ter->c());
+    }
+
+    case TO_GETFIELD:
+        return isConstEvaluable(expr->asGetField()->receiver());
+
+    case TO_GETSLOT: {
+        GetSlotExpr *gs = expr->asGetSlot();
+        return isConstEvaluable(gs->receiver()) && isConstEvaluable(gs->key());
+    }
+
+    default:
+        return false;
+    }
+}
+
 void CodeGenVisitor::visitCommaExpr(CommaExpr *expr) {
     for (auto e : expr->expressions()) {
         visitForValue(e);
@@ -2544,6 +2591,17 @@ void CodeGenVisitor::visitForValue(Node *n) {
 }
 
 bool CodeGenVisitor::visitMaybeStaticMemo(Node *n) {
+    // AST-level constant folding: fold compound const expressions to a single LOAD
+    if (GLOBAL_OPTIMIZATION_SWITCH && n->isExpression()) {
+        Expr *expr = n->asExpression();
+        TreeOp exprOp = expr->op();
+        // Skip leaves -- already handled optimally by their own visitors
+        if (exprOp != TO_LITERAL && exprOp != TO_ID && isConstEvaluable(expr)) {
+            emitInlineConst(expr);
+            return true;
+        }
+    }
+
     bool arraysAndTablesFreezed = (_fs->lang_features & LF_ALLOW_AUTO_FREEZE) != 0;
     int score = (n->isExpression() && !_inside_static_memo) ? getSubtreeConstScore(n->asExpression(), arraysAndTablesFreezed) : 0;
     if (STATIC_MEMO_ENABLED && GLOBAL_OPTIMIZATION_SWITCH && score > STATIC_MEMO_CONST_SCORE_THRESHOLD && n->op() != TO_STATIC_MEMO &&

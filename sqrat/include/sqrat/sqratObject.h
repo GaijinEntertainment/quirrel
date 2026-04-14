@@ -30,7 +30,6 @@
 #define _SQRAT_OBJECT_H_
 
 #include <squirrel.h>
-#include <sqdirect.h>
 #include <string.h>
 
 #include "sqratAllocator.h"
@@ -87,7 +86,7 @@ public:
     /// \tparam T       Type
     ///
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    template <class T, typename disable_if<SQRAT_STD::is_arithmetic<T>::value, bool>::type = false>
+    template <class T, SQRAT_STD::enable_if_t<!SQRAT_STD::is_arithmetic_v<T>, bool> = false>
     Object(const T &t, HSQUIRRELVM v) : vm(v) {
         Var<T>::push(vm, t);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &obj)));
@@ -117,25 +116,19 @@ public:
             sq_resetobject(&obj);
     }
 
-    template <class T, typename SQRAT_STD::enable_if<(SQRAT_STD::is_integral<T>::value && !SQRAT_STD::is_same<T, bool>::value), bool>::type = false>
+    template <class T, SQRAT_STD::enable_if_t<SQRAT_STD::is_arithmetic_v<T>, bool> = false>
     Object(T t, HSQUIRRELVM v) : vm(v) {
         sq_resetobject(&obj);
-        obj._type = OT_INTEGER;
-        obj._unVal.nInteger = (SQInteger)t;
-    }
-
-    template <class T, typename SQRAT_STD::enable_if<SQRAT_STD::is_floating_point<T>::value, bool>::type = false>
-    Object(T t, HSQUIRRELVM v) : vm(v) {
-        sq_resetobject(&obj);
-        obj._type = OT_FLOAT;
-        obj._unVal.fFloat = (SQFloat)t;
-    }
-
-    template <class T, typename SQRAT_STD::enable_if<SQRAT_STD::is_same<T, bool>::value, bool>::type = false>
-    Object(T t, HSQUIRRELVM v) : vm(v) {
-        sq_resetobject(&obj);
-        obj._type = OT_BOOL;
-        obj._unVal.nInteger = t ? 1 : 0;
+        if constexpr (SQRAT_STD::is_same_v<T, bool>) {
+            obj._type = OT_BOOL;
+            obj._unVal.nInteger = t ? 1 : 0;
+        } else if constexpr (SQRAT_STD::is_floating_point_v<T>) {
+            obj._type = OT_FLOAT;
+            obj._unVal.fFloat = (SQFloat)t;
+        } else {
+            obj._type = OT_INTEGER;
+            obj._unVal.nInteger = (SQInteger)t;
+        }
     }
 
     ~Object() {
@@ -203,7 +196,7 @@ public:
         if (GetVM() != so.GetVM())
             return false;
 
-        return sq_direct_is_equal(vm, &obj, &so.obj);
+        return sq_obj_is_equal(vm, &obj, &so.obj);
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -275,8 +268,10 @@ public:
     Object GetSlotImpl(const Object& slot) const {
         SQRAT_ASSERT(slot.IsNull() || slot.GetVM() == vm);
         HSQOBJECT res;
-        sq_direct_get(vm, &obj, &slot.obj, &res, raw);
+        if (SQ_FAILED(sq_obj_get(vm, &obj, &slot.obj, &res, raw)))
+            return Object(vm);
         Object ret(res, vm);
+        sq_poptop(vm);
         return ret;
     }
 
@@ -379,10 +374,10 @@ public:
         static_assert(VarControlsValueLifeTime<T>::value == 0,
                       "direct cast to T failed due to value is bound to Var<T>");
         HSQOBJECT res;
-        if (SQ_FAILED(sq_direct_get(vm, &obj, &key.obj, &res, raw)))
+        if (SQ_FAILED(sq_obj_get(vm, &obj, &key.obj, &res, raw)))
           return def_val;
 
-        sq_pushobject(vm, res);
+        // sq_obj_get already pushed result to VM stack
         if (!Var<T>::check_type(vm, -1)) {
             sq_pop(vm, 1);
             return def_val;
@@ -557,15 +552,15 @@ protected:
 
 // Optimized no-stack-push-and-pop versions
 template<> inline int32_t Object::Cast() const {
-    return sq_direct_tointeger(&obj);
+    return sq_objtointeger(&obj);
 }
 
 template<> inline int64_t Object::Cast() const {
-    return sq_direct_tointeger(&obj);
+    return sq_objtointeger(&obj);
 }
 
 template<> inline float Object::Cast() const {
-    return sq_direct_tofloat(&obj);
+    return sq_objtofloat(&obj);
 }
 
 

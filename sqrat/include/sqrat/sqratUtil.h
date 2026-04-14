@@ -45,9 +45,9 @@
 #include <squirrel.h>
 #include <sqstdaux.h>
 
-#if (defined(_MSC_VER) && _MSC_VER >= 1900) || (__cplusplus >= 201402L) || (__cplusplus == 201300L)
+#if (__cplusplus >= 201703L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
 #else
-  #error C++14 support required
+  #error C++17 support required
 #endif
 
 #if defined(SQRAT_HAS_SKA_HASH_MAP)
@@ -58,10 +58,6 @@
 #define SQRAT_STD std
 #endif
 
-#if (__cplusplus >= 201703L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) // c++17
-# define SQRAT_STD_CPP17
-#endif
-
 #if defined(SQRAT_HAS_EASTL)
 # include <EASTL/string.h>
 # include <EASTL/string_view.h>
@@ -69,17 +65,18 @@
 # include <EASTL/unordered_set.h>
 # include <EASTL/vector_map.h>
 # include <EASTL/shared_ptr.h>
+# include <EASTL/optional.h>
 EA_DISABLE_ALL_VC_WARNINGS()
 #else
 # include <string>
+# include <string_view>
+# include <vector>
 # include <unordered_map>
 # include <unordered_set>
 # include <memory>
 # include <tuple>
 # include <type_traits>
-# if defined(SQRAT_STD_CPP17)
-#   include <string_view>
-# endif
+# include <optional>
 #endif
 
 
@@ -91,17 +88,23 @@ namespace Sqrat {
   template <class T> using hash = eastl::hash<T>;
   template <class T> using shared_ptr = eastl::shared_ptr<T>;
   template <class T> using weak_ptr = eastl::weak_ptr<T>;
-# define SQRAT_HAS_STRING_VIEW 1
 #else
   using string = std::basic_string<char>;
+  using string_view = std::basic_string_view<char>;
   template <class T> using hash = std::hash<T>;
   template <class T> using shared_ptr = std::shared_ptr<T>;
   template <class T> using weak_ptr = std::weak_ptr<T>;
-# if defined(SQRAT_STD_CPP17)
-  using string_view = std::basic_string_view<char>;
-# define SQRAT_HAS_STRING_VIEW 1
-# endif
 #endif //defined(SQRAT_HAS_EASTL)
+
+#if defined(SQRAT_HAS_EASTL)
+  template <class T> using optional = eastl::optional<T>;
+  using nullopt_t = eastl::nullopt_t;
+  inline constexpr eastl::nullopt_t nullopt{eastl::nullopt};
+#else
+  template <class T> using optional = std::optional<T>;
+  using nullopt_t = std::nullopt_t;
+  inline constexpr std::nullopt_t nullopt{std::nullopt};
+#endif
 
 #if defined(SQRAT_HAS_SKA_HASH_MAP)
 
@@ -129,17 +132,6 @@ namespace Sqrat {
 
 #endif
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Define an inline function to avoid MSVC's "conditional expression is constant" warning
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifdef _MSC_VER
-    template <typename T>
-    inline T _c_def(T value) { return value; }
-    #define SQRAT_CONST_CONDITION(value) _c_def(value)
-#else
-    #define SQRAT_CONST_CONDITION(value) value
-#endif
-
 
 template <typename T>
 void SQRAT_UNUSED(const T&) {}
@@ -163,13 +155,11 @@ inline string FormatTypeError(HSQUIRRELVM vm, SQInteger idx, const char *expecte
         sq_getstring(vm, -1, &actualType);
     }
 
-    const char *fmtString = "wrong type (%s expected, got %s)";
-    int l = snprintf(nullptr, 0, fmtString, expectedType, actualType);
-    string err(l + 1, '\0');
-    snprintf(&err[0], err.size(), fmtString, expectedType, actualType);
+    char buf[128];
+    snprintf(buf, sizeof(buf), "wrong type (%s expected, got %s)", expectedType, actualType);
 
     sq_settop(vm, prevTop);
-    return err;
+    return string(buf);
 }
 
 
@@ -189,7 +179,7 @@ inline string LastErrorString(HSQUIRRELVM vm) {
 }
 
 template<class Obj>
-SQInteger ImplaceFreeReleaseHook(SQUserPointer p, SQInteger)
+SQInteger ImplaceFreeReleaseHook(HSQUIRRELVM, SQUserPointer p, SQInteger)
 {
   SQRAT_UNUSED(p); // for Obj without destructor
   static_cast<Obj*>(p)->~Obj();
@@ -200,48 +190,6 @@ template<class T, class = void> struct Var;
 
 // utilities for manipulations with variadic templates arguments
 namespace vargs {
-  template<class... T>
-  struct TailElem
-  {
-    typedef SQRAT_STD::tuple<T...> tuple;
-    typedef typename SQRAT_STD::tuple_element<SQRAT_STD::tuple_size<tuple>::value - 1, tuple>::type type;
-  };
-
-  template<class Head, class... T>
-  struct HeadElem
-  {
-    typedef Head type;
-  };
-
-  template<class... T>
-  using TailElem_t = typename TailElem<T...>::type;
-
-  template<class... T>
-  using HeadElem_t = typename HeadElem<T...>::type;
-
-  template<class Arg>
-  constexpr Arg tail(Arg&& arg)
-  {
-    return arg;
-  }
-
-  template<class Head, class... Tail>
-  constexpr TailElem_t<Head, Tail...> tail(Head&&, Tail&&... args)
-  {
-    return tail(SQRAT_STD::forward<Tail>(args)...);
-  }
-
-  template<class Arg>
-  constexpr Arg head(Arg&& )
-  {
-    return head;
-  }
-
-  template<class Head, class... Tail>
-  constexpr Head head(Head&& head, Tail&&... )
-  {
-    return head;
-  }
 
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -278,46 +226,10 @@ namespace vargs {
 #endif
 }
 
-// add meta-functions aliases that are missing in std
-template <typename T>
-using remove_pointer_t = typename SQRAT_STD::remove_pointer<T>::type;
-
-template <typename T>
-using remove_const_t = typename SQRAT_STD::remove_const<T>::type;
-
-#if !defined(SQRAT_STD_CPP17)
-template <typename...>
-struct __or;
-
-template <>
-struct __or<> : SQRAT_STD::false_type
-{
-};
-template <typename B1>
-struct __or<B1> : B1
-{
-};
-template <typename B1, typename B2>
-struct __or<B1, B2> : SQRAT_STD::conditional<B1::value, B1, B2>::type
-{
-};
-
-template <typename B1, typename B2, typename B3, typename... Bn>
-struct __or<B1, B2, B3, Bn...> : SQRAT_STD::conditional<B1::value, B1, __or<B2, B3, Bn...>>::type
-{
-};
-
-template<typename... Tn>
-struct disjunction : __or<Tn...> {};
-
-template<typename... Ts> struct make_void { typedef void type; };
-template<typename... Ts> using void_t = typename make_void<Ts...>::type;
-#else
 template<typename ...Tn>
 using disjunction = SQRAT_STD::disjunction<Tn...>;
 template <typename ...Tn>
 using void_t = SQRAT_STD::void_t<Tn...>;
-#endif
 
 template <typename T>
 struct is_function
@@ -359,8 +271,6 @@ struct member_function_signature<R (C::*)(A...) volatile const>
   using type = R(A...);
 };
 
-#if defined(SQRAT_STD_CPP17)
-
 template <typename C, typename R, typename... A>
 struct member_function_signature<R (C::*)(A...) noexcept>
 {
@@ -384,8 +294,6 @@ struct member_function_signature<R (C::*)(A...) volatile const noexcept>
 {
   using type = R(A...);
 };
-
-#endif // SQRAT_STD_CPP17
 
 template<typename T>
 using member_function_signature_t = typename member_function_signature<T>::type;
@@ -434,16 +342,19 @@ using get_function_signature_t = typename get_function_signature<Func>::type;
 
 
 template<typename T>
-struct get_callable_function : SQRAT_STD::conditional_t<SQRAT_STD::is_member_function_pointer<T>::value,
-                                                    member_function_signature<T>,
-                                                    SQRAT_STD::conditional_t<is_function<T>::value,
-                                                                          get_function_signature<remove_pointer_t<T>>,
-                                                                          SQRAT_STD::conditional_t<SQRAT_STD::is_class<T>::value,
-                                                                                            get_class_callop_signature<T>,
-                                                                                            void_t<T>>
-                                                                        >
-
-                                                    >
+struct get_callable_function : SQRAT_STD::conditional_t<
+  SQRAT_STD::is_member_function_pointer<T>::value,
+  member_function_signature<T>,
+  SQRAT_STD::conditional_t<
+    is_function<T>::value,
+    get_function_signature<SQRAT_STD::remove_pointer_t<T>>,
+    SQRAT_STD::conditional_t<
+      SQRAT_STD::is_class<T>::value,
+      get_class_callop_signature<T>,
+      void_t<T>
+    >
+  >
+>
 {
 };
 

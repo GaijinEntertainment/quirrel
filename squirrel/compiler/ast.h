@@ -129,7 +129,7 @@ protected:
     Node(enum TreeOp op, SourceSpan span) : _op(op), _span(span) {}
 
 public:
-    virtual ~Node() {}
+    ~Node() {}
 
     enum TreeOp op() const { return _op; }
 
@@ -449,7 +449,7 @@ public:
     const SQObjectPtr& value() const { return _value; }
 
 private:
-    SQObjectPtr _value;
+    SQObjectPtr _value; // To release this, ~ExternalValueExpr() dtor is called explicitly
 };
 
 enum IncForm {
@@ -1152,7 +1152,7 @@ public:
     BreakStatement(SourceSpan span, Statement *breakTarget) : JumpStatement(TO_BREAK, span), _target(breakTarget) {}
 
 private:
-    Statement *_target;
+    Statement *_target; // Currently not used
 };
 
 class ContinueStatement : public JumpStatement {
@@ -1160,7 +1160,7 @@ public:
     ContinueStatement(SourceSpan span, LoopStatement *target) : JumpStatement(TO_CONTINUE, span), _target(target) {}
 
 private:
-    LoopStatement *_target;
+    LoopStatement *_target; // Currently not used
 };
 
 class ExprStatement : public Statement {

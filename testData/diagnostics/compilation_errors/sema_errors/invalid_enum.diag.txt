@@ -1,4 +1,4 @@
-ERROR: invalid enum [no 'YELLOW' field in 'enum']
+ERROR: Field 'YELLOW' not found in constant object
 testData/diagnostics/compilation_errors/sema_errors/invalid_enum.nut:3:8
 
 enum Color { RED, GREEN, BLUE }

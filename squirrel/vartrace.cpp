@@ -13,7 +13,7 @@
 
 bool VarTrace::isStacksEqual(int a, int b)
 {
-  for (int i = 0; i < VAR_TRACE_STACK_DEPTH; i++)
+  for (int i = 0; i < VAR_TRACE_CALLSTACK_DEPTH; i++)
   {
     if (history[a].stack[i].line == STACK_NOT_INITIALIZED && history[b].stack[i].line == STACK_NOT_INITIALIZED)
       return true;
@@ -84,16 +84,16 @@ void VarTrace::saveStack(const SQObject & value, HSQUIRRELVM vm)
     if (int(si.line) != -1)
       count++;
 
-    if (count >= VAR_TRACE_STACK_DEPTH)
+    if (count >= VAR_TRACE_CALLSTACK_DEPTH)
       break;
 
     level++;
   }
 
-  if (count < VAR_TRACE_STACK_DEPTH)
+  if (count < VAR_TRACE_CALLSTACK_DEPTH)
     history[pos].stack[count].line = STACK_NOT_INITIALIZED;
 
-  int prevPos = (pos - 1 + VAR_TRACE_STACK_DEPTH) % VAR_TRACE_STACK_DEPTH;
+  int prevPos = (pos - 1 + VAR_TRACE_HISTORY_SIZE) % VAR_TRACE_HISTORY_SIZE;
 
 #if VAR_TRACE_SAVE_VALUES != 0
   if (memcmp(&history[pos].val, &history[prevPos].val, sizeof(history[prevPos].val)) == 0 &&
@@ -105,12 +105,12 @@ void VarTrace::saveStack(const SQObject & value, HSQUIRRELVM vm)
   else
   {
     pos++;
-    if (pos >= VAR_TRACE_STACK_HISTORY)
+    if (pos >= VAR_TRACE_HISTORY_SIZE)
       pos = 0;
   }
 #else
   pos++;
-  if (pos >= VAR_TRACE_STACK_HISTORY)
+  if (pos >= VAR_TRACE_HISTORY_SIZE)
     pos = 0;
 #endif
 }
@@ -124,9 +124,9 @@ void VarTrace::printStack(char * buf, int size)
   int written = 0;
   *buf = 0;
 
-  for (int h = 0; h < VAR_TRACE_STACK_HISTORY; h++)
+  for (int h = 0; h < VAR_TRACE_HISTORY_SIZE; h++)
   {
-    int historyPos = (-h + pos + VAR_TRACE_STACK_HISTORY * 2 - 1) % VAR_TRACE_STACK_HISTORY;
+    int historyPos = (-h + pos + VAR_TRACE_HISTORY_SIZE * 2 - 1) % VAR_TRACE_HISTORY_SIZE;
     HistoryRecord & hist = history[historyPos];
 
     bool stackPresent = hist.stack[0].line != STACK_NOT_INITIALIZED;
@@ -148,7 +148,7 @@ void VarTrace::printStack(char * buf, int size)
 #endif
     VT_APRINTF("\n");
 
-    for (int i = 0; i < VAR_TRACE_STACK_DEPTH; i++)
+    for (int i = 0; i < VAR_TRACE_CALLSTACK_DEPTH; i++)
     {
       if (hist.stack[i].line == STACK_NOT_INITIALIZED)
         break;

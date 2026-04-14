@@ -585,7 +585,6 @@ public:
             }
 
             case TO_DIRECTIVE: {
-                DirectiveStmt* directive = static_cast<DirectiveStmt*>(node);
                 writeIndentedFmtString("DirectiveStmt%s\n", loc);
                 break;
             }

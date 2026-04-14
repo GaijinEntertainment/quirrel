@@ -12,7 +12,7 @@ namespace SQCompilation
 {
 
 
-static const char *terminatorOpToName(TreeOp op) {
+inline const char *terminatorOpToName(TreeOp op) {
   switch (op)
   {
   case TO_BREAK: return "break";
@@ -26,7 +26,7 @@ static const char *terminatorOpToName(TreeOp op) {
 }
 
 
-static bool isValidId(const char *id) {
+inline bool isValidId(const char *id) {
   assert(id != nullptr);
 
   if (!sq_isalpha(id[0]) && id[0] != '_')
@@ -42,7 +42,7 @@ static bool isValidId(const char *id) {
 }
 
 
-static bool hasAnyPrefix(const char *str, const std::vector<std::string> &prefixes) {
+inline bool hasAnyPrefix(const char *str, const std::vector<std::string> &prefixes) {
   for (auto &prefix : prefixes) {
     size_t length = prefix.length();
     bool hasPrefix = strncmp(str, prefix.c_str(), length)==0;
@@ -57,7 +57,7 @@ static bool hasAnyPrefix(const char *str, const std::vector<std::string> &prefix
   return false;
 }
 
-static bool hasAnyEqual(const char *str, const std::vector<std::string> &candidates) {
+inline bool hasAnyEqual(const char *str, const std::vector<std::string> &candidates) {
   for (auto &candidate : candidates) {
     if (strcmp(str, candidate.c_str()) == 0) {
       return true;
@@ -67,7 +67,7 @@ static bool hasAnyEqual(const char *str, const std::vector<std::string> &candida
   return false;
 }
 
-static bool hasAnySubstring(const char *str, const std::vector<std::string> &candidates) {
+inline bool hasAnySubstring(const char *str, const std::vector<std::string> &candidates) {
   for (auto &candidate : candidates) {
     if (strstr(str, candidate.c_str())) {
       return true;
@@ -77,14 +77,14 @@ static bool hasAnySubstring(const char *str, const std::vector<std::string> &can
   return false;
 }
 
-static bool nameLooksLikeResultMustBeBoolean(const char *funcName) {
+inline bool nameLooksLikeResultMustBeBoolean(const char *funcName) {
   if (!funcName)
     return false;
 
   return hasAnyPrefix(funcName, function_should_return_bool_prefix);
 }
 
-static bool nameLooksLikeFunctionMustReturnResult(const char *funcName) {
+inline bool nameLooksLikeFunctionMustReturnResult(const char *funcName) {
   if (!funcName)
     return false;
 
@@ -98,46 +98,46 @@ static bool nameLooksLikeFunctionMustReturnResult(const char *funcName) {
   return nameInList;
 }
 
-static bool nameLooksLikeResultMustBeUtilized(const char *name) {
+inline bool nameLooksLikeResultMustBeUtilized(const char *name) {
   return hasAnyEqual(name, function_result_must_be_utilized);
 }
 
-static bool nameLooksLikeResultMustBeString(const char *name) {
+inline bool nameLooksLikeResultMustBeString(const char *name) {
   return hasAnyEqual(name, function_can_return_string);
 }
 
-static bool nameLooksLikeCallsLambdaInPlace(const char *name) {
+inline bool nameLooksLikeCallsLambdaInPlace(const char *name) {
   return hasAnyEqual(name, function_calls_lambda_inplace);
 }
 
-static bool canFunctionReturnNull(const char *n) {
+inline bool canFunctionReturnNull(const char *n) {
   return hasAnyEqual(n, function_can_return_null);
 }
 
-static bool isForbiddenFunctionName(const char *n) {
+inline bool isForbiddenFunctionName(const char *n) {
   return hasAnyEqual(n, function_forbidden);
 }
 
-static bool nameLooksLikeMustBeCalledFromRoot(const char *n) {
+inline bool nameLooksLikeMustBeCalledFromRoot(const char *n) {
   return hasAnyEqual(n, function_must_be_called_from_root);
 }
 
-static bool nameLooksLikeForbiddenParentDir(const char *n) {
+inline bool nameLooksLikeForbiddenParentDir(const char *n) {
   return hasAnyEqual(n, function_forbidden_parent_dir);
 }
 
-static bool nameLooksLikeFormatFunction(const char *n) {
+inline bool nameLooksLikeFormatFunction(const char *n) {
   std::string transformed(n);
   std::transform(transformed.begin(), transformed.end(), transformed.begin(), ::tolower);
 
   return hasAnySubstring(transformed.c_str(), format_function_name);
 }
 
-static bool nameLooksLikeModifiesObject(const char *n) {
+inline bool nameLooksLikeModifiesObject(const char *n) {
   return hasAnyEqual(n, function_modifies_object);
 }
 
-static bool nameLooksLikeFunctionTakeBooleanLambda(const char *n) {
+inline bool nameLooksLikeFunctionTakeBooleanLambda(const char *n) {
   return hasAnyEqual(n, function_takes_boolean_lambda);
 }
 

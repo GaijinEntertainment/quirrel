@@ -1024,12 +1024,9 @@ static SQInteger table_replace_with(HSQUIRRELVM v)
     SQ_CHECK_IMMUTABLE_SELF;
 
     SQTable *dst = _table(stack_get(v, 1));
-    SQTable *src = _table(stack_get(v, 2));
-
     dst->Clear(false);
 
     // Alternatively, consider copying hash nodes directly instead of iterating slots
-
     sq_pushnull(v);
     while (SQ_SUCCEEDED(sq_next(v, 2)))
         sq_newslot(v, 1, false);
@@ -1880,6 +1877,7 @@ static SQInteger string_join(HSQUIRRELVM v)
     sqvector<char> res(_ss(v)->_alloc_ctx);
     res.resize(res_len);
     SQInteger out_pos = buf_concat(res, strings, sep, sep_len);
+    (void)out_pos;
     assert(out_pos == res_len);
     sq_pushstring(v, res._vals, res_len);
     return 1;
@@ -1910,6 +1908,7 @@ static SQInteger string_concat(HSQUIRRELVM v)
     sqvector<char> res(_ss(v)->_alloc_ctx);
     res.resize(res_len);
     SQInteger out_pos = buf_concat(res, strings, sep, sep_len);
+    (void)out_pos;
     assert(out_pos == res_len);
     sq_pushstring(v, res._vals, res_len);
     return 1;

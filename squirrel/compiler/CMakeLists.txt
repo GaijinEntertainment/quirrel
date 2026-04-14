@@ -7,6 +7,7 @@ set(COMPILER_SRC
     sqio.cpp
     compiler.cpp
     sqfuncstate.cpp
+    sqdump.cpp
     optimizer.cpp
     lexer.cpp
     sqtypeparser.cpp

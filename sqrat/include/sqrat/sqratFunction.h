@@ -171,31 +171,6 @@ public:
         }
     }
 
-    template<class R>
-    bool EvaluateDynArgs(HSQOBJECT const* args, size_t args_count, R& ret) const {
-        if (!vm)
-            return false;
-        SQInteger top = sq_gettop(vm);
-
-        sq_pushobject(vm, obj);
-        sq_pushobject(vm, env);
-
-        for (size_t i = 0; i < args_count; ++i)
-          sq_pushobject(vm, args[i]);
-
-        HSQUIRRELVM savedVm = vm; // vm can be nulled in sq_call()
-        SQRESULT result = sq_call(vm, args_count+1, true, SQTrue);
-        if (SQ_FAILED(result)) {
-            ReportCallError();
-            sq_settop(savedVm, top);
-            return false;
-        }
-
-        ret = Var<R>(savedVm, -1).value;
-        sq_settop(savedVm, top);
-        return true;
-    }
-
     bool ExecuteDynArgs(HSQOBJECT const* args, size_t args_count) const {
         SQRAT_ASSERT(vm);
         if (!vm)
@@ -218,36 +193,52 @@ public:
         return SQ_SUCCEEDED(result);
     }
 
-    template<typename... ArgsAndRet>
-    bool Evaluate(ArgsAndRet&&... args_and_ret) const {
-        SQRAT_ASSERT(vm);
+    template<class R>
+    Sqrat::optional<R> EvalDynArgs(HSQOBJECT const* args, size_t args_count) const {
         if (!vm)
-            return false;
-        static constexpr size_t nArgs = sizeof...(ArgsAndRet) - 1;
-
+            return Sqrat::nullopt;
         SQInteger top = sq_gettop(vm);
 
         sq_pushobject(vm, obj);
         sq_pushobject(vm, env);
 
-        PushArgsWithoutRet(SQRAT_STD::forward<ArgsAndRet>(args_and_ret)...);
+        for (size_t i = 0; i < args_count; ++i)
+          sq_pushobject(vm, args[i]);
 
-        HSQUIRRELVM savedVm = vm; // vm can be nulled in sq_call()
-        SQRESULT result = sq_call(vm, nArgs + 1, true, SQTrue);
+        HSQUIRRELVM savedVm = vm;
+        SQRESULT result = sq_call(vm, args_count + 1, true, SQTrue);
         if (SQ_FAILED(result)) {
             ReportCallError();
-
             sq_settop(savedVm, top);
-            return false;
+            return Sqrat::nullopt;
         }
 
-        typedef typename SQRAT_STD::remove_reference<
-                            vargs::TailElem_t<ArgsAndRet...>>::type R;
-
-        R& ret = vargs::tail(SQRAT_STD::forward<ArgsAndRet>(args_and_ret)...);
-        ret = Var<R>(savedVm, -1).value;
+        auto var = Var<R>(savedVm, -1);
         sq_settop(savedVm, top);
-        return true;
+        return Sqrat::optional<R>{SQRAT_STD::move(var.value)};
+    }
+
+    template<typename R, typename... Args>
+    Sqrat::optional<R> Eval(Args const&... args) const {
+        if (!vm)
+            return Sqrat::nullopt;
+
+        SQInteger top = sq_gettop(vm);
+        sq_pushobject(vm, obj);
+        sq_pushobject(vm, env);
+        PushArgs(args...);
+
+        HSQUIRRELVM savedVm = vm;
+        SQRESULT result = sq_call(vm, sizeof...(Args) + 1, true, SQTrue);
+        if (SQ_FAILED(result)) {
+            ReportCallError();
+            sq_settop(savedVm, top);
+            return Sqrat::nullopt;
+        }
+
+        auto var = Var<R>(savedVm, -1);
+        sq_settop(savedVm, top);
+        return Sqrat::optional<R>{SQRAT_STD::move(var.value)};
     }
 
     template <typename... Args>
@@ -284,7 +275,7 @@ public:
         if (GetVM() != so.GetVM())
             return false;
 
-        return sq_direct_is_equal(vm, &obj, &so.obj);
+        return sq_obj_is_equal(vm, &obj, &so.obj);
     }
 
 private:

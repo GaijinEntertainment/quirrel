@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <squirrel.h>
-#include <sqdirect.h>
 #include <limits.h>
 
 #include "checker_visitor.h"
@@ -303,8 +302,8 @@ void CheckerVisitor::checkExternalField(const GetFieldExpr *acc) {
     return;
 
   SQObjectPtr key(_ctx.getVm(), acc->fieldName());
-  SQObjectPtr val;
-  if (!SQ_SUCCEEDED(sq_direct_get(_ctx.getVm(), &container, &key, &val, false))) {
+  SQObject rawVal;
+  if (!SQ_SUCCEEDED(sq_obj_get(_ctx.getVm(), &container, &key, &rawVal, false))) {
     if (!acc->isNullable() && !hasDynamicContent(container)) {
       report(acc, DI_MISSING_FIELD, acc->fieldName(), GetTypeName(container));
       char buf[128];
@@ -313,9 +312,9 @@ void CheckerVisitor::checkExternalField(const GetFieldExpr *acc) {
     }
     return;
   }
+  sq_poptop(_ctx.getVm()); // pop the stack copy pushed by sq_obj_get
 
-  __AddRef(val._type, val._unVal);
-  astValues[acc] = addExternalValue(val, acc);
+  astValues[acc] = addExternalValue(rawVal, acc);
 }
 
 static bool cannotBeNull(const Expr *e) {
@@ -1009,6 +1008,42 @@ void CheckerVisitor::checkExtendToAppend(const CallExpr *expr) {
         if (strcmp(callee->asGetField()->fieldName(), "extend") == 0) {
           report(expr, DiagnosticsId::DI_EXTEND_TO_APPEND);
         }
+      }
+    }
+  }
+}
+
+void CheckerVisitor::checkMergeEmptyTable(const CallExpr *expr) {
+  if (isEffectsGatheringPass)
+    return;
+
+  const Expr *callee = expr->callee();
+  const auto &args = expr->arguments();
+
+  if (callee->op() == TO_GETFIELD) {
+    if (args.size() == 1) {
+      Expr *arg0 = args[0];
+      if (arg0->op() == TO_TABLE && arg0->asTableExpr()->members().size() == 0) {
+        if (strcmp(callee->asGetField()->fieldName(), "__merge") == 0) {
+          report(expr, DiagnosticsId::DI_MERGE_EMPTY_TABLE);
+        }
+      }
+    }
+  }
+}
+
+void CheckerVisitor::checkEmptyArrayResize(const CallExpr *expr) {
+  if (isEffectsGatheringPass)
+    return;
+
+  const Expr *callee = expr->callee();
+
+  if (callee->op() == TO_GETFIELD) {
+    const GetFieldExpr *gf = callee->asGetField();
+    if (strcmp(gf->fieldName(), "resize") == 0) {
+      const Expr *receiver = gf->receiver();
+      if (receiver->op() == TO_ARRAY && static_cast<const ArrayExpr *>(receiver)->initializers().size() == 0) {
+        report(expr, DiagnosticsId::DI_EMPTY_ARRAY_RESIZE);
       }
     }
   }
@@ -2013,6 +2048,8 @@ void CheckerVisitor::visitIncExpr(IncExpr *expr) {
 
 void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkExtendToAppend(expr);
+  checkMergeEmptyTable(expr);
+  checkEmptyArrayResize(expr);
   checkAlreadyRequired(expr);
   checkCallNullable(expr);
   checkPersistCall(expr);

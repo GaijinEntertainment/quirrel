@@ -3,7 +3,7 @@
 namespace SQCompilation
 {
 
-static const Expr *deparen(const Expr *e) {
+inline const Expr *deparen(const Expr *e) {
   if (!e) return nullptr;
 
   if (e->op() == TO_PAREN)
@@ -11,7 +11,7 @@ static const Expr *deparen(const Expr *e) {
   return e;
 }
 
-static const Expr *deparenStatic(const Expr *e) {
+inline const Expr *deparenStatic(const Expr *e) {
   if (!e) return nullptr;
 
   if (e->op() == TO_PAREN || e->op() == TO_STATIC_MEMO)
@@ -19,7 +19,7 @@ static const Expr *deparenStatic(const Expr *e) {
   return e;
 }
 
-static const Expr *skipUnary(const Expr *e) {
+inline const Expr *skipUnary(const Expr *e) {
   if (!e) return nullptr;
 
   if (e->op() == TO_INC) {
@@ -33,7 +33,7 @@ static const Expr *skipUnary(const Expr *e) {
   return e;
 }
 
-static const Statement *lastNonEmpty(const Block *b, int32_t &effectiveSize) {
+inline const Statement *lastNonEmpty(const Block *b, int32_t &effectiveSize) {
   const Statement *r = nullptr;
   effectiveSize = 0;
   for (auto stmt : b->statements()) {
@@ -46,7 +46,7 @@ static const Statement *lastNonEmpty(const Block *b, int32_t &effectiveSize) {
   return r;
 }
 
-static const Statement *unwrapBody(const Statement *stmt) {
+inline const Statement *unwrapBody(const Statement *stmt) {
   if (!stmt)
     return nullptr;
 
@@ -62,7 +62,7 @@ static const Statement *unwrapBody(const Statement *stmt) {
 }
 
 // in contrast to `unwrapBody(...)` above this function skips empty statements
-static const Statement *unwrapBodyNonEmpty(const Statement *stmt) {
+inline const Statement *unwrapBodyNonEmpty(const Statement *stmt) {
 
   if (stmt == nullptr)
     return stmt;
@@ -79,7 +79,7 @@ static const Statement *unwrapBodyNonEmpty(const Statement *stmt) {
   return unwrapBodyNonEmpty(last);
 }
 
-static const Statement *unwrapSingleBlock(const Statement *stmt) {
+inline const Statement *unwrapSingleBlock(const Statement *stmt) {
   if (!stmt)
     return nullptr;
 
@@ -98,12 +98,12 @@ static const Statement *unwrapSingleBlock(const Statement *stmt) {
   return unwrapSingleBlock(last);
 }
 
-static Expr *unwrapExprStatement(Statement *stmt) {
+inline Expr *unwrapExprStatement(Statement *stmt) {
   return stmt->op() == TO_EXPR_STMT ? static_cast<ExprStatement *>(stmt)->expression() : nullptr;
 }
 
 
-static const FunctionExpr *extractFunction(const Node *n) {
+inline const FunctionExpr *extractFunction(const Node *n) {
   if (!n)
     return nullptr;
 
@@ -117,7 +117,7 @@ static const FunctionExpr *extractFunction(const Node *n) {
 }
 
 
-static const Expr *extractAssignedExpression(const Node *n) {
+inline const Expr *extractAssignedExpression(const Node *n) {
   if (n->op() == TO_ASSIGN || n->op() == TO_NEWSLOT)
     return static_cast<const BinExpr *>(n)->rhs();
 
@@ -128,7 +128,7 @@ static const Expr *extractAssignedExpression(const Node *n) {
 }
 
 
-static const Id *extractReceiver(const Expr *e) {
+inline const Id *extractReceiver(const Expr *e) {
   const Expr *last = e;
 
   for (;;) {
@@ -153,14 +153,14 @@ static const Id *extractReceiver(const Expr *e) {
 }
 
 
-static bool isFallThroughStatement(const Statement *stmt) {
+inline bool isFallThroughStatement(const Statement *stmt) {
   TreeOp op = stmt->op();
 
   return op != TO_RETURN && op != TO_THROW && op != TO_BREAK && op != TO_CONTINUE;
 }
 
 
-static bool isFallThroughBranch(const Statement *stmt) {
+inline bool isFallThroughBranch(const Statement *stmt) {
   if (stmt->op() != TO_BLOCK)
     return isFallThroughStatement(stmt);
 

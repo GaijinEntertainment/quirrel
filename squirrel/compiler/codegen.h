@@ -92,6 +92,7 @@ private:
     SQInteger inferReceiverType(Expr *receiver);
     bool isConstScoredMethodCall(GetFieldExpr *getField);
     bool isConstScoredDirectCall(CallExpr *callExpr);
+    bool isConstEvaluable(Expr *expr);
 
     void emitNewSlot(Expr *lvalue, Expr *rvalue);
     void emitAssign(Expr *lvalue, Expr * rvalue);

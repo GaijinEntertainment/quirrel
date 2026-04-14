@@ -11,7 +11,7 @@
 SQRESULT sq_getfunctioninfo(HSQUIRRELVM v,SQInteger level,SQFunctionInfo *fi)
 {
     SQInteger cssize = v->_callsstacksize;
-    if (cssize > level) {
+    if (level >= 0 && cssize > level) {
         SQVM::CallInfo &ci = v->_callsstack[cssize-level-1];
         if(sq_isclosure(ci._closure)) {
             SQClosure *c = _closure(ci._closure);
@@ -29,7 +29,7 @@ SQRESULT sq_getfunctioninfo(HSQUIRRELVM v,SQInteger level,SQFunctionInfo *fi)
 SQRESULT sq_stackinfos(HSQUIRRELVM v, SQInteger level, SQStackInfos *si)
 {
     SQInteger cssize = v->_callsstacksize;
-    if (cssize > level) {
+    if (level >= 0 && cssize > level) {
         memset(si, 0, sizeof(SQStackInfos));
         SQVM::CallInfo &ci = v->_callsstack[cssize-level-1];
         switch (sq_type(ci._closure)) {

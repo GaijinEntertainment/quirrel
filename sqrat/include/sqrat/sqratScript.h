@@ -53,15 +53,9 @@ public:
     /// \param name   Optional string containing the script's name (for errors)
     ///
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#if defined(SQRAT_HAS_STRING_VIEW)
     bool CompileString(const string_view &script, string &errMsg,
                        const string_view &name = string_view(),
                        const HSQOBJECT *bindings=nullptr)
-#else
-    bool CompileString(const string &script, string &errMsg,
-                       const string &name = string(),
-                       const HSQOBJECT *bindings=nullptr)
-#endif
     {
         if(!sq_isnull(obj)) {
             sq_release(vm, &obj);

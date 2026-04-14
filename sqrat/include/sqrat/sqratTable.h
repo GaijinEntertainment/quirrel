@@ -172,7 +172,10 @@ public:
         SQRAT_ASSERT(key.IsNull() || key.GetVM() == vm);
         const HSQOBJECT &hSelf = GetObject(), &hKey = key.GetObject();
         HSQOBJECT out;
-        return SQ_SUCCEEDED(sq_direct_get(vm, &hSelf, &hKey, &out, /*raw*/ false));
+        bool res = SQ_SUCCEEDED(sq_obj_get(vm, &hSelf, &hKey, &out, /*raw*/ false));
+        if (res)
+            sq_poptop(vm);
+        return res;
     }
 
 
@@ -180,7 +183,10 @@ public:
         SQRAT_ASSERT(key.IsNull() || key.GetVM() == vm);
         const HSQOBJECT &hSelf = GetObject(), &hKey = key.GetObject();
         HSQOBJECT out;
-        return SQ_SUCCEEDED(sq_direct_get(vm, &hSelf, &hKey, &out, /*raw*/ true));
+        bool res = SQ_SUCCEEDED(sq_obj_get(vm, &hSelf, &hKey, &out, /*raw*/ true));
+        if (res)
+            sq_poptop(vm);
+        return res;
     }
 
 
@@ -238,13 +244,14 @@ public:
         SQRAT_ASSERT(key.IsNull() || key.GetVM() == vm);
         const HSQOBJECT &hSelf = GetObject(), &hKey = key.GetObject();
         HSQOBJECT funcObj;
-        if (SQ_FAILED(sq_direct_get(vm, &hSelf, &hKey, &funcObj, raw))
-          || (funcObj._type != OT_CLOSURE && funcObj._type != OT_NATIVECLOSURE))
-        {
-          return Function();
+        if (SQ_FAILED(sq_obj_get(vm, &hSelf, &hKey, &funcObj, raw)))
+            return Function();
+        if (funcObj._type != OT_CLOSURE && funcObj._type != OT_NATIVECLOSURE) {
+            sq_poptop(vm);
+            return Function();
         }
-
-        Function ret(vm, GetObject(), funcObj); // must addref before the pop!
+        Function ret(vm, GetObject(), funcObj);
+        sq_poptop(vm);
         return ret;
     }
 

@@ -149,6 +149,8 @@ class CheckerVisitor : public Visitor
   void checkSameValues(const TerExpr *expr);
   void checkCanBeSimplified(const TerExpr *expr);
   void checkExtendToAppend(const CallExpr *callExpr);
+  void checkMergeEmptyTable(const CallExpr *callExpr);
+  void checkEmptyArrayResize(const CallExpr *callExpr);
   void checkAlreadyRequired(const CallExpr *callExpr);
   void checkCallNullable(const CallExpr *callExpr);
   void checkPersistCall(const CallExpr *callExpr);

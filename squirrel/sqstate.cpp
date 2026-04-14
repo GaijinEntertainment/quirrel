@@ -186,7 +186,7 @@ void SQSharedState::Init()
 
 SQSharedState::~SQSharedState()
 {
-    if(_releasehook) { _releasehook(_foreignptr,0); _releasehook = NULL; }
+    if(_releasehook) { _releasehook(_thread(_root_vm),_foreignptr,0); _releasehook = NULL; }
     _constructorstr.Null();
     _table(_registry)->Finalize();
     _table(_consts)->Finalize();
@@ -531,6 +531,7 @@ void RefTable::Resize(SQUnsignedInteger size)
         }
         t++;
     }
+    (void)nfound;
     assert(nfound == oldnumofslots);
     SQ_FREE(_alloc_ctx, oldbucks,(oldnumofslots * sizeof(RefNode *)) + (oldnumofslots * sizeof(RefNode)));
 }
