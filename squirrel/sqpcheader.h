@@ -11,6 +11,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+#ifdef QUIRREL_HOST_HEADER
+#define _SQ_QHH_STR(x) #x
+#define _SQ_QHH_STR2(x) _SQ_QHH_STR(x)
+#include _SQ_QHH_STR2(QUIRREL_HOST_HEADER)
+#undef _SQ_QHH_STR
+#undef _SQ_QHH_STR2
+#endif
+
 #include <new>
 //squirrel stuff
 #include <squirrel.h>

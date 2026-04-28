@@ -236,6 +236,9 @@ struct Var<T*, SQRAT_STD::enable_if_t<!is_callable_v<T*>>> {
     Var(HSQUIRRELVM vm, SQInteger idx) : value(ClassT::GetInstance(vm, idx, true)) {
     }
 
+    /// Direct extraction from HSQOBJECT -- stackless
+    explicit Var(const HSQOBJECT &o) : value(ClassT::GetInstanceFromObj(o)) {}
+
     /// Called by Sqrat::PushVar to put a class object on the stack
     static void push(HSQUIRRELVM vm, T* value) {
         if (ClassT::hasClassData(vm))
@@ -284,6 +287,13 @@ struct Var<T, SQRAT_STD::enable_if_t<SQRAT_STD::is_arithmetic_v<T> && !SQRAT_STD
         else
             getAsFloat<T>::getFromStack(vm, idx, value);
     }
+    explicit Var(const HSQOBJECT &o) {
+        SQRAT_ASSERT(check_type(o));
+        if constexpr (SQRAT_STD::is_integral_v<T>)
+            value = static_cast<T>(sq_objtointeger(&o));
+        else
+            value = static_cast<T>(sq_objtofloat(&o));
+    }
     static void push(HSQUIRRELVM vm, T value) {
         if constexpr (SQRAT_STD::is_integral_v<T>)
             sq_pushinteger(vm, static_cast<SQInteger>(value));
@@ -292,6 +302,7 @@ struct Var<T, SQRAT_STD::enable_if_t<SQRAT_STD::is_arithmetic_v<T> && !SQRAT_STD
     }
     static const char * getVarTypeName() { return SQRAT_STD::is_integral_v<T> ? "integer" : "float"; }
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) { return sq_gettype(vm, idx) & SQOBJECT_NUMERIC; }
+    static bool check_type(const HSQOBJECT &o) { return o._type & SQOBJECT_NUMERIC; }
 };
 
 // Reference/const-reference forwarder for arithmetic types (including bool)
@@ -314,6 +325,10 @@ struct Var<T, SQRAT_STD::enable_if_t<SQRAT_STD::is_enum_v<T>>> {
         if (SQ_SUCCEEDED(sq_getinteger(vm, idx, &intVal)))
             value = static_cast<T>(intVal);
      }
+    explicit Var(const HSQOBJECT &o) {
+        SQRAT_ASSERT(check_type(o));
+        value = static_cast<T>(sq_objtointeger(&o));
+    }
 
      static void push(HSQUIRRELVM vm, T value) {
          sq_pushinteger(vm, static_cast<SQInteger>(value));
@@ -322,6 +337,7 @@ struct Var<T, SQRAT_STD::enable_if_t<SQRAT_STD::is_enum_v<T>>> {
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) {
         return sq_gettype(vm, idx) == OT_INTEGER;
     }
+    static bool check_type(const HSQOBJECT &o) { return o._type == OT_INTEGER; }
 };
 
 // Reference/const-reference forwarder for enum types
@@ -343,6 +359,10 @@ struct Var<bool> {
         sq_tobool(vm, idx, &sqValue);
         value = (sqValue != 0);
     }
+    explicit Var(const HSQOBJECT &o) {
+        SQRAT_ASSERT(check_type(o));
+        value = sq_obj_is_true(&o) != 0;
+    }
 
     /// Called by Sqrat::PushVar to put a bool on the stack
     static void push(HSQUIRRELVM vm, const bool& value) {
@@ -351,7 +371,13 @@ struct Var<bool> {
 
     static const char * getVarTypeName() { return "bool"; }
     static bool check_type(HSQUIRRELVM /*vm*/, SQInteger /*idx*/) { return true; }
+    static bool check_type(const HSQOBJECT &) { return true; }
 };
+
+// Trait: true for types with HSQOBJECT-based Var constructors (arithmetic + enum).
+// Used by GetSlotValueImpl to dispatch the stackless extraction path at compile time.
+template<class T>
+inline constexpr bool has_direct_var_v = SQRAT_STD::is_arithmetic_v<T> || SQRAT_STD::is_enum_v<T>;
 
 /// Var<char*> construction is deleted: it exposed non-const write access to VM-internal strings.
 /// Use Var<const char*> or Var<string_view> instead. push() is kept for PushVar<char>(vm, ptr).

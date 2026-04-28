@@ -126,7 +126,7 @@ void SQVM::Raise_CompareError(const SQObject &o1, const SQObject &o2)
 }
 
 
-void SQVM::Raise_ParamTypeError(SQInteger nparam,SQInteger typemask,SQInteger type)
+void SQVM::Raise_ParamTypeError(SQInteger nparam,SQInteger typemask,SQInteger type,const char *funcname)
 {
     SQObjectPtr exptypes(SQString::Create(_ss(this), "", -1));
     SQInteger found = 0;
@@ -139,6 +139,6 @@ void SQVM::Raise_ParamTypeError(SQInteger nparam,SQInteger typemask,SQInteger ty
             StringCat(exptypes, SQObjectPtr(SQString::Create(_ss(this), IdType2Name((SQObjectType)mask), -1)), exptypes);
         }
     }
-    Raise_Error("parameter %d has an invalid type '%s' ; expected: '%s'", (int)nparam,
-                IdType2Name((SQObjectType)type), _stringval(exptypes));
+    Raise_Error("parameter %d of '%s' has an invalid type '%s' ; expected: '%s'", (int)nparam,
+                funcname && *funcname ? funcname : "<unknown>", IdType2Name((SQObjectType)type), _stringval(exptypes));
 }

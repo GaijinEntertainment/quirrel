@@ -61,14 +61,13 @@ static SQInteger _system_rename(HSQUIRRELVM v)
 }
 
 
-#define _DECL_FUNC(name,nparams,pmask) {#name,_system_##name,nparams,pmask}
-static const SQRegFunction systemlib_funcs[]={
-    _DECL_FUNC(getenv,2,".s"),
-    _DECL_FUNC(setenv,3,".ss"),
-    _DECL_FUNC(system,2,".s"),
-    _DECL_FUNC(remove,2,".s"),
-    _DECL_FUNC(rename,3,".ss"),
-    {NULL,(SQFUNCTION)0,0,NULL}
+static const SQRegFunctionFromStr systemlib_funcs[] = {
+    { _system_getenv, "getenv(name: string): string|null",            "Returns the value of the environment variable or null" },
+    { _system_setenv, "setenv(name: string, value: string)",          "Sets the environment variable to the given value" },
+    { _system_system, "system(cmd: string): int",                     "Executes a shell command and returns its exit code" },
+    { _system_remove, "remove(path: string)",                         "Deletes the file at the given path, throws error in case of fail" },
+    { _system_rename, "rename(old: string, new: string)",             "Renames the file from old to new path, throws error in case of fail" },
+    { NULL, NULL, NULL }
 };
 #undef _DECL_FUNC
 
@@ -92,14 +91,9 @@ SQRESULT sqstd_register_command_line_args(HSQUIRRELVM v, int argc, char ** argv)
 
 SQRESULT sqstd_register_systemlib(HSQUIRRELVM v)
 {
-    SQInteger i=0;
-    while(systemlib_funcs[i].name!=0)
-    {
-        sq_pushstring(v,systemlib_funcs[i].name,-1);
-        sq_newclosure(v,systemlib_funcs[i].f,0);
-        sq_setparamscheck(v,systemlib_funcs[i].nparamscheck,systemlib_funcs[i].typemask);
-        sq_setnativeclosurename(v,-1,systemlib_funcs[i].name);
-        sq_newslot(v,-3,SQFalse);
+    SQInteger i = 0;
+    while (systemlib_funcs[i].f) {
+        sq_new_closure_slot_from_decl_string(v, systemlib_funcs[i].f, 0, systemlib_funcs[i].declstring, systemlib_funcs[i].docstring);
         i++;
     }
     return SQ_OK;

@@ -14,8 +14,9 @@ std::vector<std::string> function_should_return_bool_prefix;
 std::vector<std::string> function_should_return_something_prefix;
 std::vector<std::string> function_result_must_be_utilized;
 std::vector<std::string> function_can_return_null;
-std::vector<std::string> function_calls_lambda_inplace;
 std::vector<std::string> function_takes_boolean_lambda;
+std::vector<std::string> function_requires_result_from_callback;
+std::vector<std::string> function_ignores_callback_result;
 std::vector<std::string> function_forbidden_parent_dir;
 std::vector<std::string> function_modifies_object;
 std::vector<std::string> function_must_be_called_from_root;
@@ -104,18 +105,20 @@ void resetAnalyzerConfig() {
     "filter"
   };
 
-  function_calls_lambda_inplace = {
-    "findvalue",
-    "findindex",
-    "__update",
+  function_ignores_callback_result = {
+    "each",
+    "mutate",
+  };
+
+  function_requires_result_from_callback = {
     "filter",
+    "findindex",
+    "findvalue",
     "map",
     "reduce",
-    "each",
     "sort",
-    "assert",
-    "persist",
-    "join",
+    "apply",
+    "modify",
   };
 
   function_forbidden_parent_dir = {
@@ -161,9 +164,6 @@ bool loadAnalyzerConfigFile(const KeyValueFile &config) {
   for (auto && v : config.getValuesList("function_can_return_null"))
     function_can_return_null.push_back(v);
 
-  for (auto && v : config.getValuesList("function_calls_lambda_inplace"))
-    function_calls_lambda_inplace.push_back(v);
-
   for (auto && v : config.getValuesList("function_result_must_be_utilized"))
     function_result_must_be_utilized.push_back(v);
 
@@ -184,6 +184,12 @@ bool loadAnalyzerConfigFile(const KeyValueFile &config) {
 
   for (auto && v : config.getValuesList("function_must_be_called_from_root"))
     function_must_be_called_from_root.push_back(v);
+
+  for (auto && v : config.getValuesList("function_requires_result_from_callback"))
+    function_requires_result_from_callback.push_back(v);
+
+  for (auto && v : config.getValuesList("function_ignores_callback_result"))
+    function_ignores_callback_result.push_back(v);
 
   return true;
 }

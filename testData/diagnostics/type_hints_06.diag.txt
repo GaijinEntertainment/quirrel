@@ -1,5 +1,5 @@
 
-AN ERROR HAS OCCURRED [parameter 2 has an invalid type 'null' ; expected: 'array']
+AN ERROR HAS OCCURRED [parameter 2 of 'fn' has an invalid type 'null' ; expected: 'array']
 
 CALLSTACK
 *FUNCTION [__main__()] testData/diagnostics/type_hints_06.nut:5

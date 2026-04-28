@@ -37,11 +37,6 @@ void sq_vm_free(SQAllocContext ctx, void *p,SQUnsignedInteger size);
 #endif
 
 
-#if !defined(SQ_STATIC_ASSERT)
-#define SQ_STATIC_ASSERT(x) static_assert((x), "assertion failed: " #x)
-#endif
-
-
 //sqvector mini vector class, supports objects by value
 template<typename T, typename SizeT = uint32_t> class sqvector
 {

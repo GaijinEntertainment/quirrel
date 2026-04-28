@@ -347,6 +347,32 @@ public:
     }
 
 
+    // Stackless instance extraction from HSQOBJECT.
+    // Returns nullptr on null/failure (no asserts -- callers report errors).
+    static C* GetInstanceFromObj(const HSQOBJECT &o) {
+        if (o._type == OT_NULL)
+            return nullptr;
+
+        SQUserPointer ptr = nullptr;
+        if (SQ_FAILED(sq_obj_getinstanceup(&o, &ptr, TypeTag<C>::get())))
+            return nullptr;
+
+        if (!ptr)
+            return nullptr;  // unconstructed instance
+
+        if (TypeTag<C>::get()->hasDerived) {
+            TypeTagBase *actualTag = nullptr;
+            sq_getobjtypetag(&o, (SQUserPointer *)&actualTag);
+            if (actualTag != TypeTag<C>::get()) {
+                ptr = CastToTarget(ptr, actualTag, TypeTag<C>::get());
+                SQRAT_ASSERT(ptr);
+            }
+        }
+
+        return static_cast<C *>(ptr);
+    }
+
+
     static void SetManagedInstance(HSQUIRRELVM vm, SQInteger idx, C* ptr) {
         sq_setinstanceup(vm, idx, ptr);
         ClassData<C>* cd = getClassData(vm);

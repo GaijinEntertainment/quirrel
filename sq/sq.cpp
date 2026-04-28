@@ -573,7 +573,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
     return _DONE;
 }
 
-int main(int argc, char* argv[])
+int sq_interpreter_main(int argc, char* argv[])
 {
     SQInteger retval = 0;
 
@@ -609,4 +609,11 @@ int main(int argc, char* argv[])
 
     return int(retval);
 }
+
+#ifndef SQ_EXCLUDE_DEFAULT_MAIN
+int main(int argc, char* argv[])
+{
+    return sq_interpreter_main(argc, argv);
+}
+#endif
 

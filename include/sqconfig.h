@@ -77,4 +77,9 @@ typedef SQInteger SQRESULT;
 #define SQ_CHECK_THREAD SQ_CHECK_THREAD_LEVEL_NONE
 #endif
 
+// doc strings and native function declaration strings
+#ifndef SQ_STORE_DOC_OBJECTS
+#define SQ_STORE_DOC_OBJECTS 1
+#endif
+
 #define MIN_SQ_INTEGER SQInteger(1ULL << (sizeof(SQInteger) * 8 - 1))

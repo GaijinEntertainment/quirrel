@@ -72,7 +72,7 @@ SQRESULT sqstd_format(HSQUIRRELVM v,SQInteger nformatstringidx,SQInteger *outlen
 {
     const char *format;
     char *dest;
-    char fmt[MAX_FORMAT_LEN];
+    char fmt[MAX_FORMAT_LEN + 5];
     const SQRESULT res = sq_getstring(v,nformatstringidx,&format);
     if (SQ_FAILED(res)) {
         return res; // propagate the error

@@ -532,7 +532,8 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
 
         for(SQInteger n = 0; n < nvargs; n++) {
             if (!check_typemask(sq_type(_stack._vals[pbase]), mask)) {
-                Raise_ParamTypeError(n + paramssize, mask, sq_type(_stack._vals[pbase]));
+                Raise_ParamTypeError(n + paramssize, mask, sq_type(_stack._vals[pbase]),
+                    sq_type(func->_name) == OT_STRING ? _stringval(func->_name) : nullptr);
                 return false;
             }
 
@@ -567,7 +568,8 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
         for (SQInteger i = 1; i < len; i++) {
             SQUnsignedInteger32 mask = paramTypeMasks[i];
             if (!check_typemask(sq_type(_stack._vals[stackbase + i]), mask)) {
-                Raise_ParamTypeError(i, mask, sq_type(_stack._vals[stackbase + i]));
+                Raise_ParamTypeError(i, mask, sq_type(_stack._vals[stackbase + i]),
+                    sq_type(func->_name) == OT_STRING ? _stringval(func->_name) : nullptr);
                 return false;
             }
         }
@@ -1965,7 +1967,8 @@ bool SQVM::CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newb
     if((tcs = tc.size())) {
         for(SQInteger i = 0; i < nargs && i < tcs; i++) {
             if((tc._vals[i] != -1) && !check_typemask(sq_type(_stack._vals[newbase+i]), tc._vals[i])) {
-                Raise_ParamTypeError(i,tc._vals[i], sq_type(_stack._vals[newbase+i]));
+                Raise_ParamTypeError(i,tc._vals[i], sq_type(_stack._vals[newbase+i]),
+                    sq_type(nclosure->_name) == OT_STRING ? _stringval(nclosure->_name) : nullptr);
                 return false;
             }
         }

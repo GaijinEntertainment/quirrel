@@ -378,13 +378,19 @@ public:
           return def_val;
 
         // sq_obj_get already pushed result to VM stack
-        if (!Var<T>::check_type(vm, -1)) {
+        if constexpr (has_direct_var_v<T>) {
+            T ret = Var<T>::check_type(res) ? Var<T>(res).value : def_val;
             sq_pop(vm, 1);
-            return def_val;
+            return ret;
+        } else {
+            if (!Var<T>::check_type(vm, -1)) {
+                sq_pop(vm, 1);
+                return def_val;
+            }
+            T ret = Var<T>(vm, -1).value;
+            sq_pop(vm, 1);
+            return ret;
         }
-        T ret = Var<T>(vm, -1).value;
-        sq_pop(vm, 1);
-        return ret;
     }
 
     template<class T>
@@ -408,10 +414,7 @@ public:
     }
 
     SQInteger GetSize() const {
-        sq_pushobject(vm, GetObject());
-        SQInteger ret = sq_getsize(vm, -1);
-        sq_pop(vm, 1);
-        return ret;
+        return sq_obj_getsize(&obj);
     }
 
     struct iterator;
@@ -426,14 +429,10 @@ public:
     }
 
     const SQRAT_STD::string_view GetString(const SQRAT_STD::string_view def_val = {}) const {
-        if (obj._type != OT_STRING)
-          return def_val;
-        sq_pushobject(vm, GetObject());
-        const char* str = nullptr;
-        SQInteger len = 0;
-        sq_getstringandsize(vm, -1, &str, &len);
-        sq_pop(vm, 1);
-        return SQRAT_STD::string_view(str, len);
+        const char *str = sq_objtostring(&obj);
+        if (!str)
+            return def_val;
+        return SQRAT_STD::string_view(str, sq_obj_getsize(&obj));
     }
 
 
@@ -514,11 +513,11 @@ protected:
 
     template<class V>
     inline void BindValue(const Object &key, const V& val, bool staticVar = false) {
-        sq_pushobject(vm, GetObject());
-        sq_pushobject(vm, key.GetObject());
         PushVar(vm, val);
-        SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, staticVar)));
-        sq_pop(vm,1); // pop table
+        HSQOBJECT valObj;
+        sq_getstackobj(vm, -1, &valObj);
+        SQRAT_VERIFY(SQ_SUCCEEDED(sq_obj_newslot(vm, &obj, &key.obj, &valObj, staticVar)));
+        sq_poptop(vm);
     }
 
     // Set the value of an instance on the object. Changes to values set this way are reciprocated back to the source instance
@@ -542,11 +541,11 @@ protected:
 
     template<class V>
     inline void BindInstance(const Object &key, V* val, bool staticVar = false) {
-        sq_pushobject(vm, GetObject());
-        sq_pushobject(vm, key.GetObject());
         PushVar(vm, val);
-        SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, staticVar)));
-        sq_pop(vm,1); // pop table
+        HSQOBJECT valObj;
+        sq_getstackobj(vm, -1, &valObj);
+        SQRAT_VERIFY(SQ_SUCCEEDED(sq_obj_newslot(vm, &obj, &key.obj, &valObj, staticVar)));
+        sq_poptop(vm);
     }
 };
 
@@ -561,6 +560,14 @@ template<> inline int64_t Object::Cast() const {
 
 template<> inline float Object::Cast() const {
     return sq_objtofloat(&obj);
+}
+
+template<> inline double Object::Cast() const {
+    return sq_objtofloat(&obj);
+}
+
+template<> inline bool Object::Cast() const {
+    return sq_obj_is_true(&obj) != SQFalse;
 }
 
 

@@ -154,7 +154,6 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(EXTEND_TO_APPEND, HINT, SEMA, 270, "extent-to-append", "It is better to use 'append(A, B, ...)' instead of 'extend([A, B, ...])'."), \
   DEF_DIAGNOSTIC(FORGOT_SUBST, WARNING, SEMA, 271, "forgot-subst", "'{}' found inside string (forgot 'subst' or '$' ?)."), \
   DEF_DIAGNOSTIC(NOT_UNARY_OP, WARNING, SYNTAX, 272, "not-unary-op", "This '%s' is not a unary operator. Please use ' ' after it or ',' before it for better understandability."), \
-  DEF_DIAGNOSTIC(ITER_IN_CLOSURE, WARNING, SEMA, 274, "iterator-in-lambda", "Iterator '%s' is trying to be captured in a closure."), \
   DEF_DIAGNOSTIC(MISSED_BREAK, WARNING, SEMA, 275, "missed-break", "A 'break' statement is probably missing in a 'switch' statement."), \
   DEF_DIAGNOSTIC(SPACE_AT_EOL, WARNING, LEX, 277, "space-at-eol", "Whitespace at the end of line."), \
   DEF_DIAGNOSTIC(FORBIDDEN_FUNC, WARNING, SEMA, 278, "forbidden-function", "It is forbidden to call '%s' function."), \
@@ -188,7 +187,10 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(NOT_A_CONST, WARNING, COMPILETIME, 316, "not-a-const", "Expression in 'static' context must be a constant expression."), \
   DEF_DIAGNOSTIC(STATIC_MEMO_TOO_SIMPLE, WARNING, COMPILETIME, 317, "static-too-simple", "'static' is too simple."), \
   DEF_DIAGNOSTIC(MERGE_EMPTY_TABLE, WARNING, SEMA, 318, "merge-empty-table", "'__merge({})' with an empty table is equivalent to 'clone'. Use 'clone' instead."), \
-  DEF_DIAGNOSTIC(EMPTY_ARRAY_RESIZE, WARNING, SEMA, 319, "empty-array-resize", "'[].resize(...)' is slower than 'array(...)'. Use 'array(...)' instead.") \
+  DEF_DIAGNOSTIC(EMPTY_ARRAY_RESIZE, WARNING, SEMA, 319, "empty-array-resize", "'[].resize(...)' is slower than 'array(...)'. Use 'array(...)' instead."), \
+  DEF_DIAGNOSTIC(CALLBACK_SHOULD_RETURN_VALUE, WARNING, SEMA, 320, "callback-should-return-value", "Callback passed to '%s' must return a value."), \
+  DEF_DIAGNOSTIC(PARAM_ASSIGNMENT_IN_LAMBDA, WARNING, SEMA, 321, "param-assign-in-lambda", "Assignment to parameter '%s' in lambda has no effect. Return the expression instead."), \
+  DEF_DIAGNOSTIC(CALLBACK_SHOULD_NOT_RETURN, WARNING, SEMA, 322, "callback-should-not-return", "Callback passed to '%s' should not return a value.") \
 
 
 namespace SQCompilation {

@@ -108,7 +108,7 @@ public:
     bool isLocked() const {return _lockedTypeId != 0;}
     static uint64_t classTypeFromHint(uint64_t hint)
     {
-      SQ_STATIC_ASSERT(sizeof(SQClass)>=256);
+      static_assert(sizeof(SQClass)>=256);
       return hint&((1ull<<uint64_t(CLASS_BITS)) - 1);
     }
     uint64_t currentHint() const {return classTypeFromHint(uintptr_t(this)>>uintptr_t(8));}

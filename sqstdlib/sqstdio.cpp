@@ -144,6 +144,21 @@ static SQInteger _file_releasehook(HSQUIRRELVM SQ_UNUSED_ARG(vm), SQUserPointer 
     return 1;
 }
 
+static bool _file_is_valid_mode(const char *mode)
+{
+    static const char *ok[] = {
+        "r", "w", "a", "r+", "w+", "a+",
+        "rb", "wb", "ab", "rt", "wt", "at",
+        "r+b", "w+b", "a+b", "rb+", "wb+", "ab+",
+        "r+t", "w+t", "a+t", "rt+", "wt+", "at+", nullptr };
+    if (!mode)
+        return false;
+    for (int i = 0; ok[i]; ++i)
+        if (!strcmp(mode, ok[i]))
+            return true;
+    return false;
+}
+
 static SQInteger _file_constructor(HSQUIRRELVM v)
 {
     const char *filename,*mode;
@@ -153,6 +168,8 @@ static SQInteger _file_constructor(HSQUIRRELVM v)
     if(sq_gettype(v,2) == OT_STRING && sq_gettype(v,3) == OT_STRING) {
         sq_getstring(v, 2, &filename);
         sq_getstring(v, 3, &mode);
+        if(!_file_is_valid_mode(mode))
+            return sq_throwerror(v, "invalid file mode");
         newf = sqstd_fopen(filename, mode);
         if(!newf) return sq_throwerror(v, "cannot open file");
     } else if(sq_gettype(v,2) == OT_USERPOINTER) {
@@ -185,13 +202,15 @@ static SQInteger _file_close(HSQUIRRELVM v)
     return 0;
 }
 
-//bindings
-#define _DECL_FILE_FUNC(name,nparams,typecheck) {#name,_file_##name,nparams,typecheck}
-static const SQRegFunction _file_methods[] = {
-    _DECL_FILE_FUNC(constructor,3,"x"),
-    _DECL_FILE_FUNC(_typeof,1,"x"),
-    _DECL_FILE_FUNC(close,1,"x"),
-    {NULL,(SQFUNCTION)0,0,NULL}
+static const SQRegFunctionFromStr _file_methods[] = {
+    { _file_constructor, "constructor(path: string|userpointer, mode: string|int|null): instance",
+      "Two forms: (path: string, mode: string) opens the file via fopen with the given mode; "
+      "(handle: userpointer, own) wraps an existing FILE* and takes ownership (closes on destruction) "
+      "when `own` is non-null, or shares it without closing when `own` is null" },
+
+    { _file__typeof, "instance._typeof(): string", "Returns 'file'" },
+    { _file_close,   "instance.close()", "Closes the file if it is still open" },
+    { NULL, NULL, NULL }
 };
 
 
@@ -355,8 +374,8 @@ SQRESULT sqstd_writeclosuretofile(HSQUIRRELVM v,const char *filename)
     return SQ_ERROR; //forward the error
 }
 
-static const SQRegFunction iolib_funcs[]={
-    {nullptr,nullptr,0,nullptr,nullptr,false}
+static const SQRegFunctionFromStr iolib_funcs[] = {
+    { NULL, NULL, NULL }
 };
 
 SQRESULT sqstd_register_iolib(HSQUIRRELVM v)

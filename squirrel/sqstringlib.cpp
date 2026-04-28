@@ -105,7 +105,7 @@ SQInteger _sq_string_escape_impl(HSQUIRRELVM v, SQInteger arg_stack_start)
     const char *escpat = "\\x%02x";
     const SQInteger maxescsize = 4;
 
-    SQInteger destcharsize = (size * maxescsize); //assumes every char could be escaped
+    SQInteger destcharsize = (size * maxescsize) + 1; // +1 for null terminator of last escape
     resstr = dest = (char *)sq_getscratchpad(v,destcharsize * sizeof(char));
     char c;
     char escch;
@@ -138,7 +138,7 @@ SQInteger _sq_string_escape_impl(HSQUIRRELVM v, SQInteger arg_stack_start)
         }
         else {
 
-            dest += scsprintf(dest, destcharsize, escpat, (unsigned char)c);
+            dest += scsprintf(dest, maxescsize + 1, escpat, (unsigned char)c);
             escaped++;
         }
     }

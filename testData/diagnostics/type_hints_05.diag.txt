@@ -1,5 +1,5 @@
 
-AN ERROR HAS OCCURRED [parameter 5 has an invalid type 'function' ; expected: 'table']
+AN ERROR HAS OCCURRED [parameter 5 of 'fn' has an invalid type 'function' ; expected: 'table']
 
 CALLSTACK
 *FUNCTION [__main__()] testData/diagnostics/type_hints_05.nut:5

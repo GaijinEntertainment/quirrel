@@ -304,10 +304,7 @@ public:
     }
 
     SQInteger Length() const {
-        sq_pushobject(vm, obj);
-        SQInteger r = sq_getsize(vm, -1);
-        sq_pop(vm, 1);
-        return r;
+        return sq_obj_getsize(&obj);
     }
 
     bool Clear() {

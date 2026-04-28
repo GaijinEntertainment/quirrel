@@ -19,6 +19,9 @@
 #include "compiler/static_analyzer/analyzer.h"
 #include "compiler/static_analyzer/config.h"
 
+static_assert(sizeof(SQObject) == sizeof(SQObjectPtr),
+    "SQObjectPtr must not add data members beyond SQObject");
+
 SQUIRREL_API SQBool sq_tracevar(HSQUIRRELVM v, const HSQOBJECT *container, const HSQOBJECT * key, char * buf, int buf_size)
 {
   return v->GetVarTrace(SQObjectPtr(*container), SQObjectPtr(*key), buf, buf_size);
@@ -351,6 +354,7 @@ void sq_getregistrytableobj(HSQUIRRELVM v, HSQOBJECT *out)
 SQRESULT sq_obj_get(HSQUIRRELVM v, const HSQOBJECT *obj, const HSQOBJECT *slot,
                       HSQOBJECT *out, bool raw)
 {
+    v->ValidateThreadAccess();
     const SQObjectPtr &selfPtr = static_cast<const SQObjectPtr &>(*obj);
     const SQObjectPtr &slotPtr = static_cast<const SQObjectPtr &>(*slot);
     SQObjectPtr outPtr;
@@ -377,6 +381,101 @@ SQBool sq_obj_cmp(HSQUIRRELVM v, const HSQOBJECT *a, const HSQOBJECT *b, SQInteg
 bool sq_obj_is_equal(HSQUIRRELVM v, const HSQOBJECT *a, const HSQOBJECT *b)
 {
     return v->IsEqual(*a, *b);
+}
+
+SQInteger sq_obj_getsize(const HSQOBJECT *obj)
+{
+    switch (obj->_type) {
+    case OT_TABLE:    return _table(*obj)->CountUsed();
+    case OT_ARRAY:    return _array(*obj)->Size();
+    case OT_STRING:   return _string(*obj)->_len;
+    case OT_USERDATA: return _userdata(*obj)->_size;
+    case OT_INSTANCE: return _instance(*obj)->_class->_udsize;
+    case OT_CLASS:    return _class(*obj)->_udsize;
+    default:          return SQ_ERROR;
+    }
+}
+
+static SQRESULT getinstanceup_impl(SQInstance *inst, SQUserPointer *p,
+                                   SQUserPointer typetag)
+{
+    *p = inst->_userpointer;
+    if (typetag != 0) {
+        SQClass *cl = inst->_class;
+        do {
+            if (cl->_typetag == typetag)
+                return SQ_OK;
+            cl = cl->_base;
+        } while (cl != NULL);
+        return SQ_ERROR;
+    }
+    return SQ_OK;
+}
+
+SQRESULT sq_obj_getinstanceup(const HSQOBJECT *obj, SQUserPointer *p,
+                              SQUserPointer typetag)
+{
+    if (obj->_type != OT_INSTANCE)
+        return SQ_ERROR;
+    return getinstanceup_impl(_instance(*obj), p, typetag);
+}
+
+// Shared raw-set logic for sq_rawset and sq_obj_set(raw=true).
+// Does NOT check immutability - callers handle that with their own error reporting.
+static SQRESULT rawset_impl(HSQUIRRELVM v, const SQObjectPtr &self,
+                            const SQObjectPtr &key, const SQObjectPtr &val)
+{
+    switch (sq_type(self)) {
+    case OT_TABLE:
+        _table(self)->NewSlot(key, val);
+        return SQ_OK;
+    case OT_CLASS:
+        _class(self)->NewSlot(_ss(v), key, val, false);
+        return SQ_OK;
+    case OT_INSTANCE:
+        return _instance(self)->Set(key, val) == SLOT_STATUS_OK ? SQ_OK : SQ_ERROR;
+    case OT_ARRAY:
+        if (sq_isnumeric(key))
+            return _array(self)->Set(tointeger(key), val) ? SQ_OK : SQ_ERROR;
+        return SQ_ERROR;
+    default:
+        return SQ_ERROR;
+    }
+}
+
+SQRESULT sq_obj_set(HSQUIRRELVM v, const HSQOBJECT *obj,
+                    const HSQOBJECT *key, const HSQOBJECT *val,
+                    bool raw)
+{
+    v->ValidateThreadAccess();
+    const SQObjectPtr &selfPtr = static_cast<const SQObjectPtr &>(*obj);
+    const SQObjectPtr &keyPtr  = static_cast<const SQObjectPtr &>(*key);
+    const SQObjectPtr &valPtr  = static_cast<const SQObjectPtr &>(*val);
+
+    if (raw) {
+        if (obj->_flags & SQOBJ_FLAG_IMMUTABLE)
+            return SQ_ERROR;
+        return rawset_impl(v, selfPtr, keyPtr, valPtr);
+    }
+    return v->Set(selfPtr, keyPtr, valPtr) ? SQ_OK : SQ_ERROR;
+}
+
+SQRESULT sq_obj_newslot(HSQUIRRELVM v, const HSQOBJECT *obj,
+                        const HSQOBJECT *key, const HSQOBJECT *val,
+                        bool bstatic)
+{
+    v->ValidateThreadAccess();
+    SQObjectType tp = sq_type(*obj);
+    if (tp != OT_TABLE && tp != OT_CLASS && tp != OT_INSTANCE)
+        return SQ_ERROR;
+
+    const SQObjectPtr &selfPtr = static_cast<const SQObjectPtr &>(*obj);
+    const SQObjectPtr &keyPtr  = static_cast<const SQObjectPtr &>(*key);
+    const SQObjectPtr &valPtr  = static_cast<const SQObjectPtr &>(*val);
+
+    if (!v->NewSlot(selfPtr, keyPtr, valPtr, bstatic))
+        return SQ_ERROR;
+    return SQ_OK;
 }
 
 #define MAX_FAST_COMPARE_SIZE 1024
@@ -1075,17 +1174,10 @@ SQRESULT sq_clone(HSQUIRRELVM v,SQInteger idx)
 SQInteger sq_getsize(HSQUIRRELVM v, SQInteger idx)
 {
     SQObjectPtr &o = stack_get(v, idx);
-    SQObjectType type = sq_type(o);
-    switch(type) {
-    case OT_STRING:     return _string(o)->_len;
-    case OT_TABLE:      return _table(o)->CountUsed();
-    case OT_ARRAY:      return _array(o)->Size();
-    case OT_USERDATA:   return _userdata(o)->_size;
-    case OT_INSTANCE:   return _instance(o)->_class->_udsize;
-    case OT_CLASS:      return _class(o)->_udsize;
-    default:
-        return sq_aux_invalidtype(v, type);
-    }
+    SQInteger res = sq_obj_getsize(&o);
+    if (res == SQ_ERROR)
+        return sq_aux_invalidtype(v, sq_type(o));
+    return res;
 }
 
 SQHash sq_gethash(HSQUIRRELVM v, SQInteger idx)
@@ -1187,20 +1279,13 @@ SQRESULT sq_registernativefield(HSQUIRRELVM v, SQInteger classidx,
     return SQ_OK;
 }
 
-SQRESULT sq_getinstanceup(HSQUIRRELVM v, SQInteger idx, SQUserPointer *p,SQUserPointer typetag)
+SQRESULT sq_getinstanceup(HSQUIRRELVM v, SQInteger idx, SQUserPointer *p, SQUserPointer typetag)
 {
-    SQObjectPtr &o = stack_get(v,idx);
-    if(sq_type(o) != OT_INSTANCE) return sq_throwerror(v,"the object is not a class instance");
-    (*p) = _instance(o)->_userpointer;
-    if(typetag != 0) {
-        SQClass *cl = _instance(o)->_class;
-        do{
-            if(cl->_typetag == typetag)
-                return SQ_OK;
-            cl = cl->_base;
-        }while(cl != NULL);
-        return sq_throwerror(v,"invalid type tag");
-    }
+    SQObjectPtr &o = stack_get(v, idx);
+    if (sq_type(o) != OT_INSTANCE)
+        return sq_throwerror(v, "the object is not a class instance");
+    if (SQ_FAILED(getinstanceup_impl(_instance(o), p, typetag)))
+        return sq_throwerror(v, "invalid type tag");
     return SQ_OK;
 }
 
@@ -1303,41 +1388,24 @@ SQRESULT sq_rawset(HSQUIRRELVM v,SQInteger idx)
     v->ValidateThreadAccess();
 
     SQObjectPtr &self = stack_get(v, idx);
-    SQObjectPtr &key = v->GetUp(-2);
 
     if (self._flags & SQOBJ_FLAG_IMMUTABLE) {
         v->Raise_Error("trying to modify immutable '%s'",GetTypeName(self));
         return SQ_ERROR;
     }
 
-    switch(sq_type(self)) {
-    case OT_TABLE:
-        _table(self)->NewSlot(key, v->GetUp(-1));
+    if (SQ_SUCCEEDED(rawset_impl(v, self, v->GetUp(-2), v->GetUp(-1)))) {
         v->Pop(2);
         return SQ_OK;
-    break;
-    case OT_CLASS:
-        _class(self)->NewSlot(_ss(v), key, v->GetUp(-1),false);
-        v->Pop(2);
-        return SQ_OK;
-    break;
-    case OT_INSTANCE:
-        if(_instance(self)->Set(key, v->GetUp(-1)) == SLOT_STATUS_OK) {
-            v->Pop(2);
-            return SQ_OK;
-        }
-    break;
-    case OT_ARRAY:
-        if(v->Set(self, key, v->GetUp(-1))) {
-            v->Pop(2);
-            return SQ_OK;
-        }
-    break;
-    default:
-        v->Pop(2);
-        return sq_throwerror(v, "rawset works only on array/table/class and instance");
     }
-    v->Raise_IdxError(v->GetUp(-2));return SQ_ERROR;
+
+    SQObjectType tp = sq_type(self);
+    if (tp == OT_TABLE || tp == OT_CLASS || tp == OT_INSTANCE || tp == OT_ARRAY) {
+        v->Raise_IdxError(v->GetUp(-2));
+        return SQ_ERROR;
+    }
+    v->Pop(2);
+    return sq_throwerror(v, "rawset works only on array/table/class and instance");
 }
 
 SQRESULT sq_newmember(HSQUIRRELVM v,SQInteger idx,SQBool bstatic)
@@ -1442,32 +1510,20 @@ SQRESULT sq_get(HSQUIRRELVM v,SQInteger idx)
     return SQ_ERROR;
 }
 
+static inline void propagate_immutable(const SQObject &obj, SQObject &slot_val)
+{
+    if (sq_objflags(obj) & SQOBJ_FLAG_IMMUTABLE)
+        slot_val._flags |= SQOBJ_FLAG_IMMUTABLE;
+}
+
 SQRESULT sq_rawget(HSQUIRRELVM v, SQInteger idx)
 {
     v->ValidateThreadAccess();
 
-    SQObjectPtr &self=stack_get(v,idx);
+    const SQObjectPtr &self = stack_get(v, idx);
     SQObjectPtr &obj = v->GetUp(-1);
-    switch(sq_type(self)) {
-    case OT_TABLE:
-        if(_table(self)->Get(obj,obj))
-            return SQ_OK;
-        break;
-    case OT_CLASS:
-        if(_class(self)->Get(obj,obj))
-            return SQ_OK;
-        break;
-    case OT_INSTANCE:
-        if(_instance(self)->Get(obj,obj))
-            return SQ_OK;
-        break;
-    case OT_ARRAY:
-        if(sq_isnumeric(obj) && _array(self)->Get(tointeger(obj),obj))
-            return SQ_OK;
-        break;
-    default:
-        break;
-    }
+    if (v->Get(self, obj, obj, GET_FLAG_DO_NOT_RAISE_ERROR | GET_FLAG_RAW))
+        return SQ_OK;
     v->Pop();
     return SQ_ERROR;
 }
@@ -1846,22 +1902,26 @@ SQRESULT _getmemberbyhandle(HSQUIRRELVM v,SQObjectPtr &self,const HSQMEMBERHANDL
 
 SQRESULT sq_getbyhandle(HSQUIRRELVM v,SQInteger idx,const HSQMEMBERHANDLE *handle)
 {
+    SQObjectPtr &self = stack_get(v,idx);
     if (handle->_isNativeField) {
-        SQObjectPtr &self = stack_get(v,idx);
         if (sq_type(self) != OT_INSTANCE)
-            return sq_throwerror(v,"expected instance for native field");
+            return sq_throwerror(v, "expected instance for native field");
         SQObjectPtr tmp;
         _instance(self)->GetNativeField(handle->_index, tmp);
+        propagate_immutable(self, tmp);
         v->Push(tmp);
         return SQ_OK;
     }
-    SQObjectPtr &self = stack_get(v,idx);
-    SQObjectPtr *val = NULL;
-    if(SQ_FAILED(_getmemberbyhandle(v,self,handle,val))) {
-        return SQ_ERROR;
+    else {
+        SQObjectPtr *val = NULL;
+        if(SQ_FAILED(_getmemberbyhandle(v,self,handle,val))) {
+            return SQ_ERROR;
+        }
+        SQObjectPtr res(_realval(*val));
+        propagate_immutable(self, res);
+        v->Push(res);
+        return SQ_OK;
     }
-    v->Push(SQObjectPtr(_realval(*val)));
-    return SQ_OK;
 }
 
 SQRESULT sq_setbyhandle(HSQUIRRELVM v,SQInteger idx,const HSQMEMBERHANDLE *handle)

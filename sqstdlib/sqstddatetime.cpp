@@ -62,27 +62,19 @@ static SQInteger _datetime_date(HSQUIRRELVM v)
 
 
 
-#define _DECL_FUNC(name,nparams,pmask) {#name,_datetime_##name,nparams,pmask}
-static const SQRegFunction datetimelib_funcs[]={
-    _DECL_FUNC(clock,0,NULL),
-    _DECL_FUNC(time,1,NULL),
-    _DECL_FUNC(date,-1,".nn"),
-    {NULL,(SQFUNCTION)0,0,NULL}
+static const SQRegFunctionFromStr datetimelib_funcs[] = {
+    { _datetime_clock, "pure clock(): float", "Returns CPU time used by the process in seconds" },
+    { _datetime_time,  "time(): int", "Returns the current time as seconds since the Unix epoch" },
+    { _datetime_date,  "date([time: int, format: int]): table", "Returns a table with date fields (sec,min,hour,day,month,year,wday,yday); format 'l' for local, 'u' for UTC" },
+    { NULL, NULL, NULL }
 };
-#undef _DECL_FUNC
 
 
 SQRESULT sqstd_register_datetimelib(HSQUIRRELVM v)
 {
-    SQInteger i=0;
-    while(datetimelib_funcs[i].name!=0)
-    {
-        const SQRegFunction &rf = datetimelib_funcs[i];
-        sq_pushstring(v, rf.name, -1);
-        sq_newclosure(v, rf.f, 0);
-        sq_setparamscheck(v, rf.nparamscheck, rf.typemask);
-        sq_setnativeclosurename(v, -1, rf.name);
-        sq_newslot(v, -3, SQFalse);
+    SQInteger i = 0;
+    while (datetimelib_funcs[i].f) {
+        sq_new_closure_slot_from_decl_string(v, datetimelib_funcs[i].f, 0, datetimelib_funcs[i].declstring, datetimelib_funcs[i].docstring);
         i++;
     }
     return SQ_OK;

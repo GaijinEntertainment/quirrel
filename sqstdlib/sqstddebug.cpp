@@ -444,40 +444,33 @@ SQInteger debug_set_script_watchdog_timeout_msec(HSQUIRRELVM v)
 }
 
 
-static const SQRegFunction debuglib_funcs[] = {
-    {"seterrorhandler",debug_seterrorhandler,2, NULL},
-    {"setdebughook",debug_setdebughook,2, NULL},
-    {"getstackinfos",debug_getstackinfos,2, ".n"},
-    {"format_call_stack_string", format_call_stack_string, 1, NULL},
-    {"getlocals",debug_getlocals,-1, ".nb"},
-    {"get_stack_top",debug_get_stack_top,0, NULL},
-    {"script_watchdog_kick", debug_script_watchdog_kick, 1, NULL},
-    {"set_script_watchdog_timeout_msec", debug_set_script_watchdog_timeout_msec, 2, ".n"},
-    {"get_function_decl_string",debug_get_function_decl_string,2, ".c", "Returns a function declaration string"},
-    {"type_mask_to_string",debug_type_mask_to_string,2, ".i", "Convert type mask to human-readable string"},
-    {"get_function_info_table",debug_get_function_info_table,2, ".c", "Returns meta information about a function as table"},
-    {"doc",debug_doc,2, ".t|c|x|y", "Returns a documentation string for a function, class, or table"},
+static const SQRegFunctionFromStr debuglib_funcs[] = {
+    { debug_seterrorhandler, "seterrorhandler(handler: function|null)", "Installs the given function as the VM error handler; null clears it" },
+    { debug_setdebughook, "setdebughook(hook: function|null)", "Installs the given function as the VM debug hook; null clears it" },
+    { debug_getstackinfos, "getstackinfos(level: int): table|null", "Returns call stack information for the given stack level" },
+    { format_call_stack_string, "format_call_stack_string(): string", "Returns a formatted string describing the current call stack" },
+    { debug_getlocals, "getlocals([level: int, include_internal: bool]): table", "Returns a table of local variables at the given stack level" },
+    { debug_get_stack_top, "get_stack_top(): int", "Returns the current VM stack top index" },
+    { debug_script_watchdog_kick, "script_watchdog_kick()", "Resets the script watchdog timer" },
+    { debug_set_script_watchdog_timeout_msec, "set_script_watchdog_timeout_msec(timeout_msec: int): int", "Sets the script watchdog timeout in milliseconds and returns the previous value" },
+    { debug_get_function_decl_string, "get_function_decl_string(func: function): string|null", "Returns a function declaration string" },
+    { debug_type_mask_to_string, "type_mask_to_string(mask: int): string", "Convert type mask to human-readable string" },
+    { debug_get_function_info_table, "get_function_info_table(func: function): table|null", "Returns meta information about a function as table" },
+    { debug_doc, "doc(subject: table|function|instance|class): string|null", "Returns a documentation string for a function, class, or table" },
 #ifndef NO_GARBAGE_COLLECTOR
-    {"collectgarbage",debug_collectgarbage,0, NULL},
-    {"resurrectunreachable",debug_resurrectunreachable,0, NULL},
+    { debug_collectgarbage, "collectgarbage(): int", "Runs the garbage collector and returns the number of reclaimed objects" },
+    { debug_resurrectunreachable, "resurrectunreachable(): array|null", "Resurrects unreachable objects for inspection" },
 #endif
-    {"getbuildinfo", debug_getbuildinfo,1,NULL},
-    {NULL,(SQFUNCTION)0,0,NULL}
+    { debug_getbuildinfo, "getbuildinfo(): table", "Returns a table describing the Quirrel build (version, sizes, GC status)" },
+    { NULL, NULL, NULL }
 };
 
 
 SQRESULT sqstd_register_debuglib(HSQUIRRELVM v)
 {
   SQInteger i = 0;
-  while (debuglib_funcs[i].name != 0)
-  {
-    sq_pushstring(v, debuglib_funcs[i].name, -1);
-    sq_newclosure(v, debuglib_funcs[i].f, 0);
-    sq_setparamscheck(v, debuglib_funcs[i].nparamscheck, debuglib_funcs[i].typemask);
-    sq_setnativeclosurename(v, -1, debuglib_funcs[i].name);
-    if (debuglib_funcs[i].docstring)
-      sq_setnativeclosuredocstring(v, -1, debuglib_funcs[i].docstring);
-    sq_newslot(v, -3, SQFalse);
+  while (debuglib_funcs[i].f) {
+    sq_new_closure_slot_from_decl_string(v, debuglib_funcs[i].f, 0, debuglib_funcs[i].declstring, debuglib_funcs[i].docstring);
     i++;
   }
 

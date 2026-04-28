@@ -113,7 +113,6 @@ class CheckerVisitor : public Visitor
 
   void checkAlwaysTrueOrFalse(const Expr *expr);
 
-  void checkForeachIteratorCapturedByClosure(const Id *id, const ValueRef *v);
   void checkIdUsed(const Id *id, const Node *p, ValueRef *v);
 
   void reportIfCannotBeNull(const Expr *checkee, const Expr *n, const char *loc);
@@ -144,6 +143,7 @@ class CheckerVisitor : public Visitor
   void checkCannotBeNull(const BinExpr *);
   void checkCanBeSimplified(const BinExpr *expr);
   void checkRangeCheck(const BinExpr *expr);
+  void checkParamAssignInLambda(const BinExpr *expr);
   void checkAlwaysTrueOrFalse(const TerExpr *expr);
   void checkTernaryPriority(const TerExpr *expr);
   void checkSameValues(const TerExpr *expr);
@@ -163,6 +163,8 @@ class CheckerVisitor : public Visitor
   void checkUnwantedModification(const CallExpr *expr);
   void checkCannotBeNull(const CallExpr *expr);
   void checkBooleanLambda(const CallExpr *expr);
+  void checkCallbackReturnValue(const CallExpr *expr);
+  void checkCallbackShouldNotReturn(const CallExpr *expr);
   void checkBoolIndex(const GetSlotExpr *expr);
   void checkNullableIndex(const GetSlotExpr *expr);
   void checkGlobalAccess(const GetFieldExpr *expr);

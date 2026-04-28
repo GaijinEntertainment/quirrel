@@ -280,21 +280,21 @@ SQInteger _stream__cloned(HSQUIRRELVM v)
     return sq_throwerror(v,"this object cannot be cloned");
 }
 
-static const SQRegFunction _stream_methods[] = {
-    _DECL_STREAM_FUNC(readblob,2,"xn"),
-    _DECL_STREAM_FUNC(readn,2,"xn"),
-    _DECL_STREAM_FUNC(writeblob,-2,"xx"),
-    _DECL_STREAM_FUNC(writestring,-2,"xs"),
-    _DECL_STREAM_FUNC(writen,3,"xnn"),
-    _DECL_STREAM_FUNC(seek,-2,"xnn"),
-    _DECL_STREAM_FUNC(tell,1,"x"),
-    _DECL_STREAM_FUNC(len,1,"x"),
-    _DECL_STREAM_FUNC(eos,1,"x"),
-    _DECL_STREAM_FUNC(flush,1,"x"),
-    _DECL_STREAM_FUNC(writeobject,-2,"x.t"),
-    _DECL_STREAM_FUNC(readobject,-1,"xt"),
-    _DECL_STREAM_FUNC(_cloned,0,NULL),
-    {NULL,(SQFUNCTION)0,0,NULL}
+static const SQRegFunctionFromStr _stream_methods[] = {
+    { _stream_readblob,    "instance.readblob(size: int): instance",         "Reads up to size bytes and returns them as a blob" },
+    { _stream_readn,       "instance.readn(format: int): number",            "Reads a value of the given numeric format and returns it" },
+    { _stream_writeblob,   "instance.writeblob(blob: instance): int",        "Writes the given blob and returns the number of bytes written" },
+    { _stream_writestring, "instance.writestring(str: string): int",         "Writes the string and returns the number of characters written" },
+    { _stream_writen,      "instance.writen(value: number, format: int)",    "Writes a numeric value in the given format" },
+    { _stream_seek,        "instance.seek(offset: int, [origin: int]): int", "Seeks to the given offset; origin is 'b' (begin), 'c' (current) or 'e' (end)" },
+    { _stream_tell,        "instance.tell(): int",                           "Returns the current stream position" },
+    { _stream_len,         "instance.len(): int",                            "Returns the stream length" },
+    { _stream_eos,         "instance.eos(): int|null",                       "Returns non-null if the stream is at end-of-stream" },
+    { _stream_flush,       "instance.flush(): int|null",                     "Flushes the stream and returns non-null on success" },
+    { _stream_writeobject, "instance.writeobject(obj, [classes: table|null])",    "Serializes the object to the stream" },
+    { _stream_readobject,  "instance.readobject([classes: table|null]): any",     "Deserializes an object from the stream" },
+    { _stream__cloned,     "instance._cloned(other)",                        "Stream cloning is not supported" },
+    { NULL, NULL, NULL }
 };
 
 SQRESULT sqstd_init_streamclass(HSQUIRRELVM v)
@@ -306,12 +306,8 @@ SQRESULT sqstd_init_streamclass(HSQUIRRELVM v)
         sq_newclass(v,SQFalse);
         sq_settypetag(v,-1,(SQUserPointer)((SQUnsignedInteger)SQSTD_STREAM_TYPE_TAG));
         SQInteger i = 0;
-        while(_stream_methods[i].name != 0) {
-            const SQRegFunction &f = _stream_methods[i];
-            sq_pushstring(v,f.name,-1);
-            sq_newclosure(v,f.f,0);
-            sq_setparamscheck(v,f.nparamscheck,f.typemask);
-            sq_newslot(v,-3,SQFalse);
+        while(_stream_methods[i].f) {
+            sq_new_closure_slot_from_decl_string(v, _stream_methods[i].f, 0, _stream_methods[i].declstring, _stream_methods[i].docstring);
             i++;
         }
         sq_newslot(v,-3,SQFalse); // put to registry table
@@ -328,7 +324,7 @@ SQRESULT sqstd_init_streamclass(HSQUIRRELVM v)
     return SQ_OK;
 }
 
-SQRESULT declare_stream(HSQUIRRELVM v,const char* name,SQUserPointer typetag,const char* reg_name,const SQRegFunction *methods,const SQRegFunction *globals)
+SQRESULT declare_stream(HSQUIRRELVM v,const char* name,SQUserPointer typetag,const char* reg_name,const SQRegFunctionFromStr *methods,const SQRegFunctionFromStr *globals)
 {
     if(sq_gettype(v,-1) != OT_TABLE)
         return sq_throwerror(v,"table expected");
@@ -342,27 +338,16 @@ SQRESULT declare_stream(HSQUIRRELVM v,const char* name,SQUserPointer typetag,con
         sq_newclass(v,SQTrue);
         sq_settypetag(v,-1,typetag);
         SQInteger i = 0;
-        while(methods[i].name != nullptr) {
-            const SQRegFunction &f = methods[i];
-            sq_pushstring(v,f.name,-1);
-            sq_newclosure(v,f.f,0);
-            sq_setparamscheck(v,f.nparamscheck,f.typemask);
-            sq_setnativeclosurename(v,-1,f.name);
-            sq_newslot(v,-3,SQFalse);
+        while(methods[i].f) {
+            sq_new_closure_slot_from_decl_string(v, methods[i].f, 0, methods[i].declstring, methods[i].docstring);
             i++;
         }
         sq_newslot(v,-3,SQFalse);
         sq_pop(v,1);
 
         i = 0;
-        while(globals[i].name != nullptr)
-        {
-            const SQRegFunction &f = globals[i];
-            sq_pushstring(v,f.name,-1);
-            sq_newclosure(v,f.f,0);
-            sq_setparamscheck(v,f.nparamscheck,f.typemask);
-            sq_setnativeclosurename(v,-1,f.name);
-            sq_newslot(v,-3,SQFalse);
+        while(globals[i].f) {
+            sq_new_closure_slot_from_decl_string(v, globals[i].f, 0, globals[i].declstring, globals[i].docstring);
             i++;
         }
         //register the class in the target table

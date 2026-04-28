@@ -106,10 +106,6 @@ inline bool nameLooksLikeResultMustBeString(const char *name) {
   return hasAnyEqual(name, function_can_return_string);
 }
 
-inline bool nameLooksLikeCallsLambdaInPlace(const char *name) {
-  return hasAnyEqual(name, function_calls_lambda_inplace);
-}
-
 inline bool canFunctionReturnNull(const char *n) {
   return hasAnyEqual(n, function_can_return_null);
 }
@@ -139,6 +135,14 @@ inline bool nameLooksLikeModifiesObject(const char *n) {
 
 inline bool nameLooksLikeFunctionTakeBooleanLambda(const char *n) {
   return hasAnyEqual(n, function_takes_boolean_lambda);
+}
+
+inline bool nameLooksLikeRequiresResultFromCallback(const char *n) {
+  return hasAnyEqual(n, function_requires_result_from_callback);
+}
+
+inline bool nameLooksLikeIgnoresCallbackResult(const char *n) {
+  return hasAnyEqual(n, function_ignores_callback_result);
 }
 
 bool looksLikeElementCount(const Expr *e);

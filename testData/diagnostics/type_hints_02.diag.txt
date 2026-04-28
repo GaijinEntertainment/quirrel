@@ -1,5 +1,5 @@
 
-AN ERROR HAS OCCURRED [parameter 2 has an invalid type 'float' ; expected: 'null|integer']
+AN ERROR HAS OCCURRED [parameter 2 of 'fn' has an invalid type 'float' ; expected: 'null|integer']
 
 CALLSTACK
 *FUNCTION [__main__()] testData/diagnostics/type_hints_02.nut:5

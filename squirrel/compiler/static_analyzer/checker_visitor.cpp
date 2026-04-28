@@ -135,71 +135,6 @@ void CheckerVisitor::reportImportSlot(int line, int column, const char *name) {
 }
 
 
-void CheckerVisitor::checkForeachIteratorCapturedByClosure(const Id *id, const ValueRef *v) {
-  if (isEffectsGatheringPass)
-    return;
-
-  if (v->info->kind != SK_FOREACH)
-    return;
-
-  const FunctionExpr *thisScopeOwner = currentScope->owner;
-
-  if (v->info->ownedScope->owner == currentScope->owner)
-    return;
-
-  int32_t i = nodeStack.size() - 1;
-  assert(i > 0);
-
-  int32_t thisId = -1;
-
-  while (i >= 0) {
-    auto &m = nodeStack[i];
-
-    if (m.sst == SST_NODE) {
-      if (m.n == thisScopeOwner) {
-        thisId = i;
-        break;
-      }
-    }
-    --i;
-  }
-
-  assert(thisId > 0);
-
-  if (i > 1) { // call + foreach
-
-    auto &candidate = nodeStack[i - 1];
-
-    if (candidate.sst == SST_NODE && candidate.n->op() == TO_CALL) {
-      const CallExpr *call = candidate.n->asExpression()->asCallExpr();
-
-      bool found = false;
-      for (auto arg : call->arguments()) {
-        if (arg == thisScopeOwner) {
-          found = true;
-          break;
-        }
-      }
-
-      if (found) {// in call arguments
-        const Expr *callee = call->callee();
-        const char *name = nullptr;
-
-        if (callee->op() == TO_ID)
-          name = callee->asId()->name();
-        else if (callee->op() == TO_GETFIELD)
-          name = callee->asGetField()->fieldName();
-
-        if (name && nameLooksLikeCallsLambdaInPlace(name)) {
-          return;
-        }
-      }
-    }
-  }
-
-  report(id, DiagnosticsId::DI_ITER_IN_CLOSURE, id->name());
-}
-
 void CheckerVisitor::checkIdUsed(const Id *id, const Node *p, ValueRef *v) {
   const Expr *e = nullptr;
   if (p) {
@@ -548,6 +483,39 @@ void CheckerVisitor::checkAssignmentToItself(const BinExpr *expr) {
   }
 }
 
+
+void CheckerVisitor::checkParamAssignInLambda(const BinExpr *expr) {
+  if (isEffectsGatheringPass)
+    return;
+
+  if (expr->op() != TO_ASSIGN)
+    return;
+
+  const Expr *lhs = expr->lhs();
+  if (lhs->op() != TO_ID)
+    return;
+
+  if (!currentInfo || !currentInfo->declaration)
+    return;
+
+  const FunctionExpr *func = currentInfo->declaration;
+
+  // Only warn in expression lambdas (@(x) expr), not in block-body functions
+  if (!func->isLambda())
+    return;
+
+  const char *name = lhs->asId()->name();
+  ValueRef *v = findValueInScopes(name);
+
+  if (!v || !v->info || v->info->kind != SK_PARAM)
+    return;
+
+  // Only warn if the parameter belongs to the current (innermost) function
+  if (v->info->ownedScope->owner != func)
+    return;
+
+  report(expr, DiagnosticsId::DI_PARAM_ASSIGNMENT_IN_LAMBDA, name);
+}
 
 void CheckerVisitor::checkSameOperands(const BinExpr *expr) {
 
@@ -1844,6 +1812,83 @@ void CheckerVisitor::checkBooleanLambda(const CallExpr *call) {
   }
 }
 
+void CheckerVisitor::checkCallbackReturnValue(const CallExpr *call) {
+  if (isEffectsGatheringPass)
+    return;
+
+  const char *fn = extractFunctionName(call);
+
+  if (!fn)
+    return;
+
+  if (!nameLooksLikeRequiresResultFromCallback(fn))
+    return;
+
+  if (call->arguments().size() < 1)
+    return;
+
+  const Expr *arg = maybeEval(call->arguments()[0]);
+
+  if (arg->op() != TO_FUNCTION) // -V522
+    return;
+
+  const FunctionExpr *f = arg->asFunctionExpr();
+
+  FunctionReturnTypeEvaluator rte(this);
+
+  bool allPathsReturn = false;
+  unsigned typesMask = rte.compute(f->body(), allPathsReturn);
+
+  if (typesMask & RT_NOTHING) {
+    report(arg, DiagnosticsId::DI_CALLBACK_SHOULD_RETURN_VALUE, fn);
+  }
+}
+
+void CheckerVisitor::checkCallbackShouldNotReturn(const CallExpr *call) {
+  if (isEffectsGatheringPass)
+    return;
+
+  const char *fn = extractFunctionName(call);
+
+  if (!fn)
+    return;
+
+  if (!nameLooksLikeIgnoresCallbackResult(fn))
+    return;
+
+  if (call->arguments().size() < 1)
+    return;
+
+  const Expr *arg = maybeEval(call->arguments()[0]);
+
+  if (arg->op() != TO_FUNCTION) // -V522
+    return;
+
+  const FunctionExpr *f = arg->asFunctionExpr();
+
+  // Lambda with a single call expression like @(x) arr.append(x) is likely
+  // a side-effect callback where the return value is incidental.
+  if (f->isLambda()) {
+    const Block *body = f->body()->asBlock();
+    const auto &stmts = body->statements();
+    if (stmts.size() == 1 && stmts[0]->op() == TO_RETURN) {
+      const ReturnStatement *ret = static_cast<const ReturnStatement *>(stmts[0]);
+      if (ret->argument() && ret->argument()->op() == TO_CALL)
+        return;
+    }
+  }
+
+  FunctionReturnTypeEvaluator rte(this);
+
+  bool allPathsReturn = false;
+  unsigned typesMask = rte.compute(f->body(), allPathsReturn);
+
+  unsigned valueMask = typesMask & ~(RT_NOTHING | RT_THROW | RT_FUNCTION_CALL | RT_UNRECOGNIZED);
+  if (valueMask != 0) {
+    report(arg, DiagnosticsId::DI_CALLBACK_SHOULD_NOT_RETURN, fn);
+  }
+}
+
 void CheckerVisitor::checkAssertCall(const CallExpr *call) {
 
   // assert(x != null) or assert(x != null, "X should not be null")
@@ -1921,7 +1966,6 @@ void CheckerVisitor::visitId(Id *id) {
   if (!v)
     return;
 
-  checkForeachIteratorCapturedByClosure(id, v);
   checkIdUsed(id, parentNode, v);
 }
 
@@ -1936,6 +1980,7 @@ void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   checkBitwiseParenBool(expr);
   checkNullCoalescingPriority(expr);
   checkAssignmentToItself(expr);
+  checkParamAssignInLambda(expr);
   checkSameOperands(expr);
   checkAlwaysTrueOrFalse(expr);
   checkDeclarationInArith(expr);
@@ -2061,6 +2106,8 @@ void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkUnwantedModification(expr);
   checkCannotBeNull(expr);
   checkBooleanLambda(expr);
+  checkCallbackReturnValue(expr);
+  checkCallbackShouldNotReturn(expr);
 
   applyCallToScope(expr);
 

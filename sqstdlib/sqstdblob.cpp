@@ -178,19 +178,18 @@ static SQInteger _blob_as_string(HSQUIRRELVM v)
     return 1;
 }
 
-#define _DECL_BLOB_FUNC(name,nparams,typecheck) {#name,_blob_##name,nparams,typecheck}
-static const SQRegFunction _blob_methods[] = {
-    _DECL_BLOB_FUNC(constructor,-1,"xn"),
-    _DECL_BLOB_FUNC(resize,2,"xn"),
-    _DECL_BLOB_FUNC(swap2,1,"x"),
-    _DECL_BLOB_FUNC(swap4,1,"x"),
-    _DECL_BLOB_FUNC(as_string,-1,"xn"),
-    _DECL_BLOB_FUNC(_set,3,"xnn"),
-    _DECL_BLOB_FUNC(_get,2,"x."),
-    _DECL_BLOB_FUNC(_typeof,1,"x"),
-    _DECL_BLOB_FUNC(_nexti,2,"x"),
-    _DECL_BLOB_FUNC(_cloned,2,"xx"),
-    {NULL,(SQFUNCTION)0,0,NULL}
+static const SQRegFunctionFromStr _blob_methods[] = {
+    { _blob_constructor, "constructor([size: int]): instance",      "Creates a blob of the given size (default 0)" },
+    { _blob_resize,      "instance.resize(size: int)",              "Resizes the blob to the given size" },
+    { _blob_swap2,       "instance.swap2()",                        "Byte-swaps the blob contents as an array of 16-bit values" },
+    { _blob_swap4,       "instance.swap4()",                        "Byte-swaps the blob contents as an array of 32-bit values" },
+    { _blob_as_string,   "instance.as_string(): string",            "Returns the blob contents as a string" },
+    { _blob__set,        "instance._set(idx: int, val: int): int",  "Sets the byte at the given index" },
+    { _blob__get,        "instance._get(idx: int): int",            "Returns the byte at the given index" },
+    { _blob__typeof,     "instance._typeof(): string",              "Returns 'blob'" },
+    { _blob__nexti,      "instance._nexti(prev): int|null",         "Iterator support: returns the next index or null" },
+    { _blob__cloned,     "instance._cloned(other: instance)",       "Clones the given blob into this instance" },
+    { NULL, NULL, NULL }
 };
 
 
@@ -209,7 +208,9 @@ static SQInteger _g_blob_castf2i(HSQUIRRELVM v)
 {
     SQFloat f;
     sq_getfloat(v,2,&f);
-    sq_pushinteger(v,*((const SQInteger *)&f));
+    SQInteger result = 0;
+    memcpy(&result, &f, sizeof(f));
+    sq_pushinteger(v, result);
     return 1;
 }
 
@@ -241,14 +242,13 @@ static SQInteger _g_blob_swapfloat(HSQUIRRELVM v)
     return 1;
 }
 
-#define _DECL_GLOBALBLOB_FUNC(name,nparams,typecheck) {#name,_g_blob_##name,nparams,typecheck}
-static const SQRegFunction bloblib_funcs[]={
-    _DECL_GLOBALBLOB_FUNC(casti2f,2,".n"),
-    _DECL_GLOBALBLOB_FUNC(castf2i,2,".n"),
-    _DECL_GLOBALBLOB_FUNC(swap2,2,".n"),
-    _DECL_GLOBALBLOB_FUNC(swap4,2,".n"),
-    _DECL_GLOBALBLOB_FUNC(swapfloat,2,".n"),
-    {NULL,(SQFUNCTION)0,0,NULL}
+static const SQRegFunctionFromStr bloblib_funcs[] = {
+    { _g_blob_casti2f,   "pure casti2f(i: int): float",        "Reinterprets the bits of an integer as a float" },
+    { _g_blob_castf2i,   "pure castf2i(f: number): int",       "Reinterprets the bits of a float as an integer" },
+    { _g_blob_swap2,     "pure swap2(val: number): int",       "Byte-swaps a 16-bit value" },
+    { _g_blob_swap4,     "pure swap4(val: number): int",       "Byte-swaps a 32-bit value" },
+    { _g_blob_swapfloat, "pure swapfloat(val: number): float", "Byte-swaps the bits of a float" },
+    { NULL, NULL, NULL }
 };
 
 SQRESULT sqstd_getblob(HSQUIRRELVM v,SQInteger idx,SQUserPointer *ptr)

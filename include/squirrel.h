@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2003-2017 Alberto Demichelis
-Copyright (c) 2016-2019 Gaijin Entertainment
+Copyright (c) 2016-2023 by Gaijin Games KFT
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -77,8 +77,8 @@ namespace SQCompilation
 #include <stdio.h>
 
 #define SQUIRREL_VERSION_NUMBER_MAJOR 4
-#define SQUIRREL_VERSION_NUMBER_MINOR 18
-#define SQUIRREL_VERSION_NUMBER_PATCH 5
+#define SQUIRREL_VERSION_NUMBER_MINOR 20
+#define SQUIRREL_VERSION_NUMBER_PATCH 0
 
 #define SQ_STRINGIFY_HELPER(x) #x
 #define SQ_STRINGIFY(x) SQ_STRINGIFY_HELPER(x)
@@ -494,6 +494,15 @@ SQUIRREL_API bool sq_obj_is_equal(HSQUIRRELVM v, const HSQOBJECT *a, const HSQOB
 SQUIRREL_API bool sq_fast_equal_by_value_deep(const HSQOBJECT *a, const HSQOBJECT *b, int depth);
 
 SQUIRREL_API SQRESULT sq_obj_getuserdata(const HSQOBJECT *obj, SQUserPointer *p, SQUserPointer *typetag);
+SQUIRREL_API SQInteger sq_obj_getsize(const HSQOBJECT *obj);
+SQUIRREL_API SQRESULT sq_obj_getinstanceup(const HSQOBJECT *obj, SQUserPointer *p,
+                                           SQUserPointer typetag);
+SQUIRREL_API SQRESULT sq_obj_set(HSQUIRRELVM v, const HSQOBJECT *obj,
+                                 const HSQOBJECT *key, const HSQOBJECT *val,
+                                 bool raw);
+SQUIRREL_API SQRESULT sq_obj_newslot(HSQUIRRELVM v, const HSQOBJECT *obj,
+                                     const HSQOBJECT *key, const HSQOBJECT *val,
+                                     bool bstatic);
 SQUIRREL_API void sq_getregistrytableobj(HSQUIRRELVM v, HSQOBJECT *out);
 
 SQUIRREL_API SQBool sq_tracevar(HSQUIRRELVM v, const HSQOBJECT * container, const HSQOBJECT * key, char * buf, int buf_size);

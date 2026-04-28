@@ -44,8 +44,7 @@ struct SqMemberThunkGen<C, MemberFunc, R(A...)>
 {
   static SQInteger Func(HSQUIRRELVM vm)
   {
-    if (sq_gettop(vm) != 2 + sizeof...(A))
-      return sq_throwerror(vm, "wrong number of parameters");
+    SQRAT_ASSERT(sq_gettop(vm) == 2 + sizeof...(A)); // CallNative validates; extra guard
 
     if (!vargs::check_var_types<A...>(vm, 2))
       return SQ_ERROR;
@@ -53,7 +52,9 @@ struct SqMemberThunkGen<C, MemberFunc, R(A...)>
     MemberFunc *methodPtr;
     sq_getuserdata(vm, -1, (SQUserPointer *)&methodPtr, NULL);
 
-    C *ptr = Var<C *>(vm, 1).value;
+    HSQOBJECT selfObj;
+    sq_getstackobj(vm, 1, &selfObj);
+    C *ptr = ClassType<C>::GetInstanceFromObj(selfObj);
     if (!ptr)
       return sq_throwerror(vm, FormatTypeError(vm, 1, ClassType<C>::ClassName().c_str()).c_str());
     auto vars = vargs::make_vars<A...>(vm, 2);
@@ -68,8 +69,7 @@ struct SqMemberThunkGen<C, MemberFunc, void(A...)>
 {
   static SQInteger Func(HSQUIRRELVM vm)
   {
-    if (sq_gettop(vm) != 2 + sizeof...(A))
-      return sq_throwerror(vm, "wrong number of parameters");
+    SQRAT_ASSERT(sq_gettop(vm) == 2 + sizeof...(A)); // CallNative validates; extra guard
 
     if (!vargs::check_var_types<A...>(vm, 2))
       return SQ_ERROR;
@@ -77,7 +77,9 @@ struct SqMemberThunkGen<C, MemberFunc, void(A...)>
     MemberFunc *methodPtr;
     sq_getuserdata(vm, -1, (SQUserPointer *)&methodPtr, NULL);
 
-    C *ptr = Var<C *>(vm, 1).value;
+    HSQOBJECT selfObj;
+    sq_getstackobj(vm, 1, &selfObj);
+    C *ptr = ClassType<C>::GetInstanceFromObj(selfObj);
     if (!ptr)
       return sq_throwerror(vm, FormatTypeError(vm, 1, ClassType<C>::ClassName().c_str()).c_str());
     auto vars = vargs::make_vars<A...>(vm, 2);
@@ -103,7 +105,9 @@ SQFUNCTION SqMemberFunc()
 
 template <class C, class V>
 inline SQInteger sqDefaultGet(HSQUIRRELVM vm) {
-    C* ptr = Var<C*>(vm, 1).value;
+    HSQOBJECT selfObj;
+    sq_getstackobj(vm, 1, &selfObj);
+    C* ptr = ClassType<C>::GetInstanceFromObj(selfObj);
     if (!ptr)
       return sq_throwerror(vm, FormatTypeError(vm, 1, ClassType<C>::ClassName().c_str()).c_str());
 
@@ -152,7 +156,9 @@ inline SQInteger sqVarGet(HSQUIRRELVM vm) {
 
 template <class C, class V>
 inline SQInteger sqDefaultSet(HSQUIRRELVM vm) {
-    C* ptr = Var<C*>(vm, 1).value;
+    HSQOBJECT selfObj;
+    sq_getstackobj(vm, 1, &selfObj);
+    C* ptr = ClassType<C>::GetInstanceFromObj(selfObj);
     if (!ptr)
       return sq_throwerror(vm, FormatTypeError(vm, 1, ClassType<C>::ClassName().c_str()).c_str());
 

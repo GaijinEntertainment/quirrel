@@ -102,7 +102,7 @@ public:
     void Raise_IdxError(const SQObjectPtr &o);
     void Raise_MetamethodError(const char *mmname);
     void Raise_CompareError(const SQObject &o1, const SQObject &o2);
-    void Raise_ParamTypeError(SQInteger nparam,SQInteger typemask,SQInteger type);
+    void Raise_ParamTypeError(SQInteger nparam,SQInteger typemask,SQInteger type,const char *funcname = nullptr);
 
     void FindOuter(SQObjectPtr &target, SQObjectPtr *stackindex);
     void RelocateOuters();

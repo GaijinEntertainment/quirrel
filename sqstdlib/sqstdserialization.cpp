@@ -22,6 +22,8 @@
 
 #define STDLIB std
 
+#define SQ_DESER_MAX_OBJECT_SIZE (80 * 1024 * 1024)
+
 struct SQStreamSerializer {
     enum DataType {
         TP_NULL = 0 << 4,
@@ -411,7 +413,7 @@ struct SQStreamSerializer {
 
             SQInteger newTop = sq_gettop(vm);
             if (newTop != referenceStackTop) {
-                assert(newTop == referenceStackTop);
+                assert(!"Unexpected stack size after __getstate call");
                 errorString = "Unexpected stack size after __getstate call";
                 return false;
             }
@@ -576,7 +578,10 @@ struct SQStreamSerializer {
                         }
                         break;
                     }
-                    assert(len < 80 * 1024 * 1024); // 80 Mb string is too much
+                    if (len >= SQ_DESER_MAX_OBJECT_SIZE) {
+                        errorString = "String too large during deserialization";
+                        return false;
+                    }
                     data = sq_getscratchpad(vm, len * sizeof(char));
                     if (stream->Read((void *)data, len * sizeof(char)) != len * sizeof(char))
                         return unexpectedEndOfData();
@@ -644,7 +649,10 @@ struct SQStreamSerializer {
                     return false;
                 }
 
-                assert(size < 80 * 1024 * 1024);
+                if (size >= SQ_DESER_MAX_OBJECT_SIZE) {
+                    errorString = "Array too large during deserialization";
+                    return false;
+                }
 
                 sq_newarray(vm, size);
                 for (uint32_t i = 0; i < size; ++i) {
@@ -681,7 +689,10 @@ struct SQStreamSerializer {
                     return false;
                 }
 
-                assert(size < 80 * 1024 * 1024);
+                if (size >= SQ_DESER_MAX_OBJECT_SIZE) {
+                    errorString = "Table too large during deserialization";
+                    return false;
+                }
 
                 sq_newtableex(vm, size);
                 for (uint32_t i = 0; i < size; ++i) {
