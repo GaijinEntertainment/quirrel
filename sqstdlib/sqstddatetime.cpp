@@ -4,11 +4,31 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sqstddatetime.h>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#endif
 
 
 static SQInteger _datetime_clock(HSQUIRRELVM v)
 {
+#ifdef _WIN32
+    // the CRT clock() advances once a millisecond on Windows; QueryPerformanceCounter
+    // keeps the same seconds-since-start reading at microsecond resolution
+    static LARGE_INTEGER freq, start;
+    static bool started = false;
+    LARGE_INTEGER now;
+    if (!started) {
+        QueryPerformanceFrequency(&freq);
+        QueryPerformanceCounter(&start);
+        started = true;
+    }
+    QueryPerformanceCounter(&now);
+    sq_pushfloat(v, (SQFloat)((double)(now.QuadPart - start.QuadPart) / (double)freq.QuadPart));
+#else
     sq_pushfloat(v,((SQFloat)clock())/(SQFloat)CLOCKS_PER_SEC);
+#endif
     return 1;
 }
 
