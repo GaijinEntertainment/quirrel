@@ -1,4 +1,4 @@
-ERROR: Usage of 'delete' operator is forbidden. Use 'o.rawdelete("key")' instead
+ERROR: Usage of 'delete' operator is forbidden. Use 'o.$rawdelete("key")' instead
 testData/diagnostics/compilation_errors/syntax_errors/delete_op_forbidden.nut:4:0
 
 let t = {a = 1}

@@ -1,0 +1,3 @@
+bytes before resize = 68,51,34,17
+bytes after resize(1) then resize(4) = 68,0,0,0
+b.resize(-1) throws: resize failed, cur size=4, requested=-1

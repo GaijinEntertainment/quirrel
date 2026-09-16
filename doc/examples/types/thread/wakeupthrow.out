@@ -1,0 +1,5 @@
+caught boom
+t.wakeupthrow("boom") = recovered
+t.getstatus() = idle
+caught boom
+t2.wakeupthrow("boom", false) = recovered

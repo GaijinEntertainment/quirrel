@@ -6,7 +6,7 @@
 from "debug" import seterrorhandler
 
 seterrorhandler(function(err) {
-  print("[handler] " + err + "\n")
+  println($"[handler] {err}")
 })
 
 async function unhandled() {
@@ -21,7 +21,7 @@ async function consumer() {
   try {
     await caughtBody()
   } catch (e) {
-    print("script caught: " + e + "\n")
+    println($"script caught: {e}")
   }
 }
 

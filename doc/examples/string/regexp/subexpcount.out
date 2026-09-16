@@ -1,0 +1,4 @@
+regexp("abc").subexpcount() = 1
+regexp("(?:a)(?:b)").subexpcount() = 1
+regexp("(a)(b)").subexpcount() = 3
+r.subexpcount() == r.capture("ab").len() = true

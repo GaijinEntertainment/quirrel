@@ -1,0 +1,3 @@
+f.rawget("x") = 1
+typeof f.rawget("bar") == "function" = true
+f.rawget("missing") throws: the index doesn't exist

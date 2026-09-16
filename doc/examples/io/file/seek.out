@@ -1,0 +1,5 @@
+f.seek(-2, 'e') = 0
+f.readn('b') = 101
+f.seek(100, 'b') = 0
+f.tell() = 100
+f.seek(0, 'z') throws: invalid origin

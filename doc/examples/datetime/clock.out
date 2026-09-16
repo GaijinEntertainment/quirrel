@@ -1,0 +1,2 @@
+type(t) = float
+t >= 0.0 = true

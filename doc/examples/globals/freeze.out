@@ -1,0 +1,4 @@
+f.b <- 2 throws: trying to modify immutable 'table'
+f.a = 2
+getobjflags(t) = 0
+getobjflags(f) = 1

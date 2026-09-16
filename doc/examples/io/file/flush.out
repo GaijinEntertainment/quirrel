@@ -1,0 +1,2 @@
+f.flush() = 1
+f.flush() after close throws: the stream is invalid

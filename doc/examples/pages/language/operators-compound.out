@@ -1,0 +1,4 @@
+squad.strength = 14
+reloadSeconds-- = 3
+--reloadSeconds = 1
+caught: the index 'readiness' (type='string') does not exist

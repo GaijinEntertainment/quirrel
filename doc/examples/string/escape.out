@@ -1,0 +1,4 @@
+escape(quotes and backslash) = say \"hi\"\\bye
+escape(tab and newline) = a\x09b\x0ac
+escape("plain") == "plain" = true
+escape("") == "" = true

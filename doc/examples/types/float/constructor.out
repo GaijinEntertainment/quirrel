@@ -1,0 +1,4 @@
+types.Float() = 0
+types.Float(5) = 5
+types.Float("3.25") = 3.25
+types.Float(null) throws: cannot convert to Float

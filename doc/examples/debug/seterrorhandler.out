@@ -1,0 +1,3 @@
+handler saw: boom
+caller also caught: boom
+no handler this time: boom2

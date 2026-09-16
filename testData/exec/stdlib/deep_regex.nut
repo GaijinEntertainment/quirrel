@@ -12,13 +12,13 @@ foreach (depth in depths) {
   pattern += "a+"
   for (local i = 0; i < depth; i++)
     pattern += ")"
-  print("  depth " + depth + "... ")
+  print($"  depth {depth}... ")
   try {
     local r = regexp(pattern)
     local res = r.search("aaa")
     print("OK\n")
   } catch(e) {
-    print("ERROR: " + e + "\n")
+    println($"ERROR: {e}")
     break
   }
 }
@@ -32,13 +32,13 @@ foreach (count in alt_counts) {
     if (i > 0) pattern += "|"
     pattern += "a"
   }
-  print("  alternatives " + count + "... ")
+  print($"  alternatives {count}... ")
   try {
     local r = regexp(pattern)
     local res = r.search("a")
     print("OK\n")
   } catch(e) {
-    print("ERROR: " + e + "\n")
+    println($"ERROR: {e}")
     break
   }
 }
@@ -50,13 +50,13 @@ foreach (len in lens) {
   local str = ""
   for (local i = 0; i < len; i++)
     str += "a"
-  print("  len " + len + "... ")
+  print($"  len {len}... ")
   try {
     local r = regexp(@"a+")
     local res = r.search(str)
     print("OK\n")
   } catch(e) {
-    print("ERROR: " + e + "\n")
+    println($"ERROR: {e}")
     break
   }
 }

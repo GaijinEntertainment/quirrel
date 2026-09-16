@@ -1,0 +1,2 @@
+250 hp, crew 4, 0 belts
+let { armor : int } = damaged throws: type 'string' differs from the declared type 'int'

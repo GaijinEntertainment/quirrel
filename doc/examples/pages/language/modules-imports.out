@@ -1,0 +1,5 @@
+PI = 3.14159
+hero: tank
+getroottable().activeMissionId = M07
+type(require("math")) = table
+require_optional("no_such_native_module") = null

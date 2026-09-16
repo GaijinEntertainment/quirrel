@@ -1,0 +1,3 @@
+values sorted = 123
+v.len() == t.len(): true
+keys/values correspond: true

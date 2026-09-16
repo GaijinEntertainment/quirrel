@@ -1,0 +1,2 @@
+f.writeblob(b) = 3
+r.len() = 3

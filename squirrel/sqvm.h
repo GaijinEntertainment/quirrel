@@ -69,6 +69,9 @@ public:
 
     //starts a native call return when the NATIVE closure returns
     bool CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newbase, SQObjectPtr &retval, SQInt32 target, bool &suspend,bool &tailcall);
+    bool CheckNativeParamTypes(SQNativeClosure *nclosure, SQInteger base, SQInteger nargs);
+    bool CheckNativeResult(SQNativeClosure *nclosure, SQObjectType retType, bool discarded);
+    void RaiseFastcallError(SQNativeClosure *nclosure, SQInteger base, SQInteger top, SQInteger r);
     bool TailCall(SQClosure *closure, SQInteger firstparam, SQInteger nparams);
     //starts a SQUIRREL call in the same "Execution loop"
     template <bool debughookPresent>
@@ -131,7 +134,9 @@ public:
     bool CLOSURE_OP(SQObjectPtr &target, SQFunctionProto *func);
     bool CLASS_OP(SQObjectPtr &target,SQInteger base);
     //return true if the loop is finished
+    static const int FOREACH_NO_MORE_ELEMENTS = 666;
     bool FOREACH_OP(SQObjectPtr &o1,SQObjectPtr &o2,SQObjectPtr &o3,SQObjectPtr &o4,int exitpos,int &jump);
+    bool SPREAD_OP(SQObjectPtr &dest,SQObjectPtr &src,SQInteger elementsAfterSpread);
     bool PLOCAL_INC(SQInteger op,SQObjectPtr &target, SQObjectPtr &a, SQObjectPtr &incr);
     bool DerefInc(SQInteger op,SQObjectPtr &target, SQObjectPtr &self, SQObjectPtr &key, SQObjectPtr &incr, bool postfix);
 #ifdef _DEBUG_DUMP

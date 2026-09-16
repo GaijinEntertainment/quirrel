@@ -1,0 +1,4 @@
+t.findvalue(v == 2) = 2
+t.findvalue(v > 100) == null: true
+t.findvalue(v > 100, "none") = none
+findvalue with extra arg throws: Too many arguments for findvalue()

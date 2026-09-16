@@ -64,6 +64,7 @@ private:
     SQAllocContext _alloc_ctx;
     uint64_t _classTypeId;
     ///////////////////////
+    SQTable *CopyNodes();
     void AllocNodes(SQInteger nSize);
     void Rehash(bool force);
     SQTable(SQSharedState *ss, SQInteger nInitialSize);
@@ -78,6 +79,7 @@ public:
     }
     void Finalize();
     SQTable *Clone();
+    SQTable *CopyNodesResolvingWeakRefs();
     ~SQTable()
     {
         uint32_t cnt = _numofnodes_minus_one + 1;

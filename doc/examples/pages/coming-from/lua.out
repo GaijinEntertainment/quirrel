@@ -1,0 +1,7 @@
+alpha
+2
+101
+11
+after null:      len=1 has rifle=true
+after rawdelete: len=0 has rifle=false
+-1

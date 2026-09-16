@@ -72,6 +72,7 @@ void Node::visitChildren(Visitor *visitor) {
     case TO_PAREN:
     case TO_DELETE:
     case TO_STATIC_MEMO:
+    case TO_SPREAD:
     case TO_INLINE_CONST:
         static_cast<UnExpr *>(this)->visitChildren(visitor); return;
     case TO_CODE_BLOCK_EXPR:
@@ -184,6 +185,7 @@ void Node::transformChildren(Transformer *transformer) {
   case TO_PAREN:
   case TO_DELETE:
   case TO_STATIC_MEMO:
+  case TO_SPREAD:
   case TO_INLINE_CONST:
     static_cast<UnExpr *>(this)->transformChildren(transformer); return;
   case TO_CODE_BLOCK_EXPR:
@@ -360,14 +362,14 @@ void ValueDecl::transformChildren(Transformer *transformer) {
 
 void TableExpr::visitChildren(Visitor *visitor) {
     for (auto &member : members()) {
-        member.key->visit(visitor);
+        if (member.hasKey()) member.key->visit(visitor);
         member.value->visit(visitor);
     }
 }
 
 void TableExpr::transformChildren(Transformer *transformer) {
   for (auto &member : members()) {
-    member.key = member.key->transform(transformer)->asExpression();
+    if (member.hasKey()) member.key = member.key->transform(transformer)->asExpression();
     member.value = member.value->transform(transformer)->asExpression();
   }
 }

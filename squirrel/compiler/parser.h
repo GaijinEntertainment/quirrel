@@ -1,7 +1,6 @@
 #pragma once
 
 #include "sqpcheader.h"
-#ifndef NO_COMPILER
 #include <algorithm>
 #include "lexer.h"
 #include "lex_tokens.h"
@@ -88,6 +87,7 @@ public:
     Statement*  parseStatement(bool closeframe = true);
     Expr*       parseCommaExpr(SQExpressionContext expression_context);
     Expr*       Expression(SQExpressionContext expression_context);
+    Expr*       parseSpreadOrExpression(SQExpressionContext expression_context);
 
     template<typename T> Expr *BIN_EXP(T f, enum TreeOp top, Expr *lhs);
 
@@ -153,5 +153,3 @@ private:
 };
 
 } // namespace SQCompilation
-
-#endif

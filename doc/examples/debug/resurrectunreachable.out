@@ -1,0 +1,3 @@
+resurrectunreachable() == null = true
+type(found) = array
+found.len() > 0 = true

@@ -1,0 +1,3 @@
+add required_params=2
+parameters=this, a, b
+varargs=false native=false

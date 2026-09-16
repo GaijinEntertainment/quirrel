@@ -1,0 +1,3 @@
+f.hasindex("x") = true
+f.hasindex("bar") = true
+f.hasindex("z") = false

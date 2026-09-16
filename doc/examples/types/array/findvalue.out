@@ -1,0 +1,4 @@
+a.findvalue(v > 15) = 20
+a.findvalue(v > 999) = null
+a.findvalue(v > 999, -1) = -1
+a.findvalue(..., 1, 2) throws: Too many arguments for findvalue()

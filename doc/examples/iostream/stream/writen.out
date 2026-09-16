@@ -1,0 +1,5 @@
+b.len() after writen('i') = 4
+b.len() after writen('f') = 8
+b.readn('i') == 0x11223344 = true
+b.readn('f') = 2.5
+b.writen(1, 'z') throws: invalid format

@@ -1,0 +1,5 @@
+deduplicate_object(t) = null
+t.a == t.b = true
+getobjflags(t.a) = 1
+getobjflags(t) = 0
+t.a.append(3) throws: Cannot modify immutable object

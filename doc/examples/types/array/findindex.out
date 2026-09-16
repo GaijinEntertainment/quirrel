@@ -1,0 +1,2 @@
+a.findindex(v > 15) = 1
+a.findindex(v > 999) = null

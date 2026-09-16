@@ -1,0 +1,3 @@
+[].clone() throws: ERROR: expected 'IDENTIFIER'
+a[0] = 1 b[0] = 99
+a[1].len() = 3

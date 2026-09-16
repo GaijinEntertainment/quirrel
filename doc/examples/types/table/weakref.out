@@ -1,0 +1,4 @@
+typeof w = weakref
+typeof w.ref() = table
+typeof holder.slot = table
+w.ref() == null: true

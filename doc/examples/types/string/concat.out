@@ -1,0 +1,2 @@
+"-".concat(1, "b", true) = 1-b-true
+"-".concat("solo") = solo

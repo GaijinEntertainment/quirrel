@@ -1,0 +1,3 @@
+a = 1, 2, 3, 9, 9
+a.len() = 2
+a.resize(-1) throws: resizing to negative length

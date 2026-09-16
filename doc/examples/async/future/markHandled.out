@@ -1,0 +1,2 @@
+f.getState() / f.getValue() = faulted / boom
+g.getState() / g.getValue() = faulted / later

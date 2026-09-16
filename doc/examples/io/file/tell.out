@@ -1,0 +1,2 @@
+a.tell() after an append = 6
+a.tell() after seek(2) = 2

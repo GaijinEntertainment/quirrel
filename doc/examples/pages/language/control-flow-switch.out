@@ -1,0 +1,3 @@
+describeHitZone("head") = critical
+describeHitZone("chest") = major
+describeHitZone("leg") = minor

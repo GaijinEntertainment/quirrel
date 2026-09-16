@@ -1,0 +1,2 @@
+file(path, "zz") throws: invalid file mode
+file(path, "r") throws: cannot open file

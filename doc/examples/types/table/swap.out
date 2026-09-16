@@ -1,0 +1,4 @@
+r == t: true
+t.a = 2 t.b = 1
+t.swap("a", "missing") throws: the index doesn't exist
+frozen.swap("a", "b") throws: Cannot modify immutable object

@@ -1,0 +1,4 @@
+floor(3.7) = 3
+floor(-3.7) = -4
+type(floor(3.7)) = float
+type(floor(3)) = float

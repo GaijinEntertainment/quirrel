@@ -22,6 +22,7 @@ SQClass::SQClass(SQSharedState *ss, SQClass *base) :
     _udsize = 0;
     _constructoridx = -1;
     _lockedTypeId = 0;
+    _docstring_id = 0;
     _is_builtin_type = false;
     _builtin_type_id = OT_NULL;
     if(_base) {

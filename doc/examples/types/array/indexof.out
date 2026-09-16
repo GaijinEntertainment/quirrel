@@ -1,0 +1,3 @@
+a.indexof("b") = 1
+a.indexof("z") = null
+[t, {}].indexof(t) = 0

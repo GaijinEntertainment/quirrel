@@ -1,0 +1,2 @@
+"a\"b\\c".escape() = a\"b\\c
+"plain".escape() == "plain" = true

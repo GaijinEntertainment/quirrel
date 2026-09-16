@@ -19,10 +19,10 @@ assert("AaBbCcZz".escape() == "AaBbCcZz")
 assert(" !#$%&()*+,-./:;<=>?@[]^_`{|}~".escape() == " !#$%&()*+,-./:;<=>?@[]^_`{|}~")
 
 // --- named escape chars: backslash, double-quote, single-quote ---
-assert(bs.escape()  == bs + bs)
-assert(dq.escape()  == bs + dq)
-assert(sq.escape()  == bs + sq)
-assert((bs + dq + sq).escape() == bs + bs + bs + dq + bs + sq)
+assert(bs.escape()  == $"{bs}{bs}")
+assert(dq.escape()  == $"{bs}{dq}")
+assert(sq.escape()  == $"{bs}{sq}")
+assert($"{bs}{dq}{sq}".escape() == $"{bs}{bs}{bs}{dq}{bs}{sq}")
 
 // --- control chars: \a \b \t \n \v \f \r all go to \xNN path ---
 // (the named-escape switch cases for these are dead code — they live inside
@@ -50,12 +50,12 @@ assert("\xff".escape() == "\\xff")
 // --- mixed: printable + control + special ---
 assert("a\x01b".escape()       == "a\\x01b")
 assert("a\nb".escape()         == "a\\x0ab")
-assert(("a" + bs + "b").escape() == "a\\\\b")
-assert(("a" + dq + "b").escape() == "a\\\"b")
+assert($"a{bs}b".escape() == "a\\\\b")
+assert($"a{dq}b".escape() == "a\\\"b")
 
 // from existing string.nut (extended): ~ LF " ' \ ~
 // expected: ~\x0a\"\'\\~ (12 chars)
-let mixed_escaped = ("~\n" + dq + sq + bs + "~").escape()
+let mixed_escaped = $"~\n{dq}{sq}{bs}~".escape()
 assert(mixed_escaped.len() == 12)
 assert(mixed_escaped[ 0] == '~')   // literal ~
 assert(mixed_escaped[ 1] == '\\')  // start of \x0a
@@ -94,7 +94,7 @@ for (local i = 0; i < 5; i++)
 assert(s50.len() == 50)
 assert(s50.escape().len() == 200)
 
-local s100 = s50 + s50
+local s100 = $"{s50}{s50}"
 assert(s100.escape().len() == 400)
 
 println("ok")

@@ -8,7 +8,7 @@ class Foo {
     //member function
     function PrintTesty() {
         foreach(i,val in this.testy) {
-            println("idx = "+i+" = "+val)
+            println($"idx = {i} = {val}")
         }
     }
     //property

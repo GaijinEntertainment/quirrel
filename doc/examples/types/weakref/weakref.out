@@ -1,0 +1,2 @@
+type(wr2) = weakref
+wr2.ref() == wr1 = true

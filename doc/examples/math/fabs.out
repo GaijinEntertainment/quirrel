@@ -1,0 +1,4 @@
+fabs(-3.5) = 3.5
+fabs(3.5) = 3.5
+fabs(-3) = 3
+type(fabs(-3)) = float

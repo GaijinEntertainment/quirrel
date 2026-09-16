@@ -1,0 +1,2 @@
+Talkative().tostring() = I am talkative
+Silent().tostring().slice(0, 11) = (instance :

@@ -1,0 +1,2 @@
+f.writestring("ab\ncd") = 5
+r.len() = 5

@@ -1,0 +1,3 @@
+a.pop() = 3
+a.len() = 2
+[].pop() throws: empty array

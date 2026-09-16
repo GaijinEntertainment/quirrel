@@ -11,14 +11,14 @@ local function make_payload(type_byte) {
 
 println("VARIANT 1: TP_STRING len=0xFFFFFFFF -> sq_getscratchpad(vm, ~4GB)")
 try { make_payload(0x43).readobject() }
-catch(e) { println("  caught: " + e) }
+catch(e) { println($"  caught: {e}") }
 
 println("VARIANT 2: TP_ARRAY size=0xFFFFFFFF -> sq_newarray(vm, ~4GB)")
 try { make_payload(0x52).readobject() }
-catch(e) { println("  caught: " + e) }
+catch(e) { println($"  caught: {e}") }
 
 println("VARIANT 3: TP_TABLE size=0xFFFFFFFF -> sq_newtableex(vm, ~4GB)")
 try { make_payload(0x62).readobject() }
-catch(e) { println("  caught: " + e) }
+catch(e) { println($"  caught: {e}") }
 
 println("done")

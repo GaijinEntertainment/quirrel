@@ -1,0 +1,5 @@
+b.len() = 9
+b.readn('l') == 0x0102030405060708 = true
+b.readn('c') = -7
+b.readn('i') throws: io error
+b.readn('z') throws: invalid format

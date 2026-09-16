@@ -1,0 +1,3 @@
+true.tostring() = true
+false.tostring() = false
+type(true.tostring()) = string

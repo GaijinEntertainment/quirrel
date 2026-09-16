@@ -1,0 +1,2 @@
+Dog.rawin("legs") = true
+Dog.rawin("tail") = false

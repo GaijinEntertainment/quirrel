@@ -1,0 +1,23 @@
+aliased_first(): int
+aliased_second(x: int): int
+doc of the first slot
+doc of the second slot
+true
+aliased_second(x: int): int
+updated second doc
+aliased_first
+aliased_second
+0
+1
+doc of the first slot
+true
+1 2 x
+doc of the first slot
+doc set without a decl string
+aliased_first(): int
+doc of the first slot
+null
+0
+0
+true
+PASSED

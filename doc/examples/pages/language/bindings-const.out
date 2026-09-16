@@ -1,0 +1,4 @@
+maxSquadSize = 8
+gameVersion = 1.12
+getconsttable() has maxSquadSize = false
+getconsttable() has gameVersion = true

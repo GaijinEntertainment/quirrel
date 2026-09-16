@@ -1,0 +1,5 @@
+squads[0].strength > squads[1].strength = true
+alpha: 4
+charlie: 6
+bravo: 9
+weakest.strength > 5 = needs reinforcement

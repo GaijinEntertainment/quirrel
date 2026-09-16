@@ -1,0 +1,3 @@
+before the first call = idle
+after call(), parked on suspend = suspended
+after wakeup(), body finished = idle

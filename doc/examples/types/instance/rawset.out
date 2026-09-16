@@ -1,0 +1,2 @@
+same == f = true f.x = 42
+f.rawset("newkey", 1) throws: the index 'newkey' (type='string') does not exist

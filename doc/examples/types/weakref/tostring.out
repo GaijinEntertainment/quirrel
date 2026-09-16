@@ -1,0 +1,2 @@
+s.indexof("weakref") != null = true
+type(s) = string

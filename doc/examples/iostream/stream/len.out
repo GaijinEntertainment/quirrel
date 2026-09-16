@@ -1,0 +1,4 @@
+b.len() at start = 3
+b.len() after writen = 11
+b.len() after seek(0) = 11
+b.tell() after seek(0) = 0

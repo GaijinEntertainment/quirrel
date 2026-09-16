@@ -1,7 +1,7 @@
 // idx + val captured: both rebound per iteration.
 let fns = []
 foreach (i, v in ["a", "b", "c"]) {
-  fns.append(@() i + ":" + v)
+  fns.append(@() $"{i}:{v}")
 }
 foreach (f in fns) println("a1:", f())
 

@@ -1,0 +1,4 @@
+b.eos() at start = null
+b.eos() after 1 readn('b') = null
+b.eos() after 2 readn('b') = 1
+b.eos() after writen past end = 1

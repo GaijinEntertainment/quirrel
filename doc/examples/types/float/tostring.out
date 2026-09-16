@@ -1,0 +1,4 @@
+(3.0).tostring() = 3
+(3.5).tostring() = 3.5
+type((3.0).tostring()) = string
+(1.0 / 3.0).tostring() = 0.333333

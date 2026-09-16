@@ -1,0 +1,3 @@
+describeAmmo(12) = 12 rounds left
+describeAmmo(0) = empty
+describeAmmo(-1) = invalid belt

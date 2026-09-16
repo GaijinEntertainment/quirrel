@@ -1,0 +1,5 @@
+strip("  hello  ") = [hello]
+strip("\t\nhello\r\n") = [hello]
+strip("   ") = []
+strip("--hi--") = [--hi--]
+"  hi  ".strip() = hi

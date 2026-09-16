@@ -35,7 +35,7 @@ assert((null ?? null ?? "last") == "last")
 assert((null ?? "middle" ?? "last") == "middle")
 
 // Null-safe function call
-function greet(name) { return "Hello " + name }
+function greet(name) { return $"Hello {name}" }
 let fn = greet
 assert(fn?("World") == "Hello World")
 

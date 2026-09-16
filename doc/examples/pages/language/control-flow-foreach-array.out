@@ -1,0 +1,7 @@
+squadMembers roles:
+driver
+gunner
+loader
+seat 0: driver
+seat 1: gunner
+seat 2: loader

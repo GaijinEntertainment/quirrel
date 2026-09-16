@@ -1,0 +1,4 @@
+t.findindex(v == 2) = b
+t.findindex(k == "a") = a
+t.findindex(v > 100) == null: true
+t.findindex(tbl==t && v==3) = c

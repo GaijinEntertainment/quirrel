@@ -1,0 +1,2 @@
+type(w) = weakref
+w.ref() == s = true

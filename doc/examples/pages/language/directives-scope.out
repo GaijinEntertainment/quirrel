@@ -1,0 +1,3 @@
+armorType = composite
+::spawnPoint = hangar
+squadRoster.is_frozen() = true

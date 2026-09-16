@@ -1,0 +1,15 @@
+WARNING: w221 (result-not-utilized) Result of operation is not used.
+testData/static_analyzer/template_span.nut:3:0
+
+$"plain text"
+^------------
+
+
+WARNING: w264 (plus-string) Usage of '+' for string concatenation.
+testData/static_analyzer/template_span.nut:5:13
+
+let joined = $"hp={hp}" + "!"
+             ^---------------
+println(joined)
+
+

@@ -1,0 +1,4 @@
+r.len() = 0
+t.len() = 2
+r == t: false
+t.constructor(1) throws: wrong number of parameters passed to native closure 'constructor' (2 passed, 1 required)

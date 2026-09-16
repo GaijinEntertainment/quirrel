@@ -1,0 +1,5 @@
+types.Integer() = 0
+types.Integer(3.9) = 3
+types.Integer("2A", 16) = 42
+types.Integer(true) = 1
+types.Integer({}) throws: cannot convert to Integer

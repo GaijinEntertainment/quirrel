@@ -16,7 +16,7 @@ local susparam = coro.call("test","coroutine") //starts the coroutine
 local i = 1
 do {
     println($"suspend passed [{susparam}]")
-    susparam = coro.wakeup("ciao "+i)
+    susparam = coro.wakeup($"ciao {i}")
     ++i
 }while(coro.getstatus()=="suspended")
 

@@ -1,0 +1,58 @@
+-- every declared parameter is filled at the budget
+array.each 10 0 3
+array.each 20 1 3
+array.each 30 2 3
+array.map [13, 24, 35]
+array.filter [10, 20]
+array.findindex 2
+array.findvalue 20
+array.reduce 63
+table.each [a13, b23, c33]
+table.map [4, 5, 6]
+table.filter [2, 3]
+table.reduce 6
+-- one parameter past the budget takes its default
+array.each 10 def
+array.each 20 def
+array.each 30 def
+array.map [15, 25, 35]
+array.reduce 210
+table.map [8, 9, 10]
+-- a vararg tail past the budget stays empty
+array.each 10 0
+array.each 20 0
+array.each 30 0
+table.each vararg ok
+-- one required parameter past the budget is a plain, catchable error
+array.each: wrong number of parameters
+array.map: wrong number of parameters
+array.apply: wrong number of parameters
+array.filter: wrong number of parameters
+array.findindex: wrong number of parameters
+array.findvalue: wrong number of parameters
+array.reduce: wrong number of parameters
+table.each: wrong number of parameters
+table.map: wrong number of parameters
+table.filter: wrong number of parameters
+table.findindex: wrong number of parameters
+table.findvalue: wrong number of parameters
+table.reduce: wrong number of parameters
+-- a native callback is clamped the same way
+array.reduce native 5
+table.reduce native 5
+array.each native: wrong number of parameters
+array.map native: wrong number of parameters
+array.apply native: wrong number of parameters
+array.filter native: wrong number of parameters
+array.findindex native: wrong number of parameters
+array.findvalue native: wrong number of parameters
+array.reduce native: wrong number of parameters
+table.each native: wrong number of parameters
+table.map native: wrong number of parameters
+table.filter native: wrong number of parameters
+table.findindex native: wrong number of parameters
+table.findvalue native: wrong number of parameters
+table.reduce native: wrong number of parameters
+-- the iteration survives the error and the containers are untouched
+array [10, 20, 30]
+table [1, 2, 3]

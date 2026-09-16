@@ -1,0 +1,2 @@
+addArmor(80, 40) = 120
+totalArmor(80, 40) = 120

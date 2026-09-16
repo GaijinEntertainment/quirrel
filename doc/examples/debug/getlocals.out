@@ -1,0 +1,3 @@
+getlocals() names = k, names, v, x, y
+getlocals(1, true) has this = true
+getlocals(100).len() = 0

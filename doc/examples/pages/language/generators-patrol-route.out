@@ -1,0 +1,7 @@
+wrong tool: cannot suspend the root vm
+resume patrol = gate
+wrong tool: cannot suspend the root vm
+resume patrol = tower
+wrong tool: cannot suspend the root vm
+resume patrol = bridge
+patrol.getstatus() = suspended

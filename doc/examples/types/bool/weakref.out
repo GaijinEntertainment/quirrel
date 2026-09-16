@@ -1,0 +1,2 @@
+wr = true
+type(wr) = bool

@@ -1,0 +1,4 @@
+t.rawin("a") = true
+t.rawin("missing") = false
+t.rawin("b") = true
+"a" in t: true

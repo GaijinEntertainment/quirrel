@@ -1,0 +1,3 @@
+getconsttable().SQOBJ_FLAG_IMMUTABLE = 1
+getconsttable().MY_CONST = 123
+getconsttable() == getconsttable() = true

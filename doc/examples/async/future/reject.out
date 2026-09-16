@@ -1,0 +1,3 @@
+p.getState() = faulted
+script done
+caught: boom

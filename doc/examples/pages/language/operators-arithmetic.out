@@ -1,0 +1,4 @@
+fullReloads = 4
+roundsFired * secondsPerRound = 10.5
+-roundsFired % 3 = -1
+rounds left: 23

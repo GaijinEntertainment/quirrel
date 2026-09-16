@@ -1,0 +1,9 @@
+ERROR: spread is not allowed in a class
+testData/diagnostics/spread_in_class.nut:2:2
+
+class Broken {
+  ...{ x = 1 }
+  ^--
+}
+
+

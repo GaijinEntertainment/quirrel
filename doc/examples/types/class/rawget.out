@@ -1,0 +1,3 @@
+Dog.rawget("legs") = 4
+Dog.rawget("tail") = true
+Dog.rawget("missing") throws: the index doesn't exist

@@ -1,0 +1,3 @@
+Vec.getmetamethod("_add") != null = true
+Vec.getmetamethod("_sub") == null = true
+Vec.getmetamethod("_bogus") throws: Unknown metamethod

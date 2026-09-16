@@ -1,0 +1,3 @@
+activeMissions.rawdelete("capture_flag") = true
+"capture_flag" in activeMissions = false
+"defend_base" in activeMissions = true

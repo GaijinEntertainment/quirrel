@@ -1,0 +1,4 @@
+doubled.a = 2 doubled.b = 4 doubled.c = 6
+t.a = 1
+skipped.len() = 2
+skipped.rawin("b") = false

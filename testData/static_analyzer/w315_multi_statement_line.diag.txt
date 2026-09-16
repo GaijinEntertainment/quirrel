@@ -1,0 +1,18 @@
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 17 and 19.
+testData/static_analyzer/w315_multi_statement_line.nut:19:5
+
+    1
+  ); local b = 2
+     ^----------
+  print(a)
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 25 and 26.
+testData/static_analyzer/w315_multi_statement_line.nut:26:4
+
+  local a = 1; a = 2
+    print(a)
+    ^-------
+}
+
+

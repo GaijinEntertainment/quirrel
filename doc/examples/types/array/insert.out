@@ -1,0 +1,4 @@
+a = 1, 99, 2, 3
+a.top() = 100
+a.insert(-1, 0) throws: index out of range
+a.insert(999, 0) throws: index out of range

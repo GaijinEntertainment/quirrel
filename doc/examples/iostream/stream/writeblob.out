@@ -1,0 +1,3 @@
+dst.writeblob(src) = 3
+dst.len() = 3
+dst.writeblob(Foo()) throws: invalid parameter

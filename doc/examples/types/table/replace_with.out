@@ -1,0 +1,5 @@
+dst.replace_with(src) == dst: true
+dst.len() = 1
+"a" in dst: false
+src.len() = 1
+t.len() = 2

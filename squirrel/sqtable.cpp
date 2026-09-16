@@ -112,6 +112,24 @@ void SQTable::Rehash(bool force)
 
 SQTable *SQTable::Clone()
 {
+    SQTable *nt = CopyNodes();
+    nt->SetDelegate(_delegate);
+    return nt;
+}
+
+SQTable *SQTable::CopyNodesResolvingWeakRefs()
+{
+    SQTable *nt = CopyNodes();
+    _HashNode *dst = nt->_nodes;
+    for (_HashNode *dstE = dst + nt->_numofnodes_minus_one + 1; dst != dstE; dst++) {
+        if (!(sq_type(dst->key) & OT_FREE_TABLE_SLOT) && sq_type(dst->val) == OT_WEAKREF)
+            dst->val = _realval(dst->val);
+    }
+    return nt;
+}
+
+SQTable *SQTable::CopyNodes()
+{
     const uint32_t cnt = _numofnodes_minus_one+1;
     SQTable *__restrict nt=Create(_opt_ss(this), cnt);
 #ifdef _FAST_CLONE
@@ -142,7 +160,6 @@ SQTable *SQTable::Clone()
     }
 #endif
     nt->_classTypeId = _classTypeId;
-    nt->SetDelegate(_delegate);
     return nt;
 }
 

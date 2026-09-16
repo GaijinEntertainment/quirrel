@@ -193,15 +193,11 @@ void sq_close(HSQUIRRELVM v)
 SQRESULT sq_compile(HSQUIRRELVM v, const char *s, SQInteger size, const char *sourcename, SQBool raiseerror, const HSQOBJECT *bindings)
 {
     SQObjectPtr o;
-#ifndef NO_COMPILER
     if (Compile(v, s, size, bindings, sourcename, o, raiseerror ? true : false)) {
         v->Push(SQObjectPtr(SQClosure::Create(_ss(v), _funcproto(o))));
         return SQ_OK;
     }
     return SQ_ERROR;
-#else
-    return sq_throwerror(v,"this is a no compiler build");
-#endif
 }
 
 void sq_lineinfo_in_expressions(HSQUIRRELVM v, SQBool enable)
@@ -423,8 +419,7 @@ static SQRESULT rawset_impl(HSQUIRRELVM v, const SQObjectPtr &self,
         _table(self)->NewSlot(key, val);
         return SQ_OK;
     case OT_CLASS:
-        _class(self)->NewSlot(_ss(v), key, val, false);
-        return SQ_OK;
+        return _class(self)->NewSlot(_ss(v), key, val, false) ? SQ_OK : SQ_ERROR;
     case OT_INSTANCE:
         return _instance(self)->Set(key, val) == SLOT_STATUS_OK ? SQ_OK : SQ_ERROR;
     case OT_ARRAY:
@@ -782,11 +777,16 @@ SQRESULT sq_setnativeclosuredocstring(HSQUIRRELVM v,SQInteger idx,const char *do
     assert(docstring);
     SQObject o = stack_get(v, idx);
     if(sq_isnativeclosure(o)) {
-        SQObjectPtr docValue(SQString::Create(_ss(v), docstring));
-        SQObjectPtr docKey;
-        docKey._type = OT_USERPOINTER;
-        docKey._unVal.pUserPointer = (void *)_nativeclosure(o)->_function;
-        _table(_ss(v)->doc_objects)->NewSlot(docKey, docValue);
+#if SQ_STORE_DOC_OBJECTS
+        SQNativeClosure *nc = _nativeclosure(o);
+        SQString *decl = _ss(v)->GetNativeDeclString(nc->_docstring_id);
+        SQDocStringId id = _ss(v)->AddNativeStrings(docstring, decl ? decl->_val : NULL);
+        if (id == 0)
+            return sq_throwerror(v, "too many docstrings in the shared state");
+        nc->_docstring_id = id;
+#else
+        (void)docstring;
+#endif
         return SQ_OK;
     }
     return sq_throwerror(v,"the object is not a nativeclosure");
@@ -796,18 +796,30 @@ SQRESULT sq_setobjectdocstring(HSQUIRRELVM v, const HSQOBJECT *obj, const char *
 {
     assert(obj);
     assert(docstring);
-    if (sq_isclass(*obj) || sq_istable(*obj) || sq_isnativeclosure(*obj) || sq_isclosure(*obj)) {
-        SQObjectPtr docValue(SQString::Create(_ss(v), docstring));
-        SQObjectPtr docKey;
-        docKey._type = OT_USERPOINTER;
-        docKey._unVal.pUserPointer =
-            sq_isclass(*obj) || sq_istable(*obj) ? (void *)_userpointer(*obj) :
-            sq_isnativeclosure(*obj) ? (void *)_nativeclosure(*obj)->_function :
-            sq_isclosure(*obj) ? (void *)_closure(*obj)->_function : NULL;
-        _table(_ss(v)->doc_objects)->NewSlot(docKey, docValue);
+    if (sq_isclass(*obj) || sq_isnativeclosure(*obj) || sq_isclosure(*obj)) {
+#if SQ_STORE_DOC_OBJECTS
+        SQDocStringId id;
+        if (sq_isnativeclosure(*obj)) {
+            SQNativeClosure *nc = _nativeclosure(*obj);
+            SQString *decl = _ss(v)->GetNativeDeclString(nc->_docstring_id);
+            id = _ss(v)->AddNativeStrings(docstring, decl ? decl->_val : NULL);
+        }
+        else
+            id = _ss(v)->AddDocString(docstring);
+        if (id == 0)
+            return sq_throwerror(v, "too many docstrings in the shared state");
+        if (sq_isclass(*obj))
+            _class(*obj)->_docstring_id = id;
+        else if (sq_isnativeclosure(*obj))
+            _nativeclosure(*obj)->_docstring_id = id;
+        else
+            _closure(*obj)->_function->_docstring_id = id;
+#else
+        (void)docstring;
+#endif
         return SQ_OK;
     }
-    return sq_throwerror(v,"the object is not a table, class or function");
+    return sq_throwerror(v,"the object is not a class or function");
 }
 
 SQRESULT sq_setparamscheck(HSQUIRRELVM v,SQInteger nparamscheck,const char *typemask)
@@ -868,6 +880,7 @@ SQRESULT sq_new_closure_slot_from_decl_string(HSQUIRRELVM v, SQFUNCTION func, SQ
     nc->_name = ft.functionName;
     nc->_purefunction = ft.pure;
     nc->_nodiscard = ft.nodiscard;
+    nc->_isfastcall = ft.fastcall;
 
     nc->_typecheck.resize(ft.argTypeMask.size() + 1);
     nc->_typecheck[0] = ft.objectTypeMask;
@@ -883,21 +896,10 @@ SQRESULT sq_new_closure_slot_from_decl_string(HSQUIRRELVM v, SQFUNCTION func, SQ
     nc->_result_type_mask = ft.returnTypeMask;
 
 #if SQ_STORE_DOC_OBJECTS
-    if (docstring) {
-        SQObjectPtr docValue(SQString::Create(_ss(v), docstring));
-        SQObjectPtr docKey;
-        docKey._type = OT_USERPOINTER;
-        docKey._unVal.pUserPointer = (void *)func;
-        _table(_ss(v)->doc_objects)->NewSlot(docKey, docValue);
-    }
-
-    {
-        SQObjectPtr declValue(SQString::Create(_ss(v), function_decl));
-        SQObjectPtr declKey;
-        declKey._type = OT_USERPOINTER;
-        declKey._unVal.pUserPointer = (void *)(((size_t)(void *)func) ^ ~size_t(0));
-        _table(_ss(v)->doc_objects)->NewSlot(declKey, declValue);
-    }
+    SQDocStringId id = _ss(v)->AddNativeStrings(docstring, function_decl);
+    if (id == 0)
+        return sq_throwerror(v, "too many docstrings in the shared state");
+    nc->_docstring_id = id;
 #else
     (void)(docstring);
 #endif
@@ -1298,13 +1300,20 @@ void sq_settop(HSQUIRRELVM v, SQInteger newtop)
 
 void sq_pop(HSQUIRRELVM v, SQInteger nelemstopop)
 {
-    assert(v->_top >= nelemstopop);
+    SQInteger avail = v->_top - v->_stackbase;
+    if (SQ_UNLIKELY(nelemstopop > avail)) {
+        assert(!"sq_pop: stack underflow");
+        nelemstopop = avail > 0 ? avail : 0;
+    }
     v->Pop(nelemstopop);
 }
 
 void sq_poptop(HSQUIRRELVM v)
 {
-    assert(v->_top >= 1);
+    if (SQ_UNLIKELY(v->_top - v->_stackbase < 1)) {
+        assert(!"sq_poptop: stack underflow");
+        return;
+    }
     v->Pop();
 }
 
@@ -1316,8 +1325,9 @@ void sq_remove(HSQUIRRELVM v, SQInteger idx)
 
 SQInteger sq_cmp(HSQUIRRELVM v)
 {
-    SQInteger res;
-    v->ObjCmp(stack_get(v, -1), stack_get(v, -2),res);
+    SQInteger res = 0;
+    if (!v->ObjCmp(stack_get(v, -1), stack_get(v, -2), res))
+        return 0;
     return res;
 }
 
@@ -1393,6 +1403,10 @@ SQRESULT sq_rawset(HSQUIRRELVM v,SQInteger idx)
     }
 
     SQObjectType tp = sq_type(self);
+    if (tp == OT_CLASS && _class(self)->isLocked()) {
+        v->Pop(2);
+        return sq_throwerror(v, "trying to modify a class that has already been instantiated, inherited or is locked manually");
+    }
     if (tp == OT_TABLE || tp == OT_CLASS || tp == OT_INSTANCE || tp == OT_ARRAY) {
         v->Raise_IdxError(v->GetUp(-2));
         return SQ_ERROR;
@@ -1426,7 +1440,7 @@ SQRESULT sq_setdelegate(HSQUIRRELVM v,SQInteger idx)
     case OT_TABLE:
         if(sq_type(mt) == OT_TABLE) {
             if(!_table(self)->SetDelegate(_table(mt))) {
-                return sq_throwerror(v, "delagate cycle");
+                return sq_throwerror(v, "delegate cycle");
             }
             v->Pop();
         }
@@ -1588,11 +1602,18 @@ void sq_getlasterror(HSQUIRRELVM v)
 
 SQRESULT sq_reservestack(HSQUIRRELVM v,SQInteger nsize)
 {
-    if (((SQUnsignedInteger)v->_top + nsize) > v->_stack.size()) {
+    if (nsize < 0)
+        return sq_throwerror(v, "stack reservation size must not be negative");
+    if (v->_top > MAX_SQ_STACK_SIZE || nsize > MAX_SQ_STACK_SIZE - v->_top)
+        return sq_throwerror(v, "stack overflow, cannot resize stack");
+
+    SQInteger newtop = v->_top + nsize;
+    if ((SQUnsignedInteger)newtop > v->_stack.size()) {
         if(v->_nmetamethodscall) {
             return sq_throwerror(v,"cannot resize stack while in a metamethod");
         }
-        v->_stack.resize(v->_stack.size() + ((v->_top + nsize) - v->_stack.size()));
+        v->_stack.resize(newtop);
+        v->RelocateOuters();
     }
     return SQ_OK;
 }
@@ -1621,6 +1642,11 @@ SQRESULT sq_resume(HSQUIRRELVM v,SQBool retval,SQBool invoke_err_handler)
 SQRESULT sq_call(HSQUIRRELVM v,SQInteger params,SQBool retval,SQBool invoke_err_handler)
 {
     v->ValidateThreadAccess();
+
+    if (SQ_UNLIKELY(params < 0 || params + 1 > v->_top - v->_stackbase)) {
+        assert(!"sq_call: params exceed stack");
+        return SQ_ERROR;
+    }
 
     SQObjectPtr res;
     if(!v->Call(v->GetUp(-(params+1)),params,v->_top-params,res,invoke_err_handler?true:false)){
@@ -1972,9 +1998,9 @@ SQRESULT sq_next(HSQUIRRELVM v,SQInteger idx)
         return sq_throwerror(v,"cannot iterate a generator");
     }
     int faketojump;
-    if(!v->FOREACH_OP(o,realkey,val,refpos,666,faketojump))
+    if(!v->FOREACH_OP(o,realkey,val,refpos,SQVM::FOREACH_NO_MORE_ELEMENTS,faketojump))
         return SQ_ERROR;
-    if(faketojump != 666) {
+    if(faketojump != SQVM::FOREACH_NO_MORE_ELEMENTS) {
         v->Push(realkey);
         v->Push(val);
         return SQ_OK;

@@ -1,0 +1,3 @@
+x=10
+foo.getfreevar(0).value = 99
+foo.getfreevar(1) throws: Invalid free variable index

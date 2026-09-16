@@ -210,12 +210,12 @@ static SQInteger _file_close(HSQUIRRELVM v)
 
 static const SQRegFunctionFromStr _file_methods[] = {
     { _file_constructor, "constructor(path: string|userpointer, mode: string|int|null): instance",
-      "Two forms: (path: string, mode: string) opens the file via fopen with the given mode; "
+      SQ_DOC("Two forms: (path: string, mode: string) opens the file via fopen with the given mode; "
       "(handle: userpointer, own) wraps an existing FILE* and takes ownership (closes on destruction) "
-      "when `own` is non-null, or shares it without closing when `own` is null" },
+      "when `own` is non-null, or shares it without closing when `own` is null") },
 
-    { _file__typeof, "instance._typeof(): string", "Returns 'file'" },
-    { _file_close,   "instance.close()", "Closes the file if it is still open" },
+    { _file__typeof, "instance._typeof(): string", SQ_DOC("Returns 'file'") },
+    { _file_close,   "instance.close()", SQ_DOC("Closes the file if it is still open") },
     { NULL, NULL, NULL }
 };
 

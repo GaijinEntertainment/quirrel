@@ -1,0 +1,4 @@
+loadout.weaponName = ak74
+spawn point count = 4
+spawnPoints.spawn_north.x = 120
+squadIds.len() = 4

@@ -1,0 +1,2 @@
+mosin: 0 rounds
+let { reserveBelt } = loadout throws: the index 'reserveBelt' (type='string') does not exist

@@ -1,0 +1,3 @@
+a.top() = 3
+a.len() = 3
+[].top() throws: top() on a empty array

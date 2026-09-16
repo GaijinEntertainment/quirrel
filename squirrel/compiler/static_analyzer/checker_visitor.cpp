@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <squirrel.h>
 #include <limits.h>
+#include <cctype>
 
 #include "checker_visitor.h"
 #include "node_complexity_counter.h"
@@ -397,6 +398,8 @@ void CheckerVisitor::checkAccessFromStatic(const GetFieldExpr *acc) {
   const char *memberName = acc->fieldName();
 
   for (const auto &m : members) {
+    if (!m.hasKey())
+      continue;
     if (m.key->op() == TO_LITERAL && m.key->asLiteral()->kind() == LK_STRING) {
       const char *klassMemberName = m.key->asLiteral()->s();
       if (strcmp(memberName, klassMemberName) == 0) {
@@ -408,14 +411,6 @@ void CheckerVisitor::checkAccessFromStatic(const GetFieldExpr *acc) {
   }
 
   report(acc, DiagnosticsId::DI_USED_FROM_STATIC, memberName, "static member");
-}
-
-bool CheckerVisitor::hasDynamicContent(const SQObject &container) {
-  if (!sq_istable(container))
-    return false;
-  SQObjectPtr key(_ctx.getVm(), "__dynamic_content__");
-  SQObjectPtr val;
-  return _table(container)->Get(key, val);
 }
 
 void CheckerVisitor::checkExternalField(const GetFieldExpr *acc) {
@@ -433,7 +428,7 @@ void CheckerVisitor::checkExternalField(const GetFieldExpr *acc) {
   SQObjectPtr key(_ctx.getVm(), acc->fieldName());
   SQObject rawVal;
   if (!SQ_SUCCEEDED(sq_obj_get(_ctx.getVm(), &container, &key, &rawVal, false))) {
-    if (!acc->isNullable() && !hasDynamicContent(container)) {
+    if (!acc->isNullable()) {
       report(acc, DI_MISSING_FIELD, acc->fieldName(), GetTypeName(container));
       char buf[128];
       snprintf(buf, sizeof(buf), "source of %s", GetTypeName(container));
@@ -468,7 +463,177 @@ static bool cannotBeNull(const Expr *e) {
   }
 }
 
-void CheckerVisitor::reportIfCannotBeNull(const Expr *checkee, const Expr *n, const char *loc) {
+static bool isMutableDefaultValue(const Expr *e) {
+  e = deparenStatic(e);
+  if (!e)
+    return false;
+
+  switch (e->op()) {
+    case TO_ARRAY:  // []
+    case TO_TABLE:  // {}
+    case TO_CLASS:  // class { ... }
+    case TO_CALL:   // Point3(1,2,3), array(0)
+    case TO_CLONE:
+      return true;
+    case TO_TERNARY: {
+      const TerExpr *t = static_cast<const TerExpr *>(e);
+      return isMutableDefaultValue(t->b()) || isMutableDefaultValue(t->c());
+    }
+    case TO_NULLC:
+      return isMutableDefaultValue(static_cast<const BinExpr *>(e)->rhs());
+    default:
+      return false;
+  }
+}
+
+static const Expr *asEmptyContainerLiteral(const Expr *e) {
+  if (!e)
+    return nullptr;
+
+  if (e->op() == TO_ARRAY && static_cast<const ArrayExpr *>(e)->initializers().empty())
+    return e;
+
+  if (e->op() == TO_TABLE && static_cast<const TableExpr *>(e)->members().empty())
+    return e;
+
+  return nullptr;
+}
+
+class ContainerFillOrTestFinder : public Visitor {
+  NodeEqualChecker eq;
+  const Expr *container;
+  bool found;
+
+  bool isContainer(const Expr *e) const {
+    e = deparenStatic(e);
+    return e && eq.check(container, e);
+  }
+
+  bool isContainerAccess(const Expr *e) const {
+    e = deparenStatic(e);
+    return e && e->isAccessExpr() && isContainer(e->asAccessExpr()->receiver());
+  }
+
+public:
+  ContainerFillOrTestFinder() : container(nullptr), found(false) {}
+
+  void visitNode(Node *n) {
+    if (!found)
+      Visitor::visitNode(n);
+  }
+
+  void visitAccessExpr(AccessExpr *a) {
+    if (a->isNullable() && isContainer(a->receiver())) {
+      found = true;
+      return;
+    }
+
+    Visitor::visitAccessExpr(a);
+  }
+
+  void visitDestructuringDecl(DestructuringDecl *d) {
+    if (isContainer(d->initExpression())) {
+      for (auto decl : d->declarations()) {
+        if (decl->initializer()) {
+          found = true;
+          return;
+        }
+      }
+    }
+
+    Visitor::visitDestructuringDecl(d);
+  }
+
+  void visitCallExpr(CallExpr *c) {
+    if (isContainerAccess(c->callee())) {
+      found = true;
+      return;
+    }
+
+    for (auto arg : c->arguments()) {
+      if (isContainer(arg)) {
+        found = true;
+        return;
+      }
+    }
+
+    Visitor::visitCallExpr(c);
+  }
+
+  void visitBinExpr(BinExpr *b) {
+    TreeOp op = b->op();
+
+    if (op == TO_NEWSLOT || op == TO_ASSIGN || (TO_PLUSEQ <= op && op <= TO_MODEQ)) {
+      if (isContainerAccess(b->lhs())) {
+        found = true;
+        return;
+      }
+    }
+
+    if (op == TO_IN && isContainer(b->rhs())) {
+      found = true;
+      return;
+    }
+
+    Visitor::visitBinExpr(b);
+  }
+
+  void visitUnExpr(UnExpr *u) {
+    if (u->op() == TO_DELETE && isContainerAccess(u->argument())) {
+      found = true;
+      return;
+    }
+
+    Visitor::visitUnExpr(u);
+  }
+
+  void visitIncExpr(IncExpr *i) {
+    if (isContainerAccess(i->argument())) {
+      found = true;
+      return;
+    }
+
+    Visitor::visitIncExpr(i);
+  }
+
+  bool check(const Expr *cont, Node *tree) {
+    container = cont;
+    found = false;
+    tree->visit(this);
+    return found;
+  }
+};
+
+const ParamDecl *CheckerVisitor::findMutatedSharedDefaultParam(const Expr *receiver) {
+  receiver = deparenStatic(receiver);
+  if (!receiver || receiver->op() != TO_ID)
+    return nullptr;
+
+  const char *name = receiver->asId()->name();
+  ValueRef *v = findValueInScopes(name);
+  if (!v || !v->info || v->info->kind != SK_PARAM)
+    return nullptr;
+
+  const ParamDecl *param = v->info->declarator.p;
+  if (!param || !isMutableDefaultValue(param->defaultValue()))
+    return nullptr;
+
+  if (v->state != VRS_UNKNOWN || v->assigned)
+    return nullptr;
+
+  return param;
+}
+
+void CheckerVisitor::reportMutatingSharedDefault(const Expr *receiver, const Node *mod) {
+  if (isEffectsGatheringPass)
+    return;
+
+  const ParamDecl *param = findMutatedSharedDefaultParam(receiver);
+  if (param)
+    report(mod, DiagnosticsId::DI_MUTATING_SHARED_DEFAULT, param->name());
+}
+
+bool CheckerVisitor::reportIfCannotBeNull(const Expr *checkee, const Expr *n, const char *loc) {
   assert(n);
 
   if (checkee->op() == TO_NULLC) {
@@ -482,12 +647,15 @@ void CheckerVisitor::reportIfCannotBeNull(const Expr *checkee, const Expr *n, co
 
     if (cannotBeNull(ifTrue) && cannotBeNull(ifFalse)) {
       report(n, DiagnosticsId::DI_EXPR_NOT_NULL, loc);
+      return true;
     }
-    return;
+    return false;
   }
 
-  if (cannotBeNull(checkee))
+  const bool isNotNull = cannotBeNull(checkee);
+  if (isNotNull)
     report(n, DiagnosticsId::DI_EXPR_NOT_NULL, loc);
+  return isNotNull;
 }
 
 void CheckerVisitor::reportModifyIfContainer(const Expr *e, const Expr *mod) {
@@ -613,6 +781,17 @@ void CheckerVisitor::checkContainerModification(const UnExpr *u) {
   reportModifyIfContainer(receiver, u);
 }
 
+void CheckerVisitor::checkMutatingSharedDefault(const UnExpr *u) {
+  if (u->op() != TO_DELETE)
+    return;
+
+  const Expr *arg = deparenStatic(u->argument());
+  if (!arg || !arg->isAccessExpr())
+    return;
+
+  reportMutatingSharedDefault(arg->asAccessExpr()->receiver(), u);
+}
+
 void CheckerVisitor::checkAndOrPriority(const BinExpr *expr) {
 
   if (isEffectsGatheringPass)
@@ -709,6 +888,25 @@ void CheckerVisitor::checkParamAssignInLambda(const BinExpr *expr) {
     return;
 
   report(expr, DiagnosticsId::DI_PARAM_ASSIGNMENT_IN_LAMBDA, name);
+}
+
+void CheckerVisitor::checkMutatingSharedDefault(const BinExpr *expr) {
+  if (expr->op() != TO_NEWSLOT && !isAssignOp(expr->op()))
+    return;
+
+  const Expr *lhs = deparenStatic(expr->lhs());
+  if (!lhs || !lhs->isAccessExpr())
+    return;
+
+  reportMutatingSharedDefault(lhs->asAccessExpr()->receiver(), expr);
+}
+
+void CheckerVisitor::checkMutatingSharedDefault(const IncExpr *expr) {
+  const Expr *arg = deparenStatic(expr->argument());
+  if (!arg || !arg->isAccessExpr())
+    return;
+
+  reportMutatingSharedDefault(arg->asAccessExpr()->receiver(), expr);
 }
 
 void CheckerVisitor::checkSameOperands(const BinExpr *expr) {
@@ -852,6 +1050,93 @@ void CheckerVisitor::checkAlwaysTrueOrFalse(const BinExpr *bin) {
     return;
 
   TreeOp op = bin->op();
+  if (op == TO_EQ || op == TO_NE) {
+    auto getLiteralKind = [&](const Expr *expr, LiteralKind &kind) {
+      expr = deparenStaticInline(maybeEval(expr));
+      if (!expr || expr->op() != TO_LITERAL)
+        return false;
+      kind = expr->asLiteral()->kind();
+      return true;
+    };
+
+    auto getKnownExpressionKind = [&](const Expr *expr, LiteralKind &kind) {
+      expr = deparenStaticInline(maybeEval(expr));
+      if (!expr)
+        return false;
+
+      if (expr->op() == TO_NOT) {
+        kind = LK_BOOL;
+        return true;
+      }
+
+      if (isTypeFunctionResult(expr) || isTypeofResult(expr)) {
+        kind = LK_STRING;
+        return true;
+      }
+
+      return false;
+    };
+
+    auto getKnownTruthValue = [&](auto &&self, const Expr *expr, bool &value) -> bool {
+      expr = deparenStaticInline(maybeEval(expr));
+      if (!expr)
+        return false;
+
+      if (expr->op() == TO_LITERAL) {
+        const LiteralExpr *literal = expr->asLiteral();
+        switch (literal->kind()) {
+          case LK_NULL:   value = false; break;
+          case LK_BOOL:   value = literal->b(); break;
+          case LK_INT:    value = literal->i() != 0; break;
+          case LK_FLOAT:  value = literal->f() != 0.0; break;
+          case LK_STRING: value = true; break;
+          default: return false;
+        }
+        return true;
+      }
+
+      if (expr->op() == TO_ARRAY || expr->op() == TO_TABLE || expr->op() == TO_CLASS ||
+          expr->op() == TO_FUNCTION || isTypeFunctionResult(expr) || isTypeofResult(expr)) {
+        value = true;
+        return true;
+      }
+
+      if (expr->op() == TO_NOT) {
+        bool argumentValue = false;
+        if (self(self, static_cast<const UnExpr *>(expr)->argument(), argumentValue)) {
+          value = !argumentValue;
+          return true;
+        }
+      }
+
+      return false;
+    };
+
+    LiteralKind lhsKind, rhsKind;
+    const bool lhsIsKnownExpression = getKnownExpressionKind(bin->lhs(), lhsKind);
+    const bool rhsIsKnownExpression = getKnownExpressionKind(bin->rhs(), rhsKind);
+    const bool lhsIsLiteral = getLiteralKind(bin->lhs(), lhsKind);
+    const bool rhsIsLiteral = getLiteralKind(bin->rhs(), rhsKind);
+    if (!((lhsIsKnownExpression && rhsIsLiteral) || (rhsIsKnownExpression && lhsIsLiteral)))
+      return;
+
+    if (lhsKind == LK_BOOL && rhsKind == LK_BOOL) {
+      bool lhsValue = false, rhsValue = false;
+      if (getKnownTruthValue(getKnownTruthValue, bin->lhs(), lhsValue) &&
+          getKnownTruthValue(getKnownTruthValue, bin->rhs(), rhsValue)) {
+        const bool comparisonValue = op == TO_EQ ? lhsValue == rhsValue : lhsValue != rhsValue;
+        report(bin, DiagnosticsId::DI_ALWAYS_T_OR_F, comparisonValue ? "true" : "false");
+        return;
+      }
+    }
+
+    if (lhsKind != rhsKind && !(lhsKind == LK_INT && rhsKind == LK_FLOAT) &&
+        !(lhsKind == LK_FLOAT && rhsKind == LK_INT)) {
+      report(bin, DiagnosticsId::DI_ALWAYS_T_OR_F, op == TO_EQ ? "false" : "true");
+    }
+    return;
+  }
+
   if (op != TO_ANDAND && op != TO_OROR)
     return;
 
@@ -948,6 +1233,49 @@ void CheckerVisitor::checkAlwaysTrueOrFalse(const BinExpr *bin) {
 
   if (findContradictingComparisons(findContradictingComparisons, lhs, rhs))
     return;
+
+  auto evaluateKnownEquality = [&](const BinExpr *comparison, bool &value) {
+    const Expr *left = deparenStaticInline(maybeEval(comparison->lhs()));
+    const Expr *right = deparenStaticInline(maybeEval(comparison->rhs()));
+    if (!left || !right || left->op() != TO_LITERAL || right->op() != TO_LITERAL)
+      return false;
+
+    const LiteralExpr *leftLiteral = left->asLiteral();
+    const LiteralExpr *rightLiteral = right->asLiteral();
+    const LiteralKind leftKind = leftLiteral->kind();
+    const LiteralKind rightKind = rightLiteral->kind();
+    bool equal = false;
+
+    if (leftKind == rightKind) {
+      switch (leftKind) {
+        case LK_NULL:   equal = true; break;
+        case LK_BOOL:   equal = leftLiteral->b() == rightLiteral->b(); break;
+        case LK_INT:    equal = leftLiteral->i() == rightLiteral->i(); break;
+        case LK_FLOAT:  equal = leftLiteral->f() == rightLiteral->f(); break;
+        case LK_STRING: equal = strcmp(leftLiteral->s(), rightLiteral->s()) == 0; break;
+        default: return false;
+      }
+    }
+    else if (leftKind == LK_INT && rightKind == LK_FLOAT) {
+      equal = leftLiteral->i() == rightLiteral->f();
+    }
+    else if (leftKind == LK_FLOAT && rightKind == LK_INT) {
+      equal = leftLiteral->f() == rightLiteral->i();
+    }
+
+    value = comparison->op() == TO_EQ ? equal : !equal;
+    return true;
+  };
+
+  if (isEqualityComparison(lhs) && isEqualityComparison(rhs)) {
+    bool lhsValue = false, rhsValue = false;
+    if (evaluateKnownEquality(lhs->asBinExpr(), lhsValue) &&
+        evaluateKnownEquality(rhs->asBinExpr(), rhsValue)) {
+      const bool result = op == TO_ANDAND ? lhsValue && rhsValue : lhsValue || rhsValue;
+      report(bin, DiagnosticsId::DI_ALWAYS_T_OR_F, result ? "true" : "false");
+      return;
+    }
+  }
 
   if ((lhs->op() == TO_NOT || rhs->op() == TO_NOT) && (lhs->op() != rhs->op())) {
     const char *v = op == TO_OROR ? "true" : "false";
@@ -1552,6 +1880,25 @@ void CheckerVisitor::checkKeyNameMismatch(const Expr *key, const Expr *e) {
   }
 }
 
+void CheckerVisitor::checkBindingNameMismatch(const VarDecl *decl) {
+  if (isEffectsGatheringPass)
+    return;
+
+  if (decl->isDestructured())
+    return;
+
+  const Expr *init = deparenStatic(decl->initializer());
+  if (!init || init->op() != TO_FUNCTION)
+    return;
+
+  const FunctionExpr *func = init->asFunctionExpr();
+  if (func->name()[0] == '(')
+    return;
+
+  if (strcmp(decl->name(), func->name()) != 0)
+    report(func, DiagnosticsId::DI_BINDING_NAME_MISMATCH, decl->name(), func->name());
+}
+
 void CheckerVisitor::checkNewSlotNameMatch(const BinExpr *bin) {
   if (isEffectsGatheringPass)
     return;
@@ -1615,7 +1962,7 @@ void CheckerVisitor::checkUselessNullC(const BinExpr *bin) {
 }
 
 void CheckerVisitor::checkCannotBeNull(const BinExpr *bin) {
-  if (isEffectsGatheringPass)
+  if (isEffectsGatheringPass && loopConditionCheckPass != LCCP_INITIAL)
     return;
 
   const char *loc = nullptr;
@@ -1642,7 +1989,16 @@ void CheckerVisitor::checkCannotBeNull(const BinExpr *bin) {
     }
   }
 
-  if (checkee)
+  if (!checkee)
+    return;
+
+  if (loopConditionCheckPass == LCCP_INITIAL) {
+    if (reportIfCannotBeNull(checkee, reportee, loc))
+      loopCannotBeNullChecks->push_back({ reportee, loc });
+    return;
+  }
+
+  if (loopConditionCheckPass != LCCP_FINAL)
     reportIfCannotBeNull(checkee, reportee, loc);
 }
 
@@ -1786,7 +2142,8 @@ void CheckerVisitor::checkAlreadyRequired(const CallExpr *call) {
 // from the analyzer) and attach the result as an ExternalValue on the CallExpr.
 // Skipped when the user disabled it locally with `// -skip-require`.
 void CheckerVisitor::resolveRequire(const CallExpr *call, const char *moduleName) {
-  if (_ctx.isRequireDisabled(call->lineStart(), call->columnStart()))
+  if (sq_checkcompilationoption(_ctx.getVm(), CompilationOptions::CO_STATIC_ANALYSIS_SKIP_REQUIRE_RESOLUTION) ||
+      _ctx.isRequireDisabled(call->lineStart(), call->columnStart()))
     return;
 
   auto fv = findValueInScopes("require_optional");
@@ -2006,6 +2363,71 @@ void CheckerVisitor::checkFormatArguments(const CallExpr *call) {
   }
 }
 
+void CheckerVisitor::checkSubstArguments(const CallExpr *call) {
+  if (isEffectsGatheringPass)
+    return;
+
+  const Expr *callee = deparenStatic(call->callee());
+  if (callee->op() != TO_GETFIELD) // -V522
+    return;
+
+  const GetFieldExpr *f = callee->asGetField();
+  if (strcmp(f->fieldName(), "subst") != 0)
+    return;
+
+  const Expr *recv = deparenStatic(f->receiver());
+  if (recv->op() != TO_LITERAL) // -V522
+    return;
+
+  const LiteralExpr *lit = recv->asLiteral();
+  if (lit->kind() != LK_STRING)
+    return;
+
+  const int32_t argCount = (int32_t)call->arguments().size();
+  const char *s = lit->s();
+  const int len = (int)strlen(s);
+
+  const int MAX_TRACKED = 30; // keeps the (1u << (maxIndex+1)) mask in range; real templates never reach this
+  uint32_t seenMask = 0;
+  int maxIndex = -1;
+  for (int i = 0; i < len - 2; i++) {
+    if (s[i] != '{')
+      continue;
+    int depth = 0;
+    for (int j = i + 1; j < len; j++) {
+      if (s[j] == '{') {
+        depth++;
+      }
+      else if (s[j] == '}') {
+        if (--depth < 0) {
+          if (i + 1 != j) { // skip empty {}
+            int index = 0;
+            bool numeric = true;
+            for (int k = i + 1; k < j; k++) {
+              if (s[k] < '0' || s[k] > '9') { numeric = false; break; }
+              index = index * 10 + (s[k] - '0');
+              if (index >= MAX_TRACKED) { numeric = false; break; }
+            }
+            if (numeric) {
+              seenMask |= (1u << index);
+              if (index > maxIndex)
+                maxIndex = index;
+            }
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  if (maxIndex < 0)
+    return;
+
+  const uint32_t fullMask = (1u << (maxIndex + 1)) - 1;
+  if (seenMask == fullMask && maxIndex >= argCount)
+    report(recv, DiagnosticsId::DI_SUBST_ARGUMENT_INDEX, maxIndex, argCount);
+}
+
 int32_t CheckerVisitor::normalizeParamNameLength(const char *name) {
   int32_t r = 0;
 
@@ -2041,6 +2463,9 @@ const char *CheckerVisitor::normalizeParamName(const char *name, char *buffer) {
 void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
 
   if (isEffectsGatheringPass)
+    return;
+
+  if (checkConditionalCalleeArity(callExpr))
     return;
 
   bool dummy;
@@ -2155,6 +2580,67 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
   }
 }
 
+
+bool CheckerVisitor::checkConditionalCalleeArity(const CallExpr *callExpr) {
+  const Expr *callee = maybeEval(callExpr->callee());
+  if (!callee || callee->op() != TO_TERNARY)
+    return false;
+
+  const TerExpr *ter = static_cast<const TerExpr *>(callee);
+
+  // Only function literals are validated; a non-literal arm (e.g. an imported
+  // function) is left unchecked, matching the conservative v1 scope.
+  const FunctionExpr *candidates[2] = { nullptr, nullptr };
+  int nc = 0;
+  for (const Expr *arm : { ter->b(), ter->c() }) {
+    const Expr *e = maybeEval(arm);
+    if (e && e->op() == TO_FUNCTION)
+      candidates[nc++] = e->asFunctionExpr();
+  }
+
+  if (nc == 0)
+    return false;
+
+  char nameBuf[128] = { 0 };
+  const char *bindName = computeNameRef(callExpr->callee(), nameBuf, sizeof nameBuf);
+  if (!bindName)
+    bindName = "callee";
+
+  const int argCount = (int)callExpr->arguments().size();
+
+  for (int i = 0; i < nc; ++i) {
+    const FunctionExpr *func = candidates[i];
+
+    int numParams = func->parameters().size();
+    if (numParams < 0) numParams = 0;
+    const bool isVararg = func->isVararg();
+
+    int dpParameters = 0;
+    for (auto &p : func->parameters())
+      if (p->hasDefaultValue())
+        ++dpParameters;
+
+    const int upper = std::max<int>(isVararg ? numParams - 1 : numParams, 0);
+    const int lower = upper - dpParameters;
+    const int maxSize = isVararg ? INT_MAX : upper;
+
+    if (lower <= argCount && argCount <= maxSize)
+      continue;
+
+    char rangeBuf[32];
+    if (isVararg)
+      snprintf(rangeBuf, sizeof rangeBuf, "%d or more", lower);
+    else if (lower == upper)
+      snprintf(rangeBuf, sizeof rangeBuf, "%d", lower);
+    else
+      snprintf(rangeBuf, sizeof rangeBuf, "%d..%d", lower, upper);
+
+    report(callExpr, DiagnosticsId::DI_CONDITIONAL_ARITY_MISMATCH, argCount, bindName, rangeBuf);
+  }
+
+  return true;
+}
+
 void CheckerVisitor::checkContainerModification(const CallExpr *call) {
   if (isEffectsGatheringPass)
     return;
@@ -2173,6 +2659,22 @@ void CheckerVisitor::checkContainerModification(const CallExpr *call) {
     return;
 
   reportModifyIfContainer(callee->asAccessExpr()->receiver(), call);
+}
+
+void CheckerVisitor::checkMutatingSharedDefault(const CallExpr *call) {
+  const char *name = extractFunctionName(call);
+
+  if (!name)
+    return;
+
+  if (!nameLooksLikeModifiesObject(name))
+    return;
+
+  const Expr *callee = deparenStatic(call->callee());
+  if (!callee || !callee->isAccessExpr())
+    return;
+
+  reportMutatingSharedDefault(callee->asAccessExpr()->receiver(), call);
 }
 
 // Detect ambiguous expressions that may modify either a temporary or a persistent object
@@ -2353,6 +2855,62 @@ void CheckerVisitor::checkCallbackShouldNotReturn(const CallExpr *call) {
   }
 }
 
+void CheckerVisitor::checkSameArgsInCall(const CallExpr *call) {
+  if (isEffectsGatheringPass)
+    return;
+
+  // Symmetric select builtins: repeating the compared arguments is always dead
+  // code, unlike copy(a, a)-style APIs. argA/argB are the slots that must differ.
+  struct SelectFn { const char *name; int argCount, argA, argB; };
+  static const SelectFn selectFns[] = {
+    { "min",   2, 0, 1 },
+    { "max",   2, 0, 1 },
+    { "clamp", 3, 1, 2 },
+  };
+
+  const Expr *callee = maybeEval(call->callee());
+
+  const char *name = nullptr;
+  if (callee->op() == TO_ID) {
+    name = callee->asId()->name();
+  }
+  else if (callee->op() == TO_GETFIELD) {
+    // Trust a member call only when the receiver names a math module; an
+    // arbitrary obj.max(a, a) may be an unrelated user API where repeats matter.
+    const GetFieldExpr *gf = callee->asGetField();
+    const Expr *recv = gf->receiver();
+    if (recv->op() != TO_ID)
+      return;
+
+    std::string lowered(recv->asId()->name());
+    std::transform(lowered.begin(), lowered.end(), lowered.begin(), ::tolower);
+    if (lowered.find("math") == std::string::npos)
+      return;
+
+    name = gf->fieldName();
+  }
+
+  if (!name)
+    return;
+
+  const SelectFn *fn = nullptr;
+  for (const SelectFn &s : selectFns) {
+    if (strcmp(name, s.name) == 0) {
+      fn = &s;
+      break;
+    }
+  }
+  if (!fn)
+    return;
+
+  const auto &args = call->arguments();
+  if ((int)args.size() != fn->argCount)
+    return;
+
+  if (_equalChecker.check(deparen(args[fn->argA]), deparen(args[fn->argB])))
+    report(call, DiagnosticsId::DI_SAME_ARGS_IN_CALL, name);
+}
+
 void CheckerVisitor::checkAssertCall(const CallExpr *call) {
 
   // assert(x != null) or assert(x != null, "X should not be null")
@@ -2435,6 +2993,7 @@ void CheckerVisitor::visitId(Id *id) {
 
 void CheckerVisitor::visitUnExpr(UnExpr *expr) {
   checkContainerModification(expr);
+  checkMutatingSharedDefault(expr);
 
   Visitor::visitUnExpr(expr);
 }
@@ -2467,6 +3026,7 @@ void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   checkCannotBeNull(expr);
   checkCanBeSimplified(expr);
   checkRangeCheck(expr);
+  checkMutatingSharedDefault(expr);
 
   Expr *lhs = expr->lhs();
   Expr *rhs = expr->rhs();
@@ -2540,6 +3100,8 @@ void CheckerVisitor::visitTerExpr(TerExpr *expr) {
 }
 
 void CheckerVisitor::visitIncExpr(IncExpr *expr) {
+  checkMutatingSharedDefault(expr);
+
   const char *name = computeNameRef(deparenStatic(expr->argument()), nullptr, 0);
   if (name) {
     ValueRef *v = findValueInScopes(name);
@@ -2569,12 +3131,15 @@ void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkCallFromRoot(expr);
   checkForbiddenParentDir(expr);
   checkFormatArguments(expr);
+  checkSubstArguments(expr);
   checkContainerModification(expr);
   checkUnwantedModification(expr);
+  checkMutatingSharedDefault(expr);
   checkCannotBeNull(expr);
   checkBooleanLambda(expr);
   checkCallbackReturnValue(expr);
   checkCallbackShouldNotReturn(expr);
+  checkSameArgsInCall(expr);
 
   applyCallToScope(expr);
 
@@ -2639,6 +3204,7 @@ void CheckerVisitor::checkGlobalAccess(const GetFieldExpr *expr) {
 
 void CheckerVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
   checkAccessNullable(expr);
+  checkAccessPotentiallyEmpty(expr);
   checkEnumConstUsage(expr);
   checkGlobalAccess(expr);
   checkAccessFromStatic(expr);
@@ -2652,6 +3218,7 @@ void CheckerVisitor::visitGetSlotExpr(GetSlotExpr *expr) {
   checkBoolIndex(expr);
   checkNullableIndex(expr);
   checkAccessNullable(expr);
+  checkAccessPotentiallyEmpty(expr);
 
   Visitor::visitGetSlotExpr(expr);
 }
@@ -3517,7 +4084,7 @@ void CheckerVisitor::checkUnutilizedResult(const ExprStatement *s) {
     }
   }
   else if (!isAssignExpr(e) && e->op() != TO_INC && e->op() != TO_NEWSLOT && e->op() != TO_DELETE
-           && e->op() != TO_AWAIT && e->op() != TO_YIELD) {
+           && e->op() != TO_AWAIT && e->op() != TO_YIELD && e->op() != TO_CODE_BLOCK_EXPR) {
     // TO_AWAIT / TO_YIELD: the suspension itself is the effect, even when the
     // resumed value is discarded (e.g. `await delay(0)` as a barrier).
     report(s, DiagnosticsId::DI_UNUTILIZED_EXPRESSION);
@@ -3581,15 +4148,23 @@ void CheckerVisitor::visitBlock(Block *b) {
   nodeStack.push_back({ SST_NODE, b });
 
   Statement* prevStatement = nullptr;
+  Statement* lastStatement = nullptr;
 
   for (Statement *s : b->statements()) {
     s->visit(this);
     blockScope.evalId += 1;
 
-    if (s->op() != TO_EMPTY) {
-      checkSuspiciousFormattingOfStetementSequence(prevStatement, s);
+    if (s->op() == TO_EMPTY)
+      continue;
+
+    checkSuspiciousFormattingOfStetementSequence(prevStatement, s);
+
+    // a statement put after `;` or `}` starts at an arbitrary column: report it,
+    // but never make it the indentation baseline for the lines below
+    if (!lastStatement || lastStatement->lineEnd() != s->lineStart())
       prevStatement = s;
-    }
+
+    lastStatement = s;
   }
 
   nodeStack.pop_back();
@@ -3615,12 +4190,10 @@ void CheckerVisitor::visitForStatement(ForStatement *loop) {
   VarScope loopScope(copyScope->owner, copyScope);
   currentScope = &loopScope;
 
+  nodeStack.push_back({ SST_NODE, loop });
+
   if (init) {
     init->visit(this);
-  }
-
-  if (cond) {
-    cond->visit(this);
   }
 
   bool wasGatheringEffects = isEffectsGatheringPass;
@@ -3644,6 +4217,11 @@ void CheckerVisitor::visitForStatement(ForStatement *loop) {
 
   isEffectsGatheringPass = wasGatheringEffects;
 
+  currentScope = &loopScope;
+  if (cond) {
+    cond->visit(this);
+  }
+
   if (!isEffectsGatheringPass) {
     BreakableScope bs(this, loop, &loopScope, copyScope);
     currentScope = &loopScope;
@@ -3656,6 +4234,8 @@ void CheckerVisitor::visitForStatement(ForStatement *loop) {
     if (mod)
       mod->visit(this);
   }
+
+  nodeStack.pop_back();
 
   trunkScope->merge(copyScope);
   loopScope.checkUnusedSymbols(this);
@@ -3749,27 +4329,43 @@ void CheckerVisitor::visitWhileStatement(WhileStatement *loop) {
   checkEmptyWhileBody(loop);
   checkSuspiciousFormatting(loop->body(), loop);
 
-  loop->condition()->visit(this);
-
   VarScope *trunkScope = currentScope;
   VarScope *loopScope = trunkScope->copy(arena);
   currentScope = loopScope;
+  std::vector<LoopCannotBeNullCheck> loopChecks;
+  auto *oldLoopCannotBeNullChecks = loopCannotBeNullChecks;
+  LoopConditionCheckPass oldLoopConditionCheckPass = loopConditionCheckPass;
+  loopCannotBeNullChecks = &loopChecks;
 
   bool wasGatheringEffects = isEffectsGatheringPass;
+  const bool shouldVisitLoopBody = !wasGatheringEffects;
   isEffectsGatheringPass = true;
+  loopConditionCheckPass = LCCP_INITIAL;
+  loop->condition()->visit(this);
+  loopConditionCheckPass = LCCP_NONE;
 
   {
     BreakableScope bs(this, loop, loopScope, nullptr); // null because we don't (??) interest in exit effect here
     loop->body()->visit(this);
   }
   isEffectsGatheringPass = wasGatheringEffects;
+  loopConditionCheckPass = LCCP_FINAL;
+  loop->condition()->visit(this);
+  loopConditionCheckPass = LCCP_NONE;
 
-  if (!isEffectsGatheringPass) {
+  for (const LoopCannotBeNullCheck &check : loopChecks) {
+    if (!isPotentiallyNullable(check.reportee))
+      report(check.reportee, DiagnosticsId::DI_EXPR_NOT_NULL, check.loc);
+  }
+
+  if (shouldVisitLoopBody) {
     BreakableScope bs(this, loop, loopScope, trunkScope);
     speculateIfConditionHeuristics(loop->condition(), loopScope, trunkScope);
 
     loop->body()->visit(this);
   }
+  loopCannotBeNullChecks = oldLoopCannotBeNullChecks;
+  loopConditionCheckPass = oldLoopConditionCheckPass;
 
   trunkScope->merge(loopScope);
   loopScope->~VarScope();
@@ -3827,7 +4423,10 @@ void CheckerVisitor::visitContinueStatement(ContinueStatement *continueStmt) {
 
   assert(bs->loopScope);
 
-  bs->loopScope->mergeUnbalanced(trunkScope);
+  // Back-edge merge: skip the null-state flag join so that facts speculated
+  // on the continue path (e.g. `if (x == null) continue`) do not leak into
+  // the current iteration's fall-through analysis through the loop scope.
+  bs->loopScope->mergeUnbalanced(trunkScope, false);
 }
 
 
@@ -4454,7 +5053,7 @@ const char *CheckerVisitor::findSlotNameInStack(const Node *decl) {
       assert(slot.sst == SST_TABLE_MEMBER);
       Expr *lhs = slot.member->key;
       Expr *rhs = slot.member->value;
-      if (rhs == decl) {
+      if (rhs == decl && slot.member->hasKey()) {
         if (lhs->op() == TO_LITERAL) {
             if (lhs->asLiteral()->kind() == LK_STRING) {
               return lhs->asLiteral()->s();
@@ -4612,6 +5211,123 @@ void CheckerVisitor::checkAccessNullable(const AccessExpr *acc) {
   }
 }
 
+const Expr *CheckerVisitor::findEmptyContainerValue(const Expr *e, std::unordered_set<const Expr *> &visited, bool conditional) {
+  e = deparenStatic(e);
+
+  if (!e || visited.find(e) != visited.end())
+    return nullptr;
+
+  visited.emplace(e);
+
+  if (const Expr *empty = asEmptyContainerLiteral(e))
+    return conditional ? empty : nullptr;
+
+  if (e->op() == TO_NULLC)
+    return findEmptyContainerValue(static_cast<const BinExpr *>(e)->rhs(), visited, true);
+
+  if (e->op() == TO_TERNARY) {
+    const TerExpr *t = static_cast<const TerExpr *>(e);
+    const Expr *r = findEmptyContainerValue(t->b(), visited, true);
+    return r ? r : findEmptyContainerValue(t->c(), visited, true);
+  }
+
+  const Expr *ev = deparenStatic(maybeEval(e));
+
+  if (ev && ev != e)
+    return findEmptyContainerValue(ev, visited, false);
+
+  if (e->op() == TO_ID) {
+    const ValueRef *v = findValueForExpr(e);
+    if (v && v->info && v->info->kind == SK_PARAM && v->state == VRS_UNKNOWN && !v->assigned) {
+      const ParamDecl *p = v->info->declarator.p;
+      if (p && p->hasDefaultValue())
+        return findEmptyContainerValue(p->defaultValue(), visited, true);
+    }
+  }
+
+  return nullptr;
+}
+
+bool CheckerVisitor::isEnclosingLoopVariable(const char *name) {
+  const ValueRef *v = findValueInScopes(name);
+  if (v && v->info && v->info->kind == SK_FOREACH)
+    return true;
+
+  for (auto it = nodeStack.rbegin(); it != nodeStack.rend(); ++it) {
+    if (it->sst != SST_NODE || it->n->op() != TO_FOR)
+      continue;
+
+    const Node *init = static_cast<const ForStatement *>(it->n)->initializer();
+    if (!init)
+      continue;
+
+    if (init->op() == TO_VAR) {
+      if (strcmp(static_cast<const VarDecl *>(init)->name(), name) == 0)
+        return true;
+    }
+    else if (init->op() == TO_DECL_GROUP) {
+      for (auto d : static_cast<const DeclGroup *>(init)->declarations())
+        if (strcmp(d->name(), name) == 0)
+          return true;
+    }
+  }
+
+  return false;
+}
+
+void CheckerVisitor::checkAccessPotentiallyEmpty(const AccessExpr *acc) {
+  if (isEffectsGatheringPass)
+    return;
+
+  if (isSafeAccess(acc))
+    return;
+
+  const Node *parent = nullptr;
+  for (auto it = nodeStack.rbegin(); it != nodeStack.rend(); ++it) {
+    if (it->sst == SST_NODE) {
+      parent = it->n;
+      break;
+    }
+  }
+
+  if (parent) {
+    if (parent->op() == TO_CALL && deparen(static_cast<const CallExpr *>(parent)->callee()) == acc)
+      return;
+
+    if (parent->op() == TO_NEWSLOT && deparen(static_cast<const BinExpr *>(parent)->lhs()) == acc)
+      return;
+  }
+
+  if (acc->op() == TO_GETSLOT) {
+    const Expr *key = deparen(acc->asGetSlot()->key());
+    if (key && key->op() == TO_ID && isEnclosingLoopVariable(key->asId()->name()))
+      return;
+  }
+
+  const Expr *r = deparenStatic(acc->receiver());
+  if (!r)
+    return;
+
+  std::unordered_set<const Expr *> visited;
+  const Expr *empty = findEmptyContainerValue(r, visited, false);
+
+  if (!empty)
+    return;
+
+  if (r->op() == TO_ID || r->isAccessExpr()) {
+    const ValueRef *v = findValueForExpr(r);
+    const FunctionExpr *owner = (v && v->info && v->info->ownedScope) ? v->info->ownedScope->owner : nullptr;
+    Node *scanRoot = owner ? (Node *)owner->body() : analyzedRoot;
+    if (scanRoot && ContainerFillOrTestFinder().check(r, scanRoot))
+      return;
+  }
+
+  const char *name = r->op() == TO_ID ? r->asId()->name() : "expression";
+  const char *kind = empty->op() == TO_ARRAY ? "array" : "table";
+
+  report(acc, DiagnosticsId::DI_ACCESS_POT_EMPTY, name, kind);
+}
+
 void CheckerVisitor::checkEnumConstUsage(const GetFieldExpr *acc) {
   if (isEffectsGatheringPass)
     return;
@@ -4645,10 +5361,12 @@ void CheckerVisitor::visitTableExpr(TableExpr *table) {
     slot.sst = SST_TABLE_MEMBER;
     slot.member = &member;
 
-    checkKeyNameMismatch(member.key, member.value);
+    if (member.hasKey())
+      checkKeyNameMismatch(member.key, member.value);
 
     nodeStack.push_back(slot);
-    member.key->visit(this);
+    if (member.hasKey())
+      member.key->visit(this);
     member.value->visit(this);
     nodeStack.pop_back();
   }
@@ -4742,7 +5460,6 @@ void CheckerVisitor::applyAssignmentToScope(const BinExpr *bin) {
   ValueRef *v = findValueInScopes(name);
 
   if (!v) {
-    // TODO: what if declarator == null
     SymbolInfo *info = makeSymbolInfo(SK_VAR);
     v = makeValueRef(info);
     currentScope->symbols[name] = v;
@@ -4986,7 +5703,38 @@ bool CheckerVisitor::isPotentiallyNullable(const Expr *e, std::unordered_set<con
 
   if (e->op() == TO_TERNARY) {
     const TerExpr *t = static_cast<const TerExpr *>(e);
-    return isPotentiallyNullable(t->b(), visited) || isPotentiallyNullable(t->c(), visited);
+    bool bNullable = isPotentiallyNullable(t->b(), visited);
+    bool cNullable = isPotentiallyNullable(t->c(), visited);
+
+    // Null-check narrowing: in `x != null ? x : y`, `x == null ? y : x`,
+    // `x ? x : y` and `x instanceof T ? x : y` the checked arm cannot
+    // produce the null.
+    const Expr *cond = deparenStatic(t->a());
+    const Expr *checkee = cond;
+    bool nonNullArmIsB = true;
+    if (cond && cond->op() == TO_INSTANCEOF) {
+      checkee = deparenStatic(cond->asBinExpr()->lhs());
+    }
+    else if (cond && (cond->op() == TO_NE || cond->op() == TO_EQ)) {
+      const BinExpr *bin = cond->asBinExpr();
+      const Expr *l = deparenStatic(bin->lhs());
+      const Expr *r = deparenStatic(bin->rhs());
+      if (l && l->op() == TO_LITERAL && l->asLiteral()->kind() == LK_NULL)
+        checkee = r;
+      else if (r && r->op() == TO_LITERAL && r->asLiteral()->kind() == LK_NULL)
+        checkee = l;
+      else
+        checkee = nullptr;
+      nonNullArmIsB = cond->op() == TO_NE;
+    }
+    if (checkee) {
+      if (nonNullArmIsB && bNullable && _equalChecker.check(checkee, deparenStatic(t->b())))
+        bNullable = false;
+      else if (!nonNullArmIsB && cNullable && _equalChecker.check(checkee, deparenStatic(t->c())))
+        cNullable = false;
+    }
+
+    return bNullable || cNullable;
   }
 
   v = findValueForExpr(e);
@@ -5320,8 +6068,42 @@ void CheckerVisitor::visitParamDecl(ParamDecl *p) {
     currentInfo->parameters.push_back(normalizeParamName(p->name()));
 }
 
+// The legacy `let function f()` / `let class C {}` forms parse into the same
+// AST as their assignment counterparts, so the syntax is recovered from the
+// source text: a non-assignable declaration starts at its `let` keyword.
+static const char *letDeclKeywordFromSource(SQCompilationContext &ctx, const VarDecl *decl) {
+  const char *p = ctx.findLine(decl->lineStart());
+  if (!p)
+    return nullptr;
+
+  for (int i = 0; i < decl->columnStart(); ++i, ++p) {
+    if (!*p || *p == '\n')
+      return nullptr;
+  }
+
+  auto isIdentChar = [](char c) { return isalnum((unsigned char)c) || c == '_'; };
+
+  if (strncmp(p, "let", 3) != 0 || isIdentChar(p[3]))
+    return nullptr;
+  p += 3;
+  while (*p == ' ' || *p == '\t')
+    ++p;
+  if (strncmp(p, "function", 8) == 0 && !isIdentChar(p[8]))
+    return "function";
+  if (strncmp(p, "class", 5) == 0 && !isIdentChar(p[5]))
+    return "class";
+  return nullptr;
+}
+
 void CheckerVisitor::visitVarDecl(VarDecl *decl) {
   Visitor::visitVarDecl(decl);
+
+  checkBindingNameMismatch(decl);
+
+  if (!decl->isAssignable()) {
+    if (const char *kw = letDeclKeywordFromSource(_ctx, decl))
+      report(decl, DiagnosticsId::DI_LET_FUNCTION_STYLE, kw);
+  }
 
   SymbolInfo *info = makeSymbolInfo(decl->isAssignable() ? SK_VAR : SK_BINDING);
   ValueRef *v = makeValueRef(info);
@@ -5525,7 +6307,6 @@ void CheckerVisitor::visitImportStatement(ImportStmt *import) {
   // the binding) live in independent channels on ValueRef.
   auto declareSlot = [&](int line, int col, const char *name) {
     ValueRef *existing = findValueInScopes(name);
-    assert(existing && existing->externalValue);
 
     ImportInfo *importInfo = (ImportInfo *)arena->allocate(sizeof(ImportInfo));
     importInfo->line = line;
@@ -5537,6 +6318,14 @@ void CheckerVisitor::visitImportStatement(ImportStmt *import) {
     info->ownedScope = currentScope;
 
     ValueRef *v = makeValueRef(info);
+    if (!existing || !existing->externalValue) {
+      assert(sq_checkcompilationoption(_ctx.getVm(), CompilationOptions::CO_STATIC_ANALYSIS_SKIP_REQUIRE_RESOLUTION));
+      v->state = VRS_UNKNOWN;
+      v->expression = nullptr;
+      declareSymbol(name, v);
+      return;
+    }
+
     // Same value, but coords pointing at the import statement itself rather
     // than at the host-bindings entry's synthetic location -- so DI_SEE_OTHER
     // hints land on the import line. Going through attachExternalValue also
@@ -5640,6 +6429,7 @@ void CheckerVisitor::analyze(RootBlock *root, const HSQOBJECT *bindings) {
   assert(currentScope == nullptr);
   VarScope rootScope(nullptr, nullptr);
   currentScope = &rootScope;
+  analyzedRoot = root;
 
   if (bindings && sq_istable(*bindings)) {
     SQTable *table = _table(*bindings);

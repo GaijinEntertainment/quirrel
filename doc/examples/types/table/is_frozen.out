@@ -1,0 +1,5 @@
+t.is_frozen() = false
+frozen.is_frozen() = true
+frozen == t: true
+t.inner.is_frozen() = false
+t.inner.x = 2

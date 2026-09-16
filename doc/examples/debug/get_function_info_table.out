@@ -1,0 +1,4 @@
+add native=false requiredArgs=1
+t.argNames = a, b
+pure=true
+get_function_info_table([].insert).argNames = arg1, arg2

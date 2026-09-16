@@ -1,0 +1,5 @@
+a.is_frozen() = false
+f.is_frozen() = true
+a == f: true
+f.len() = 4
+f.append(5) throws: Cannot modify immutable object

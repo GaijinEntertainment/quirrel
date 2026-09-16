@@ -1,0 +1,5 @@
+magazineCapacity = 30
+ammoCrateId = 16711841
+ammoTypeCode = 65
+dropChance = 0.05
+starShellRange = 3500

@@ -1,5 +1,4 @@
 #include "sqpcheader.h"
-#ifndef NO_COMPILER
 #include <stdarg.h>
 #include "opcodes.h"
 #include "sqstring.h"
@@ -61,12 +60,27 @@ void ConstGenVisitor::visitLiteralExpr(LiteralExpr *expr)
 
 void ConstGenVisitor::visitArrayExpr(ArrayExpr *expr)
 {
-    SQArray *arr = SQArray::Create(_ss(_vm), expr->initializers().size());
+    SQArray *arr = SQArray::Create(_ss(_vm), 0);
+    arr->ReserveAtLeast(expr->initializers().size());
 
     for (SQUnsignedInteger i = 0; i < expr->initializers().size(); ++i) {
         Expr *valExpr = expr->initializers()[i];
+
+        if (valExpr->op() == TO_SPREAD) {
+            Expr *source = spreadSourceOf(valExpr);
+            source->visit(this);
+            if (sq_type(_result) == OT_NULL)
+                continue;
+            if (sq_type(_result) != OT_ARRAY) {
+                _ctx.throwError(source, "only an array can be spread into an array");
+                return;
+            }
+            arr->Extend(_array(_result));
+            continue;
+        }
+
         valExpr->visit(this);
-        arr->Set(i, _result);
+        arr->Append(_result);
     }
 
     _result = SQObjectPtr(arr);
@@ -82,6 +96,26 @@ void ConstGenVisitor::visitTableExpr(TableExpr *tblExpr)
     const auto &members = tblExpr->members();
     for (SQUnsignedInteger i = 0; i < members.size(); ++i) {
         const TableMember &m = members[i];
+
+        if (m.isSpread()) {
+            Expr *source = spreadSourceOf(m.value);
+            source->visit(this);
+            if (sq_type(_result) == OT_NULL)
+                continue;
+            if (sq_type(_result) != OT_TABLE) {
+                _ctx.throwError(source, "only a table can be spread into a constant table");
+                return;
+            }
+            SQObjectPtr sourceTable(_result), key, value, iterator;
+            for (;;) {
+                SQInteger next = _table(sourceTable)->Next(false, iterator, key, value);
+                if (next == -1)
+                    break;
+                table->NewSlot(key, value);
+                iterator = next;
+            }
+            continue;
+        }
 
         m.key->visit(this);
         SQObjectPtr key(_result);
@@ -435,5 +469,3 @@ void ConstGenVisitor::visitFunctionExpr(FunctionExpr *funcExpr)
 }
 
 }
-
-#endif

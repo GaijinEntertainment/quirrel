@@ -425,7 +425,6 @@ let instance_a = A()
 
 function test() {
   return {
-    @@"Table docstring"
     x = 4
     fn = function() {
       @@"Function docstring"
@@ -436,7 +435,6 @@ function test() {
 
 println(doc(A))
 println(doc(instance_a))
-println(doc(test()))
 println(doc(test().fn))
 
 

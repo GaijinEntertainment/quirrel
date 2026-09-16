@@ -81,6 +81,7 @@ public:
         ShrinkIfNeeded();
     }
     void Reserve(SQInteger size) { _values.reserve(size); VT_RESERVE(size); }
+    void ReserveAtLeast(SQInteger size) { if (size > (SQInteger)_values.capacity()) Reserve(size); }
     void Append(const SQObject &o){_values.push_back(SQObjectPtr(o)); VT_PUSHBACK(o, _ss(this)->_root_vm); }
     void Extend(const SQArray *a);
     SQObjectPtr &Top(){return _values.top();}

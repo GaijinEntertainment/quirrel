@@ -1,0 +1,3 @@
+static(drawId()) = 1
+static(drawId()) = 1
+static(drawId()) = 2

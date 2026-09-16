@@ -1,0 +1,257 @@
+{"header":"squirrel.h","group":"vm","name":"sq_open","qualified":"sq_open","ret":"HSQUIRRELVM","params":["SQInteger initialstacksize"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_newthread","qualified":"sq_newthread","ret":"HSQUIRRELVM","params":["HSQUIRRELVM friendvm","SQInteger initialstacksize"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_seterrorhandler","qualified":"sq_seterrorhandler","ret":"void","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_geterrorhandler","qualified":"sq_geterrorhandler","ret":"HSQOBJECT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_close","qualified":"sq_close","ret":"void","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_setforeignptr","qualified":"sq_setforeignptr","ret":"void","params":["HSQUIRRELVM v","SQUserPointer p"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_getforeignptr","qualified":"sq_getforeignptr","ret":"SQUserPointer","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_setsharedforeignptr","qualified":"sq_setsharedforeignptr","ret":"void","params":["HSQUIRRELVM v","SQUserPointer p"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_getsharedforeignptr","qualified":"sq_getsharedforeignptr","ret":"SQUserPointer","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_setvmreleasehook","qualified":"sq_setvmreleasehook","ret":"void","params":["HSQUIRRELVM v","SQRELEASEHOOK hook"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_getvmreleasehook","qualified":"sq_getvmreleasehook","ret":"SQRELEASEHOOK","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_setsharedreleasehook","qualified":"sq_setsharedreleasehook","ret":"void","params":["HSQUIRRELVM v","SQRELEASEHOOK hook"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_getsharedreleasehook","qualified":"sq_getsharedreleasehook","ret":"SQRELEASEHOOK","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_setprintfunc","qualified":"sq_setprintfunc","ret":"void","params":["HSQUIRRELVM v","SQPRINTFUNCTION printfunc","SQPRINTFUNCTION errfunc"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_getprintfunc","qualified":"sq_getprintfunc","ret":"SQPRINTFUNCTION","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_geterrorfunc","qualified":"sq_geterrorfunc","ret":"SQPRINTFUNCTION","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_suspendvm","qualified":"sq_suspendvm","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_wakeupvm","qualified":"sq_wakeupvm","ret":"SQRESULT","params":["HSQUIRRELVM v","SQBool resumedret","SQBool retval","SQBool invoke_err_handler","SQBool throwerror"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_getvmstate","qualified":"sq_getvmstate","ret":"SQInteger","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_registerbaselib","qualified":"sq_registerbaselib","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"vm","name":"sq_registertypeslib","qualified":"sq_registertypeslib","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_compile","qualified":"sq_compile","ret":"SQRESULT","params":["HSQUIRRELVM v","const char *s","SQInteger size","const char *sourcename","SQBool raiseerror","const HSQOBJECT *bindings = nullptr"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_parsetoast","qualified":"sq_parsetoast","ret":"SQCompilation::SqASTData *","params":["HSQUIRRELVM v","const char *s","SQInteger size","const char *sourcename","SQBool preserveComments","SQBool raiseerror"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_translateasttobytecode","qualified":"sq_translateasttobytecode","ret":"SQRESULT","params":["HSQUIRRELVM v","SQCompilation::SqASTData *astData","const HSQOBJECT *bindings","const char *s","SQInteger size","SQBool raiseerror"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_analyzeast","qualified":"sq_analyzeast","ret":"void","params":["HSQUIRRELVM v","SQCompilation::SqASTData *astData","const HSQOBJECT *bindings","const char *s","SQInteger size"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_checktrailingspaces","qualified":"sq_checktrailingspaces","ret":"void","params":["HSQUIRRELVM v","const char *sourceName","const char *s","SQInteger size"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_getimports","qualified":"sq_getimports","ret":"SQRESULT","params":["HSQUIRRELVM v","SQCompilation::SqASTData *astData","SQInteger *num","SQModuleImport **imports"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_freeimports","qualified":"sq_freeimports","ret":"void","params":["HSQUIRRELVM v","SQInteger num","SQModuleImport *imports"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_dumpast","qualified":"sq_dumpast","ret":"void","params":["HSQUIRRELVM v","SQCompilation::SqASTData *astData","bool nodesLocation","SQStreamWriteFunc write","void *ud"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_dumpbytecode","qualified":"sq_dumpbytecode","ret":"void","params":["HSQUIRRELVM v","HSQOBJECT obj","SQStreamWriteFunc write","void *ud","int instruction_index = -1"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_reset_static_memos","qualified":"sq_reset_static_memos","ret":"void","params":["HSQUIRRELVM v","HSQOBJECT func"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_allocateASTData","qualified":"sq_allocateASTData","ret":"SQCompilation::SqASTData *","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_releaseASTData","qualified":"sq_releaseASTData","ret":"void","params":["HSQUIRRELVM v","SQCompilation::SqASTData *astData"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_setcompilationoption","qualified":"sq_setcompilationoption","ret":"void","params":["HSQUIRRELVM v","enum CompilationOptions co","bool value"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_checkcompilationoption","qualified":"sq_checkcompilationoption","ret":"bool","params":["HSQUIRRELVM v","enum CompilationOptions co"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_enablevartrace","qualified":"sq_enablevartrace","ret":"void","params":["HSQUIRRELVM v","SQBool enable"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_isvartracesupported","qualified":"sq_isvartracesupported","ret":"SQBool","params":[],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_lineinfo_in_expressions","qualified":"sq_lineinfo_in_expressions","ret":"void","params":["HSQUIRRELVM v","SQBool enable"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_notifyallexceptions","qualified":"sq_notifyallexceptions","ret":"void","params":["HSQUIRRELVM v","SQBool enable"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_setcompilererrorhandler","qualified":"sq_setcompilererrorhandler","ret":"void","params":["HSQUIRRELVM v","SQCOMPILERERROR f"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_setcompilerdiaghandler","qualified":"sq_setcompilerdiaghandler","ret":"void","params":["HSQUIRRELVM v","SQ_COMPILER_DIAG_CB f"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_getcompilererrorhandler","qualified":"sq_getcompilererrorhandler","ret":"SQCOMPILERERROR","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_set_table_iter_seed","qualified":"sq_set_table_iter_seed","ret":"void","params":["HSQUIRRELVM v","SQUnsignedInteger32 iter_seed"],"note":""}
+{"header":"squirrel.h","group":"stack operations","name":"sq_push","qualified":"sq_push","ret":"void","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"stack operations","name":"sq_pop","qualified":"sq_pop","ret":"void","params":["HSQUIRRELVM v","SQInteger nelemstopop"],"note":""}
+{"header":"squirrel.h","group":"stack operations","name":"sq_poptop","qualified":"sq_poptop","ret":"void","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"stack operations","name":"sq_remove","qualified":"sq_remove","ret":"void","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"stack operations","name":"sq_gettop","qualified":"sq_gettop","ret":"SQInteger","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"stack operations","name":"sq_settop","qualified":"sq_settop","ret":"void","params":["HSQUIRRELVM v","SQInteger newtop"],"note":""}
+{"header":"squirrel.h","group":"stack operations","name":"sq_reservestack","qualified":"sq_reservestack","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger nsize"],"note":""}
+{"header":"squirrel.h","group":"stack operations","name":"sq_cmp","qualified":"sq_cmp","ret":"SQInteger","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"stack operations","name":"sq_cmpraw","qualified":"sq_cmpraw","ret":"bool","params":["HSQUIRRELVM v","HSQOBJECT &lhs","HSQOBJECT &rhs","SQInteger &res"],"note":""}
+{"header":"squirrel.h","group":"stack operations","name":"sq_move","qualified":"sq_move","ret":"void","params":["HSQUIRRELVM dest","HSQUIRRELVM src","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_newuserdata","qualified":"sq_newuserdata","ret":"SQUserPointer","params":["HSQUIRRELVM v","SQUnsignedInteger size"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_newtable","qualified":"sq_newtable","ret":"void","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_newtableex","qualified":"sq_newtableex","ret":"void","params":["HSQUIRRELVM v","SQInteger initialcapacity"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_newarray","qualified":"sq_newarray","ret":"void","params":["HSQUIRRELVM v","SQInteger size"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_new_closure_slot_from_decl_string","qualified":"sq_new_closure_slot_from_decl_string","ret":"SQRESULT","params":["HSQUIRRELVM v","SQFUNCTION func","SQUnsignedInteger nfreevars","const char *function_decl","const char *docstring"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_newclosure","qualified":"sq_newclosure","ret":"void","params":["HSQUIRRELVM v","SQFUNCTION func","SQUnsignedInteger nfreevars"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_setparamscheck","qualified":"sq_setparamscheck","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger nparamscheck","const char *typemask"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_bindenv","qualified":"sq_bindenv","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_pushstring","qualified":"sq_pushstring","ret":"void","params":["HSQUIRRELVM v","const char *s","SQInteger len"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_pushfloat","qualified":"sq_pushfloat","ret":"void","params":["HSQUIRRELVM v","SQFloat f"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_pushinteger","qualified":"sq_pushinteger","ret":"void","params":["HSQUIRRELVM v","SQInteger n"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_pushbool","qualified":"sq_pushbool","ret":"void","params":["HSQUIRRELVM v","SQBool b"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_pushuserpointer","qualified":"sq_pushuserpointer","ret":"void","params":["HSQUIRRELVM v","SQUserPointer p"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_pushnull","qualified":"sq_pushnull","ret":"void","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_pushthread","qualified":"sq_pushthread","ret":"void","params":["HSQUIRRELVM v","HSQUIRRELVM thread"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_gettype","qualified":"sq_gettype","ret":"SQObjectType","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_typeof","qualified":"sq_typeof","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getsize","qualified":"sq_getsize","ret":"SQInteger","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_gethash","qualified":"sq_gethash","ret":"SQHash","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getbase","qualified":"sq_getbase","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_instanceof","qualified":"sq_instanceof","ret":"SQBool","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_tostring","qualified":"sq_tostring","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_tobool","qualified":"sq_tobool","ret":"void","params":["HSQUIRRELVM v","SQInteger idx","SQBool *b"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getstringandsize","qualified":"sq_getstringandsize","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","const char **c","SQInteger *size"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getstring","qualified":"sq_getstring","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","const char **c"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getinteger","qualified":"sq_getinteger","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQInteger *i"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getfloat","qualified":"sq_getfloat","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQFloat *f"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getbool","qualified":"sq_getbool","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQBool *b"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getthread","qualified":"sq_getthread","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","HSQUIRRELVM *thread"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getuserpointer","qualified":"sq_getuserpointer","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQUserPointer *p"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getuserdata","qualified":"sq_getuserdata","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQUserPointer *p","SQUserPointer *typetag"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_settypetag","qualified":"sq_settypetag","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQUserPointer typetag"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_gettypetag","qualified":"sq_gettypetag","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQUserPointer *typetag"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_setreleasehook","qualified":"sq_setreleasehook","ret":"void","params":["HSQUIRRELVM v","SQInteger idx","SQRELEASEHOOK hook"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getreleasehook","qualified":"sq_getreleasehook","ret":"SQRELEASEHOOK","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getscratchpad","qualified":"sq_getscratchpad","ret":"char *","params":["HSQUIRRELVM v","SQInteger minsize"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getfunctioninfo","qualified":"sq_getfunctioninfo","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger level","SQFunctionInfo *fi"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getclosureinfo","qualified":"sq_getclosureinfo","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQInteger *nparams","SQInteger *nfreevars"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getclosurename","qualified":"sq_getclosurename","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_setnativeclosurename","qualified":"sq_setnativeclosurename","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","const char *name"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_setnativeclosuredocstring","qualified":"sq_setnativeclosuredocstring","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","const char *docstring"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_setobjectdocstring","qualified":"sq_setobjectdocstring","ret":"SQRESULT","params":["HSQUIRRELVM v","const HSQOBJECT *obj","const char *docstring"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_setinstanceup","qualified":"sq_setinstanceup","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQUserPointer p"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getinstanceup","qualified":"sq_getinstanceup","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQUserPointer *p","SQUserPointer typetag"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_setclassudsize","qualified":"sq_setclassudsize","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQInteger udsize"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_newclass","qualified":"sq_newclass","ret":"SQRESULT","params":["HSQUIRRELVM v","SQBool hasbase"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_createinstance","qualified":"sq_createinstance","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getclass","qualified":"sq_getclass","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_weakref","qualified":"sq_weakref","ret":"void","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getmemberhandle","qualified":"sq_getmemberhandle","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","HSQMEMBERHANDLE *handle"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_getbyhandle","qualified":"sq_getbyhandle","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","const HSQMEMBERHANDLE *handle"],"note":""}
+{"header":"squirrel.h","group":"object creation handling","name":"sq_setbyhandle","qualified":"sq_setbyhandle","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","const HSQMEMBERHANDLE *handle"],"note":""}
+{"header":"squirrel.h","group":"native fields","name":"sq_registernativefield","qualified":"sq_registernativefield","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger classidx","const char *name","SQInteger offset","SQInteger fieldtype"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_pushroottable","qualified":"sq_pushroottable","ret":"void","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_pushregistrytable","qualified":"sq_pushregistrytable","ret":"void","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_pushconsttable","qualified":"sq_pushconsttable","ret":"void","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_setroottable","qualified":"sq_setroottable","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_setconsttable","qualified":"sq_setconsttable","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_newslot","qualified":"sq_newslot","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQBool bstatic"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_deleteslot","qualified":"sq_deleteslot","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQBool pushval"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_set","qualified":"sq_set","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_get","qualified":"sq_get","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_rawget","qualified":"sq_rawget","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_rawset","qualified":"sq_rawset","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_rawdeleteslot","qualified":"sq_rawdeleteslot","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQBool pushval"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_newmember","qualified":"sq_newmember","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQBool bstatic"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_arrayappend","qualified":"sq_arrayappend","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_arraypop","qualified":"sq_arraypop","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQBool pushval"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_arrayresize","qualified":"sq_arrayresize","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQInteger newsize"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_arrayreverse","qualified":"sq_arrayreverse","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_arrayremove","qualified":"sq_arrayremove","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQInteger itemidx"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_arrayinsert","qualified":"sq_arrayinsert","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQInteger destpos"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_setdelegate","qualified":"sq_setdelegate","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_getdelegate","qualified":"sq_getdelegate","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_clone","qualified":"sq_clone","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_setfreevariable","qualified":"sq_setfreevariable","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQUnsignedInteger nval"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_next","qualified":"sq_next","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_getweakrefval","qualified":"sq_getweakrefval","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_clear","qualified":"sq_clear","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQBool freemem = SQTrue"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_freeze","qualified":"sq_freeze","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_freeze_inplace","qualified":"sq_freeze_inplace","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_mark_pure_inplace","qualified":"sq_mark_pure_inplace","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"squirrel.h","group":"object manipulation","name":"sq_is_pure_function","qualified":"sq_is_pure_function","ret":"bool","params":["HSQOBJECT *func"],"note":""}
+{"header":"squirrel.h","group":"calls","name":"sq_call","qualified":"sq_call","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger params","SQBool retval","SQBool invoke_err_handler"],"note":""}
+{"header":"squirrel.h","group":"calls","name":"sq_resume","qualified":"sq_resume","ret":"SQRESULT","params":["HSQUIRRELVM v","SQBool retval","SQBool invoke_err_handler"],"note":""}
+{"header":"squirrel.h","group":"calls","name":"sq_getlocal","qualified":"sq_getlocal","ret":"const char *","params":["HSQUIRRELVM v","SQUnsignedInteger level","SQUnsignedInteger idx"],"note":""}
+{"header":"squirrel.h","group":"calls","name":"sq_getcallee","qualified":"sq_getcallee","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"calls","name":"sq_getfreevariable","qualified":"sq_getfreevariable","ret":"const char *","params":["HSQUIRRELVM v","SQInteger idx","SQUnsignedInteger nval"],"note":""}
+{"header":"squirrel.h","group":"calls","name":"sq_throwparamtypeerror","qualified":"sq_throwparamtypeerror","ret":"void","params":["HSQUIRRELVM v","SQInteger nparam","SQInteger typemask","SQInteger type"],"note":""}
+{"header":"squirrel.h","group":"calls","name":"sq_throwerror","qualified":"sq_throwerror","ret":"SQRESULT","params":["HSQUIRRELVM v","const char *err"],"note":""}
+{"header":"squirrel.h","group":"calls","name":"sq_throwobject","qualified":"sq_throwobject","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"calls","name":"sq_reseterror","qualified":"sq_reseterror","ret":"void","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"calls","name":"sq_getlasterror","qualified":"sq_getlasterror","ret":"void","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"calls","name":"sq_tailcall","qualified":"sq_tailcall","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger nparams"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_getstackobj","qualified":"sq_getstackobj","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","HSQOBJECT *po"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_pushobj","qualified":"sq_pushobj","ret":"void","params":["HSQUIRRELVM v","const HSQOBJECT *po"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_pushobject","qualified":"sq_pushobject","ret":"void","params":["HSQUIRRELVM v","const HSQOBJECT &o"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_pushobject","qualified":"sq_pushobject","ret":"void","params":["HSQUIRRELVM v","HSQOBJECT o"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_addref_refcounted","qualified":"sq_addref_refcounted","ret":"void","params":["HSQUIRRELVM v","HSQOBJECT *po"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_release_refcounted","qualified":"sq_release_refcounted","ret":"SQBool","params":["HSQUIRRELVM v","HSQOBJECT *po"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_getrefcount","qualified":"sq_getrefcount","ret":"SQUnsignedInteger","params":["HSQUIRRELVM v","HSQOBJECT *po"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_resetobject","qualified":"sq_resetobject","ret":"void","params":["HSQOBJECT *po"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_objtostring","qualified":"sq_objtostring","ret":"const char *","params":["const HSQOBJECT *o"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_objtobool","qualified":"sq_objtobool","ret":"SQBool","params":["const HSQOBJECT *o"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_obj_is_true","qualified":"sq_obj_is_true","ret":"SQBool","params":["const HSQOBJECT *o"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_objtointeger","qualified":"sq_objtointeger","ret":"SQInteger","params":["const HSQOBJECT *o"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_objtofloat","qualified":"sq_objtofloat","ret":"SQFloat","params":["const HSQOBJECT *o"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_objtouserpointer","qualified":"sq_objtouserpointer","ret":"SQUserPointer","params":["const HSQOBJECT *o"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_getobjtypetag","qualified":"sq_getobjtypetag","ret":"SQRESULT","params":["const HSQOBJECT *o","SQUserPointer * typetag"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_getvmrefcount","qualified":"sq_getvmrefcount","ret":"SQUnsignedInteger","params":["HSQUIRRELVM v","const HSQOBJECT *po"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_objtypestr","qualified":"sq_objtypestr","ret":"const char*","params":["SQObjectType tp"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_obj_get","qualified":"sq_obj_get","ret":"SQRESULT","params":["HSQUIRRELVM v","const HSQOBJECT *obj","const HSQOBJECT *slot","HSQOBJECT *out","bool raw"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_obj_cmp","qualified":"sq_obj_cmp","ret":"SQBool","params":["HSQUIRRELVM v","const HSQOBJECT *a","const HSQOBJECT *b","SQInteger *res"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_obj_is_equal","qualified":"sq_obj_is_equal","ret":"bool","params":["HSQUIRRELVM v","const HSQOBJECT *a","const HSQOBJECT *b"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_fast_equal_by_value_deep","qualified":"sq_fast_equal_by_value_deep","ret":"bool","params":["const HSQOBJECT *a","const HSQOBJECT *b","int depth"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_obj_getuserdata","qualified":"sq_obj_getuserdata","ret":"SQRESULT","params":["const HSQOBJECT *obj","SQUserPointer *p","SQUserPointer *typetag"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_obj_getsize","qualified":"sq_obj_getsize","ret":"SQInteger","params":["const HSQOBJECT *obj"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_obj_getinstanceup","qualified":"sq_obj_getinstanceup","ret":"SQRESULT","params":["const HSQOBJECT *obj","SQUserPointer *p","SQUserPointer typetag"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_obj_set","qualified":"sq_obj_set","ret":"SQRESULT","params":["HSQUIRRELVM v","const HSQOBJECT *obj","const HSQOBJECT *key","const HSQOBJECT *val","bool raw"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_obj_newslot","qualified":"sq_obj_newslot","ret":"SQRESULT","params":["HSQUIRRELVM v","const HSQOBJECT *obj","const HSQOBJECT *key","const HSQOBJECT *val","bool bstatic"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_getregistrytableobj","qualified":"sq_getregistrytableobj","ret":"void","params":["HSQUIRRELVM v","HSQOBJECT *out"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_tracevar","qualified":"sq_tracevar","ret":"SQBool","params":["HSQUIRRELVM v","const HSQOBJECT * container","const HSQOBJECT * key","char * buf","int buf_size"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_collectgarbage","qualified":"sq_collectgarbage","ret":"SQInteger","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_resurrectunreachable","qualified":"sq_resurrectunreachable","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_limitthreadaccess","qualified":"sq_limitthreadaccess","ret":"SQRESULT","params":["HSQUIRRELVM vm","int64_t tid"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_canaccessfromthisthread","qualified":"sq_canaccessfromthisthread","ret":"bool","params":["HSQUIRRELVM vm"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_getallocctx","qualified":"sq_getallocctx","ret":"SQAllocContext","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"mem allocation","name":"sq_malloc","qualified":"sq_malloc","ret":"void *","params":["SQAllocContext ctx","SQUnsignedInteger size"],"note":""}
+{"header":"squirrel.h","group":"mem allocation","name":"sq_realloc","qualified":"sq_realloc","ret":"void *","params":["SQAllocContext ctx","void* p","SQUnsignedInteger oldsize","SQUnsignedInteger newsize"],"note":""}
+{"header":"squirrel.h","group":"mem allocation","name":"sq_free","qualified":"sq_free","ret":"void","params":["SQAllocContext ctx","void *p","SQUnsignedInteger size"],"note":""}
+{"header":"squirrel.h","group":"debug","name":"sq_stackinfos","qualified":"sq_stackinfos","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger level","SQStackInfos *si"],"note":""}
+{"header":"squirrel.h","group":"debug","name":"sq_setdebughook","qualified":"sq_setdebughook","ret":"void","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"debug","name":"sq_setnativedebughook","qualified":"sq_setnativedebughook","ret":"void","params":["HSQUIRRELVM v","SQDEBUGHOOK hook"],"note":""}
+{"header":"squirrel.h","group":"debug","name":"sq_set_thread_id_function","qualified":"sq_set_thread_id_function","ret":"SQGETTHREAD","params":["HSQUIRRELVM v","SQGETTHREAD func"],"note":""}
+{"header":"squirrel.h","group":"debug","name":"sq_set_sq_call_hook","qualified":"sq_set_sq_call_hook","ret":"SQSQCALLHOOK","params":["HSQUIRRELVM v","SQSQCALLHOOK hook"],"note":""}
+{"header":"squirrel.h","group":"debug","name":"sq_set_compile_line_hook","qualified":"sq_set_compile_line_hook","ret":"SQCOMPILELINEHOOK","params":["HSQUIRRELVM v","SQCOMPILELINEHOOK hook"],"note":""}
+{"header":"squirrel.h","group":"debug","name":"sq_forbidglobalconstrewrite","qualified":"sq_forbidglobalconstrewrite","ret":"void","params":["HSQUIRRELVM v","SQBool on"],"note":""}
+{"header":"squirrel.h","group":"watchdog","name":"sq_set_watchdog_hook","qualified":"sq_set_watchdog_hook","ret":"SQWATCHDOGHOOK","params":["HSQUIRRELVM v","SQWATCHDOGHOOK hook"],"note":""}
+{"header":"squirrel.h","group":"watchdog","name":"sq_kick_watchdog","qualified":"sq_kick_watchdog","ret":"void","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"watchdog","name":"sq_set_watchdog_timeout_msec","qualified":"sq_set_watchdog_timeout_msec","ret":"SQInteger","params":["HSQUIRRELVM v","SQInteger timeout"],"note":""}
+{"header":"squirrel.h","group":"static analysis","name":"sq_resetanalyzerconfig","qualified":"sq_resetanalyzerconfig","ret":"void","params":[],"note":""}
+{"header":"squirrel.h","group":"static analysis","name":"sq_loadanalyzerconfig","qualified":"sq_loadanalyzerconfig","ret":"bool","params":["const char *configFileName"],"note":""}
+{"header":"squirrel.h","group":"static analysis","name":"sq_loadanalyzerconfigblk","qualified":"sq_loadanalyzerconfigblk","ret":"bool","params":["const KeyValueFile &config"],"note":""}
+{"header":"squirrel.h","group":"static analysis","name":"sq_setdiagnosticstatebyname","qualified":"sq_setdiagnosticstatebyname","ret":"bool","params":["const char *diagId","bool val"],"note":""}
+{"header":"squirrel.h","group":"static analysis","name":"sq_setdiagnosticstatebyid","qualified":"sq_setdiagnosticstatebyid","ret":"bool","params":["int32_t id","bool val"],"note":""}
+{"header":"squirrel.h","group":"static analysis","name":"sq_printwarningslist","qualified":"sq_printwarningslist","ret":"void","params":["FILE *ostream"],"note":""}
+{"header":"squirrel.h","group":"static analysis","name":"sq_enablesyntaxwarnings","qualified":"sq_enablesyntaxwarnings","ret":"void","params":["bool on"],"note":""}
+{"header":"squirrel.h","group":"static analysis","name":"sq_checkglobalnames","qualified":"sq_checkglobalnames","ret":"void","params":["HSQUIRRELVM v"],"note":""}
+{"header":"squirrel.h","group":"static analysis","name":"sq_mergeglobalnames","qualified":"sq_mergeglobalnames","ret":"void","params":["const HSQOBJECT *bindings"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_addref","qualified":"sq_addref","ret":"void","params":["HSQUIRRELVM v","HSQOBJECT *po"],"note":""}
+{"header":"squirrel.h","group":"raw object handling","name":"sq_release","qualified":"sq_release","ret":"SQBool","params":["HSQUIRRELVM v","HSQOBJECT *po"],"note":""}
+{"header":"sqstdaux.h","group":"stdaux","name":"sqstd_seterrorhandlers","qualified":"sqstd_seterrorhandlers","ret":"void","params":["HSQUIRRELVM v"],"note":""}
+{"header":"sqstdaux.h","group":"stdaux","name":"sqstd_printcallstack","qualified":"sqstd_printcallstack","ret":"void","params":["HSQUIRRELVM v"],"note":""}
+{"header":"sqstdaux.h","group":"stdaux","name":"sqstd_formatcallstackstring","qualified":"sqstd_formatcallstackstring","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"sqstdaux.h","group":"stdaux","name":"sqstd_aux_error_to_string","qualified":"sqstd_aux_error_to_string","ret":"void","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"sqstdaux.h","group":"stdaux","name":"sqstd_formaterrortracestring","qualified":"sqstd_formaterrortracestring","ret":"SQRESULT","params":["HSQUIRRELVM v","HSQOBJECT trace"],"note":"Push `trace` (the captured async-fault trace array) rendered as a string (SQ_ERROR when it is not an array / has no frames)."}
+{"header":"sqstdaux.h","group":"stdaux","name":"sqstd_formaterrorcontextstring","qualified":"sqstd_formaterrorcontextstring","ret":"SQRESULT","params":["HSQUIRRELVM v","HSQOBJECT trace"],"note":"Push the live callstack if it has frames, else `trace` (the async fault's captured trace array) rendered as a string. SQ_ERROR if neither is available: `trace` is null/not-an-array and there is no live callstack."}
+{"header":"sqstdaux.h","group":"stdaux","name":"sqstd_throwerrorf","qualified":"sqstd_throwerrorf","ret":"SQRESULT","params":["HSQUIRRELVM v","const char *err","..."],"note":""}
+{"header":"sqstdblob.h","group":"stdblob","name":"sqstd_createblob","qualified":"sqstd_createblob","ret":"SQUserPointer","params":["HSQUIRRELVM v","SQInteger size"],"note":""}
+{"header":"sqstdblob.h","group":"stdblob","name":"sqstd_getblob","qualified":"sqstd_getblob","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQUserPointer *ptr"],"note":""}
+{"header":"sqstdblob.h","group":"stdblob","name":"sqstd_getblobsize","qualified":"sqstd_getblobsize","ret":"SQInteger","params":["HSQUIRRELVM v","SQInteger idx"],"note":""}
+{"header":"sqstdblob.h","group":"stdblob","name":"sqstd_register_bloblib","qualified":"sqstd_register_bloblib","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"sqstddatetime.h","group":"stddatetime","name":"sqstd_register_datetimelib","qualified":"sqstd_register_datetimelib","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"sqstddebug.h","group":"stddebug","name":"sqstd_register_debuglib","qualified":"sqstd_register_debuglib","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"sqstdio.h","group":"stdio","name":"sqstd_fopen","qualified":"sqstd_fopen","ret":"SQFILE","params":["const char *","const char *"],"note":""}
+{"header":"sqstdio.h","group":"stdio","name":"sqstd_fread","qualified":"sqstd_fread","ret":"SQInteger","params":["SQUserPointer","SQInteger","SQInteger","SQFILE"],"note":""}
+{"header":"sqstdio.h","group":"stdio","name":"sqstd_fwrite","qualified":"sqstd_fwrite","ret":"SQInteger","params":["const SQUserPointer","SQInteger","SQInteger","SQFILE"],"note":""}
+{"header":"sqstdio.h","group":"stdio","name":"sqstd_fseek","qualified":"sqstd_fseek","ret":"SQInteger","params":["SQFILE","SQInteger","SQInteger"],"note":""}
+{"header":"sqstdio.h","group":"stdio","name":"sqstd_ftell","qualified":"sqstd_ftell","ret":"SQInteger","params":["SQFILE"],"note":""}
+{"header":"sqstdio.h","group":"stdio","name":"sqstd_fflush","qualified":"sqstd_fflush","ret":"SQInteger","params":["SQFILE"],"note":""}
+{"header":"sqstdio.h","group":"stdio","name":"sqstd_fclose","qualified":"sqstd_fclose","ret":"SQInteger","params":["SQFILE"],"note":""}
+{"header":"sqstdio.h","group":"stdio","name":"sqstd_feof","qualified":"sqstd_feof","ret":"SQInteger","params":["SQFILE"],"note":""}
+{"header":"sqstdio.h","group":"stdio","name":"sqstd_createfile","qualified":"sqstd_createfile","ret":"SQRESULT","params":["HSQUIRRELVM v","SQFILE file","SQBool own"],"note":""}
+{"header":"sqstdio.h","group":"stdio","name":"sqstd_getfile","qualified":"sqstd_getfile","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger idx","SQFILE *file"],"note":""}
+{"header":"sqstdio.h","group":"stdio","name":"sqstd_init_streamclass","qualified":"sqstd_init_streamclass","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"sqstdio.h","group":"stdio","name":"sqstd_register_iolib","qualified":"sqstd_register_iolib","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"sqstdmath.h","group":"stdmath","name":"sqstd_register_mathlib","qualified":"sqstd_register_mathlib","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"sqstdstring.h","group":"stdstring","name":"sqstd_rex_compile","qualified":"sqstd_rex_compile","ret":"SQRex *","params":["SQAllocContext ctx","const char *pattern","const char **error"],"note":""}
+{"header":"sqstdstring.h","group":"stdstring","name":"sqstd_rex_free","qualified":"sqstd_rex_free","ret":"void","params":["SQRex *exp"],"note":""}
+{"header":"sqstdstring.h","group":"stdstring","name":"sqstd_rex_match","qualified":"sqstd_rex_match","ret":"SQBool","params":["SQRex* exp","const char* text"],"note":""}
+{"header":"sqstdstring.h","group":"stdstring","name":"sqstd_rex_search","qualified":"sqstd_rex_search","ret":"SQBool","params":["SQRex* exp","const char* text","const char** out_begin","const char** out_end"],"note":""}
+{"header":"sqstdstring.h","group":"stdstring","name":"sqstd_rex_searchrange","qualified":"sqstd_rex_searchrange","ret":"SQBool","params":["SQRex* exp","const char* text_begin","const char* text_end","const char** out_begin","const char** out_end"],"note":""}
+{"header":"sqstdstring.h","group":"stdstring","name":"sqstd_rex_getsubexpcount","qualified":"sqstd_rex_getsubexpcount","ret":"SQInteger","params":["SQRex* exp"],"note":""}
+{"header":"sqstdstring.h","group":"stdstring","name":"sqstd_rex_getsubexp","qualified":"sqstd_rex_getsubexp","ret":"SQBool","params":["SQRex* exp","SQInteger n","SQRexMatch *subexp"],"note":""}
+{"header":"sqstdstring.h","group":"stdstring","name":"sqstd_rex_matchaborted","qualified":"sqstd_rex_matchaborted","ret":"SQBool","params":["SQRex* exp"],"note":""}
+{"header":"sqstdstring.h","group":"stdstring","name":"sqstd_format","qualified":"sqstd_format","ret":"SQRESULT","params":["HSQUIRRELVM v","SQInteger nformatstringidx","SQInteger *outlen","char **output"],"note":""}
+{"header":"sqstdstring.h","group":"stdstring","name":"sqstd_pushstringf","qualified":"sqstd_pushstringf","ret":"void","params":["HSQUIRRELVM v","const char *s","..."],"note":""}
+{"header":"sqstdstring.h","group":"stdstring","name":"sqstd_register_stringlib","qualified":"sqstd_register_stringlib","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"sqstdsystem.h","group":"stdsystem","name":"sqstd_register_command_line_args","qualified":"sqstd_register_command_line_args","ret":"SQRESULT","params":["HSQUIRRELVM v","int argc","char ** argv"],"note":""}
+{"header":"sqstdsystem.h","group":"stdsystem","name":"sqstd_register_systemlib","qualified":"sqstd_register_systemlib","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":""}
+{"header":"sqasync.h","group":"async","name":"bind","qualified":"sqasync::bind","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":"Install the async runtime into the VM's shared state and build the Future class. The class is cached internally, embedders publish it where they want via future_push_class() or via SqModules::registerAsyncLib() / sqasync_register().  Call bind once per shared state, before any async function runs. A second call returns SQ_ERROR and asserts in dev builds."}
+{"header":"sqasync.h","group":"async","name":"pump","qualified":"sqasync::pump","ret":"SQInteger","params":["HSQUIRRELVM v","SQInteger maxSteps = 1024"],"note":"Drain the inbox + internal step queue. Call once per host frame, or in a drain loop on shutdown. The per-call cap bounds latency under reentrant scheduling (a callback that posts another callback). Returns the number of callbacks invoked - a zero return is not necessarily side-effect-free: a pump with an empty queue may still report previously deferred unhandled async faults through the VM error handler before returning."}
+{"header":"sqasync.h","group":"async","name":"has_pending","qualified":"sqasync::has_pending","ret":"SQBool","params":["HSQUIRRELVM v"],"note":"True iff the runtime has work it can drive forward on its own (queue or inbox non-empty, or a deferred unhandled-fault sweep is pending). Live tasks parked on a never-settling Future are NOT pending: they cannot advance without external input. Drain loops should OR this with their other pending-work signals (timer queues, in-flight HTTP, ...)."}
+{"header":"sqasync.h","group":"async","name":"post_on_vm_thread","qualified":"sqasync::post_on_vm_thread","ret":"SQRESULT","params":["HSQUIRRELVM v","VmCallback fn","void *user"],"note":"Schedule fn(user) to run on the VM thread inside the next pump(). VM-thread-only fast path. Returns SQ_ERROR if the runtime is not bound or is shutting down; on failure the caller owns `user` and must free it."}
+{"header":"sqasync.h","group":"async","name":"post_from_any_thread","qualified":"sqasync::post_from_any_thread","ret":"SQRESULT","params":["HSQUIRRELVM v","VmCallback fn","void *user"],"note":"Thread-safe variant of post_on_vm_thread: any thread may call. Returns SQ_ERROR if the runtime is not bound or is shutting down; on failure the caller owns `user` and must free it."}
+{"header":"sqasync.h","group":"async","name":"future_push_class","qualified":"sqasync::future_push_class","ret":"SQRESULT","params":["HSQUIRRELVM v"],"note":"Push the cached Future class onto the stack. Fails if bind() has not been called. Useful for embedders that need to instantiate a Future from the C side (e.g. an async.delay native that returns one)."}
+{"header":"sqasync.h","group":"async","name":"future_create","qualified":"sqasync::future_create","ret":"SQRESULT","params":["HSQUIRRELVM v","HSQOBJECT *out"],"note":"Create a fresh Future instance and write an addref'd handle into *out. Nothing is left on the stack. Caller owns one strong ref and must either settle the future via future_resolve/future_throw + sq_release, or release directly. Returns SQ_ERROR (raised) if the runtime is not bound or instance creation fails; `*out` is null on error."}
+{"header":"sqasync.h","group":"async","name":"future_resolve","qualified":"sqasync::future_resolve","ret":"SQRESULT","params":["HSQUIRRELVM v","HSQOBJECT future","HSQOBJECT value"],"note":"Settle a Future from C. An internal sq_addref keeps the payload alive. Settling an already-settled future is a no-op.  The value is stored verbatim: a Future `value` is NOT unwrapped (await unwraps one level on the script side). future_throw faults the future with the value verbatim. Prefer routing documented failures as resolved values; reserve future_throw for worker-thread bugs with no live Quirrel stack to sq_throwerror into.  Both return SQ_ERROR and throw if `future` is not a Future instance or is a task-future. The only cycle guard is a direct self-settle (future_resolve(f, f) / future_throw(f, f)), which throws."}
+{"header":"sqasync.h","group":"async","name":"future_throw","qualified":"sqasync::future_throw","ret":"SQRESULT","params":["HSQUIRRELVM v","HSQOBJECT future","HSQOBJECT value"],"note":""}
+{"header":"sqasync.h","group":"async","name":"sqasync_register","qualified":"sqasync::sqasync_register","ret":"SQInteger","params":["HSQUIRRELVM v"],"note":"SqModules RegFunc-shaped entry point. On entry the new module table is on top of the stack; the function adds \"Future\" -> class into it and leaves the table on top. Suitable for SqModules::registerStdLibNativeModule and SqModules::registerAsyncLib."}
+{"header":"sqext.h","group":"ext","name":"sq_ext_getfuncinfo","qualified":"sq_ext_getfuncinfo","ret":"SQRESULT","params":["HSQOBJECT obj","SQFunctionInfo *fi"],"note":""}
+{"header":"sqext.h","group":"ext","name":"sq_ext_get_array_floats","qualified":"sq_ext_get_array_floats","ret":"SQRESULT","params":["HSQOBJECT obj","int start","int count","float * dest"],"note":""}
+{"header":"sqext.h","group":"ext","name":"sq_ext_get_array_int","qualified":"sq_ext_get_array_int","ret":"int","params":["HSQOBJECT obj","int index","int def = 0"],"note":""}
+{"header":"sqext.h","group":"ext","name":"sq_ext_get_array_float","qualified":"sq_ext_get_array_float","ret":"float","params":["HSQOBJECT obj","int index","float def = 0.f"],"note":""}

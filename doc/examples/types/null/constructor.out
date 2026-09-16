@@ -1,0 +1,4 @@
+types.Null() = null
+types.Null(1, 2, 3) = null
+type(types.Null()) = null
+null.constructor() = null

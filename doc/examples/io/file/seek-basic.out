@@ -1,0 +1,1 @@
+f.readblob(2).as_string() = 42

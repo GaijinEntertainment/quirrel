@@ -15,7 +15,7 @@ class Vec {
   function _modulo(o){ return this.x % o.x }
   function _unm()    { return -this.x }
   function _cmp(o)   { return this.x <=> o.x }
-  function _tostring(){ return "Vec(" + this.x + ")" }
+  function _tostring(){ return $"Vec({this.x})" }
   function _typeof() { return "Vec" }
 }
 
@@ -39,10 +39,10 @@ println(typeof a)         // Vec     -> _typeof
 class Proxy {
   store = null
   constructor() { this.store = {} }
-  function _get(k)      { return ("v_" + k) in this.store ? this.store["v_" + k] : null }
-  function _set(k, v)   { this.store["v_" + k] <- v }
-  function _newslot(k, v) { this.store["v_" + k] <- v }
-  function _delslot(k)  { delete this.store["v_" + k] }
+  function _get(k)      { return $"v_{k}" in this.store ? this.store[$"v_{k}"] : null }
+  function _set(k, v)   { this.store[$"v_{k}"] <- v }
+  function _newslot(k, v) { this.store[$"v_{k}"] <- v }
+  function _delslot(k)  { delete this.store[$"v_{k}"] }
 }
 
 local proxy = Proxy()

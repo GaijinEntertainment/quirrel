@@ -1,0 +1,1 @@
+inventory.split_by_chars(",") joined = sword,shield,potion

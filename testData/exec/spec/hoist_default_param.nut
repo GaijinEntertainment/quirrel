@@ -50,10 +50,10 @@ function literalDefault() {
 }
 
 sideEffectInLoop()()
-println("loop=" + count)
+println($"loop={count}")
 deadBranch()()
-println("dead=" + count)
+println($"dead={count}")
 let a = ownAllocation()()
-println("alloc=" + a[0]() + "," + a[0]() + "," + a[1]())
+println($"alloc={a[0]()},{a[0]()},{a[1]()}")
 let l = literalDefault()()
-println("literal=" + l[0]() + "," + l[1]() + "," + l[2]())
+println($"literal={l[0]()},{l[1]()},{l[2]()}")

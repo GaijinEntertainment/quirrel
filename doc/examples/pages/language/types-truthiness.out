@@ -1,0 +1,9 @@
+null: falsy
+false: falsy
+0: falsy
+0.0: falsy
+empty string: truthy
+empty array: truthy
+empty table: truthy
+nonempty string: truthy
+1: truthy

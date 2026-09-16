@@ -11,13 +11,13 @@ p.resolve("ok")
 async function main() {
   for (local i = 0; i < 3; i++) {
     let v = await p
-    print("for i=" + i + " v=" + v + "\n")
+    println($"for i={i} v={v}")
   }
 
   let arr = ["a", "b", "c"]
   foreach (idx, item in arr) {
     let v = await p
-    print("foreach idx=" + idx + " item=" + item + " v=" + v + "\n")
+    println($"foreach idx={idx} item={item} v={v}")
   }
 }
 

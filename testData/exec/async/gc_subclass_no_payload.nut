@@ -17,4 +17,4 @@ class Sub(Future) {
 let s = Sub()
 dbg.collectgarbage()    // marks `s`: inherited hook is reached but _userpointer is NULL
 // `s` must still be alive here (held by this local) - so the GC really did walk it.
-print("collected ok: " + (s != null) + "\n")
+println($"collected ok: {s != null}")

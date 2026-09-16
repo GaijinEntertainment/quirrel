@@ -15,7 +15,7 @@ println(early())
 foreach (i in [0, 1, 2]) {
   try {
     if (i == 1) break
-    println("iter " + i)
+    println($"iter {i}")
   }
   catch (ApiError e) { println("BUG api") }
   catch (e) { println("BUG all") }
@@ -25,7 +25,7 @@ foreach (i in [0, 1, 2]) {
 foreach (i in [0, 1, 2]) {
   try {
     if (i == 1) continue
-    println("body " + i)
+    println($"body {i}")
   }
   catch (NetError e) { println("BUG net") }
 }

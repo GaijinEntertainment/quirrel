@@ -20,7 +20,7 @@ seterrorhandler(function(err, trace) {
             sawOrigin = true
     }
     assert(sawOrigin)   // pre-fault origin survives on every branch
-    println("report awaited=[" + ",".join(awaited) + "]")
+    println($"report awaited=[{",".join(awaited)}]")
 })
 
 async function failing() {

@@ -1,0 +1,88 @@
+{
+  "_comment": "Every operator the lexer accepts, grouped for the table on the Operators and expressions page and indexed for search. Each entry was checked by compiling and running it. `target` is the page section that explains it; `mm` is the metamethod that overloads it, if any. gen/check.py validates every target and metamethod name.",
+  "groups": [
+    {
+      "name": "Arithmetic",
+      "operators": [
+        { "op": "+",  "what": "add, or concatenate when either side is a string", "target": "language/operators#arithmetic", "mm": "_add" },
+        { "op": "-",  "what": "subtract", "target": "language/operators#arithmetic", "mm": "_sub" },
+        { "op": "*",  "what": "multiply", "target": "language/operators#arithmetic", "mm": "_mul" },
+        { "op": "/",  "what": "divide; integer / integer truncates", "target": "language/operators#arithmetic", "mm": "_div" },
+        { "op": "%",  "what": "remainder", "target": "language/operators#arithmetic", "mm": "_modulo" },
+        { "op": "-x", "what": "negate", "target": "language/operators#arithmetic", "mm": "_unm" },
+        { "op": "++", "what": "increment, as a prefix or a suffix", "target": "language/operators#compound-assignment-and-increment-decrement" },
+        { "op": "--", "what": "decrement, as a prefix or a suffix", "target": "language/operators#compound-assignment-and-increment-decrement" }
+      ]
+    },
+    {
+      "name": "Comparison",
+      "operators": [
+        { "op": "==",  "what": "equal", "target": "language/operators#comparison-and-three-way-compare", "mm": "_cmp" },
+        { "op": "!=",  "what": "not equal", "target": "language/operators#comparison-and-three-way-compare", "mm": "_cmp" },
+        { "op": "<",   "what": "less than", "target": "language/operators#comparison-and-three-way-compare", "mm": "_cmp" },
+        { "op": "<=",  "what": "less than or equal", "target": "language/operators#comparison-and-three-way-compare", "mm": "_cmp" },
+        { "op": ">",   "what": "greater than", "target": "language/operators#comparison-and-three-way-compare", "mm": "_cmp" },
+        { "op": ">=",  "what": "greater than or equal", "target": "language/operators#comparison-and-three-way-compare", "mm": "_cmp" },
+        { "op": "<=>", "what": "three-way compare, giving a negative number, zero or a positive one", "target": "language/operators#comparison-and-three-way-compare", "mm": "_cmp" }
+      ]
+    },
+    {
+      "name": "Logical",
+      "operators": [
+        { "op": "&&", "what": "and; yields the operand that decided the result, not a bool", "target": "language/operators#logical-operators" },
+        { "op": "||", "what": "or; yields the operand that decided the result, not a bool", "target": "language/operators#logical-operators" },
+        { "op": "!",  "what": "not; this one does yield a bool", "target": "language/operators#logical-operators" }
+      ]
+    },
+    {
+      "name": "Bitwise",
+      "operators": [
+        { "op": "&",   "what": "and", "target": "language/operators#arithmetic" },
+        { "op": "|",   "what": "or", "target": "language/operators#arithmetic" },
+        { "op": "^",   "what": "exclusive or", "target": "language/operators#arithmetic" },
+        { "op": "~",   "what": "complement", "target": "language/operators#arithmetic" },
+        { "op": "<<",  "what": "shift left", "target": "language/operators#arithmetic" },
+        { "op": ">>",  "what": "shift right, keeping the sign", "target": "language/operators#arithmetic" },
+        { "op": ">>>", "what": "shift right, filling with zeroes", "target": "language/operators#arithmetic" }
+      ]
+    },
+    {
+      "name": "Assignment",
+      "operators": [
+        { "op": "=",  "what": "assign to something that already exists", "target": "language/operators#the-newslot-operator" },
+        { "op": "<-", "what": "create a slot, then assign", "target": "language/operators#the-newslot-operator", "mm": "_newslot" },
+        { "op": "+=", "what": "add and assign", "target": "language/operators#compound-assignment-and-increment-decrement" },
+        { "op": "-=", "what": "subtract and assign", "target": "language/operators#compound-assignment-and-increment-decrement" },
+        { "op": "*=", "what": "multiply and assign", "target": "language/operators#compound-assignment-and-increment-decrement" },
+        { "op": "/=", "what": "divide and assign", "target": "language/operators#compound-assignment-and-increment-decrement" },
+        { "op": "%=", "what": "take the remainder and assign", "target": "language/operators#compound-assignment-and-increment-decrement" }
+      ]
+    },
+    {
+      "name": "Access",
+      "operators": [
+        { "op": ".",   "what": "member of a table, class or instance", "target": "language/operators#in-instanceof-typeof", "mm": "_get" },
+        { "op": "[]",  "what": "index a table, array or string", "target": "language/operators#in-instanceof-typeof", "mm": "_get" },
+        { "op": "?.",  "what": "member, giving null when the left side is null", "target": "language/operators#null-coalescing-and-null-safe-access" },
+        { "op": "?[]", "what": "index, giving null when the left side is null", "target": "language/operators#null-coalescing-and-null-safe-access" },
+        { "op": "?()", "what": "call, giving null when the callee is null", "target": "language/operators#null-coalescing-and-null-safe-access" },
+        { "op": "??",  "what": "the right side when the left one is null; only null, not any false value", "target": "language/operators#null-coalescing-and-null-safe-access" },
+        { "op": ".$",  "what": "reach the built-in type method, ignoring a slot of the same name that would shadow it, as in o.$rawdelete(key)", "target": "language/operators#the-type-method-operator" },
+        { "op": "::",  "what": "read a name from the root table", "target": "language/directives#root-table-access" }
+      ]
+    },
+    {
+      "name": "Other",
+      "operators": [
+        { "op": "?:",         "what": "conditional; picks one of two expressions", "target": "language/operators#in-instanceof-typeof" },
+        { "op": "in",         "what": "has this key; on an array it tests the INDEX, not the value", "target": "language/operators#in-instanceof-typeof" },
+        { "op": "not in",     "what": "the negation of in", "target": "language/operators#in-instanceof-typeof" },
+        { "op": "instanceof", "what": "is this instance of that class", "target": "language/classes#instanceof" },
+        { "op": "typeof",     "what": "the type name, through _typeof when there is one", "target": "language/operators#in-instanceof-typeof", "mm": "_typeof" },
+        { "op": "clone",      "what": "shallow copy; a keyword, so x.clone() does not parse", "target": "language/operators#clone", "mm": "_cloned" },
+        { "op": "delete",     "what": "remove a slot; forbidden unless a directive allows it", "target": "language/operators#delete", "mm": "_delslot" },
+        { "op": "...",        "what": "spread a container into a table or array literal; nowhere else, and in a parameter list it marks a vararg instead", "target": "language/containers#spread" }
+      ]
+    }
+  ]
+}

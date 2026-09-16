@@ -1,0 +1,4 @@
+f() = 3
+g() = 42
+g() = 42
+compilestring(...) throws: ERROR: end of statement expected (; or lf)

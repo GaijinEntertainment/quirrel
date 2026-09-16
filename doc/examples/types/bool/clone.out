@@ -1,0 +1,2 @@
+clone true = true
+x["clone"]() == x = true

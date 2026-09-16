@@ -1,0 +1,3 @@
+a after swap(0, 2) = 30, 20, 10
+a after swap(-1, 0) = 10, 20, 30
+a.swap(0, 5) throws: index out of range

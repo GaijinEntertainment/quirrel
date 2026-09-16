@@ -1,0 +1,3 @@
+empty.len() = 0
+b[0], b[1], b[2] = 0,0,0
+blob(-1) throws: cannot create blob with negative size

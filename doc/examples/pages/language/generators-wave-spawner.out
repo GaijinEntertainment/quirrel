@@ -1,0 +1,6 @@
+spawner.getstatus() = suspended
+spawn 3 enemies
+spawn 6 enemies
+spawn 9 enemies
+spawner.getstatus() = dead
+resume spawner throws: resuming dead generator

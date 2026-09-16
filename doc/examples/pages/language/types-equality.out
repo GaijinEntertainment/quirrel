@@ -1,0 +1,7 @@
+squadA == squadB = false
+squadA == squadA = true
+1 == 1.0 = true
+null == false = false
+0 == false = false
+1 <=> 2 = -1
+"alpha" <=> "bravo" = -1

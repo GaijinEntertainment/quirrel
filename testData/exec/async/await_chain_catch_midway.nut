@@ -29,7 +29,7 @@ async function catcher() {
 async function top() {
     let r = await catcher()
     assert(r == "recovered")
-    println("top got: " + r)
+    println($"top got: {r}")
 }
 
 top()

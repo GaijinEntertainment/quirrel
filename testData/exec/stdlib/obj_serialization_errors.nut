@@ -18,7 +18,7 @@ function testMaxDepth()
     b.writeobject(arr)
     println("FAIL: Max depth test should have failed")
   } catch (e) {
-    println("PASS: Max depth test - " + e)
+    println($"PASS: Max depth test - {e}")
   }
 }
 
@@ -35,7 +35,7 @@ function testUnsupportedClass()
     b.writeobject(obj)
     println("FAIL: Unsupported class test should have failed")
   } catch (e) {
-    println("PASS: Unsupported class test - " + e)
+    println($"PASS: Unsupported class test - {e}")
   }
 }
 
@@ -52,7 +52,7 @@ function testMissingGetState()
     b.writeobject(obj, { NoGetState = NoGetState })
     println("FAIL: Missing __getstate test should have failed")
   } catch (e) {
-    println("PASS: Missing __getstate test - " + e)
+    println($"PASS: Missing __getstate test - {e}")
   }
 }
 
@@ -70,7 +70,7 @@ function testInvalidGetState()
     b.writeobject(obj, { InvalidGetState = InvalidGetState })
     println("FAIL: Invalid __getstate test should have failed")
   } catch (e) {
-    println("PASS: Invalid __getstate test - " + e)
+    println($"PASS: Invalid __getstate test - {e}")
   }
 }
 
@@ -89,7 +89,7 @@ function testInvalidAvailableClasses()
     b.writeobject(obj, "not a table")
     println("FAIL: Invalid available classes test should have failed")
   } catch (e) {
-    println("PASS: Invalid available classes test - " + e)
+    println($"PASS: Invalid available classes test - {e}")
   }
 }
 
@@ -111,7 +111,7 @@ function testClassNotFound()
     b.readobject({}) // empty available classes
     println("FAIL: Class not found test should have failed")
   } catch (e) {
-    println("PASS: Class not found test - " + e)
+    println($"PASS: Class not found test - {e}")
   }
 }
 
@@ -133,7 +133,7 @@ function testInvalidConstructor()
     local x = b.readobject()
     println("FAIL: Invalid constructor test should have failed")
   } catch (e) {
-    println("PASS: Invalid constructor test - " + e)
+    println($"PASS: Invalid constructor test - {e}")
   }
 }
 
@@ -148,7 +148,7 @@ function testInvalidMarkers()
     b.readobject({})
     println("FAIL: Invalid start marker test should have failed")
   } catch (e) {
-    println("PASS: Invalid start marker test - " + e)
+    println($"PASS: Invalid start marker test - {e}")
   }
 
   // Test with valid start but invalid end marker
@@ -164,7 +164,7 @@ function testInvalidMarkers()
     b2.readobject({})
     println("FAIL: Invalid end marker test should have failed")
   } catch (e) {
-    println("PASS: Invalid end marker test - " + e)
+    println($"PASS: Invalid end marker test - {e}")
   }
 }
 
@@ -180,7 +180,7 @@ function testUnexpectedEnd()
     b.readobject({})
     println("FAIL: Unexpected end test should have failed")
   } catch (e) {
-    println("PASS: Unexpected end test - " + e)
+    println($"PASS: Unexpected end test - {e}")
   }
 }
 

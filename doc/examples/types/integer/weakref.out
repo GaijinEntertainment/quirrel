@@ -1,0 +1,2 @@
+wr = 5
+type(wr) = integer

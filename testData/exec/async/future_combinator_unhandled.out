@@ -1,0 +1,16 @@
+script done
+race winner: winner
+body done
+
+AN ERROR HAS OCCURRED [abandoned-all-fault]
+
+ERROR TRACE
+    at reject (NATIVE:-1)
+    at (sqasync_combinators:12) (sqasync_combinators:21)
+      results (captured) = array(1)
+      idx (captured) = 0
+      fut (captured) = instance
+      left (captured) = 1
+      done (captured) = instance
+      e = 'abandoned-all-fault'
+      this = class

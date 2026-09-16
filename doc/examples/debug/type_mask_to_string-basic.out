@@ -1,0 +1,1 @@
+type_mask_to_string(mask) = int

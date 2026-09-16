@@ -1,0 +1,4 @@
+(42).tofloat() = 42
+type((42).tofloat()) = float
+big.tofloat() = 9.0072e+15
+big.tofloat().tointeger() == big = false

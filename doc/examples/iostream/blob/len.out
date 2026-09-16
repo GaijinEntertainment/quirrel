@@ -1,0 +1,3 @@
+b.len() at start = 4
+b.len() after writen past end = 5
+b.len() after seek(0) = 5

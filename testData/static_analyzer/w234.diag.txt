@@ -3,7 +3,7 @@ testData/static_analyzer/w234.nut:5:8
 
   let zero = 0
   print(1 / (zero))
-        ^--------
+        ^---------
 }
 
 

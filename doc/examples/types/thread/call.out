@@ -1,0 +1,4 @@
+a, b = hello world
+t.call("hello", "world") = first
+resumed with go
+t.wakeup("go") = done

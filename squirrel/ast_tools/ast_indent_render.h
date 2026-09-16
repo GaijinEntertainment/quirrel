@@ -98,6 +98,7 @@ class IndentedTreeRenderer : public Visitor {
         case TO_MODEQ: return "%=";
         case TO_STATIC_MEMO: return "STATIC_MEMO";
         case TO_INLINE_CONST: return "INLINE_CONST";
+        case TO_SPREAD: return "...";
         case TO_PAREN: return "(";
         default: return "<UNKNOWN_OP>";
         }
@@ -194,6 +195,7 @@ public:
             case TO_PAREN:
             case TO_DELETE:
             case TO_STATIC_MEMO:
+            case TO_SPREAD:
             case TO_INLINE_CONST: {
                 UnExpr* expr = static_cast<UnExpr*>(node);
                 writeIndentedFmtString("UnExpr '%s'%s\n", treeopToStr(expr->op()), loc);
@@ -702,6 +704,10 @@ public:
                 writeIndentedFmtString("TableExpr%s\n", loc);
                 ++_indent;
                 for (auto& m : tbl->members()) {
+                    if (m.isSpread()) {
+                        m.value->visit(this);
+                        continue;
+                    }
                     writeIndentedFmtString("Field\n");
                     ++_indent;
                     writeIndentedFmtString("Key\n");

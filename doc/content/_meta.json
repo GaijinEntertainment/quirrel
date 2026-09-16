@@ -1,0 +1,44 @@
+{
+  "title": "Quirrel reference",
+  "_comment": "Only containers listed here are built. A dump taken under csq instead of sq-64-dev also holds the Dagor module set (dagor.*, frp, DataBlock, ...), which is how a separate site could reuse this tooling; the committed dump is the sq-64-dev one and carries core Quirrel alone.",
+  "groups_comment": "The sidebar, top to bottom. A group holds narrative pages or containers, never both, and `order` in a page sorts it inside its group only.",
+  "groups": [
+    "Introduction", "Language", "Guides",
+    "Base library", "Standard library", "Types",
+    "Embedding", "C API"
+  ],
+  "containers": [
+    { "id": "",                 "slug": "globals",          "title": "globals",   "group": "Base library",     "blurb": "Functions in the base library, available without an import." },
+    { "id": "types",            "slug": "types",            "title": "types",     "group": "Base library",     "blurb": "The class object of every built-in type." },
+
+    { "id": "math",             "slug": "math",             "title": "math",      "group": "Standard library", "blurb": "Arithmetic, trigonometry, rounding and hashing." },
+    { "id": "string",           "slug": "string",           "title": "string",    "group": "Standard library", "blurb": "Formatting, trimming, splitting and regular expressions." },
+    { "id": "string.regexp",    "slug": "string/regexp",    "title": "regexp",    "group": "Standard library", "blurb": "A compiled regular expression." },
+    { "id": "io",               "slug": "io",               "title": "io",        "group": "Standard library", "blurb": "File access." },
+    { "id": "io.file",          "slug": "io/file",          "title": "file",      "group": "Standard library", "blurb": "An open file." },
+    { "id": "iostream",         "slug": "iostream",         "title": "iostream",  "group": "Standard library", "blurb": "Binary streams and blobs." },
+    { "id": "iostream.blob",    "slug": "iostream/blob",    "title": "blob",      "group": "Standard library", "blurb": "A resizable block of memory read and written as a stream." },
+    { "id": "iostream.stream",  "slug": "iostream/stream",  "title": "stream",    "group": "Standard library", "blurb": "The stream methods shared by blob and file." },
+    { "id": "system",           "slug": "system",           "title": "system",    "group": "Standard library", "blurb": "Environment variables, shell commands and file management." },
+    { "id": "datetime",         "slug": "datetime",         "title": "datetime",  "group": "Standard library", "blurb": "Clock and calendar." },
+    { "id": "debug",            "slug": "debug",            "title": "debug",     "group": "Standard library", "blurb": "Introspection, the error handler, the debug hook and the garbage collector." },
+    { "id": "async",            "slug": "async",            "title": "async",     "group": "Standard library", "blurb": "Futures and the async runtime." },
+    { "id": "async.Future",     "slug": "async/future",     "title": "Future",    "group": "Standard library", "blurb": "The result of an async call, available later." },
+    { "id": "modules",          "slug": "modules",          "title": "modules",   "group": "Standard library", "blurb": "The module system seen from script." },
+
+    { "id": "types.String",     "slug": "types/string",     "title": "string",    "group": "Types", "blurb": "Methods on every string." },
+    { "id": "types.Array",      "slug": "types/array",      "title": "array",     "group": "Types", "blurb": "Methods on every array." },
+    { "id": "types.Table",      "slug": "types/table",      "title": "table",     "group": "Types", "blurb": "Methods on every table." },
+    { "id": "types.Integer",    "slug": "types/integer",    "title": "integer",   "group": "Types", "blurb": "Methods on every integer." },
+    { "id": "types.Float",      "slug": "types/float",      "title": "float",     "group": "Types", "blurb": "Methods on every float." },
+    { "id": "types.Bool",       "slug": "types/bool",       "title": "bool",      "group": "Types", "blurb": "Methods on every bool." },
+    { "id": "types.Function",   "slug": "types/function",   "title": "function",  "group": "Types", "blurb": "Methods on every closure." },
+    { "id": "types.Generator",  "slug": "types/generator",  "title": "generator", "group": "Types", "blurb": "Methods on every generator." },
+    { "id": "types.Thread",     "slug": "types/thread",     "title": "thread",    "group": "Types", "blurb": "Methods on every thread." },
+    { "id": "types.Class",      "slug": "types/class",      "title": "class",     "group": "Types", "blurb": "Methods on every class." },
+    { "id": "types.Instance",   "slug": "types/instance",   "title": "instance",  "group": "Types", "blurb": "Methods on every class instance." },
+    { "id": "types.WeakRef",    "slug": "types/weakref",    "title": "weakref",   "group": "Types", "blurb": "Methods on every weak reference." },
+    { "id": "types.UserData",   "slug": "types/userdata",   "title": "userdata",  "group": "Types", "blurb": "Methods on every userdata." },
+    { "id": "types.Null",       "slug": "types/null",       "title": "null",      "group": "Types", "blurb": "Methods on null." }
+  ]
+}

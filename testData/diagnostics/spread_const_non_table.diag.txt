@@ -1,0 +1,8 @@
+ERROR: only a table can be spread into a constant table
+testData/diagnostics/spread_const_non_table.nut:2:17
+
+const SOURCE = [1, 2]
+const BAD = { ...SOURCE }
+                 ^-----
+
+

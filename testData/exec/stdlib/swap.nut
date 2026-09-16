@@ -28,3 +28,20 @@ try {
   println($"throws: {e}")
 }
 println($"{big[0]} {big[1]} {big[2]}")
+
+local t2 = { a = 1, b = 2 }
+local err = null
+try {
+  t2.swap("a", "nosuchkey")
+} catch (e) {
+  err = e
+}
+if (err)
+  println($"error thrown: {err}")
+println($"t2.a = {t2.a}, t2.b = {t2.b}")
+if (err == null)
+  print("BUG: swap() with missing key did not throw\n")
+if (t2.a == null)
+  print("BUG: t2.a was corrupted to null\n")
+if (err != null && t2.a == 1)
+  print("OK: swap threw and table intact\n")

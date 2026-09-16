@@ -1,0 +1,4 @@
+t.hasindex("a") = true
+t.hasindex("missing") = false
+t.hasindex("b") = true
+t.hasindex("a") == t.rawin("a"): true

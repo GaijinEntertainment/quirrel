@@ -227,8 +227,8 @@ def runTestForData(filePath, compiler, workingDir, testMode):
                 xprint(f"Unknown test mode {testMode}")
 
 
-def collectTests(subdir, mode):
-    p = Path(computePath('testData', subdir))
+def collectTests(subdir, mode, root = 'testData'):
+    p = Path(computePath(root, subdir))
     return [(str(f), mode) for f in sorted(p.rglob('*')) if f.is_file()]
 
 
@@ -277,6 +277,7 @@ def main():
     allTests += collectTests('ast', 'ast')
     allTests += collectTests('static_analyzer', 'sa')
     allTests += collectTests('types', 'types')
+    allTests += collectTests('examples', 'exec', root = 'doc')
 
     with ThreadPoolExecutor(max_workers=THREADS) as pool:
         futures = [pool.submit(runTestForData, f, compiler, workingDir, mode)

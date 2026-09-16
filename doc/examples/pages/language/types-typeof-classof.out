@@ -1,0 +1,5 @@
+type(tank) = instance
+typeof tank = Vehicle
+classof(5) == Integer = true
+classof(tank) == Vehicle = true
+tank instanceof Instance = false

@@ -1,0 +1,2 @@
+s.tostring() == s = true
+s.tostring(1) throws: wrong number of parameters passed to native closure 'tostring' (2 passed, 1 required)

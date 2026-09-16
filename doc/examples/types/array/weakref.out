@@ -1,0 +1,3 @@
+type(w) = weakref
+w.ref() == a: true
+w.ref().len() = 3

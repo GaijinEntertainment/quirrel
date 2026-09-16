@@ -1,0 +1,4 @@
+computeDamage(100, 40) = 80
+computeDamage(100, 40, 2.0) = 20
+t34_tank carries 0 modules: 
+t34_tank carries 2 modules: smoke_launcher, spare_tracks

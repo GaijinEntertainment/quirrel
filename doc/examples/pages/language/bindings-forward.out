@@ -1,0 +1,3 @@
+advanceSquad(4) = arrived
+advanceSquad(3) = dug in
+pickTarget(alpha) = alpha engaged

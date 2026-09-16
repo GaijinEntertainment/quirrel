@@ -1,0 +1,2 @@
+Import error at testData/diagnostics/import_02.nut:6:32: Script file a (a) not found
+testData/diagnostics/import_02.nut:6:32

@@ -72,7 +72,7 @@ let m = [
 ]
 m.sort(@(a, b) a.age <=> b.age)
 println("\nTables by age:")
-m.each(@(v) println(v.name + ": " + v.age))
+m.each(@(v) println($"{v.name}: {v.age}"))
 
 // Reverse sorted array
 let n = [9, 7, 5, 3, 1]

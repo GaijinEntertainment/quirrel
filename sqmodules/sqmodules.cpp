@@ -366,7 +366,8 @@ bool SqModules::importModules(const char *resolved_fn, Sqrat::Table &bindings_de
   bool success = true;
   string mergeErrorMsg, requireErrorMsg;
 
-  for (int iImp = 0; iImp < num_imports; ++iImp)
+  int iImp = 0;
+  for (; iImp < num_imports; ++iImp)
   {
     const SQModuleImport &import = imports[iImp];
     Sqrat::Object exports;
@@ -453,6 +454,10 @@ bool SqModules::importModules(const char *resolved_fn, Sqrat::Table &bindings_de
   G_UNUSED(rsIdx);
   SQRAT_ASSERT(runningScripts.size() == rsIdx + 1);
   runningScripts.pop_back();
+
+  if (!success && compilationOptions.raiseError)
+    if (auto errorHandler = sq_getcompilererrorhandler(sqvm))
+      errorHandler(sqvm, SEV_ERROR, out_err_msg.c_str(), resolved_fn, imports[iImp].line, imports[iImp].nameColumn, nullptr);
 
   return success;
 }
@@ -625,7 +630,7 @@ bool SqModules::reloadAll(string &full_err_msg)
 }
 
 
-bool SqModules::addNativeModule(const char *module_name, const Sqrat::Object &exports, const char *module_doc_string)
+bool SqModules::addNativeModule(const char *module_name, const Sqrat::Object &exports)
 {
   if (!module_name || !*module_name)
   {
@@ -635,9 +640,6 @@ bool SqModules::addNativeModule(const char *module_name, const Sqrat::Object &ex
 
   auto ins = nativeModules.insert({string(module_name), exports});
   SQRAT_ASSERT(ins.second && "Module registered twice");
-
-  if (module_doc_string && ins.second)
-    sq_setobjectdocstring(exports.GetVM(), &const_cast<Sqrat::Object &>(exports).GetObject(), module_doc_string);
 
   return ins.second; // false if already registered
 }
@@ -775,7 +777,10 @@ void SqModules::callAndClearUnloadHandlers(bool is_closing)
 {
   resetStaticMemos();
 
-  for (const Sqrat::Object &f : onModuleUnload)
+  vector<Sqrat::Object> unloadHandlers;
+  unloadHandlers.swap(onModuleUnload);
+
+  for (const Sqrat::Object &f : unloadHandlers)
   {
     SQInteger nparams = 0, nfreevars = 0;
     sq_pushobject(sqvm, f.GetObject());
@@ -790,7 +795,18 @@ void SqModules::callAndClearUnloadHandlers(bool is_closing)
     else
       SQRAT_ASSERT(0);
   }
-  onModuleUnload.clear();
+
+  for (ModuleUnloadCallback cb : onModuleUnloadNative)
+    cb(sqvm, is_closing);
+}
+
+
+void SqModules::addModuleUnloadCallback(ModuleUnloadCallback cb)
+{
+  auto it = SQRAT_STD::find_if(onModuleUnloadNative.begin(), onModuleUnloadNative.end(),
+    [cb](ModuleUnloadCallback f) { return f == cb; });
+  if (it == onModuleUnloadNative.end())
+    onModuleUnloadNative.push_back(cb);
 }
 
 
@@ -839,13 +855,13 @@ void SqModules::registerModulesLib()
   exports
     .Func(
       "get_native_module_names", [this]() { return this->getNativeModuleNames(); },
-      "Returns an array with a list of names of native modules.")
+      SQ_DOC("Returns an array with a list of names of native modules."))
     .Func(
-      "reset_static_memos", [this]() { return this->resetStaticMemos(); }, "Reset static memo expressions cache.")
+      "reset_static_memos", [this]() { return this->resetStaticMemos(); }, SQ_DOC("Reset static memo expressions cache."))
     .SquirrelFunc("on_module_unload", register_on_module_unload, 2, ".c",
-      "Register module unload callback. "
-      "Example: on_module_unload( function(is_app_closing) {println(is_app_closing ? \"Closing\" : \"Soft reloading\")} )",
+      SQ_DOC("Register module unload callback. "
+        "Example: on_module_unload( function(is_app_closing) {println(is_app_closing ? \"Closing\" : \"Soft reloading\")} )"),
       1, &selfObj.value);
 
-  addNativeModule("modules", exports, "Contains functions to work with modules, like on_module_unload(), get_native_module_names()");
+  addNativeModule("modules", exports);
 }

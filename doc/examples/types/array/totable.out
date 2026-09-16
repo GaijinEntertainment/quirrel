@@ -1,0 +1,4 @@
+t1.a = 1 t1.b = 2
+t2.x = x t2.y = y
+pair with 3 elements throws: totable() expected array of pairs [[key, value], ...], size of the each pair array must be exactly 2 elements
+non-pair element throws: totable() expected array of pairs [[key, value], ...] or array of simple types ["key1", "key2", ...]

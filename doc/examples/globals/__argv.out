@@ -1,0 +1,3 @@
+__argv in root = true
+type(root.__argv) = array
+root.__argv.len() >= 2 = true

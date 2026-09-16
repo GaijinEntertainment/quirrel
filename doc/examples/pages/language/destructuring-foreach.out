@@ -1,0 +1,6 @@
+alpha fields 4
+bravo fields 9
+slot 0: alpha
+slot 1: bravo
+spawn at 10,20
+spawn at 30,40

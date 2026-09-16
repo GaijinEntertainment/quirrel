@@ -1,0 +1,6 @@
+squad.$rawdelete("name") = alpha
+squad.len() = 1
+squad.$rawdelete("missing") == null: true
+shadowed.rawdelete = just a field
+type(shadowed.$rawdelete) = function
+frozen.$rawdelete("name") throws: Cannot modify immutable object

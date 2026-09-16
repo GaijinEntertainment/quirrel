@@ -1,0 +1,4 @@
+squad.$len() = 1
+shadowed.len = a field, not a method
+shadowed.$len() = 2
+shadowed.len() throws: attempt to call 'string'

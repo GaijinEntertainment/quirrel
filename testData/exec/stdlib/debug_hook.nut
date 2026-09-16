@@ -17,7 +17,7 @@ dbg.setdebughook(function(etype, src, line, funcname) { hookEvents++ })
 class Animal {
   name = ""
   constructor(n) { this.name = n }
-  function speak() { return this.name + "!" }
+  function speak() { return $"{this.name}!" }
 }
 
 function makeGen() {
@@ -42,7 +42,7 @@ function workload() {
   local label = (s > 0) ? "pos" : "nonpos"
   local ok = (s != 0) && (label.len() > 0)
   local maybe = null ?? "fallback"
-  local text = label + "/" + maybe + "/" + ok.tostring()
+  local text = $"{label}/{maybe}/{ok.tostring()}"
 
   // tables + arrays: create, newslot, get/set, foreach
   local t = { a = 1, b = 2, c = 3 }

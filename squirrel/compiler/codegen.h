@@ -51,12 +51,20 @@ public:
     bool IsConstant(const SQObject &name, SQObjectPtr &e);
     bool IsLocalConstant(const SQObject &name, SQObjectPtr &e);
     bool IsGlobalConstant(const SQObject &name, SQObjectPtr &e);
+    // Resolves `name` to its compile-time constant value, unless a local/outer
+    // of the same name shadows it. Returns true and sets `e` on success.
+    bool ResolveUnshadowedConst(const SQObjectPtr &name, SQObjectPtr &e);
 
     SQObjectPtr compileConstFunc(FunctionExpr *funcExpr);
 
 private:
 
+    void ThrowIfUsedBeforeDefinition(const Id *id, const SQCompiletimeVarInfo &varInfo);
+    void ThrowForwardDeclarationWriteError(Expr *lvalue, const SQCompiletimeVarInfo &varInfo);
+    void CheckForwardDeclarationsDefined();
+
     void CheckDuplicateLocalIdentifier(Node *n, SQObject name, const char *desc, bool ignore_global_consts);
+    void CheckOuterLocalIdentifier(Node *n, SQObject name, const char *desc);
     bool CheckMemberUniqueness(ArenaVector<Expr *> &vec, Expr *obj);
 
     void EmitLoadConstInt(SQInteger value, SQInteger target);
@@ -71,9 +79,10 @@ private:
     void generateTableExpr(TableExpr *tableExpr);
 
     SQTable* GetScopedConstsTable();
-    void SaveDocstringToVM(void *key, const DocObject &docObject);
+    SQDocStringId AddDocString(Node *owner, const DocObject &docObject);
 
     void emitUnaryOp(SQOpcode op, UnExpr *arg);
+    void emitSpreadInto(Expr *spread, SQUnsignedInteger elementsAfterSpread);
     void emitAwait(UnExpr *arg);
     void emitDelete(UnExpr *argument);
     void emitSimpleBinaryOp(SQOpcode op, Expr *lhs, Expr *rhs, SQInteger op3 = 0);
@@ -120,7 +129,7 @@ private:
     bool visitForValueMaybeStaticMemo(Node *n);
 
     void selectConstant(SQInteger target, const SQObjectPtr &constant);
-    void addPatchDocObjectInstruction(const DocObject &docObject);
+    void addSetClassDocStringInstruction(Node *owner, const DocObject &docObject);
 
     unsigned inferExprTypeMask(Expr *expr);
     unsigned inferExprTypeMaskImpl(Expr *expr);

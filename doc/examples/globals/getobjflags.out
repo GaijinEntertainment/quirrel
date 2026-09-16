@@ -1,0 +1,4 @@
+getobjflags(t) = 0
+getobjflags(f) = 1
+getobjflags(t) = 0
+getobjflags(5) = 0

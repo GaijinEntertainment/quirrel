@@ -1,0 +1,6 @@
+staleQueue (captured for's shared slot):
+3 3 3 
+freshQueue (captured a fresh local per pass):
+0 1 2 
+angleQueue (captured foreach's own fresh variable):
+15 45 75 

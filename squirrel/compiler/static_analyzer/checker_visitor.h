@@ -112,12 +112,13 @@ class CheckerVisitor : public Visitor
   void report(int line, int col, int width, int32_t id, ...);
 
   void checkKeyNameMismatch(const Expr *key, const Expr *expr);
+  void checkBindingNameMismatch(const VarDecl *decl);
 
   void checkAlwaysTrueOrFalse(const Expr *expr);
 
   void checkIdUsed(const Id *id, const Node *p, ValueRef *v);
 
-  void reportIfCannotBeNull(const Expr *checkee, const Expr *n, const char *loc);
+  bool reportIfCannotBeNull(const Expr *checkee, const Expr *n, const char *loc);
   void reportModifyIfContainer(const Expr *e, const Expr *mod);
   void checkForgotSubst(const LiteralExpr *l);
   void checkContainerModification(const UnExpr *expr);
@@ -165,20 +166,25 @@ class CheckerVisitor : public Visitor
   void checkCallFromRoot(const CallExpr *callExpr);
   void checkForbiddenParentDir(const CallExpr *callExpr);
   void checkFormatArguments(const CallExpr *callExpr);
+  void checkSubstArguments(const CallExpr *callExpr);
   void checkArguments(const CallExpr *callExpr);
+  bool checkConditionalCalleeArity(const CallExpr *callExpr);
   void checkContainerModification(const CallExpr *expr);
   void checkUnwantedModification(const CallExpr *expr);
+  void checkMutatingSharedDefault(const CallExpr *expr);
+  void checkMutatingSharedDefault(const BinExpr *expr);
+  void checkMutatingSharedDefault(const IncExpr *expr);
+  void checkMutatingSharedDefault(const UnExpr *expr);
   void checkCannotBeNull(const CallExpr *expr);
   void checkBooleanLambda(const CallExpr *expr);
   void checkCallbackReturnValue(const CallExpr *expr);
   void checkCallbackShouldNotReturn(const CallExpr *expr);
+  void checkSameArgsInCall(const CallExpr *expr);
   void checkBoolIndex(const GetSlotExpr *expr);
   void checkNullableIndex(const GetSlotExpr *expr);
   void checkGlobalAccess(const GetFieldExpr *expr);
   void checkAccessFromStatic(const GetFieldExpr *expr);
   void checkExternalField(const GetFieldExpr *expr);
-
-  bool hasDynamicContent(const SQObject &container);
 
   bool findIfWithTheSameCondition(const Expr * condition, const IfStatement * elseNode, const Expr *&duplicated) {
     if (_equalChecker.check(condition, elseNode->condition())) {
@@ -258,7 +264,12 @@ class CheckerVisitor : public Visitor
 
   void checkAccessNullable(const DestructuringDecl *d);
   void checkAccessNullable(const AccessExpr *acc);
+  void checkAccessPotentiallyEmpty(const AccessExpr *acc);
+  const Expr *findEmptyContainerValue(const Expr *e, std::unordered_set<const Expr *> &visited, bool conditional);
+  bool isEnclosingLoopVariable(const char *name);
   void checkEnumConstUsage(const GetFieldExpr *acc);
+  const ParamDecl *findMutatedSharedDefaultParam(const Expr *receiver);
+  void reportMutatingSharedDefault(const Expr *receiver, const Node *mod);
 
   enum StackSlotType {
     SST_NODE,
@@ -309,6 +320,8 @@ class CheckerVisitor : public Visitor
   ExternalValueTable externalValues; // Declared after arena and ctx for correct life time
 
   FunctionInfo *currentInfo;
+
+  Node *analyzedRoot; // scan fallback for symbols owned by the root scope
 
   void declareSymbol(const char *name, ValueRef *v);
   void pushFunctionScope(VarScope *functionScope, const FunctionExpr *decl);
@@ -362,7 +375,14 @@ class CheckerVisitor : public Visitor
 
   LiteralExpr trueValue, falseValue, nullValue;
 
+  struct LoopCannotBeNullCheck {
+    const Expr *reportee;
+    const char *loc;
+  };
+  enum LoopConditionCheckPass { LCCP_NONE, LCCP_INITIAL, LCCP_FINAL };
   bool isEffectsGatheringPass;
+  LoopConditionCheckPass loopConditionCheckPass;
+  std::vector<LoopCannotBeNullCheck> *loopCannotBeNullChecks;
 
   void putIntoGlobalNamesMap(std::unordered_map<std::string, std::vector<IdLocation>> &map, enum DiagnosticsId diag, const char *name, const Node *d);
   void storeGlobalDeclaration(const char *name, const Node *d);
@@ -375,12 +395,15 @@ public:
     , arena(ctx.arena())
     , externalValues(ctx.arena())
     , currentInfo(nullptr)
+    , analyzedRoot(nullptr)
     , currentScope(nullptr)
     , breakScope(nullptr)
     , trueValue(SourceSpan::invalid(), true)
     , falseValue(SourceSpan::invalid(), false)
     , nullValue(SourceSpan::invalid())
-    , isEffectsGatheringPass(false) {}
+    , isEffectsGatheringPass(false)
+    , loopConditionCheckPass(LCCP_NONE)
+    , loopCannotBeNullChecks(nullptr) {}
 
   ~CheckerVisitor();
 
