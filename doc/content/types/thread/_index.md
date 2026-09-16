@@ -1,14 +1,14 @@
 ## What a thread is
 
 A thread is a cooperative coroutine, not an operating system thread. Nothing runs
-in parallel and nothing needs a lock: a thread runs only while somebody has resumed
-it, and control returns to that caller the moment the thread suspends.
+in parallel and nothing needs a lock: a thread runs only after a caller has resumed
+it, and control returns to that caller when the thread suspends.
 
 What separates a thread from a [generator](sym:types.Generator) is the stack. A
 generator yields from its own body and nowhere else, so a helper it calls cannot
 pause it. A thread has an execution stack of its own, so [suspend](sym:suspend)
-works from any depth: a function three calls down can suspend the whole thread, and
-resuming it continues from exactly there. A thread also carries its own error
+works from any depth: a function three calls down can suspend the thread, and
+resuming it continues from that point. A thread also carries its own error
 handler, so a failure inside it does not have to be handled by the same policy as
 the code that started it.
 
@@ -26,8 +26,8 @@ Values pass in both directions, and each side reads them at a different place:
   `wakeup`.
 
 So a resumed thread reads its input from `suspend`'s result, not from a parameter,
-and the caller reads the thread's output from `wakeup`'s result. Miss that and the
-values look like they arrive one step late.
+and the caller reads the thread's output from `wakeup`'s result. When this rule is
+forgotten, the values seem to arrive one step late.
 
 {{example:types/thread-handshake}}
 
@@ -40,14 +40,14 @@ restarted; make a new one with [newthread](sym:newthread).
 
 ## Failure
 
-An unhandled throw inside a thread reaches whoever resumed it, so `call` and
+An unhandled throw inside a thread reaches the caller that resumed it, so `call` and
 `wakeup` can both throw and can be wrapped in `try`. It passes through the VM error
 handler on the way, which prints the message and the thread's own call stack, so a
-failing thread is noisy in the log even when the caller catches it. A thread that
-failed is left `"idle"`, exactly as if it had returned.
+failing thread still prints to the log even when the caller catches it. A thread that
+failed is left `"idle"`, the same as if it had returned.
 
-[wakeupthrow](sym:types.Thread.wakeupthrow) is the mirror of `wakeup`: instead of
-handing a value back to `suspend`, it raises one there, so the thread's own `try`
+[wakeupthrow](sym:types.Thread.wakeupthrow) is the counterpart of `wakeup`: instead of
+returning a value to `suspend`, it raises one there, so the thread's own `try`
 blocks see it. This is how a caller cancels a suspended thread from outside.
 
 `suspend` called on the root VM rather than inside a thread throws

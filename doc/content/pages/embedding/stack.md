@@ -2,16 +2,16 @@
 title: The stack
 group: Embedding
 order: 102
-summary: How C and the VM exchange values.
+summary: How C and the VM exchange values through the stack.
 ---
 
-C and the VM exchange values through a stack, a design inherited from Lua. To call
-a script function you push the function and its arguments and then call; when a
-script calls a native, the arguments are on the stack waiting.
+C and the VM exchange values through a stack. Quirrel inherited this design from
+Lua. To call a script function, push the function and its arguments, then call.
+When a script calls a native, the arguments are already on the stack.
 
-The stack exists because the two sides disagree about lifetime. A value the VM
-knows about must stay reachable while the collector can run, and a `SQObject` in a C
-local is not reachable. Putting it on the stack makes it so.
+The stack solves a lifetime problem. A value the VM knows about must stay
+reachable while the collector can run. A `SQObject` in a C local is not
+reachable. A value on the stack is reachable.
 
 ## Indexes
 
@@ -30,17 +30,17 @@ Given a stack holding `"foo"`, `0.5`, `1`, `"test"` from base to top:
 | `0.5` | 2 | -3 |
 | `"foo"` | 1, the base | -4 |
 
-`sq_gettop` returns 4 here: it is both the top index and the number of values.
+`sq_gettop` returns 4 here. It is both the top index and the number of values.
 
-Prefer negative indexes for something you just pushed and positive ones for a
-parameter you were given. Mixing the two in one expression is where off-by-one
-errors come from, because a push moves every negative index and no positive one.
+Use negative indexes for values you pushed yourself and positive indexes for
+parameters you received. A push changes every negative index and no positive
+one, so mixing the two in one expression causes off-by-one errors.
 
 ## Moving values
 
 `sq_push` copies a value already on the stack to the top. `sq_pop` drops a given
-number, `sq_remove` takes one out of the middle, and `sq_settop` forces the size,
-padding with nulls if it grows.
+number of values. `sq_remove` takes one value out of the middle. `sq_settop`
+sets the size, and pads with nulls when the stack grows.
 
 The full list is on [Stack operations](page:capi/stack).
 
@@ -49,18 +49,18 @@ The full list is on [Stack operations](page:capi/stack).
 `sq_pushstring`, `sq_pushinteger`, `sq_pushfloat`, `sq_pushbool`,
 `sq_pushuserpointer` and `sq_pushnull` put a C value on the stack.
 
-Coming back the other way, `sq_getstring`, `sq_getinteger`, `sq_getfloat`,
-`sq_getbool`, `sq_getuserpointer` and `sq_getuserdata` each return `SQRESULT`,
-because the value at that index may not be of the type asked for. Quirrel does not
-coerce here: a `sq_getstring` on a slot holding an integer fails rather than
-formatting it.
+`sq_getstring`, `sq_getinteger`, `sq_getfloat`, `sq_getbool`,
+`sq_getuserpointer` and `sq_getuserdata` read a value back. Each returns
+`SQRESULT`, because the value at that index may not have the type asked for.
+Quirrel does not coerce here: `sq_getstring` on a slot that holds an integer
+fails. It does not format the integer.
 
-`sq_gettype` reports what is actually there, as one of `OT_NULL`, `OT_INTEGER`,
+`sq_gettype` reports the type of the value, as one of `OT_NULL`, `OT_INTEGER`,
 `OT_FLOAT`, `OT_STRING`, `OT_TABLE`, `OT_ARRAY`, `OT_USERDATA`, `OT_CLOSURE`,
 `OT_NATIVECLOSURE`, `OT_GENERATOR`, `OT_USERPOINTER`, `OT_BOOL`, `OT_INSTANCE`,
 `OT_CLASS` or `OT_WEAKREF`.
 
-A `const char *` obtained from `sq_getstring` belongs to the VM. It is valid only
-while the string stays reachable, so a pointer kept past the pop is a dangling one.
-Copy it, or hold a reference as [Holding references from C](page:embedding/objects)
-describes.
+A `const char *` from `sq_getstring` belongs to the VM. It is valid only while
+the string stays reachable. A pointer kept after the pop is a dangling pointer.
+Copy the string, or hold a reference as
+[Holding references from C](page:embedding/objects) describes.

@@ -9,7 +9,7 @@ callback.
 ## Parameters
 
 - `args` - array of constructor arguments; `args[0]` must be present but its
-  value is ignored, exactly as in `acall`
+  value is ignored, as in `acall`
 
 ## Return value
 

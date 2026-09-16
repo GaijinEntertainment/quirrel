@@ -26,9 +26,9 @@ Throws `Too many arguments for findvalue()` when a third argument follows
 Takes 1 required argument (`callback`) plus 1 truly optional one (`default`)
 - despite the VM-reported signature ending in `...`, a third argument is a
 hard error, not a variadic tail; the check happens before `callback` even
-runs. This is the opposite trap from [`reduce`](sym:types.Table.reduce),
-where the VM's `...` hides a real optional parameter that never appears in
-the signature at all - here it shows one that is not really open-ended.
+runs. This is the opposite trap from [`reduce`](sym:types.Table.reduce):
+there the VM's `...` hides a real optional parameter that never appears in
+the signature; here it shows a `...` that is not open-ended.
 
 `callback` gets exactly as many of the arguments listed above as it declares
 parameters for, and never more - the same rule as

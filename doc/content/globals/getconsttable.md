@@ -14,7 +14,7 @@ The const table: a table holding engine-defined constants, such as
 An ordinary, writable table, not itself frozen; nothing stops a script from
 adding its own slots. A script's own `const` and `enum` declarations do not go
 through it - those are baked into the compiled code directly and never touch
-this table at all.
+this table.
 
 ## Example
 

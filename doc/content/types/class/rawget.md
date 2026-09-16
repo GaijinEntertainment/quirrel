@@ -22,7 +22,7 @@ with `rawin` first to avoid the throw.
 ## Notes
 
 A class has no delegate of its own to bypass - only instances and tables do -
-so `rawget` behaves exactly like plain indexing here. Inherited members are
+so `rawget` behaves like plain indexing here. Inherited members are
 visible too: a derived class copies every member of its base into its own
 table when it is declared, so `rawget` on the derived class reads them
 directly, with no lookup chain involved.

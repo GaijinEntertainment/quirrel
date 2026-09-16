@@ -22,9 +22,8 @@ array. Whatever the call itself throws is otherwise propagated unchanged.
 ## Notes
 
 Unlike `call`, `acall` takes exactly one explicit argument - the array - so
-`f.acall(a, b)` fails with a parameter-count error rather than treating `b`
-as anything. It exists for the case where the argument list is already an
-array (built up in a loop, say) instead of a literal comma list.
+`f.acall(a, b)` fails with a parameter-count error. Use it when the argument
+list is already an array, for example one built in a loop.
 
 ## Example
 

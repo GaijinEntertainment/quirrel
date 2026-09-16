@@ -21,7 +21,7 @@ function, generator, thread or weakref prints a description such as
 
 ## Errors
 
-Throws `cannot convert to String` when the conversion fails. In practice every
+Throws `cannot convert to String` when the conversion fails. Every
 built-in type converts successfully, so this is not reachable through
 ordinary Quirrel code; it exists for a `_tostring` metamethod that itself
 fails.

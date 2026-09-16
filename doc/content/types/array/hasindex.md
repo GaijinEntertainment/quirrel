@@ -16,13 +16,13 @@ negative `index`.
 
 ## Notes
 
-`hasindex` never throws, even for a wildly out-of-range `index`; indexing
+`hasindex` never throws, even for a far out-of-range `index`; indexing
 the array directly does, with `the index '<value>' (type='integer') does
 not exist`. Check with `hasindex` first when an out-of-range index is
 expected rather than exceptional.
 
 Unlike [slice](sym:types.Array.slice) and [swap](sym:types.Array.swap), a
-negative `index` here is not counted back from the end; it is simply out of
+negative `index` here is not counted back from the end; it is out of
 range.
 
 ## Example

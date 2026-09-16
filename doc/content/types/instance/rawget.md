@@ -32,8 +32,11 @@ That skip only applies to the `key` argument, not to resolving the name
 `rawget` itself: a `_get` that returns a value for every key, instead of
 `throw null` for the ones it does not recognize, shadows `someInstance.rawget`
 (and every other built-in type-method) before the call ever happens, because
-plain `.` access tries `_get` before falling back to the type-methods table. A
-well-behaved `_get` should `throw null` for keys it does not handle.
+plain `.` access tries `_get` before falling back to the type-methods table.
+`someInstance.$rawget(key)` bypasses `_get` for the method name and always
+reaches this method; see
+[the .$ type-method operator](page:language/operators#the-type-method-operator).
+A well-behaved `_get` should `throw null` for keys it does not handle.
 
 ## Example
 

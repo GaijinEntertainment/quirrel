@@ -29,7 +29,7 @@ required)`, naming the constructor, not `call`.
 because a plain function's `this` is otherwise whatever the caller bound. `call`
 is registered identically for classes, so the same leading slot is required
 here too - but a class always builds its own instance to serve as `this`, and
-silently overwrites whatever was passed in that slot with it. In other words,
+silently overwrites whatever was passed in that slot with it. So
 `SomeClass.call(a, b)` does not call the constructor with `(a, b)`: it calls the
 constructor with `(b)` alone, having thrown `a` away. Pass `null` as the first
 argument to make that visible in the calling code, and see `acall` for the same

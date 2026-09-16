@@ -20,8 +20,8 @@ an extra argument. `(5).tointeger(16)` throws a wrong-number-of-parameters
 error rather than silently ignoring the base.
 
 See [`types.Float.tointeger`](sym:types.Float.tointeger) for what happens
-when the value being converted actually has a fractional part, or is too
-large to fit in a 64-bit integer at all.
+when the value being converted has a fractional part, or is too
+large to fit in a 64-bit integer.
 
 ## Example
 

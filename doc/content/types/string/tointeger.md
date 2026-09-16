@@ -23,9 +23,9 @@ number in `base`.
 
 Takes 0 or 1 argument, not the 0-or-more the VM's dump implies. This binding
 carries no declaration string, so the VM cannot tell an optional parameter
-from a variadic tail and dumps it as `tointeger([arg1: number], ...)`; in
-truth a second explicit argument is silently ignored rather than read as
-anything, since the underlying C++ only ever looks at one extra argument.
+from a variadic tail and dumps it as `tointeger([arg1: number], ...)`. A
+second explicit argument is silently ignored, since the underlying C++ only
+reads one extra argument.
 
 ## Example
 

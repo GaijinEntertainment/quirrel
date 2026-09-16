@@ -17,15 +17,15 @@ generic contract.
 ## Errors
 
 Throws `no data left to read` when the cursor is already at `len` and
-nothing at all can be read. Throws `the stream is invalid` once the file
+nothing can be read. Throws `the stream is invalid` once the file
 has been [closed](sym:io.file.close).
 
 ## Notes
 
 `size` is capped against `len`, not against what is left after the cursor,
 so asking for more than remains is not an error by itself: fewer bytes than
-requested come back in the result blob. Only asking with nothing left at
-all throws.
+requested come back in the result blob. Only asking with nothing left
+throws.
 
 ## Example
 

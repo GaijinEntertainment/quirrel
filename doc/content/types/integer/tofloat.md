@@ -22,7 +22,7 @@ original integer.
 ## Notes
 
 Takes no arguments. See [`types.Float.tofloat`](sym:types.Float.tofloat),
-which is the identity conversion and has no such rounding to explain.
+which is the identity conversion and does not round.
 
 ## Example
 

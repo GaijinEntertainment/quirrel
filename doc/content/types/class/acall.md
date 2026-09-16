@@ -31,8 +31,8 @@ object. `Class.acall` shares that array shape for consistency with
 `Function.acall`, but a class ignores whatever sits at `args[0]`: constructing
 an instance always supplies the new instance itself as `this`, so `args[0]` is
 only a placeholder and `args[1]` is the constructor's first real argument. Use
-`null` there for clarity. This mirrors `call`'s own leading placeholder
-argument; see its Notes for the same rule spelled out for the non-array form.
+`null` there for clarity. `call` has the same leading placeholder
+argument; see its Notes for the non-array form.
 
 ## Example
 

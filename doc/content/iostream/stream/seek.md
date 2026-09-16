@@ -13,8 +13,8 @@ move landed inside the stream.
 ## Return value
 
 `0` when the target position is within `[0, len()]`, and the cursor is now
-there. `-1` when it falls outside that range; the cursor is left exactly
-where it was, so a failed `seek` never leaves the stream half-moved.
+there. `-1` when it falls outside that range; the cursor is left where it
+was, so a failed `seek` never leaves the stream half-moved.
 
 ## Errors
 

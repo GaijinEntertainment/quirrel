@@ -19,7 +19,7 @@ Takes no arguments. Registered with a receiver check of `.` (matches any
 type), the same as [`types.Table.is_frozen`](sym:types.Table.is_frozen), so
 unlike [`getfuncinfos`](sym:types.UserData.getfuncinfos) it does not fall
 into the delegate-table lookup trap described there - any `this` passes the
-check no matter which type's default method actually answers it.
+check, whichever type's default method answers it.
 
 ```nut
 // Illustration only - ud is not obtainable from plain script.

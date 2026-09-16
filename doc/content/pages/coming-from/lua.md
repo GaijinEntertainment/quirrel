@@ -7,9 +7,9 @@ layout: mapping
 ---
 
 Both languages are small, embedded, dynamically typed and reference counted, and
-both were built to be driven from C. The habits that change are the ones Lua taught
-you about tables: here an array and a table are separate types, indices start at 0,
-a missing key is an error rather than `nil`, and no name is global unless you say so.
+both are made to be driven from C. The differences are around tables: an array
+and a table are separate types, indices start at 0, a missing key is an error
+rather than `nil`, and no name is global unless you declare it global.
 
 The syntax is the C family: braces, `!=`, `&&`, `//` for a comment.
 
@@ -90,23 +90,23 @@ The syntax is the C family: braces, `!=`, `&&`, `//` for a comment.
 ## Traps
 
 - **Indices start at 0**, and the second argument of `slice` is one past the end.
-  Every loop bound and every `sub` call has to move by one.
-- **`0` is false.** Lua counts only `nil` and `false` as false. Here `0` and `0.0`
-  join them, so `if (count)` is not the same test any more. `""`, `[]` and `{}`
+  Every loop bound and every `sub` call must move by one.
+- **`0` is false.** Lua counts only `nil` and `false` as false. In Quirrel `0` and
+  `0.0` are false too, so `if (count)` is a different test. `""`, `[]` and `{}`
   stay true.
 - **`+` does not read a number out of a string.** `"10" + 1` is `"101"`, not `11`.
   Convert with `.tointeger()`. Every other arithmetic operator throws on a string.
 - **A stored `null` is not a removed key.** `t.k = null` leaves the slot, and
   `"k" in t` is still true. Use `t.$rawdelete("k")`.
-- **A missing key throws.** There is no `nil` to test afterwards, so ask first with
-  `in`, or read through `t?.k ?? dflt`.
+- **A missing key throws.** There is no `nil` to test afterwards, so test first with
+  `in`, or read with `t?.k ?? dflt`.
 - **`%` follows C.** `-7 % 3` is `-1` here and `2` in Lua.
-- **`//` is a comment**, so a Lua 5.3 floor division quietly drops the rest of the
-  line.
-- **One return value only.** A function answers with one value; pack the rest into
-  an array or a table and destructure it.
-- **A method reaches its own object through `this`.** There is no implicit `self`
-  lookup: inside a method, call a sibling as `this.other()`.
+- **`//` is a comment**, so a Lua 5.3 floor division drops the rest of the line
+  with no error.
+- **One return value only.** A function returns one value. Pack the rest into an
+  array or a table and destructure it.
+- **A method accesses its own object through `this`.** There is no implicit `self`
+  lookup. Inside a method, call another method as `this.other()`.
 - **Table order is undefined**, and the hash seed changes between runs. Sort the
   keys when the order is visible.
 
@@ -117,14 +117,14 @@ The syntax is the C family: braces, `!=`, `&&`, `//` for a comment.
 - metatables on a plain table: `setmetatable` and `setdelegate` are both gone
 - multiple return values, `goto`, `repeat ... until`, Lua string patterns
 - implicit globals, and the root table is deprecated
-- integer keys and array parts in one type: an array is an array
+- integer keys and array parts in one type; an array is a separate type
 - `#` as an operator, `..` as an operator, `elseif`, `then`, `end`, `do`
 
 ## See also
 
-- [Cheat sheet](page:cheatsheet) - the whole language on two printable pages
-- [Traps](page:cheatsheet#traps) - the ones that catch everybody
+- [Cheat sheet](page:cheatsheet) - the language on two printable pages
+- [Traps](page:cheatsheet#traps) - traps for every user, not only Lua users
 - [Tables and arrays](page:language/containers) and [Values and types](page:language/types)
-- [Generators and threads](page:language/generators) - what coroutines became
+- [Generators and threads](page:language/generators) - the Quirrel form of coroutines
 - Coming from [Python](page:coming-from/python),
   [JavaScript](page:coming-from/javascript), [Squirrel](page:coming-from/squirrel)

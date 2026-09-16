@@ -2,18 +2,17 @@
 title: Coming from Squirrel
 group: Introduction
 order: 4
-summary: What the compiler now rejects, and the changes that are silent.
+summary: Code the compiler now rejects, and changes that compile but behave differently.
 layout: mapping
 ---
 
-Quirrel is Squirrel with the ambiguous parts taken out. The language grew out of
-Gaijin's Squirrel codebase, and nearly every change goes one way: make a mistake
-fail at compile time rather than at run time. A Squirrel file rarely compiles
-unchanged, but the compiler names what it rejects and usually names the replacement
-too.
+Quirrel is Squirrel with the ambiguous parts removed. The language grew out of
+Gaijin's Squirrel codebase. Nearly every change has one goal: a mistake fails at
+compile time, not at run time. A Squirrel file rarely compiles unchanged, but the
+compiler names what it rejects and usually names the replacement too.
 
-The list to read first is [what changed quietly](#what-changed-quietly). Everything
-else reports itself.
+Read [what changed quietly](#what-changed-quietly) first. The compiler reports
+everything else.
 
 ## What the compiler rejects
 
@@ -40,44 +39,44 @@ else reports itself.
 
 ## What changed quietly
 
-These compile and run. They are the reason to test a ported file rather than only
-build it.
+These compile and run. Test a ported file; a build alone does not find them.
 
 - **`filter` swapped its callback arguments.** Squirrel passes `(index, value)`;
-  Quirrel passes `(value, index)`, which agrees with `map` and `reduce`, and with
-  `foreach` making the index optional. Code that filtered on the index still
+  Quirrel passes `(value, index)`. This agrees with `map` and `reduce`, and with
+  `foreach`, where the index is optional. Code that filtered on the index still
   compiles and now reads the value.
 - **A function or class at file scope is local.** It is no longer a slot in the root
-  table, so nothing outside the file can find it by name. Return it from a module
-  instead; see [modules](page:language/modules).
+  table, so nothing outside the file can find it by name. Return it from a module;
+  see [modules](page:language/modules).
 - **`const` and `enum` are local too**, unless they are declared `global const` or
   `global enum`.
 - **`switch` is off by default.** Without `#allow-switch-statement` the words
   `switch`, `case` and `default` are ordinary identifiers, so the block fails to
-  parse instead of being read as a statement.
-- **`delete` is off by default** in the same way, and it reports the replacement.
+  parse.
+- **`delete` is off by default** in the same way, and the compiler reports the
+  replacement.
 - **A callback can take the container as a last argument.** `map`, `filter` and
   `reduce` pass it, so `this` inside the callback is no longer the array.
 - **`array.append` and `array.extend` take several values**, so an accidental
   second argument is no longer ignored.
-- **The static analyzer runs on request** and reports about a hundred separate
-  checks: `sq -sa file.nut`. It finds unused bindings, unreachable code,
+- **The static analyzer runs on request**, `sq -sa file.nut`, and has about a
+  hundred separate checks. It finds unused bindings, unreachable code,
   suspicious null handling and more. Treat its output as part of the port.
 
 ## What is new
 
-- `let` for a binding that cannot be assigned again, and it is the default choice.
-  `local` still works where a variable really does change.
+- `let` for a binding that cannot be assigned again; it is the default choice.
+  `local` still works where a variable changes.
 - [freeze](sym:freeze) for a table, array or instance that must not be edited, and
   `is_frozen` to ask.
 - The null-safe operators `?.`, `?[`, `?()` and `??`.
 - String interpolation: `$"got {n} of {total}"`, which nests.
 - Destructuring: `let [a, b] = pair`, `let { x, y } = point`, the same in a
   parameter list, and the shorthand table `{ x, y }`.
-- A module system with two faces: `require("m")` at run time and `import "m"` at
+- A module system with two forms: `require("m")` at run time and `import "m"` at
   compile time. Both are on the [modules](page:language/modules) page.
-- `.$method` reaches a type method past a slot of the same name, so
-  `data.$len()` is the length whatever `data.len` holds.
+- `.$method` calls a type method even when a slot has the same name, so
+  `data.$len()` is the length no matter what `data.len` holds.
 - `not in`, `1_000_000`, docstrings written `@@"text"`, `static` for a value
   computed once, type annotations, and compiler directives.
 - `println` and `errorln`, and every print function takes several values.
@@ -93,8 +92,8 @@ build it.
 - Compile it, and fix what the compiler names, top to bottom. Most of it is
   `extends`, `#`, `push`, `find` and the implicit `this`.
 - Search for `filter(` and check the argument order in every callback.
-- Search for the names that other files used to reach through the root table, and
-  export them from a module.
+- Search for the names that other files read through the root table, and export
+  them from a module.
 - Run `sq -sa` over the file and read the diagnostics.
 - Change `local` to `let` where nothing assigns the name again. The analyzer
   points these out.
@@ -103,9 +102,10 @@ build it.
 
 ## See also
 
-- [Cheat sheet](page:cheatsheet) - the whole language on two printable pages
-- [Traps](page:cheatsheet#traps) - the ones that catch everybody
+- [Cheat sheet](page:cheatsheet) - the language on two printable pages
+- [Traps](page:cheatsheet#traps) - traps for every user, not only Squirrel users
 - [Bindings and constants](page:language/bindings) - `let`, `local`, `const`, `global`
-- [Compiler directives](page:language/directives) - what a file can turn on and off
+- [Compiler directives](page:language/directives) - the `#` lines that turn
+  features on and off in a file
 - Coming from [Python](page:coming-from/python),
   [JavaScript](page:coming-from/javascript), [Lua](page:coming-from/lua)

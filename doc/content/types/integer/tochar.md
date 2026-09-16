@@ -14,7 +14,7 @@ A `string` of length 1 whose only byte is `this` cast to `char`.
 Takes no arguments. The cast wraps modulo 256 and keeps no sign information,
 the same as a C `(char)` cast: `(65).tochar()` and `(65 + 256).tochar()` give
 the same character. A negative or out-of-`[0, 255]` value does not throw, it
-just wraps.
+wraps.
 
 This method also exists on `float` and `bool` (see
 [`types.Float.tochar`](sym:types.Float.tochar) and

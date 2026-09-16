@@ -14,13 +14,13 @@ into the raw bytes.
 
 ## Notes
 
-Not reachable from plain script anyway: Quirrel gives script code no way to
-create a `userdata` value in the first place, so there is never one sitting
-in a script variable to call `.clone()` on. A C++ host that creates its own
-userdata with `sq_newuserdata` hits the same error.
+Not reachable from plain script: Quirrel gives script code no way to
+create a `userdata` value, so there is never one to call `.clone()` on. A C++
+host that creates its own userdata with `sq_newuserdata` hits the same error.
 
-`clone` is also a keyword, so even attempting this needs `ud["clone"]()` or
-`clone ud`, not `ud.clone()`; see
+`clone` is also a keyword, so by default the call needs `ud["clone"]()` or
+`clone ud`, not `ud.clone()` or `ud.$clone()`. With `#forbid-clone-operator`
+the word is an ordinary identifier and `ud.$clone()` compiles. See
 [`types.Integer.clone`](sym:types.Integer.clone).
 
 ```nut

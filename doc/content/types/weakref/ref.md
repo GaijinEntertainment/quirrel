@@ -24,7 +24,7 @@ alone for a "did it die yet" check is not reliable.
 
 A `weakref` to a value that was never reference counted in the first place
 (an `integer`, `float`, `bool` or `null`) never goes dead, because
-`ref()` just hands back that same value every time - see
+`ref()` returns that same value every time - see
 [`types.WeakRef.constructor`](sym:types.WeakRef.constructor).
 
 ## Example

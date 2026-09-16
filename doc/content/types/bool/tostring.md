@@ -14,7 +14,7 @@ The literal word `"true"` or `"false"` - not `"1"`/`"0"`, unlike
 Takes no arguments; see
 [`types.Integer.tostring`](sym:types.Integer.tostring) for the shared arity
 error. `null` has no `tostring` method to compare against: it is not
-callable as a method at all, only formatted implicitly (as `"null"`) when the
+callable as a method, only formatted implicitly (as `"null"`) when the
 VM converts it for `print` or string concatenation.
 
 ## Example

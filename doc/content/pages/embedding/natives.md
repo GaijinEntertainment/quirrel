@@ -17,19 +17,19 @@ The return value is a count, not a status:
 - **0** - nothing was pushed; the call evaluates to null.
 - **SQ_ERROR** - an error was raised, usually by `sq_throwerror` just before.
 
-Its parameters are already on the stack when it runs. Index 1 is `this`, and the
-explicit parameters follow from 2. `sq_gettop` gives the count, so a variadic native
-reads its arguments by walking to the top.
+The parameters are already on the stack when the function runs. Index 1 is
+`this`, and the explicit parameters start at index 2. `sq_gettop` gives the
+count, so a variadic native reads its arguments up to the top.
 
-Free variables, if the closure has any, sit after the explicit parameters and are
-read the same way. They also count toward `sq_gettop`, which is worth remembering
-before treating that number as the arity.
+Free variables, if the closure has any, come after the explicit parameters and
+are read the same way. They also count toward `sq_gettop`, so for such a
+closure `sq_gettop` is larger than the argument count.
 
 ## Registering one
 
-The declaration string is the form to use. It gives the function real parameter
-names and types, which the VM then enforces and reports, and which is where every
-signature on this site comes from:
+Use the declaration string form. It gives the function parameter names and
+types. The VM enforces and reports them. Every signature on this site comes
+from a declaration string:
 
 ```cpp
 sq_pushroottable(v);
@@ -40,50 +40,51 @@ sq_new_closure_slot_from_decl_string(
 sq_pop(v, 1);
 ```
 
-The older form, `sq_newclosure` plus `sq_newslot`, still works and is what a
-function registered with a type mask uses. The cost shows up on this site: a symbol
-bound that way reports its parameters as `arg1`, `arg2`, and its page has to say so.
+The older form, `sq_newclosure` plus `sq_newslot`, still works. A function
+registered with a type mask uses it. A symbol bound that way reports its
+parameters as `arg1`, `arg2`, and its page says so.
 
 `SQ_DOC` wraps a docstring so a release build can drop the text.
 
 ## Reporting an error
 
-`sq_throwerror` raises a value that behaves exactly like a script `throw`, so a
-`try` in the calling script catches it:
+`sq_throwerror` raises a value that behaves like a script `throw`, so a `try`
+in the calling script catches it:
 
 ```cpp
 if (sq_gettype(v, 2) != OT_STRING)
   return sq_throwerror(v, "expected a string");
 ```
 
-`sq_throwparamtypeerror` produces the VM's own wrong-argument message instead, which
-is what to use when the complaint is a parameter type, so a native's diagnostics
-read like the built-in ones.
+`sq_throwparamtypeerror` produces the VM's own wrong-argument message. Use it
+when the error is a parameter type, so the native's diagnostics read like the
+built-in ones.
 
-Return `SQ_ERROR` after throwing. Returning 0 leaves the error set but tells the VM
-the call succeeded.
+Return `SQ_ERROR` after throwing. Returning 0 leaves the error set but tells
+the VM the call succeeded.
 
 ## Userdata and userpointers
 
 `sq_newuserdata` allocates a block of a given size, pushes it as a value, and
 returns a pointer to the payload. The VM owns the memory and frees it with every
-other object, so this is the way to attach a C struct to something a script holds.
-A userdata can be given a delegate, and then it behaves like a table.
+other object. This is the way to attach a C struct to a value a script holds. A
+userdata can have a delegate, and then it behaves like a table.
 
-To learn when it goes away, install a hook:
+To learn when the userdata is freed, install a release hook:
 
 ```cpp
 typedef SQInteger (*SQRELEASEHOOK)(HSQUIRRELVM vm, SQUserPointer, SQInteger size);
 sq_setreleasehook(v, idx, my_release);
 ```
 
-A **userpointer** is the other kind: a bare `void *` passed by value, with no
-allocation, no delegate and no release hook. `sq_pushuserpointer` costs nothing, and
-the lifetime of whatever it points at is entirely the host's problem.
+A **userpointer** is a bare `void *` passed by value. It has no allocation, no
+delegate and no release hook. `sq_pushuserpointer` costs nothing. The host owns
+the lifetime of the memory it points to.
 
 ## Runtime errors from script
 
-When a script error reaches the top with nothing catching it, the VM calls the error
-handler set by `sq_seterrorhandler`, which pops a Quirrel function off the stack. The
-handler receives an environment object and the thrown value, which can be of any
-type. This is the hook a debugger uses to stop at the throw rather than after it.
+When a script error reaches the top and nothing catches it, the VM calls the
+error handler set by `sq_seterrorhandler`. `sq_seterrorhandler` pops a Quirrel
+function off the stack. The handler receives an environment object and the
+thrown value, which can be of any type. A debugger uses this hook to stop at
+the throw, not after it.

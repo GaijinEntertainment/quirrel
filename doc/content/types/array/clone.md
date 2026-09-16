@@ -10,10 +10,12 @@ A new array with the same elements.
 
 ## Notes
 
-`clone` is a language keyword (the `clone` operator), so `a.clone()` does not
-even compile: the parser expects an identifier after `.` and rejects the
-keyword. Write `clone a` instead, or, if the call has to be built from a
-string, `a["clone"]()`.
+`clone` is a language keyword (the `clone` operator), so `a.clone()` and
+`a.$clone()` do not compile: the parser expects an identifier after `.` and
+rejects the keyword. Write `clone a` instead, or, if the call has to be built
+from a string, `a["clone"]()`. With
+[`#forbid-clone-operator`](page:language/directives#delete-and-clone) the
+word is an ordinary identifier and `a.$clone()` compiles.
 
 The copy is shallow: an element that is itself a table, array, class or
 instance is not copied, so the original and the clone reach the same nested

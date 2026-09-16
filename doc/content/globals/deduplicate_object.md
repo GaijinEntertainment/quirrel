@@ -10,8 +10,8 @@ Walks `obj` and merges equal tables and arrays it finds inside.
 
 ## Return value
 
-Always `null`, whatever `obj` was. The point of the call is the walk it does
-in place, not a value it hands back.
+Always `null`, for any `obj`. The call does its work in place and returns
+no result.
 
 ## Errors
 
@@ -24,11 +24,11 @@ Every table and array reachable from `obj` - its values, and their values, and
 so on - is marked immutable, the same flag `freeze` sets. Two of them get
 merged into one shared instance when they are equal, hold at most 20 items,
 and every value in them is `null`, `bool`, `int`, `float` or `string`; a
-smaller memory footprint is the whole purpose of the call.
+smaller memory footprint is the purpose of the call.
 
 The mark lands on what `obj` holds, not on `obj` itself: `getobjflags(obj)`
-right after the call is unchanged. Keep using the same variable rather than
-expecting a frozen replacement back.
+right after the call is unchanged. Keep using the same variable; the call
+does not return a frozen replacement.
 
 ## Example
 

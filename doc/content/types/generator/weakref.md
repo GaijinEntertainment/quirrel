@@ -12,11 +12,11 @@ generator's refcount drops to zero, `ref()` returns `null` instead.
 
 ## Notes
 
-Takes no arguments. This is a weak reference to the generator value itself -
-unrelated to the reference a suspended generator keeps on its own `this`,
-which is a different, weaker case: a suspended generator holds every local
-variable strongly except `this`, which it holds only weakly, so `this` reads
-back as `null` on the next resume if nothing else has kept it alive:
+Takes no arguments. This is a weak reference to the generator value itself.
+It is unrelated to the reference a suspended generator keeps on its own
+`this`. A suspended generator holds every local variable strongly except
+`this`, which it holds only weakly, so `this` reads back as `null` on the
+next resume if nothing else has kept it alive:
 
 ```nut
 function body() { yield typeof this; yield typeof this }

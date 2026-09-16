@@ -26,7 +26,7 @@ compare by identity, so a different table with equal contents is not a
 match.
 
 Use [`findvalue`](sym:types.Table.findvalue) instead when the match itself,
-or its key, is needed rather than just a yes/no answer.
+or its key, is needed rather than only a yes/no answer.
 
 ## Example
 

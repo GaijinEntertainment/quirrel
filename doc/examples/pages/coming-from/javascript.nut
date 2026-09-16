@@ -10,7 +10,7 @@ println(squad?.hp ?? 100)
 
 // two integers divide as integers, and a division by zero throws
 println(7 / 2)
-let zero = 0
+local zero = 0    // local: a let would fold to 0 and the analyzer would flag the division
 try {
   println(1 / zero)
 } catch (e) {

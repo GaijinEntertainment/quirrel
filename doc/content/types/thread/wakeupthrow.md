@@ -22,7 +22,7 @@ Whatever the thread passes to its next `suspend`, or returns, if it catches
 
 `value` is required: calling with no arguments throws `wrong number of
 parameters passed to native closure 'wakeupthrow' (1 passed, at least 2
-required)` before the thread is touched at all.
+required)` before the thread is touched.
 
 Throws `cannot wakeup a idle thread` or `cannot wakeup a running thread` for
 the same reasons `wakeup` does - only a `"suspended"` thread can be resumed
@@ -38,9 +38,9 @@ The signature shows `rethrow` as optional and ends in `...`, but nothing past
 the same way extra arguments are for `wakeup`.
 
 `rethrow` only controls whether *this call* reports the error to its own
-caller; it cannot be used to make an uncaught `value` quiet. A thread runs on
+caller; it cannot silence an uncaught `value`. A thread runs on
 its own stack with its own exception traps, so a `try`/`catch` around the
-call to `wakeupthrow` never sees `value` at all unless the thread's own body
+call to `wakeupthrow` never sees `value` unless the thread's own body
 lets it escape - and if it does escape, the host's runtime error reporter
 (if one is installed, as the command-line tool does) reports it straight
 from there, dumping that thread's own callstack and source path to the error

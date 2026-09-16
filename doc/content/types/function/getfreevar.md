@@ -19,7 +19,7 @@ source, and `value`, its current value.
 
 Throws `Invalid free variable index` when `index` is negative or at least as
 large as the closure's `freevars` count (see `getfuncinfos`), including on a
-closure that captured no free variables at all.
+closure that captured no free variables.
 
 ## Notes
 

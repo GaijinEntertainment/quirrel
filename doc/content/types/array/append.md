@@ -15,16 +15,16 @@ This array.
 
 ## Errors
 
-None of its own; `append()` with no value at all is a wrong-argument-count
+None of its own; `append()` with no value is a wrong-argument-count
 error from the VM, not from this function.
 
 ## Notes
 
 This binding is registered with a type mask that only covers the first
-argument, so the VM's signature shows one parameter, but `append` genuinely
+argument, so the VM's signature shows one parameter, but `append`
 accepts any number of them: `a.append(1, 2, 3)` adds all three in one call
 and one resize, unlike `array.push` in some other Squirrel-family languages,
-which this build does not have at all.
+which this build does not have.
 
 ## Example
 

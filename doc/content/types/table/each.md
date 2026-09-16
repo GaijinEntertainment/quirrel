@@ -23,8 +23,7 @@ Takes exactly one argument, `callback`.
 
 `callback` gets exactly as many of the arguments listed above as it declares
 parameters for, and never more; one that declares none is called once per slot
-with no arguments at all, which is a convenient way to count slots or repeat a
-side effect.
+with no arguments. Use this to count slots or to repeat a side effect.
 
 Iteration order is whatever the table's current order happens to be, which
 the VM does not guarantee to be stable across runs or seeds - do not let

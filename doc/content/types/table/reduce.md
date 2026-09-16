@@ -26,9 +26,9 @@ Whatever `callback` throws propagates out of `reduce`.
 
 Takes 1 required argument (`callback`) plus 1 truly optional one: an initial
 value for `accum`. The VM-reported signature is `reduce(arg1: function,
-...)` - the optional initial value has no placeholder of its own at all, it
-is entirely absorbed into the trailing `...`, so the signature undercounts
-the real parameter list rather than merely mislabeling it (contrast
+...)` - the optional initial value has no placeholder of its own, it
+is absorbed into the trailing `...`, so the signature undercounts
+the real parameter list rather than mislabeling it (contrast
 [`findvalue`](sym:types.Table.findvalue), whose optional parameter at least
 gets its own bracketed placeholder). Only the `callback` name comes from this
 page's front matter for that reason.

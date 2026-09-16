@@ -6,14 +6,13 @@ summary: Braces instead of indentation, `//` is a comment, an empty container is
 layout: mapping
 ---
 
-Most of what you know carries over: dynamic types, closures, generators,
-exceptions, iteration over a container, and classes whose methods receive the
-instance. What changes is the surface. Blocks are braces, indentation means
-nothing, a statement ends at the end of the line, and every name is declared
-before it is read.
+Most of Python carries over: dynamic types, closures, generators, exceptions,
+iteration over a container, and classes whose methods receive the instance. The
+syntax changes. Blocks use braces, indentation has no meaning, a statement ends
+at the end of the line, and every name is declared before it is read.
 
-Two differences change what a program does with no error message at all: `//` is a
-comment, and `""`, `[]` and `{}` are all true. Read the traps even if you skip the
+Two differences change what a program does without an error message: `//` is a
+comment, and `""`, `[]` and `{}` are true. Read the traps even if you skip the
 tables.
 
 ## Values and bindings
@@ -65,7 +64,7 @@ tables.
 | `s.find(sub)` | `s.indexof(sub)`, and `null` when the text is not there | sym:types.String.indexof |
 | `sorted(a)` | `let b = clone a` then `b.sort()`; `a.sort()` sorts in place | sym:types.Array.sort |
 | `[f(x) for x in a if p(x)]` | `a.filter(@(v) p(v)).map(@(v) f(v))` | sym:types.Array.filter |
-| `{**a, **b}` | `{ ...a, ...b }`, or `a.__merge(b)`; both answer a new table | page:language/containers#spread |
+| `{**a, **b}` | `{ ...a, ...b }`, or `a.__merge(b)`; both return a new table | page:language/containers#spread |
 | `copy.copy(a)` | `clone a`, one level deep | page:language/operators#clone |
 
 ## Control flow
@@ -130,26 +129,26 @@ tables.
 
 ## Traps
 
-- **`//` is a comment.** `local half = total // 2` keeps `total` and drops the rest
+- **`//` is a comment.** `let half = total // 2` keeps `total` and drops the rest
   of the line. There is no floor division operator, because `/` on two integers
   already truncates.
 - **It truncates, it does not floor.** `-7 / 2` is `-3` where Python gives `-4`, and
   `-7 % 3` is `-1` where Python gives `2`. The sign follows the left side, as in C.
 - **Only `null`, `false`, `0` and `0.0` are false.** `""`, `[]` and `{}` are all
   true, so `if (!items)` never fires. Test `items.len() == 0`.
-- **`in` asks about a key.** The keys of an array are its indices, so
+- **`in` tests for a key.** The keys of an array are its indices, so
   `2 in [10, 20, 30]` is true and `99 in [10, 20, 30]` is false. Use `contains` to
-  look for a value.
+  search for a value.
 - **`s[0]` is a number.** Indexing a string gives the character code, `97` for
   `"a"`. There is no character type.
 - **`clone` is an operator, not a function.** `clone(a).append(9)` parses as
   `clone (a.append(9))`, which appends to `a`. Write `(clone a).append(9)`.
-- **A container in a class body is one object for every instance**, exactly like a
+- **A container in a class body is one object for every instance**, like a
   mutable class attribute in Python. Declare the slot as `null` and fill it in the
   constructor.
 - **A default parameter value is built once**, so a mutable default is shared
-  between calls. The same trap as in Python, for the same reason.
-- **`1 / 0` throws.** Arithmetic gives you no `inf` and no quiet `nan`.
+  between calls. Python has the same trap, for the same reason.
+- **`1 / 0` throws.** Arithmetic never gives `inf` or a quiet `nan`.
 - **`1 < x < 3` is not a chained comparison.** It compares `(1 < x)` with `3`, and
   a bool against a number throws.
 
@@ -158,17 +157,17 @@ tables.
 ## What is not there
 
 - tuples, sets, comprehensions, `with`, decorators, keyword arguments
-- exception classes: `catch (e)` receives whatever value was thrown
+- exception classes: `catch (e)` receives the thrown value
 - `finally`, multiple inheritance, `**`, `//`
 - big integers: an `integer` is 64 bits and it wraps
-- a large standard library. [math](sym:math), [string](sym:string), [io](sym:io),
-  [iostream](sym:iostream), [datetime](sym:datetime), [debug](sym:debug),
-  `system` and [async](sym:async) are all of it.
+- a large standard library: the modules are [math](sym:math),
+  [string](sym:string), [io](sym:io), [iostream](sym:iostream),
+  [datetime](sym:datetime), [debug](sym:debug), `system` and [async](sym:async)
 
 ## See also
 
-- [Cheat sheet](page:cheatsheet) - the whole language on two printable pages
-- [Traps](page:cheatsheet#traps) - the ones that catch everybody, not only Python users
+- [Cheat sheet](page:cheatsheet) - the language on two printable pages
+- [Traps](page:cheatsheet#traps) - traps for every user, not only Python users
 - [Values and types](page:language/types) and [Tables and arrays](page:language/containers)
 - [Bindings and constants](page:language/bindings) - `let`, `local`, `const`, `global`
 - Coming from [JavaScript](page:coming-from/javascript),

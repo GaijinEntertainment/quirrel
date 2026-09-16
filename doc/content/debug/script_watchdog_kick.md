@@ -12,5 +12,5 @@ timeout is set.
 
 It returns nothing and never raises, and the clock it resets is not itself
 readable from script, so there is no script-visible difference an example
-could show; `set_script_watchdog_timeout_msec` returns a value worth printing
-instead.
+could show. `set_script_watchdog_timeout_msec` returns a value that an
+example can print.

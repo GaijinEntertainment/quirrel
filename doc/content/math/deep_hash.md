@@ -24,7 +24,7 @@ found.
 
 ## Notes
 
-Nesting beyond `depth` is not an error; it is simply not looked at, the same
+Nesting beyond `depth` is not an error; it is not looked at, the same
 way `hash` does not look past its own object. `deep_hash({a = {x = 1}}, 2)`
 and `deep_hash({a = {x = 2}}, 2)` are equal, because the inner table's own
 keys and values sit one level past what depth 2 reaches; depth 3 is needed to

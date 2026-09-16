@@ -7,8 +7,8 @@ native closure too.
 
 ## Errors
 
-Throws `no closure in the calls stack` when there is no enclosing closure at
-all. In practice this cannot happen from script code: even the top level of a
+Throws `no closure in the calls stack` when there is no enclosing closure.
+This cannot happen from script code: even the top level of a
 script runs inside a closure, so `callee()` there returns that closure rather
 than throwing.
 

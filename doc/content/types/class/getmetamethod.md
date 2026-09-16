@@ -19,7 +19,7 @@ define it.
 Throws `Unknown metamethod` if `name` is not one of the metamethod names the VM
 recognizes: `_add`, `_sub`, `_mul`, `_div`, `_unm`, `_modulo`, `_set`, `_get`,
 `_typeof`, `_nexti`, `_cmp`, `_call`, `_cloned`, `_newslot`, `_delslot`,
-`_tostring`, `_lock`. A recognized name that the class simply has not
+`_tostring`, `_lock`. A recognized name that the class has not
 implemented is not an error; it returns `null` instead.
 
 ## Notes

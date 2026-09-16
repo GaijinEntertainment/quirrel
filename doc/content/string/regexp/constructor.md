@@ -19,7 +19,7 @@ Throws a description of the problem when `pattern` does not parse, for
 example `unterminated character class`, `expected paren` or `quantifier
 value too large`. Throws `backreferences are not supported` for `\1`-`\9`,
 and `lazy quantifiers are not supported` for `*?`, `+?` or `??`: both are
-syntax this engine recognizes and deliberately rejects, not syntax it fails
+syntax this engine recognizes and rejects by design, not syntax it fails
 to parse. An excessively large or deeply nested pattern throws `pattern too
 complex` or `pattern exceeds maximum allowed nesting depth` while compiling,
 before anything is matched.
@@ -40,7 +40,7 @@ This is not PCRE; it is a small classic-regex engine. What it supports:
 - `\m<open><close>`, for example `\m()` or `\m<>` - text balanced between a pair of characters, skipping nested pairs; this is a Quirrel extension with no equivalent in the old table for this engine
 - `\t`, `\n`, `\r`, `\f`, `\v`, `\\` - the usual literal escapes
 
-`\1`-`\9` and `\l`/`\u` mean something different, or nothing special at all,
+`\1`-`\9` and `\l`/`\u` mean something different, or nothing special,
 inside a `[...]` class: there `\1` is just the digit `1` and `\b` is just the
 letter `b`, since backreferences and word boundaries make no sense inside a
 class.

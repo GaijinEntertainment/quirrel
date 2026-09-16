@@ -24,15 +24,15 @@ currently executing - only a `"suspended"` thread can be woken up.
 
 The signature looks fully variadic, the same shape as `types.Function.call`,
 but it is not: `t.wakeup(a, b, c)` delivers only `a` to the thread's
-`suspend` call, exactly like `t.wakeup(a)` - `b` and `c` are read, checked
-for nothing, and thrown away. Calling with no argument at all resumes with
+`suspend` call, the same as `t.wakeup(a)` - `b` and `c` are read, not
+checked, and thrown away. Calling with no argument resumes with
 `null`, the same as a bare `suspend()` with nothing passed to it.
 
 An exception that reaches the top of the thread's function uncaught after
 this call is still delivered to the caller of `wakeup` as a normal,
 catchable error, but a host-installed runtime error reporter also reports it
 straight from inside the thread first - see the Notes on `types.Thread.call`
-for what that means in practice.
+for details.
 
 ## Example
 

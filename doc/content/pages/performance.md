@@ -2,40 +2,39 @@
 title: Performance
 group: Guides
 order: 93
-summary: How Quirrel compares with Lua, LuaJIT, Luau, QuickJS and Squirrel 3.
+summary: Benchmarks against Lua, LuaJIT, Luau, QuickJS and Squirrel 3.
 ---
 
-As Bob Nystrom put it: most benchmarks are not worth the pixels they are printed
-on, but people like them. So here are two sets, both measured on Windows x64 and
-both committed with the numbers they produced.
+This page has two sets of benchmarks. Both are measured on Windows x64, and
+both are committed with the numbers they produced.
 
-Every row times the benchmarked code alone: not interpreter startup, not
-compilation. Each workload repeats the load inside one process and keeps its best
-time, because the best time is the one least polluted by whatever else the machine
-was doing.
+Every row times the benchmarked code only, without interpreter startup and
+without compilation. Each workload repeats the load inside one process and keeps
+its best time, because the best time has the least noise from other work on the
+machine.
 
-Each cell in Benchmarks below is measured three times over. The harness starts
-three processes one after another, all pinned to the same logical CPU, and the
-page shows the fastest of the three.
+Each cell in Benchmarks below is measured three times. The harness starts three
+processes one after another, all pinned to the same logical CPU, and the page
+shows the fastest of the three.
 
-The fastest run is the one to publish. A process can share its core with other
-work, or land on an efficiency core, or get an unlucky code alignment. Each of
-those makes it slower, and none of them makes it faster. The core alone is worth
-tens of percent on this hardware.
+The page shows the fastest run because noise only makes a run slower. A process
+can share its core with other work, land on an efficiency core, or get an
+unlucky code alignment. None of these makes it faster. The core alone changes
+the result by tens of percent on this hardware.
 
-The harness also watches how far the three runs are apart. It reports a spread of
-more than five percent, as long as the runs also differ by more than five
-milliseconds: on a row that takes tens of milliseconds, the clock alone is worth a
-few percent. A row it reports is measured again on an idle machine.
+The harness also checks how far the three runs are apart. It reports a spread of
+more than five percent when the runs also differ by more than five milliseconds,
+because on a row that takes tens of milliseconds the clock alone accounts for a
+few percent. A reported row is measured again on an idle machine.
 
 LuaJIT is measured with the JIT off. Quirrel, Lua and QuickJS are built for
-platforms where generating code at runtime is not allowed - consoles, phones - so
-comparing against a JIT would answer a question nobody here can act on.
+platforms where generating code at runtime is not allowed, such as consoles and
+phones, so a comparison against a JIT would not be useful.
 
-If you need the fastest interpreter, or an AOT language, the answer is
-[Daslang](https://daslang.io/#performance), which has more benchmarks of this kind.
-Quirrel, Lua and JS are highly dynamic and much quicker to learn, so those are what
-is compared here.
+If you need the fastest interpreter, or an AOT language, use
+[Daslang](https://daslang.io/#performance), which has more benchmarks of this
+kind. Quirrel, Lua and JS are highly dynamic and much quicker to learn, so this
+page compares those.
 
 ## Benchmarks
 
@@ -45,14 +44,14 @@ Shorter bars are better.
 
 ## VM acceptance
 
-The head-to-head harness used for interpreter work: Quirrel against Lua and Luau
-on paired workloads with identical algorithms, general interpreter loads (fib,
-binarytrees, life, mandel, strings) and daRg-UI-shaped ones (desc_churn,
-probe_storm, nullable_probe, closure_storm, method_calls). Run it before and after
-any change to the VM.
+This is the head-to-head harness used for interpreter work. It runs Quirrel
+against Lua and Luau on paired workloads with identical algorithms: general
+interpreter loads (fib, binarytrees, life, mandel, strings) and daRg-UI-shaped
+loads (desc_churn, probe_storm, nullable_probe, closure_storm, method_calls).
+Run it before and after any change to the VM.
 
-Times are milliseconds and the ratio is Quirrel over the other interpreter, so
-above 1.0 means Quirrel is slower.
+Times are milliseconds. The ratio is Quirrel over the other interpreter, so a
+value above 1.0 means Quirrel is slower.
 
 {{vm_benchmarks}}
 
@@ -60,29 +59,29 @@ above 1.0 means Quirrel is slower.
 
 Everything is built for Windows 64-bit with clang-cl where the source allows it.
 The Quirrel rows measure the release build of the interpreter from the Dagor
-engine tree - the shipped runtime configuration, clang and mimalloc. A build on the
-CRT heap, such as a plain cmake `sq.exe`, is up to twice as slow on table-sweep
-workloads, which would misrepresent shipped performance rather than measure it.
+engine tree, which is the shipped runtime configuration: clang and mimalloc. A
+build on the CRT heap, such as a plain cmake `sq.exe`, is up to twice as slow on
+table-sweep workloads, so it would not measure shipped performance.
 
-The third-party interpreters are committed next to their workloads, each a release
-console exe that imports KERNEL32 alone. Two of them have to be asked for their
-jump-table interpreter loop, because both gate it on `__GNUC__`, which clang-cl
-does not define: Lua takes `-DLUA_USE_JUMPTABLE=1`, and in QuickJS the line reading
+The third-party interpreters are committed next to their workloads. Each is a
+release console exe that imports KERNEL32 only. Two of them need a change to get
+their jump-table interpreter loop, because both gate it on `__GNUC__`, which
+clang-cl does not define. Lua takes `-DLUA_USE_JUMPTABLE=1`. In QuickJS the line
 `#if defined(EMSCRIPTEN) || defined(_MSC_VER)` becomes
 `#if defined(EMSCRIPTEN) || (defined(_MSC_VER) && !defined(__clang__))`. Without
-that second one the primes workload takes twice as long, which measures the MSVC
-command line and not QuickJS.
+the QuickJS change the primes workload takes twice as long, which measures the
+MSVC command line and not QuickJS.
 
-LuaJIT carries one source change, so that a short repetition can be timed at all:
-`os.clock()` reads the performance counter, because the CRT `clock()` ticks at one
-millisecond, which is about the whole time a rep takes.
+LuaJIT has one source change, so that a short repetition can be timed:
+`os.clock()` reads the performance counter, because the CRT `clock()` ticks once
+per millisecond, which is about the time one rep takes.
 
 ## Sources
 
-Every workload, harness and prebuilt interpreter is in `bench/` next to `doc/` in
-the [Dagor engine](https://github.com/GaijinEntertainment/DagorEngine) tree, under
-`prog/1stPartyLibs/quirrel/quirrel`, one folder per language: `bench/quirrel`,
-`bench/lua`, `bench/luau`, `bench/js`.
+Every workload, harness and prebuilt interpreter is in `bench/` next to `doc/`
+in the [Dagor engine](https://github.com/GaijinEntertainment/DagorEngine) tree,
+under `prog/1stPartyLibs/quirrel/quirrel`, one folder per language:
+`bench/quirrel`, `bench/lua`, `bench/luau`, `bench/js`.
 
 - `bench/benchmarks.py` - the cross-language suite above. It writes
   `doc/content/_bench.json`, which this page renders.
@@ -90,5 +89,5 @@ the [Dagor engine](https://github.com/GaijinEntertainment/DagorEngine) tree, und
   `doc/content/_vm_bench.json`.
 
 Both need the Windows interpreters, so the numbers are refreshed by hand and
-committed; the site itself builds anywhere. `bench/README.md` says how to run them
-and how each committed binary was built.
+committed. The site itself builds anywhere. `bench/README.md` says how to run
+them and how each committed binary was built.

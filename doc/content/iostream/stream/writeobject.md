@@ -22,7 +22,7 @@ An instance of a class needs `classes` to name that class, and the class
 needs a `__getstate` method that returns the state to save:
 
 - `Unsupported class for serialization` - the instance's class is not a key
-  in `classes` (including when `classes` was not passed at all)
+  in `classes` (including when `classes` was not passed)
 - `Instance must have __getstate method for serialization` - the class has
   no `__getstate`
 - `Instance method __getstate must be a closure` - the class has a

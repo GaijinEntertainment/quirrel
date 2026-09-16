@@ -2,11 +2,11 @@
 title: Cheat sheet
 group: Guides
 order: 91
-summary: The whole language on two pages.
+summary: The language on two pages.
 layout: cheatsheet
 ---
 
-The whole language on two pages.
+The language on two pages.
 
 ## Values
 
@@ -169,8 +169,8 @@ Every `import` comes before any other statement. A module returns its exports:
   arithmetic operator throws. Use `$"..."`.
 - **`clone` binds looser than a call.** `clone(a).append(9)` parses as
   `clone (a.append(9))` and mutates `a`. Write `(clone a).append(9)`.
-- **A missing slot named like a type method is not `null`.** `t?.filter` is
-  `Table.filter` whatever `t` holds. Test with `"filter" in t`.
+- **A missing slot named like a type method is not `null`.** When `t` has no
+  `filter` slot, `t?.filter` is `Table.filter`. Test with `"filter" in t`.
 - **`foreach` and the callbacks disagree on order.** `foreach (i, v in arr)` puts
   the index first; `arr.map(@(v, i) ...)` puts the value first.
 - **`==` ignores `_cmp`.** Two instances are equal only if they are one object.

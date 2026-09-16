@@ -31,9 +31,9 @@ checked by hand inside `__update`, which does not pass a name along.
 
 ## Notes
 
-Takes 1 or more arguments - this one really is variadic, unlike
+Takes 1 or more arguments - this method is variadic, unlike
 [`reduce`](sym:types.Table.reduce) or [`findvalue`](sym:types.Table.findvalue)
-on this page, where a negative arity in the binding does not mean genuinely
+on this page, where a negative arity in the binding does not mean
 open-ended. `t.__update()` with no arguments throws a
 wrong-number-of-parameters error; `t.__update(a, b, c)` copies `a`, then `b`,
 then `c`, each overwriting slots the previous ones set.

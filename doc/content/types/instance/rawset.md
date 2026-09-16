@@ -19,7 +19,7 @@ The instance itself, so calls can be chained.
 
 Throws `the index '<key>' (type='<type>') does not exist` if `key` is not
 already a field of the instance. Unlike a table or an unlocked class, an
-instance can never gain a brand new slot this way - the language reference
+instance can never gain a new slot this way - the language reference
 states instance members cannot be removed, and the same restriction covers
 adding one. Attempting to rawset a method name fails the same way: a method is
 not a per-instance value slot to overwrite. On a frozen reference, throws

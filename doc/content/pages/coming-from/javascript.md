@@ -6,10 +6,10 @@ summary: No `undefined`, two number types, and a missing key throws.
 layout: mapping
 ---
 
-The two languages look alike, and that is the risk. Braces, `for`, `while`,
-`function`, closures, `class`, `try`/`catch`, `?.`, `??`, string interpolation and
-`async`/`await` all mean what you expect. The differences are inside expressions
-you would not think twice about: there is no `undefined`, integers and floats are
+The two languages look alike, so the differences are easy to miss. Braces,
+`for`, `while`, `function`, closures, `class`, `try`/`catch`, `?.`, `??`, string
+interpolation and `async`/`await` have the same meaning. The differences are
+inside common expressions: there is no `undefined`, integers and floats are
 separate types, and reading a key that is not there is an error.
 
 ## Values and bindings
@@ -74,7 +74,7 @@ separate types, and reading a key that is not there is an error.
 | JavaScript | Quirrel |
 | --- | --- |
 | `for (const v of a)` | `foreach (v in a)` | page:language/control-flow#foreach |
-| `for (const k in o)` | `foreach (k, v in o)`, which hands you both | page:language/control-flow#foreach |
+| `for (const k in o)` | `foreach (k, v in o)`, which gives both | page:language/control-flow#foreach |
 | `for (let i = 0; ...)` | `for (local i = 0; ...)`; `let` is not allowed in a `for` header | page:language/control-flow#for |
 | `switch` | [`if (a) ... else if (b) ...`](page:language/control-flow#if-else); `switch` is deprecated and off by default, see [control flow](page:language/control-flow) |
 | `try / catch / finally` | `try { } catch (e) { }`; no exception classes, and no `finally` | page:language/errors#throw-and-catch |
@@ -115,10 +115,10 @@ separate types, and reading a key that is not there is an error.
 ## Traps
 
 - **There is no `undefined`.** Reading a slot that is not there throws, and so does
-  reading a member of `null`. `o?.x` answers `null`, and `??` fills it in.
-- **A missing slot named like a type method is not `null`.** `t?.filter` finds
-  `Table.filter` whatever `t` holds. Ask `"filter" in t`, or reach the method as
-  `t.$filter` when that is what you want.
+  reading a member of `null`. `o?.x` gives `null`, and `??` fills it in.
+- **A missing slot named like a type method is not `null`.** When `t` has no
+  `filter` slot, `t?.filter` finds `Table.filter`. Test with `"filter" in t`, or
+  write `t.$filter` when you want the type method.
 - **`7 / 2` is `3`.** Two integers divide as integers. Make one side a float.
 - **`1 / 0` throws** instead of giving `Infinity`, and `0.0 / 0.0` throws instead of
   giving `NaN`.
@@ -128,8 +128,8 @@ separate types, and reading a key that is not there is an error.
   gives each pass its own. The sample below shows both.
 - **`==` on two tables compares identity**, like `===` on two objects. There is no
   deep comparison in the language.
-- **`+` joins as soon as one side is a string** and throws for other mixed pairs:
-  `1 + true` throws. Use `$"..."`: the analyzer flags `+` on a string as `w264`.
+- **`+` joins when one side is a string** and throws for other mixed pairs, so
+  `1 + true` throws. Use `$"..."`. The analyzer flags `+` on a string as `w264`.
 - **A container in a class body is one object for every instance.** A JavaScript
   class field is built per instance; this one is not. Declare the slot as `null` and
   fill it in the constructor.
@@ -150,8 +150,8 @@ separate types, and reading a key that is not there is an error.
 
 ## See also
 
-- [Cheat sheet](page:cheatsheet) - the whole language on two printable pages
-- [Traps](page:cheatsheet#traps) - the ones that catch everybody
+- [Cheat sheet](page:cheatsheet) - the language on two printable pages
+- [Traps](page:cheatsheet#traps) - traps for every user, not only JavaScript users
 - [Null safety](page:language/operators) - `?.`, `?[`, `?()` and `??`
 - [Classes and instances](page:language/classes) and [Modules](page:language/modules)
 - Coming from [Python](page:coming-from/python), [Lua](page:coming-from/lua),

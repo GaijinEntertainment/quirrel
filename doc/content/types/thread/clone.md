@@ -11,10 +11,11 @@ whatever state `t` is in.
 
 ## Notes
 
-`clone` is a keyword as well as a method name, so calling it through `.`
-needs the bracket form, `t["clone"]()`, wherever the parser would otherwise
-read `clone` as the unary clone operator; the operator form, `clone t`, works
-everywhere. Both reach this same method.
+`clone` is a keyword as well as a method name, so by default `t.clone()` and
+`t.$clone()` do not parse. Use the bracket form, `t["clone"]()`, or the
+operator form, `clone t`. Both reach this same method. With
+`#forbid-clone-operator` the word is an ordinary identifier and `t.$clone()`
+compiles.
 
 ## Example
 

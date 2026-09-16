@@ -19,7 +19,7 @@ lookup for `class.tostring()` to fall back through. `Foo.tostring()` and
 pointer form, whatever `Foo` defines.
 
 Since the address varies from run to run, examples on this site can only check
-a fixed prefix of the result, never the whole string.
+a fixed prefix of the result, not the full string.
 
 ## Example
 

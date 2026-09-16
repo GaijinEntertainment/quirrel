@@ -17,7 +17,7 @@ Throws `Cannot modify immutable object` when the table was frozen with
 
 Takes no arguments. Existing references to the table see it become empty too,
 since `clear` mutates the same object rather than building a new one -
-unlike `constructor()`, which hands back an unrelated new table.
+unlike `constructor()`, which returns an unrelated new table.
 
 ## Example
 

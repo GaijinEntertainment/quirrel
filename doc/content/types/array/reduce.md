@@ -16,7 +16,7 @@ with each element.
 ## Return value
 
 The final accumulator. On an empty array: `initial` if it was given,
-otherwise `null`, either way without calling `callback` at all.
+otherwise `null`, either way without calling `callback`.
 
 ## Errors
 

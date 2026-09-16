@@ -13,7 +13,7 @@ and `varargs` describing the `_call` closure - the same shape a closure's own
 
 ## Notes
 
-Takes no arguments. In practice this almost always returns `null` for a table
+Takes no arguments. This almost always returns `null` for a table
 built purely in script: a table's delegate can only be attached with
 `sq_setdelegate`, a C API call. Quirrel removed the script-level
 `setdelegate()`/`getdelegate()` that Squirrel had, so script code has no way

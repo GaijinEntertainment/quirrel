@@ -29,7 +29,7 @@ string and dumps the placeholder `arg1` instead; that placeholder is what
 this page's `params:` front matter replaces. The receiver shown,
 `(table|userdata|instance|class|null)`, is the same generic fallback
 explained on [`types.Integer.weakref`](sym:types.Integer.weakref) - the
-binding has no receiver check at all, only the one real check on `obj`.
+binding has no receiver check, only the type check on `obj`.
 
 ## Example
 

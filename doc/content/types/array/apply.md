@@ -30,7 +30,7 @@ processed keep their new values and the rest keep their old ones; the array
 is left half-transformed, not rolled back.
 
 Unlike [map](sym:types.Array.map), `apply` does not give `throw null` any
-special meaning: a thrown `null` aborts the loop exactly like any other
+special meaning: a thrown `null` aborts the loop like any other
 thrown value.
 
 ## Example

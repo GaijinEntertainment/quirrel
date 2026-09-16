@@ -13,10 +13,10 @@ throwing `the stream is invalid`.
 
 ## Notes
 
-`close` only has an effect on a file this instance actually owns. The
+`close` only has an effect on a file this instance owns. The
 `userpointer` constructor form can share a handle without owning it (this
 is how `io.stdout`, `io.stdin` and `io.stderr` wrap the process's own
-streams), and on such an instance `close` does nothing at all: the handle
+streams), and on such an instance `close` does nothing: the handle
 stays open and every method keeps working.
 
 ## Example

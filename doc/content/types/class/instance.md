@@ -14,7 +14,7 @@ on class instances).
 
 ## Notes
 
-Locks the class as a side effect, exactly like calling `ClassName(...)` does: a
+Locks the class as a side effect, the same as calling `ClassName(...)` does: a
 class permanently stops accepting new plain fields the first time any instance
 of it exists, whichever way that instance was made.
 

@@ -2,7 +2,7 @@
 title: Control flow
 group: Language
 order: 40
-summary: `if`, `while`, `for`, `foreach`, and the `switch` that is off by default.
+summary: `if`, `while`, `for`, `foreach`, and `switch` (off by default).
 ---
 
 Quirrel has the usual C-family statements: `if`/`else`, `while`, `do ... while`,
@@ -11,10 +11,10 @@ a C style `for`, `foreach`, and a `switch` that is off by default.
 ## if / else
 
 A condition may be a plain expression, or a `local`/`let` declaration checked for
-truth (`null`, integer `0` and float `0.0` are false; everything else is true). A
-binding declared this way, optionally followed by `;` and a separate condition, is
-scoped to the whole chain: every `else if` and the final `else` can still see it,
-which is the reason to write it here instead of on the line above.
+truth (`null`, integer `0` and float `0.0` are false; everything else is true).
+The declaration may be followed by `;` and a separate condition. A binding
+declared this way is visible in the whole chain: every `else if` and the final
+`else` can see it.
 
 {{example:language/control-flow-if-basic}}
 
@@ -29,17 +29,17 @@ which is the reason to write it here instead of on the line above.
 
 ## for
 
-`stat := 'for' '(' [init] ';' [cond] ';' [step] ')' stat`. Any part may be empty,
-which is how `for (;;) { ... }` spells an infinite loop. `init` and `step` accept
-several comma-separated declarations or expressions, not only one.
+`stat := 'for' '(' [init] ';' [cond] ';' [step] ')' stat`. Any part may be empty;
+`for (;;) { ... }` is an infinite loop. `init` and `step` accept several
+comma-separated declarations or expressions.
 
 {{example:language/control-flow-for}}
 
 ## foreach
 
-`foreach` walks an array, a table, a class, a string, or a generator. The
-one-variable form binds the value; the two-variable form binds a leading index or
-key first. What that leading binding means depends on the container:
+`foreach` iterates over an array, a table, a class, a string, or a generator. The
+one-variable form binds the value. The two-variable form binds an index or key
+first, then the value. The meaning of the first binding depends on the container:
 
 | Container | one variable | two variables |
 | --- | --- | --- |
@@ -54,41 +54,41 @@ key first. What that leading binding means depends on the container:
 A table's iteration order is not guaranteed, so a program that must be
 deterministic sorts the keys itself, as the table sample above does.
 
-The bound variable(s) may also be a destructuring pattern instead of a plain
-name; see [Destructuring](page:language/destructuring) for the pattern syntax
-and defaults.
+A bound variable may also be a destructuring pattern instead of a plain name.
+See [Destructuring](page:language/destructuring) for the pattern syntax and
+defaults.
 
 ## break, continue, return
 
 `break` leaves the innermost `for`, `foreach`, `while` or `do ... while` (or a
 `switch`, see below). `continue` skips to the next pass of the innermost loop.
-`return` leaves the whole function, not just a loop it happens to be inside.
+`return` leaves the function, not only the loop.
 
 {{example:language/control-flow-loop-control}}
 
 ## Loop bodies and closures
 
-Each time a loop body runs, its own `local`/`let` declarations are fresh:
-a closure created inside the body and kept past the loop sees the value that
-binding held on the pass that created it. `foreach`'s own bound variables follow
-the same rule, since a new value (or key/value pair) is handed to them each pass.
+Each pass of a loop body creates new `local`/`let` bindings. A closure created
+inside the body and kept after the loop sees the value that the binding held on
+the pass that created it. The bound variables of `foreach` follow the same rule,
+because each pass gives them a new value (or key/value pair).
 
-`for` is the exception. Its control variable lives in one slot for the entire
-loop, reused and mutated by every pass; a closure that captures it directly keeps
-reading that same slot, so once the loop ends every such closure observes the
-final value, not the one from its own pass. Give it a fresh `local` inside the
-body to capture the per-pass value instead.
+`for` is the exception. Its control variable lives in one slot for the whole
+loop, and every pass changes that slot. A closure that captures the control
+variable directly reads that same slot. After the loop ends, every such closure
+sees the final value, not the value from its own pass. To capture the per-pass
+value, copy it to a new `let` inside the body.
 
 {{example:language/control-flow-closures}}
 
 ## switch
 
-`switch` is disabled by default: with no directive, `switch`, `case` and
-`default` are ordinary identifiers and `switch (x) { ... }` fails to compile.
-The `#allow-switch-statement` compiler directive turns the keywords back on,
-scoped to the enclosing block, so it reverts at the closing brace. A leading
-`#default:allow-switch-statement` sets it for the whole compilation unit
-instead. See [Compiler directives](page:language/directives).
+`switch` is disabled by default. With no directive, `switch`, `case` and
+`default` are ordinary identifiers, and `switch (x) { ... }` fails to compile.
+The `#allow-switch-statement` compiler directive turns the keywords on for the
+enclosing block; the setting reverts at the closing brace. A leading
+`#default:allow-switch-statement` sets it for the whole compilation unit. See
+[Compiler directives](page:language/directives).
 
 ```nut
 switch (x) {
@@ -97,9 +97,10 @@ switch (x) {
 }
 ```
 
-A `case` without a `break` falls through into the next one, so several labels
-can share a body by stacking them with no code in between. `default` (if
-present) must be the last clause; a `case` after it fails to compile.
+A `case` without a `break` falls through into the next `case`. Several labels
+can share one body when they are written together with no code between them.
+`default`, if present, must be the last clause; a `case` after it fails to
+compile.
 
 {{example:language/control-flow-switch}}
 

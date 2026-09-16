@@ -3,7 +3,7 @@ see_also: [iostream.blob.readblob, iostream.stream.writeblob, iostream.stream.re
 ---
 
 Reads up to `size` bytes at the cursor into a new blob, advances the cursor
-by however many bytes actually came back, and returns that blob.
+by the number of bytes read, and returns that blob.
 
 ## Parameters
 
@@ -12,11 +12,10 @@ by however many bytes actually came back, and returns that blob.
 ## Return value
 
 A new blob holding the bytes read. `size` is capped against `len()` first, so
-asking for more than the stream holds is not an error by itself; what
-actually comes back can be smaller still, capped again by how many bytes
-remain after the cursor. Only when that second cap leaves nothing at all,
-including when `size` itself was `0`, does `readblob` throw instead of
-returning an empty blob.
+asking for more than the stream holds is not an error by itself; the result
+can be smaller still, capped again by how many bytes remain after the
+cursor. Only when that second cap leaves nothing, including when `size`
+itself was `0`, does `readblob` throw instead of returning an empty blob.
 
 ## Errors
 

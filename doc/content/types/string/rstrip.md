@@ -7,7 +7,7 @@ Returns `str` with white space removed from the end only.
 ## Return value
 
 A new string with the trailing white space removed; leading white space, if
-any, is kept. See [string.rstrip](sym:string.rstrip) for exactly which bytes
+any, is kept. See [string.rstrip](sym:string.rstrip) for which bytes
 count as white space.
 
 ## Notes

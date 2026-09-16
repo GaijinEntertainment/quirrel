@@ -7,7 +7,7 @@ Returns `str` with white space removed from the beginning only.
 ## Return value
 
 A new string with the leading white space removed; trailing white space, if
-any, is kept. See [string.lstrip](sym:string.lstrip) for exactly which bytes
+any, is kept. See [string.lstrip](sym:string.lstrip) for which bytes
 count as white space.
 
 ## Notes

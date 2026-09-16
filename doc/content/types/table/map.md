@@ -20,7 +20,7 @@ A new table, same keys as the original, each value replaced by
 Whatever `callback` throws propagates out of `map`, with one exception: a
 `callback` that does `throw null` for a given slot is not an error here -
 that slot is silently left out of the result table instead of being mapped.
-Throwing anything else still aborts the whole call.
+Throwing anything else still aborts the call.
 
 ## Notes
 

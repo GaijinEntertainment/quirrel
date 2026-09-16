@@ -14,7 +14,7 @@ Returns whether `index` is a valid byte position in `str`.
 
 `true` when `0 <= index < str.len()`, `false` otherwise. Unlike
 [types.String.slice](sym:types.String.slice), a negative `index` is not
-counted from the end - it is simply out of range, so it gives `false`.
+counted from the end - it is out of range, so it gives `false`.
 
 ## Notes
 

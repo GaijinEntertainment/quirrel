@@ -14,8 +14,8 @@ Returns whether `str` contains `substr`.
 ## Return value
 
 `true` if `substr` occurs at or after `start`, `false` otherwise - always a
-`bool`, never `null`, which is where this differs from
-[types.String.indexof](sym:types.String.indexof): the same scan, but this one
+`bool`, never `null`. This is the difference from
+[types.String.indexof](sym:types.String.indexof): the same scan, but `contains`
 never reports "not found" as anything other than `false`. A negative or
 out-of-range `start` gives `false`, not a wraparound search.
 

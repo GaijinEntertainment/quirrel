@@ -30,7 +30,7 @@ A table with these keys:
 
 `this` is always `parameters[0]`, so `required_params` and the length of
 `parameters` both count it; `debug.get_function_info_table`'s `requiredArgs`
-and `argNames` do not, which is the detail to watch when reading both:
+and `argNames` do not, so
 `f.getfuncinfos().required_params` is one higher than
 `get_function_info_table(f).requiredArgs` for the same `f`.
 

@@ -20,8 +20,8 @@ function`.
 Ignored with no error on a future that has already settled - the same
 idempotency as `resolve`.
 
-A future left faulted with nobody awaiting it is reported through the
-unhandled-fault path the next time the host pumps the runtime, exactly like
+A faulted future that nothing awaits is reported through the
+unhandled-fault path the next time the host pumps the runtime, the same as
 an uncaught `throw` inside an `async` function. Consume it with `await`, or
 acknowledge it with [markHandled](sym:async.Future.markHandled) without
 consuming it, to stop that report. The call site of `reject` is captured,

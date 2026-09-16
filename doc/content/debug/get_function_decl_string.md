@@ -30,10 +30,11 @@ fails the parameter type check before this function runs.
 
 ## Notes
 
-The signature declares a `string|null` result, but every value that passes the
-parameter check above is already a closure or a native closure, and both of
-those cases always produce a string. In practice a call that returns at all
-never returns `null`.
+A script closure always gives a string. A native closure gives a string when
+its binding registered a declaration string, or when it has a name to rebuild
+one from. A native closure with no declaration string and no name, such as one
+made with `sq_newclosure` and never named, gives `null`. Check for `null`
+before using the result on a native closure.
 
 ## Example
 

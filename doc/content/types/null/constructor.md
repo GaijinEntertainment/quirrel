@@ -16,7 +16,7 @@ Always `null`, regardless of any arguments given.
 stack and thrown away, never inspected, so `types.Null(1, 2, 3)` is legal and
 still gives `null`. This never throws.
 
-`null` has no other method at all - not `tostring`, `tointeger`, `tofloat`,
+`null` has no other method - not `tostring`, `tointeger`, `tofloat`,
 `clone` or `weakref`. Calling any of those on `null` throws `the index
 '<name>' does not exist`, the plain missing-slot error, not a type-specific
 one. `null` still formats as `"null"` when `print` or string concatenation

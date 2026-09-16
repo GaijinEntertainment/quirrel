@@ -17,7 +17,7 @@ never frozen reports `0`.
 ## Notes
 
 The flags belong to the reference passed in, not to the underlying table or
-array: after `local f = freeze(t)`, `getobjflags(f)` is nonzero but
+array: after `let f = freeze(t)`, `getobjflags(f)` is nonzero but
 `getobjflags(t)` still reports `0`, because `t` names the object through its
 own, never-frozen reference. See `freeze` for what that split means for
 writes.

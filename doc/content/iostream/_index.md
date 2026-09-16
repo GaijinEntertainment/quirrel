@@ -1,10 +1,9 @@
 ## Streams and the cursor
 
-Everything in this module is built on one idea: a **stream** is a cursor over a run
-of bytes. `readn` and `writen` act at the cursor and move it forward by as many
-bytes as they touched, `tell` reports where it is, and `seek` puts it somewhere
-else. Nothing here reads or writes at an address; every operation is relative to
-where the cursor happens to be.
+A **stream** is a cursor over a run of bytes. `readn` and `writen` act at the
+cursor and move it forward by as many bytes as they touched, `tell` reports
+where it is, and `seek` puts it somewhere else. Nothing here reads or writes at
+an address; every operation is relative to where the cursor is.
 
 Two things are streams, and they share the same method set, listed on the
 [stream](sym:iostream.stream) page: a [blob](sym:iostream.blob), whose bytes are in
@@ -41,15 +40,14 @@ b.as_string()   // "Hi!", and the cursor is still at 0
 
 `foreach` over a blob yields the position and the byte, in order.
 
-Two edges to know. An index outside the blob throws
+There are two edge cases. An index outside the blob throws
 `Error in '_get' metamethod: index out of range`, since indexing is implemented as a
 [metamethod](page:language/metamethods). A value outside 0 to 255 does not
-throw: only the low byte is stored, so `b[0] = 300` quietly leaves 44 behind. Mask
+throw: only the low byte is stored, so `b[0] = 300` stores 44. Mask
 or range-check the value yourself when it comes from arithmetic.
 
 ## Text and bytes
 
 [as_string](sym:iostream.blob.as_string) is the conversion to text: it returns the
 bytes as a string. [tostring](sym:iostream.blob.tostring) is the ordinary object
-printer and gives an address, so it is not the one to reach for when a log should
-show the contents.
+printer and gives an address, so it does not show the contents in a log.

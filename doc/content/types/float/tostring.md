@@ -8,7 +8,7 @@ Converts the float to its string form.
 
 The value formatted through `%g` with 6 significant digits, the same
 formatting `print` uses for a float. A whole-numbered float prints with no
-decimal point at all: `(3.0).tostring()` gives `"3"`, not `"3.0"`, so on its
+decimal point: `(3.0).tostring()` gives `"3"`, not `"3.0"`, so on its
 own the string cannot tell a whole float from an integer of the same value -
 use [`type`](sym:type) when that distinction matters.
 

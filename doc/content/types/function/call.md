@@ -23,13 +23,13 @@ Whatever the call itself throws, propagated unchanged.
 `env` is not optional: `f.call()` fails with the arity error of `f` itself
 (zero arguments reached it, including the missing `this`), not an error from
 `call`. Anything beyond `env` is optional only in the sense that `f` may
-default or ignore it - `call` forwards exactly what it is given.
+default or ignore it - `call` forwards what it is given.
 
 When `f` is a non-native, non-generator closure, `call` tail-calls into it:
 the frame for this call does not stay on the stack, so `f.call(env, ...)` in
 a function's own tail position recurses as cheaply as a direct call. `pcall`
 never does this. Calling a generator-producing function through `call`
-behaves exactly like calling it directly: it returns a new suspended
+behaves like calling it directly: it returns a new suspended
 generator without running the body.
 
 ## Example

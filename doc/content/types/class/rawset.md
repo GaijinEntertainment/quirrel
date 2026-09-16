@@ -20,7 +20,7 @@ The class itself, so calls can be chained.
 On a locked class, throws `trying to modify a class that has already been
 instantiated, inherited or is locked manually` for *any* plain-value key, not
 only a new one: locking blocks updating an existing field's default just as
-much as adding a brand new field. A closure or native closure value is exempt
+much as adding a new field. A closure or native closure value is exempt
 from that check and is always accepted (it becomes a method). On a frozen
 reference, throws `Cannot modify immutable object` - a different message from
 the one `newmember` raises for the same condition, because this check runs

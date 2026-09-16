@@ -21,7 +21,7 @@ Building an instance calls that class's constructor and then its
 
 Throws `Unexpected end of data during deserialization` when the stream runs
 out of bytes before a complete value has been read, including when nothing
-at all is left, and `Invalid start marker during deserialization` or
+is left, and `Invalid start marker during deserialization` or
 `Invalid end marker during deserialization` when the bytes at the cursor are
 not what `writeobject` produces, for example a stream not created by it, or
 one read from the wrong position.

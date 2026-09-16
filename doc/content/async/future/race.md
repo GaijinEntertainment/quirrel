@@ -11,10 +11,9 @@ Settles as whichever future in `arr` settles first, fulfilled or faulted.
 ## Return value
 
 A fresh `Future`. The first input to fulfil fulfils it with that value; the
-first input to fault faults it with that value - a fault wins exactly like
-a fulfilment would, whichever happens first. Every losing input is
-discarded with no unhandled-fault report, since `race` itself is the thing
-that read it.
+first input to fault faults it with that value - a fault wins the same way
+a fulfilment does, whichever happens first. Every losing input is
+discarded with no unhandled-fault report, since `race` itself read it.
 
 ## Errors
 
@@ -30,7 +29,7 @@ and reported at the call site instead.
 When several inputs are already settled before `race` runs, the earliest
 one in array order wins (matching JS `Promise.race` reaction order). A
 plain value that is not a `Future` settles immediately - the same
-pass-through behavior `await` gives it elsewhere - so it beats a
+pass-through behavior `await` gives it elsewhere - so it wins over a
 still-pending future input even when listed after it in `arr`.
 
 ## Example

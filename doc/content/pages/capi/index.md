@@ -7,34 +7,31 @@ group_index: true
 
 Every function the public headers export, grouped as the headers group them.
 
-Signatures are read out of `include/*.h` at build time rather than typed here, so
-this list cannot fall behind a header: a function added to `squirrel.h` appears on
-the page for its section without anyone editing that page. A description is
-authored, and a row that says "not described yet" is a function nobody has written
-one for. That is deliberate, for the same reason the script pages mark their gaps:
-a missing description you can see beats one you cannot.
+Signatures are read from `include/*.h` at build time, so this list cannot fall
+behind a header. A function added to `squirrel.h` appears on the page for its
+section without an edit to that page. Descriptions are written by hand. A row
+that says "not described yet" has no description yet.
 
-Some rows carry a description lifted from the comment above the declaration itself.
-Those are the functions whose headers document them better than any second copy
-would.
+Some rows take their description from the comment above the declaration in the
+header, when that comment is the better source.
 
 ## How to read a signature
 
-`HSQUIRRELVM` is a VM handle, `HSQOBJECT` a handle to a value that can outlive the
-stack, and `SQUserPointer` an opaque `void *`. `SQInteger` and `SQFloat` are the
-integer and float the VM was built with, which is why `_SQ64` has to be defined the
-same way in your project as in the library.
+`HSQUIRRELVM` is a VM handle. `HSQOBJECT` is a handle to a value that can outlive
+the stack. `SQUserPointer` is an opaque `void *`. `SQInteger` and `SQFloat` are
+the integer and float types the VM was built with, so `_SQ64` has to be defined
+the same way in your project as in the library.
 
-Anything returning `SQRESULT` reports failure the same way, and the two macros are
-the only correct test:
+Every function that returns `SQRESULT` reports failure the same way. Test it with
+the two macros only:
 
 ```cpp
 if (SQ_FAILED(sq_getstring(v, -1, &s)))
   handle_it();
 ```
 
-An index parameter is a stack index unless the name says otherwise: 1 is the base,
--1 is the top, and 0 is never valid. See [The stack](page:embedding/stack).
+An index parameter is a stack index unless the name says otherwise. 1 is the
+base, -1 is the top, and 0 is never valid. See [The stack](page:embedding/stack).
 
 ## Pages
 
@@ -42,5 +39,5 @@ An index parameter is a stack index unless the name says otherwise: 1 is the bas
 
 ## See also
 
-- [Embedding Quirrel](page:embedding/index) - how these functions fit together in a host
-- [The language](page:language/index) - the semantics the API has to respect
+- [Embedding Quirrel](page:embedding/index) - how to use these functions in a host
+- [The language](page:language/index) - the semantics the API implements

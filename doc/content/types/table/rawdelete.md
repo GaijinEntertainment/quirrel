@@ -25,7 +25,7 @@ namespace, so a table that happens to have a slot called `rawdelete` hides the
 method behind it, and `t.rawdelete("a")` then fails with `attempt to call
 'string'`. The `$` prefix reaches the built-in type method directly and never
 sees the slot. Plain `t.rawdelete(key)` works whenever no such slot exists, but
-on data whose keys you do not control, `$` is the form that cannot break.
+on data whose keys you do not control, `$` always works.
 
 Takes exactly one argument; `t.$rawdelete()` and `t.$rawdelete("a", "b")` both
 throw a wrong-number-of-parameters error.

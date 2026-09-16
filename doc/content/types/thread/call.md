@@ -21,7 +21,7 @@ Whatever the thread's function throws, propagated unchanged.
 
 `call` always forwards every argument as-is; unlike `types.Function.call`,
 none of them is taken as an override for `this` - the function runs with the
-thread's own root table as `this`, exactly as a plain call would.
+thread's own root table as `this`, as a plain call would.
 
 `call` does not check the thread's current state before running it. Calling
 it again on a thread that is `"suspended"` or `"running"` does not raise a

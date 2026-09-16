@@ -16,16 +16,16 @@ immutable flag on that reference. `obj` is not changed itself.
 ## Errors
 
 Throws `Cannot freeze <type>` for any type other than array, table, instance,
-class or userdata - an `int` or a `function`, for instance.
+class or userdata, for example an `int` or a `function`.
 
 ## Notes
 
 The immutable flag lives on the reference, not on the table or array itself:
-`freeze` hands back a new reference and leaves the one passed in alone. Any
-other existing reference to the same object - a variable it was copied to
-earlier, or a value already stored in another table - is unaffected and can
-still write through. Assign the result back over `obj` when every access
-should go through the frozen reference (`t = freeze(t)`).
+`freeze` returns a new reference and leaves the passed-in reference
+unchanged. Any other existing reference to the same object - a variable it
+was copied to earlier, or a value already stored in another table - is
+unaffected and can still write through. Assign the result back over `obj`
+when every access should go through the frozen reference (`t = freeze(t)`).
 
 Content is unaffected by which reference reads it: a write through a
 still-mutable reference is visible through a frozen one too, since both name

@@ -22,7 +22,7 @@ calling `len` in a loop.
 
 `len` does not move, and is not moved by, the cursor: seeking past the
 real end (see `seek`) changes `tell` without changing `len`, since nothing
-has actually been written out there yet.
+has been written out there yet.
 
 ## Example
 

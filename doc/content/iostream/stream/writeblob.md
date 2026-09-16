@@ -15,7 +15,7 @@ The number of bytes written, which is always `blob.len()`.
 ## Errors
 
 Throws `invalid parameter` when `blob` is an instance but not a blob. Passing
-something that is not an instance at all, such as a number or a string, is
+something that is not an instance, such as a number or a string, is
 rejected earlier by the declared parameter type and never reaches this
 message.
 

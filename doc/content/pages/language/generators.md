@@ -2,55 +2,57 @@
 title: Generators and threads
 group: Language
 order: 65
-summary: `yield`, `resume`, and the generator a call returns instead of a value.
+summary: `yield`, `resume`, generator states, and the differences from threads.
 ---
 
 A `yield` anywhere in a function's own body makes that function a **generator
-function**. Nothing else marks it: no keyword decorates the declaration, and calling it
-never runs the body. It returns a new generator instead, suspended before its first
+function**. No keyword marks the declaration. A call to a generator function does
+not run the body. It returns a new generator, suspended before its first
 instruction.
 
 ## Becoming a generator
 
-`yield` belongs to the function that directly contains it, not to whatever that
-function calls. A `yield` written inside a lambda or a `function` literal passed to
-something else - a sort comparator, an `each` callback - makes that inner closure the
-generator. The outer function that merely called `.each()` is not one, and never
-returns a generator at all.
+`yield` belongs to the function that directly contains it. A `yield` inside a lambda
+or a `function` literal that is passed to another function (a sort comparator, an
+`each` callback) makes that inner closure the generator function. The outer function
+that calls `.each()` is not a generator function and does not return a generator.
 
 ## States and resuming
 
 [types.Generator.getstatus](sym:types.Generator.getstatus) reports one of
-`"suspended"`, `"running"` or `"dead"`. A freshly created generator already reports
-`"suspended"`, the same as one paused mid-body.
+`"suspended"`, `"running"` or `"dead"`. A new generator reports `"suspended"`, the
+same as one paused in its body.
 
-`resume gtor` is a keyword, not a method call: it moves the generator forward to its
-next `yield`, or to a `return` or an uncaught exception. Either of those kills the
-generator permanently - `"dead"` never goes back to `"suspended"` the way a
-[thread](sym:types.Thread.getstatus) goes back to `"idle"` and can be restarted.
-Resuming a dead generator throws `resuming dead generator`; resuming something that is
-not a generator at all throws `trying to resume a '<type>', only generator can be
-resumed`.
+`resume gtor` is a keyword, not a method call. It runs the generator to its next
+`yield`, or to a `return` or an uncaught exception. A `return` or an uncaught
+exception makes the generator `"dead"` permanently. A dead generator never goes back
+to `"suspended"`. A [thread](sym:types.Thread.getstatus) is different: it goes back
+to `"idle"` and can be restarted. Resuming a dead generator throws `resuming dead
+generator`. Resuming a value that is not a generator throws `trying to resume a
+'<type>', only generator can be resumed`.
 
-A `foreach` can drive a generator directly in place of an array or a table, resuming it
-once per iteration until it dies. The value from its `return` is discarded either way.
+A `foreach` can iterate over a generator in place of an array or a table. It resumes
+the generator once per iteration until the generator dies. `foreach` discards
+the value of the generator's `return`. `resume` does not: the `return` value
+becomes the value of the `resume` expression, the same way a `yield` value
+does.
 
 {{example:language/generators-wave-spawner}}
 
 ## What yield evaluates to
 
-`yield <expr>` hands `<expr>` out to whoever resumes the generator - the one job it
-shares with a thread's [suspend](sym:suspend). There the similarity ends. `yield` is a
+`yield <expr>` passes `<expr>` to the code that resumes the generator. A thread's
+[suspend](sym:suspend) does the same. The similarity ends there. `yield` is a
 statement, not an expression: `let x = yield 1` fails to compile. `resume` takes no
-argument either, so there is no way to hand a value back in, unlike
-[wakeup](sym:types.Thread.wakeup), whose argument becomes `suspend`'s return value on
-the other side.
+argument, so there is no way to pass a value back into the generator.
+[wakeup](sym:types.Thread.wakeup) is different: its argument becomes the return
+value of `suspend` in the thread.
 
-A generator also has no VM of its own: it runs on its caller's own stack, not a
-separate one the way [newthread](sym:newthread) gives a thread. Reaching for the base
-`suspend()` inside a generator's body does not pause the generator - it reaches the
-same root VM the generator itself is running on, so it throws the same `cannot suspend
-the root vm` that calling it anywhere outside a thread does.
+A generator has no VM of its own. It runs on the stack of its caller;
+[newthread](sym:newthread) gives a thread a separate stack. A call to the base
+`suspend()` inside a generator body does not pause the generator. It acts on the
+root VM that runs the generator, so it throws `cannot suspend the root vm`, the same
+as a call outside a thread.
 
 {{example:language/generators-patrol-route}}
 
@@ -58,9 +60,9 @@ the root vm` that calling it anywhere outside a thread does.
 
 - A generator that calls `resume` on itself while it is running throws `resuming
   active generator`.
-- A suspended generator keeps only a weak reference to its `this`; a running one keeps
-  a strong one. Dropping every other reference to an object bound as `this` on a
-  suspended generator lets the garbage collector reclaim it before the generator is
-  ever resumed again.
-- `clone` on a generator returns the same generator - see
+- A suspended generator keeps only a weak reference to its `this`; a running one
+  keeps a strong reference. When every other reference to the `this` object of a
+  suspended generator is dropped, the garbage collector can reclaim the object
+  before the generator is resumed.
+- `clone` on a generator returns the same generator; see
   [types.Generator.clone](sym:types.Generator.clone).

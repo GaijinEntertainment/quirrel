@@ -16,11 +16,14 @@ array, which do allocate a new one).
 Takes no arguments.
 
 `clone` is a reserved word (it is also the unary `clone x` operator), and the
-parser only accepts an identifier after `.`, so `str.clone()` fails to
-compile with `expected 'IDENTIFIER'`. Reach this delegate method through a
-computed field access instead: `str["clone"]()`. `types.String.constructor`
-is a reserved word too but the parser special-cases it, so that one reads
-normally as `str.constructor`.
+parser only accepts an identifier after `.` and `.$`, so `str.clone()` and
+`str.$clone()` both fail to compile with `expected 'IDENTIFIER'`. Call this
+type method through a computed index instead, `str["clone"]()`, or write
+`clone str`. With
+[`#forbid-clone-operator`](page:language/directives#delete-and-clone) the
+word is an ordinary identifier and `str.$clone()` compiles.
+`types.String.constructor` is a reserved word too but the parser
+special-cases it, so it reads normally as `str.constructor`.
 
 ## Example
 

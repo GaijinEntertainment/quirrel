@@ -15,10 +15,12 @@ Takes no arguments. The clone is always a plain mutable table, even when the
 original was frozen with `freeze()`: cloning drops the immutable flag rather
 than copying it.
 
-`clone` is a keyword as well as a method name: `t.clone()` never parses,
-because the compiler always reads `clone` after a dot as the start of the
-unary clone operator. Call it as `t["clone"]()`, or write `clone t` instead -
-the `clone` operator on a table runs this same method.
+`clone` is a keyword as well as a method name, so by default `t.clone()` and
+`t.$clone()` do not parse: the compiler reads `clone` after a dot as the
+keyword. Call it as `t["clone"]()`, or write `clone t` instead. The `clone`
+operator on a table runs this same method. With
+[`#forbid-clone-operator`](page:language/directives#delete-and-clone) the
+word is an ordinary identifier and `t.$clone()` compiles.
 
 ## Example
 

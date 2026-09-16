@@ -17,7 +17,7 @@ Whatever the call returns.
 ## Errors
 
 Whatever the call itself throws, propagated unchanged - a `try`/`catch`
-around `pcall` catches it exactly as it would around `call`.
+around `pcall` catches it the same as it would around `call`.
 
 ## Notes
 

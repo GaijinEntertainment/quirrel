@@ -17,7 +17,7 @@ Root table names are not visible to module code on their own, so reach it throug
 `__argv` fails to compile with `Unknown variable [__argv]`.
 
 The host installs it, not the VM. An application that embeds Quirrel and never
-calls `sqstd_register_command_line_args` has no `__argv` at all, so treat a
+calls `sqstd_register_command_line_args` has no `__argv`, so treat a
 missing slot as normal.
 
 ## Example

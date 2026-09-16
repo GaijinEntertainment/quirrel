@@ -18,7 +18,7 @@ no match - not `-1`. `start` must be within `[0, str.len())`; a negative or
 out-of-range `start` also gives `null` rather than wrapping the way a
 negative index does for [types.String.slice](sym:types.String.slice).
 
-The search is a raw byte search (`strstr` under the hood), so it also finds a
+The search is a raw byte search (it calls `strstr`), so it also finds a
 match that is only part of a multi-byte character, and finds `substr` at the
 byte offset where its bytes occur, not at a character position.
 

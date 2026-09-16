@@ -11,10 +11,11 @@ The same closure `clone` was called on - `clone f == f` is always true.
 
 ## Notes
 
-`clone` is a keyword as well as a method name, so calling it through `.`
-needs the bracket form, `f["clone"]()`, wherever the parser would otherwise
-read `clone` as the unary clone operator; the operator form, `clone f`, works
-everywhere. Both reach this same method.
+`clone` is a keyword as well as a method name, so by default `f.clone()` and
+`f.$clone()` do not parse. Use the bracket form, `f["clone"]()`, or the
+operator form, `clone f`. Both reach this same method. With
+`#forbid-clone-operator` the word is an ordinary identifier and `f.$clone()`
+compiles.
 
 Cloning a closure to attach a different environment is a different
 operation, done with `bindenv`, which does return a new closure.

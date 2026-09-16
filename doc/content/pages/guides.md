@@ -5,9 +5,9 @@ order: 90
 group_index: true
 ---
 
-Material that is neither a language rule nor a single symbol: what the site's
-badges mean, the ceilings the bytecode has, and the whole language compressed for
-printing.
+Reference material that is not a language rule and not a single symbol: function
+attributes, implementation limits, the cheat sheet, benchmarks and the RFC
+process.
 
 ## Pages
 
@@ -15,5 +15,5 @@ printing.
 
 ## See also
 
-- [The language](page:language/index) - the rules these pages summarize
-- [C API reference](page:capi/index) - the library seen from C++
+- [The language](page:language/index) - syntax and semantics
+- [C API reference](page:capi/index) - every exported C function

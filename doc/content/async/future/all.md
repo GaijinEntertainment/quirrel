@@ -13,7 +13,7 @@ values, in input order, once every one of them fulfils.
 
 A fresh `Future`. It fulfils with an array the same length as `arr`, each
 slot holding the matching input's settled value in input order - regardless
-of the order the inputs actually settle in. An empty array fulfils right
+of the order the inputs settle in. An empty array fulfils right
 away with `[]`.
 
 ## Errors
@@ -27,7 +27,7 @@ thrown value, and later inputs are ignored - they still run to completion,
 but nothing further reads their outcome. The result's fault carries the
 bare value the input threw; it does not carry that input's own origin
 trace, so a report on an abandoned result attributes the fault to `all`
-itself, not to the input that actually threw.
+itself, not to the input that threw.
 
 ## Notes
 
@@ -42,8 +42,8 @@ never faults on its own, and call `all` over the wrappers instead of
 wrapping the call to `all` itself - a fail-fast `all` only ever hands a
 wrapping `try` the first fault.
 
-There is deliberately no `Future.any`: waiting past a fault for some other
-input to fulfil would hide a real failure instead of reporting it.
+There is no `Future.any`, by design. Waiting past a fault for some other
+input to fulfil would hide a real failure.
 
 ## Example
 

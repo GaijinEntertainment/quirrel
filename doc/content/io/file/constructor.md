@@ -17,7 +17,7 @@ to obtain; that form exists for the host embedding the VM, not for scripts
 ## Errors
 
 Throws `invalid file mode` when `mode` is not one of the accepted strings,
-checked before `path` is touched at all. Throws `cannot open file` when the
+checked before `path` is touched. Throws `cannot open file` when the
 mode is fine but the underlying `fopen` fails, for example because `path`
 does not exist or its directory does not.
 

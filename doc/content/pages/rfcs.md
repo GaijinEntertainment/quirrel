@@ -2,18 +2,18 @@
 title: RFCs
 group: Guides
 order: 96
-summary: How a change to the language is proposed, and what is proposed right now.
+summary: How a change to the language is proposed, and the current proposals.
 layout: rfcs
 ---
 
-A change to Quirrel's syntax or semantics, and a new function in a core library,
-goes through an RFC. Reversing such a change is close to impossible once code
-depends on it, so the cost of the discussion is smaller than the cost of the
-mistake.
+Every change to Quirrel syntax or semantics, and every new function in a core
+library, goes through an RFC. Once code depends on a change it is very hard to
+reverse, so it is worth discussing first.
 
 ## Why an RFC
 
-Whenever Quirrel language changes its syntax or semantics (including behavior of builtin libraries), we need to consider many implications of the changes.
+Whenever Quirrel changes its syntax or semantics (including behavior of builtin
+libraries), we need to consider many implications of the changes.
 
 Whenever new syntax is introduced, we need to ask:
 
@@ -25,35 +25,47 @@ Whenever new syntax is introduced, we need to ask:
 - Does it present challenges with editor integration like autocomplete?
 - Will it affect performance?
 
-For changes in semantics, we should be asking:
+For changes in semantics, we need to ask:
 
 - Is behavior easy to understand and non-surprising?
 - Can it be implemented performantly today?
 - Is it compatible with type checking and other forms of static analysis?
 
-For new standard library functions, we should be asking:
+For new standard library functions, we need to ask:
 
 - Is the new functionality used/useful often enough in existing code?
-- Does the standard library implementation carry important performance benefits that can't be achieved in user code?
-- Is the behavior general and unambiguous, as opposed to solving a problem / providing an interface that's too specific?
+- Does the standard library implementation carry important performance
+  benefits that can't be achieved in user code?
+- Is the behavior general and unambiguous, as opposed to solving a problem /
+  providing an interface that's too specific?
 - Is the function interface amenable to type checking / linting?
 
-In addition to these questions, we also need to consider that every addition carries a cost, and too many features will result in a language that is harder to learn, harder to implement and ensure consistent implementation quality throughout, slower, etc. In addition, any language is greater than the sum of its parts and features often have non-intuitive interactions with each other.
+In addition to these questions, we also need to consider that every addition
+carries a cost. Too many features result in a language that is harder to
+learn, harder to implement with consistent quality, slower, etc. Any language
+is greater than the sum of its parts, and features often have non-intuitive
+interactions with each other.
 
-Since reversing these decisions is incredibly costly and can be impossible due to backwards compatibility implications, all user facing changes to Quirrel language and core libraries must go through an RFC process.
+Since reversing these decisions is very costly and can be impossible due to
+backwards compatibility, all user facing changes to the Quirrel language and
+core libraries must go through an RFC process.
 
 ## The process
 
 There is no special process for RFC review at the moment.
 
-When an RFC gets merged, the feature *can* be implemented; however, there's no set timeline for that implementation. In some cases implementation may land in a matter of days after an RFC is merged, in some it may take months.
+When an RFC gets merged, the feature *can* be implemented; however, there is no
+set timeline for that implementation. In some cases implementation may land in
+a matter of days after an RFC is merged, in some it may take months.
 
-To avoid having permanently stale RFCs, in rare cases Quirrel team can *remove* a previously merged RFC when the landscape is believed to change enough for a feature like this to warrant further discussion.
+To avoid permanently stale RFCs, in rare cases the Quirrel team can *remove* a
+previously merged RFC when the landscape has changed enough for the feature to
+need further discussion.
 
 When an RFC is implemented, its entry below gets "**Status**: Implemented" and
-a link to the page that now documents the feature. The entry stays until
-nothing about the feature is optional any more, so that the same idea is not
-proposed twice.
+a link to the page that documents the feature. The entry stays until nothing
+about the feature is optional any more, so that the same idea is not proposed
+twice.
 
 ## Implemented
 
@@ -108,7 +120,7 @@ a = function() {}
 let a
 ```
 
-The implemented form is the other way round: `let name` with no initializer
+The implemented form is the other way round. `let name` with no initializer
 forward-declares the binding, and exactly one later assignment in the same
 scope defines it. A read before the definition, a missing definition and a
 second assignment are compile errors. See
@@ -134,14 +146,14 @@ type (integer, float, string, null, boolean) a `let` and a `const` look the
 same to the coder and can be resolved at compile time; for other types `const`
 would act as a binding, as `let` does now.
 
-The two are still distinct, and they are not equally cheap: a `let` lives in a
-register, while a `const` is substituted at each use, which costs an extra
+The two are still distinct, and they are not equally cheap. A `let` lives in a
+register. A `const` is substituted at each use, which costs an extra
 instruction for some operators. An experiment that compiled a literal `let` as
 a scoped const, off by default, was abandoned. What did land is a wider
-`const`: the initializer may be any expression the compiler can evaluate, which
-includes a table or array of constants, a call to a `pure` function and a
-function that captures nothing, and `const expr` is accepted inline inside an
-expression. See
+`const`. The initializer may be any expression the compiler can evaluate: a
+table or array of constants, a call to a `pure` function, or a function that
+captures nothing. `const expr` is also accepted inline inside an expression.
+See
 [Bindings and constants](page:language/bindings#const-and-global-const).
 
 **Status**: Open. The alias is not implemented.
@@ -167,10 +179,10 @@ function bar(***) {
 bar(a = 1, b = 2, c = 3)
 ```
 
-Neither is syntax today: `foo(b = 3)` is the compile error `'=' inside
+Neither is syntax today. `foo(b = 3)` is the compile error `'=' inside
 'function argument' is forbidden`, and `***` does not parse. Destructuring in
-the parameter list covers the first proposal: `function foo({ a = 1, b = 2 })`
-is called as `foo({ b = 3 })`, a missing key takes its default, a key without a
+the parameter list covers the first proposal. `function foo({ a = 1, b = 2 })`
+is called as `foo({ b = 3 })`. A missing key takes its default, a key without a
 default must be present, and an extra key is ignored. See
 [Destructuring](page:language/destructuring) and
 [Functions](page:language/functions).
@@ -188,7 +200,7 @@ source adds nothing. See
 [Tables and arrays](page:language/containers#spread).
 
 JavaScript also spreads at a call and collects a rest element when it
-destructures. Neither is syntax here: `f(...args)` needs an argument count
+destructures. Neither is syntax here. `f(...args)` needs an argument count
 that the `_OP_CALL` instruction holds at compile time, and a rest element
 needs a runtime slice of the source. Today
 [acall](sym:types.Function.acall) passes an array as the argument list, and
@@ -292,10 +304,10 @@ on every run. See
 
 ### Return the _inherited and _newmember metamethods, or another way to validate child classes
 
-`_lock` is the replacement: it runs once, when the class locks (at the first
+`_lock` is the replacement. It runs once, when the class locks: at the first
 instantiation, when another class inherits it, or on an explicit
-[lock](sym:types.Class.lock)), and the class can still be modified at that
-moment with [newmember](sym:types.Class.newmember). See
+[lock](sym:types.Class.lock). At that moment the class can still be modified
+with [newmember](sym:types.Class.newmember). See
 [Metamethods](page:language/metamethods#lock).
 
 **Status**: Not going to be implemented.

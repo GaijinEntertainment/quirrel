@@ -15,7 +15,7 @@ The handler runs when an error unwinds all the way past the last script call on
 the stack, uncaught by any `try`/`catch` in between. It is a notification, not a
 replacement for `catch`: after the handler returns, the error still propagates
 to whatever native code made that call, such as a `thread.call()` from another
-part of the script, exactly as if no handler had run.
+part of the script, as if no handler had run.
 
 `trace` is `null` unless the caller that raised the error supplied one.
 

@@ -14,7 +14,7 @@ introspection info about that metamethod's closure; otherwise returns `null`.
 
 Not reachable from plain script: Quirrel gives script code no way to create
 a `userdata` value, so there is never one to call this on. A C++ host that
-creates its own userdata should also be aware of a sharper trap: this method
+creates its own userdata can still reach an error here. This method
 is looked up like any other field, and field lookup on a `userdata` with a
 custom delegate first tries `Get()` on *that delegate table itself*. If the
 delegate table has no `getfuncinfos` slot of its own, that inner `Get()`

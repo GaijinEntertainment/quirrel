@@ -20,7 +20,7 @@ replaces the value the way [`map`](sym:types.Table.map)'s does.
 
 Whatever `callback` throws propagates out of `filter` - unlike `map`,
 `filter` has no special case for `throw null`; any thrown value, including
-`null`, aborts the whole call.
+`null`, aborts the call.
 
 ## Notes
 

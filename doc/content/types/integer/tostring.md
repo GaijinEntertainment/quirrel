@@ -19,7 +19,7 @@ This calls the same VM conversion as `tostring()`, so every built-in type has
 a `tostring` of its own; see [`types.Float.tostring`](sym:types.Float.tostring)
 for what a fractional part does to the output and
 [`types.Bool.tostring`](sym:types.Bool.tostring) for `true`/`false`.
-`null` has no `tostring` method at all - see
+`null` has no `tostring` method - see
 [`types.Null.constructor`](sym:types.Null.constructor).
 
 ## Example
