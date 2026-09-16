@@ -1,0 +1,3 @@
+digits.match("12345") = true
+digits.match("12345 items") = false
+regexp("(a+)+b").match(s) throws: regexp match aborted: pattern too complex for this input

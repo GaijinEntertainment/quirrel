@@ -15,12 +15,12 @@ async function section_typed_function() {
     return await p
   }
   let n: int = await f()
-  print("n=" + n + "\n")
+  println($"n={n}")
   // Capturing the Future wrapper as `instance` then awaiting it is also fine.
   let p: instance = f()
   print(p.getState() == "pending" ? "p-pending\n" : "p-other\n")
   let resolved: int = await p
-  print("resolved=" + resolved + "\n")
+  println($"resolved={resolved}")
 }
 
 async function section_typed_lambda() {
@@ -31,7 +31,7 @@ async function section_typed_lambda() {
     return await p
   }
   let n: int = await g()
-  print("n=" + n + "\n")
+  println($"n={n}")
 }
 
 async function section_typed_method() {
@@ -48,9 +48,9 @@ async function section_typed_method() {
   }
   let c = Counter()
   let r1: int = await c.bump(3)
-  print("r1=" + r1 + "\n")
+  println($"r1={r1}")
   let r2: int = await c.bump(4)
-  print("r2=" + r2 + "\n")
+  println($"r2={r2}")
 }
 
 async function runAll() {

@@ -8,6 +8,9 @@ class LoopTerminatorCollector : public Visitor {
   bool _firstLevel; // means not under some condition, if or switch
   bool _inSwitch;
   bool _inTry;
+  int _codeBlockExprDepth;
+
+  bool caughtByEnclosingCodeBlockExpr() const { return _codeBlockExprDepth > 0; }
 
   void setTerminator(const Statement *t) {
     if (terminator == nullptr)
@@ -30,6 +33,7 @@ public:
     : _firstLevel(firstLevel)
     , _inSwitch(false)
     , _inTry(false)
+    , _codeBlockExprDepth(0)
     , hasCondBreak(false)
     , hasCondContinue(false)
     , hasCondReturn(false)
@@ -39,6 +43,8 @@ public:
     , terminator(nullptr) {}
 
   void visitReturnStatement(ReturnStatement *stmt) override {
+    if (caughtByEnclosingCodeBlockExpr())
+      return;
     if (_firstLevel) {
       hasUnconditionalTerm = true;
       setTerminator(stmt);
@@ -57,6 +63,8 @@ public:
   }
 
   void visitBreakStatement(BreakStatement *stmt) override {
+    if (caughtByEnclosingCodeBlockExpr())
+      return;
     if (_firstLevel) {
       hasUnconditionalTerm = true;
       setTerminator(stmt);
@@ -88,6 +96,12 @@ public:
 
   void visitFunctionExpr(FunctionExpr *f) override {
     // skip - function expressions have their own return semantics
+  }
+
+  void visitCodeBlockExpr(CodeBlockExpr *expr) override {
+    ++_codeBlockExprDepth;
+    expr->visitChildren(this);
+    --_codeBlockExprDepth;
   }
 
   void visitDecl(Decl *d) override {

@@ -1,0 +1,3 @@
+"banana".replace("an", "AN") = bANANa
+"aaa".replace("a", "aa") = aaaaaa
+"banana".replace("", "X") = banana

@@ -1,0 +1,3 @@
+(65).tochar() = A
+(65).tochar() == (65 + 256).tochar() = true
+(65).tochar().len() = 1

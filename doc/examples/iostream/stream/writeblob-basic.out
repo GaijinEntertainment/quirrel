@@ -1,0 +1,2 @@
+dst.writeblob(src) = 4
+dst.as_string() = gold

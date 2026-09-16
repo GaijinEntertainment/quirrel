@@ -1,0 +1,61 @@
+{
+ "info": {
+  "platform": "Windows-10-10.0.26200-SP0 (10)",
+  "arch": "AMD64",
+  "cpu": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+  "when": "2026-08-31"
+ },
+ "runs": 3,
+ "results": {
+  "fib": {
+   "quirrel": 61.0,
+   "lua55": 30.0,
+   "luau": 27.077299999291427
+  },
+  "binarytrees": {
+   "quirrel": 20.0,
+   "lua55": 25.0,
+   "luau": 8.055399999648216
+  },
+  "life": {
+   "quirrel": 76.0,
+   "lua55": 39.99999999999999,
+   "luau": 36.00869999900169
+  },
+  "mandel": {
+   "quirrel": 39.0,
+   "lua55": 18.999999999999996,
+   "luau": 15.627999999196618
+  },
+  "strings": {
+   "quirrel": 48.0,
+   "lua55": 47.0,
+   "luau": 45.40310000083991
+  },
+  "desc_churn": {
+   "quirrel": 68.0,
+   "lua55": 94.99999999999997,
+   "luau": 27.2941000002902
+  },
+  "probe_storm": {
+   "quirrel": 61.0,
+   "lua55": 43.0,
+   "luau": 39.59500000019034
+  },
+  "nullable_probe": {
+   "quirrel": 65.0,
+   "lua55": 20.0,
+   "luau": 15.1120999998966
+  },
+  "closure_storm": {
+   "quirrel": 64.0,
+   "lua55": 102.0,
+   "luau": 20.540500001516193
+  },
+  "method_calls": {
+   "quirrel": 259.0,
+   "lua55": 207.0,
+   "luau": 162.57190000033006
+  }
+ }
+}

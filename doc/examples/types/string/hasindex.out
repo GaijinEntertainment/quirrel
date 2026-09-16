@@ -1,0 +1,4 @@
+"abc".hasindex(0) = true
+"abc".hasindex(2) = true
+"abc".hasindex(3) = false
+"abc".hasindex(-1) = false

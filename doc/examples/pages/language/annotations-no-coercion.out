@@ -1,0 +1,3 @@
+type(identity(10)) = integer
+type(identity(10.0)) = float
+type(damageAt(10)) = float

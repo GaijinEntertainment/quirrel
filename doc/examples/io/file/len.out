@@ -1,0 +1,2 @@
+f.len() after write = 5
+f.len() after seek(2) = 5

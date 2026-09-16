@@ -227,11 +227,12 @@ public:
     SQObjectPtr _name;
     SQUnsignedInteger32 lang_features;
     SQUnsignedInteger32 _result_type_mask;
-    bool _inside_hoisted_scope;
-    bool _bgenerator;
-    bool _purefunction;
-    bool _nodiscard;
-    bool _isAsync;     // true: function body is a generator wrapped as a Future on call
+    SQUnsignedInteger32 _docstring_id : 24;
+    SQUnsignedInteger32 _inside_hoisted_scope : 1;
+    SQUnsignedInteger32 _bgenerator : 1;
+    SQUnsignedInteger32 _purefunction : 1;
+    SQUnsignedInteger32 _nodiscard : 1;
+    SQUnsignedInteger32 _isAsync : 1;     // true: function body is a generator wrapped as a Future on call
     SQInt32 _stacksize;
     SQInt32 _varparams;
 

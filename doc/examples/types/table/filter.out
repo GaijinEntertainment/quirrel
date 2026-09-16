@@ -1,0 +1,4 @@
+evens.len() = 2
+evens.b = 2
+t.len() = 4
+caught e == null: true

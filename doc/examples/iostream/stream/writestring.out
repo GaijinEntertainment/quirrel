@@ -1,0 +1,4 @@
+b.writestring("hi") = 2
+b.len() after writestring("hi") = 2
+b.writestring(e) = 2
+b.len() after writestring(e) = 4

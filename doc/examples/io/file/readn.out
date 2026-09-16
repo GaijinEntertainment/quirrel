@@ -1,0 +1,2 @@
+f.readn('i') = 16909060
+f.readn('i') at offset 3 throws: io error

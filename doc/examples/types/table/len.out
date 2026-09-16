@@ -1,0 +1,4 @@
+t.len() = 3
+t.len() after rawdelete("a") = 2
+empty.len() = 0
+t.len(1) throws: wrong number of parameters passed to native closure 'len' (2 passed, 1 required)

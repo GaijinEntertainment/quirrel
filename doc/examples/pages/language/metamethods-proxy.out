@@ -1,0 +1,4 @@
+hard
+3
+read: the index 'missing' (type='string') does not exist
+write: Error in '_set' metamethod: config is read-only

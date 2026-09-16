@@ -1,0 +1,4 @@
+Vehicle vs instance
+Vehicle is the same as Vehicle
+describe([1, 2]) = array
+types of [1, "alpha", 2.5] = integer, string, float

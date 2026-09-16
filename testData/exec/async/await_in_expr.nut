@@ -14,7 +14,7 @@ pb.resolve(20)
 
 async function add() {
   let r = await pa + await pb
-  print("add: " + r + "\n")
+  println($"add: {r}")
 }
 
 async function g() { return 7 }
@@ -22,7 +22,7 @@ async function f(x) { return x * 2 }
 
 async function nested() {
   let r = await f(await g())
-  print("nested: " + r + "\n")
+  println($"nested: {r}")
 }
 
 async function main() {

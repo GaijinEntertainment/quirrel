@@ -1,0 +1,2 @@
+d.getclass() == Dog = true
+d.getclass() == Animal = false

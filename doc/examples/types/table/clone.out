@@ -1,0 +1,6 @@
+c == t: false
+c.a = 1
+t.a = 1
+c.nested == t.nested: true
+frozen.is_frozen() = true
+(clone frozen).is_frozen() = false

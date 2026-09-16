@@ -9,7 +9,7 @@ function manyLocals() {
     local b0=10; local b1=11; local b2=12; local b3=13; local b4=14
     local b5=15; local b6=16; local b7=17; local b8=18; local b9=19
     local s = a0+a1+a2+a3+a4+a5+a6+a7+a8+a9+b0+b1+b2+b3+b4+b5+b6+b7+b8+b9
-    throw "caps " + s
+    throw $"caps {s}"
 }
 
 async function failing() {

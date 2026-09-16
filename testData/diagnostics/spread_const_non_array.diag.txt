@@ -1,0 +1,8 @@
+ERROR: only an array can be spread into an array
+testData/diagnostics/spread_const_non_array.nut:2:17
+
+const SOURCE = { x = 1 }
+const BAD = [ ...SOURCE ]
+                 ^-----
+
+

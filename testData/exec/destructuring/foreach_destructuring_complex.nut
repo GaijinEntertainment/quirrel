@@ -26,7 +26,7 @@ let factories = []
 foreach (i, {label, basev} in [{label = "alpha", basev = 10}, {label = "beta", basev = 100}]) {
   let mult = i + 1
   function build(extra) {
-    return label + ":" + (basev * mult + extra)
+    return $"{label}:{basev * mult + extra}"
   }
   factories.append(build)
 }
@@ -50,7 +50,7 @@ foreach (i, {op, n} in pipeline) {
     function inner() {
       return counter.add(n * (i + 1))
     }
-    return local_op + "->" + inner()
+    return $"{local_op}->{inner()}"
   }
   println("L3:", step())
 }
@@ -78,7 +78,7 @@ foreach ({gid, members} in groups) {
 let getters = []
 foreach (item in [{key = "a", val = 1}, {key = "b", val = 2}, {key = "c", val = 3}]) {
   let {key, val} = item
-  getters.append(@() key + "=" + val)
+  getters.append(@() $"{key}={val}")
 }
 foreach (g in getters) {
   println("L5:", g())
@@ -211,7 +211,7 @@ let pairs = [mkPair(1, "one"), mkPair(2, "two"), mkPair(3, "three")]
 let folded = (function() {
   let parts = []
   foreach ({first, second} in pairs) {
-    parts.append(second + "=" + first)
+    parts.append($"{second}={first}")
   }
   return parts
 })()
@@ -228,7 +228,7 @@ foreach (i, {tag, weight} in [{tag = "p", weight = 3}, {tag = "q", weight = 7}])
   let captured_tag = tag
   let captured_weight = weight
   bound.append(function() {
-    return captured_tag + "@" + i + "=" + captured_weight
+    return $"{captured_tag}@{i}={captured_weight}"
   })
 }
 foreach (f in bound) {
@@ -244,7 +244,7 @@ class Aggregator {
   constructor() { this.data = [] }
   function ingest(rows) {
     foreach ({src, val = 0} in rows) {
-      this.data.append(src + ":" + val)
+      this.data.append($"{src}:{val}")
     }
   }
 }

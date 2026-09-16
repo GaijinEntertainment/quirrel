@@ -1,0 +1,7 @@
+[] = truthy
+0 = falsy
+preferredAmmo && ammoBelt() = null
+ammoBelt() evaluated
+preferredAmmo || ammoBelt() = belt_762
+!hitPoints = true
+typeof !hitPoints = bool

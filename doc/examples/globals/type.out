@@ -1,0 +1,6 @@
+type(5) = integer
+type("s") = string
+type([1]) = array
+type(println) = function
+type(Custom()) = instance
+typeof Custom() = custom

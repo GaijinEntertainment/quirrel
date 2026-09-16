@@ -1,0 +1,5 @@
+first
+co.call() = paused
+resumed with hello
+co.wakeup("hello") = null
+co.getstatus() = idle

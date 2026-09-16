@@ -1,2 +1,2 @@
-build
-*.pyc
+_site/
+__pycache__/

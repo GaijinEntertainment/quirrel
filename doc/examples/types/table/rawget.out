@@ -1,0 +1,4 @@
+t.rawget("a") = 1
+t["a"] = 1
+t.rawget("missing") throws: the index doesn't exist
+t.missing throws: the index 'missing' (type='string') does not exist

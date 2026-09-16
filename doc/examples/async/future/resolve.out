@@ -1,0 +1,3 @@
+p.getValue() = 1
+q.resolve(q) throws: cannot resolve a future with itself
+t.resolve(0) throws: cannot resolve the future returned by an async function

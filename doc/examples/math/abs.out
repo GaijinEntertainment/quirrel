@@ -1,0 +1,4 @@
+abs(-3) = 3
+type(abs(-3)) = integer
+abs(-3.0) = 3
+type(abs(-3.0)) = float

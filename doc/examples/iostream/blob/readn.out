@@ -1,0 +1,5 @@
+b.readn('b') = 65
+b.tell() after readn('b') = 1
+b[1] = 66
+b.tell() after b[1] = 1
+b.readn('i') throws: io error

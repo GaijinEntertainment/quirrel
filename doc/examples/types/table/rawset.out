@@ -1,0 +1,4 @@
+r == t: true
+t.b = 2
+t.c = 3 throws: the index 'c' (type='string') does not exist
+frozen.rawset("a", 2) throws: Cannot modify immutable object

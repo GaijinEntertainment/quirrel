@@ -1,0 +1,3 @@
+bound() = Alice
+{greet = bound}.greet() = Alice
+typeof temp() = null

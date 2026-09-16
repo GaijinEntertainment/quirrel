@@ -1,0 +1,3 @@
+c.len() = 1
+c[0] = 1
+false.tochar()[0] = 0

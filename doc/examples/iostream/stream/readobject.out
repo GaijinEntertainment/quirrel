@@ -1,0 +1,3 @@
+b.readobject() = 42
+empty.readobject() throws: Unexpected end of data during deserialization
+b2.readobject() throws: Instance found during deserialization, but available classes not set or not a table

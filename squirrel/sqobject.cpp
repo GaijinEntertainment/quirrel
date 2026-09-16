@@ -11,6 +11,22 @@
 #include "sqclass.h"
 #include "sqclosure.h"
 
+SQDocStringId sq_getdocstring_id(const SQObject &obj)
+{
+    switch (sq_type(obj)) {
+    case OT_CLOSURE:
+        return _closure(obj)->_function->_docstring_id;
+    case OT_NATIVECLOSURE:
+        return _nativeclosure(obj)->_docstring_id;
+    case OT_CLASS:
+        return _class(obj)->_docstring_id;
+    case OT_INSTANCE:
+        return _instance(obj)->_class->_docstring_id;
+    default:
+        return 0;
+    }
+}
+
 
 const char *IdType2Name(SQObjectType type)
 {
@@ -365,6 +381,7 @@ SQFunctionProto::SQFunctionProto(SQSharedState *ss)
     _nodiscard=false;
     _isAsync=false;
     _inside_hoisted_scope=false;
+    _docstring_id=0;
     INIT_CHAIN();ADD_TO_CHAIN(&_ss(this)->_gc_chain,this);
 }
 

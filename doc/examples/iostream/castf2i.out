@@ -1,0 +1,4 @@
+castf2i(1.5) = 1069547520
+casti2f(castf2i(1.5)) = 1.5
+castf2i(1) == castf2i(1.0) = true
+castf2i(-1.0) > 0 = true

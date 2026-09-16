@@ -22,7 +22,7 @@ function idxValShadow() {
   let v = "BV"
   let res = []
   foreach (k, v in ["a", "b"]) {
-    function w() { function deep() { return k + ":" + v } return deep() }
+    function w() { function deep() { return $"{k}:{v}" } return deep() }
     res.append(w())
   }
   return "-".join(res)
@@ -36,7 +36,7 @@ function paramShadow(e) {
       function w() { function deep() { return e } return deep() }
       seen.append(w())
     }
-    return "-".join(seen) + "|" + e
+    return $"{"-".join(seen)}|{e}"
   }}
 }
 

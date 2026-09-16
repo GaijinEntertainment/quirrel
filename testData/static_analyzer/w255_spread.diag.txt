@@ -1,0 +1,9 @@
+WARNING: w255 (duplicate-function) Duplicate function body. Consider functions 'first' and 'second'.
+testData/static_analyzer/w255_spread.nut:11:2
+
+  }
+  function second(x, y) {
+  ^
+    let one = { ...src, k1 = x }
+
+

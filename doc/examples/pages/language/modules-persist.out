@@ -1,0 +1,3 @@
+missionStats.completed = 1
+squadRoster.len() = 3
+__name__ = __main__

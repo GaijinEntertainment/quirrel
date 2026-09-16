@@ -100,6 +100,9 @@ static SQInteger debug_getbuildinfo(HSQUIRRELVM v)
   sq_pushstring(v, "floatsize", -1);
   sq_pushinteger(v, sizeof(SQFloat));
   sq_newslot(v, -3, SQFalse);
+  sq_pushstring(v, "docstring_registry_slots", -1);
+  sq_pushinteger(v, _ss(v)->GetDocStringRegistrySlotCount());
+  sq_newslot(v, -3, SQFalse);
   sq_pushstring(v, "gc", -1);
 #ifndef NO_GARBAGE_COLLECTOR
   sq_pushstring(v, "enabled", -1);
@@ -115,32 +118,13 @@ static SQInteger debug_doc(HSQUIRRELVM v)
     HSQOBJECT subject;
     sq_getstackobj(v, 2, &subject);
 
-    SQObjectPtr value;
-    SQObjectPtr key;
-    key._type = OT_USERPOINTER;
-    switch(sq_type(subject))
-    {
-        case OT_CLOSURE:
-            key._unVal.pUserPointer = (void *)_closure(subject)->_function;
-            break;
-        case OT_NATIVECLOSURE:
-            key._unVal.pUserPointer = (void *)_nativeclosure(subject)->_function;
-            break;
-        case OT_INSTANCE:
-            key._unVal.pUserPointer = (void *)_instance(subject)->_class;
-            break;
-        default:
-            key._unVal.pUserPointer = subject._unVal.pUserPointer;
-            break;
-    }
-
-    if (!_table(_ss(v)->doc_objects)->Get(key, value))
-    {
+    SQString *doc = _ss(v)->GetDocString(sq_getdocstring_id(subject));
+    if (!doc) {
         sq_pushnull(v);
         return 1;
     }
 
-    sq_pushobject(v, value);
+    sq_pushobject(v, SQObjectPtr(doc));
     return 1;
 }
 
@@ -159,9 +143,6 @@ static SQInteger debug_get_function_info_table(HSQUIRRELVM v)
 
     SQObjectPtr nullVal;
     SQObjectPtr docObject;
-    SQObjectPtr value;
-    SQObjectPtr key;
-    key._type = OT_USERPOINTER;
     SQFunctionType ft(_ss(v));
     bool initialized = false;
     bool native = false;
@@ -171,8 +152,8 @@ static SQInteger debug_get_function_info_table(HSQUIRRELVM v)
         case OT_CLOSURE:
         {
             SQFunctionProto *f = _closure(subject)->_function;
-            key._unVal.pUserPointer = (void *)_closure(subject)->_function;
-            _table(_ss(v)->doc_objects)->Get(key, docObject);
+            if (SQString *doc = _ss(v)->GetDocString(sq_getdocstring_id(subject)))
+                docObject = doc;
 
             ft.functionName = f->_name;
             ft.returnTypeMask = f->_result_type_mask;
@@ -200,20 +181,18 @@ static SQInteger debug_get_function_info_table(HSQUIRRELVM v)
         case OT_NATIVECLOSURE: {
             native = true;
 
-            key._unVal.pUserPointer = (void *)_nativeclosure(subject)->_function;
-            _table(_ss(v)->doc_objects)->Get(key, docObject);
+            if (SQString *doc = _ss(v)->GetDocString(sq_getdocstring_id(subject)))
+                docObject = doc;
 
-            key._unVal.pUserPointer = (void *)((size_t)(void *)_nativeclosure(subject)->_function ^ ~size_t(0));
-            if (_table(_ss(v)->doc_objects)->Get(key, value)) {
+            SQString *declString = _ss(v)->GetNativeDeclString(sq_getdocstring_id(subject));
+            if (declString) {
                 SQInteger errorPos = -1;
                 SQObjectPtr errorString;
-                if (sq_isstring(value)) {
-                   if (sq_parse_function_type_string(v, _stringval(value), ft, errorPos, errorString)) {
-                       initialized = true;
-                   }
-                   else {
-                       // TODO: raise errorString
-                   }
+                if (sq_parse_function_type_string(v, declString->_val, ft, errorPos, errorString)) {
+                    initialized = true;
+                }
+                else {
+                    // TODO: raise errorString
                 }
                 break;
             }
@@ -226,6 +205,7 @@ static SQInteger debug_get_function_info_table(HSQUIRRELVM v)
                 ft.requiredArgs = nparamscheck_to_required_args(f->_nparamscheck);
                 ft.pure = f->_purefunction;
                 ft.nodiscard = f->_nodiscard;
+                ft.fastcall = f->_isfastcall;
 
                 int cnt = (ft.requiredArgs > f->_typecheck.size()) ? ft.requiredArgs : f->_typecheck.size();
 
@@ -269,6 +249,7 @@ static SQInteger debug_get_function_info_table(HSQUIRRELVM v)
     SET_SLOT("native", native);
     SET_SLOT("pure", ft.pure);
     SET_SLOT("nodiscard", ft.nodiscard);
+    SET_SLOT("fastcall", ft.fastcall);
     SET_SLOT("doc", docObject);
 
     SQObjectPtr argNames(SQArray::Create(_ss(v), ft.argNames.size()));
@@ -298,9 +279,6 @@ static SQInteger debug_get_function_decl_string(HSQUIRRELVM v)
     sq_getstackobj(v, 2, &subject);
 
     SQObjectPtr nullVal;
-    SQObjectPtr value;
-    SQObjectPtr key;
-    key._type = OT_USERPOINTER;
     switch (sq_type(subject))
     {
         case OT_CLOSURE:
@@ -331,10 +309,10 @@ static SQInteger debug_get_function_decl_string(HSQUIRRELVM v)
             return 1;
         }
 
-        case OT_NATIVECLOSURE:
-            key._unVal.pUserPointer = (void *)((size_t)(void *)_nativeclosure(subject)->_function ^ ~size_t(0));
-            if (_table(_ss(v)->doc_objects)->Get(key, value)) {
-                sq_pushobject(v, value);
+        case OT_NATIVECLOSURE: {
+            SQString *declString = _ss(v)->GetNativeDeclString(sq_getdocstring_id(subject));
+            if (declString) {
+                sq_pushobject(v, SQObjectPtr(declString));
                 return 1;
             }
             else {
@@ -347,6 +325,7 @@ static SQInteger debug_get_function_decl_string(HSQUIRRELVM v)
                 ft.requiredArgs = nparamscheck_to_required_args(f->_nparamscheck);
                 ft.pure = f->_purefunction;
                 ft.nodiscard = f->_nodiscard;
+                ft.fastcall = f->_isfastcall;
 
                 int nArgsFromMask = f->_typecheck.size() ? f->_typecheck.size()-1 : 0; // Exclude `this`
                 int nArgsDisplayed = f->_nparamscheck >= 0 ? ft.requiredArgs : // for fixed args count ignore mask length
@@ -369,6 +348,7 @@ static SQInteger debug_get_function_decl_string(HSQUIRRELVM v)
                 return 1;
             }
             break;
+        }
 
         default:
             break;
@@ -444,23 +424,23 @@ static SQInteger debug_set_script_watchdog_timeout_msec(HSQUIRRELVM v)
 
 
 static const SQRegFunctionFromStr debuglib_funcs[] = {
-    { debug_seterrorhandler, "seterrorhandler(handler: function|null)", "Installs the given function as the VM error handler; null clears it" },
-    { debug_setdebughook, "setdebughook(hook: function|null)", "Installs the given function as the VM debug hook; null clears it" },
-    { debug_getstackinfos, "getstackinfos(level: int): table|null", "Returns call stack information for the given stack level" },
-    { format_call_stack_string, "format_call_stack_string(): string", "Returns a formatted string describing the current call stack" },
-    { debug_getlocals, "getlocals([level: int, include_internal: bool]): table", "Returns a table of local variables at the given stack level" },
-    { debug_get_stack_top, "get_stack_top(): int", "Returns the current VM stack top index" },
-    { debug_script_watchdog_kick, "script_watchdog_kick()", "Resets the script watchdog timer" },
-    { debug_set_script_watchdog_timeout_msec, "set_script_watchdog_timeout_msec(timeout_msec: int): int", "Sets the script watchdog timeout in milliseconds and returns the previous value" },
-    { debug_get_function_decl_string, "get_function_decl_string(func: function): string|null", "Returns a function declaration string" },
-    { debug_type_mask_to_string, "type_mask_to_string(mask: int): string", "Convert type mask to human-readable string" },
-    { debug_get_function_info_table, "get_function_info_table(func: function): table|null", "Returns meta information about a function as table" },
-    { debug_doc, "doc(subject: table|function|instance|class): string|null", "Returns a documentation string for a function, class, or table" },
+    { debug_seterrorhandler, "seterrorhandler(handler: function|null)", SQ_DOC("Installs the given function as the VM error handler; null clears it") },
+    { debug_setdebughook, "setdebughook(hook: function|null)", SQ_DOC("Installs the given function as the VM debug hook; null clears it") },
+    { debug_getstackinfos, "getstackinfos(level: int): table|null", SQ_DOC("Returns call stack information for the given stack level") },
+    { format_call_stack_string, "format_call_stack_string(): string", SQ_DOC("Returns a formatted string describing the current call stack") },
+    { debug_getlocals, "getlocals([level: int, include_internal: bool]): table", SQ_DOC("Returns a table of local variables at the given stack level") },
+    { debug_get_stack_top, "get_stack_top(): int", SQ_DOC("Returns the current VM stack top index") },
+    { debug_script_watchdog_kick, "script_watchdog_kick()", SQ_DOC("Resets the script watchdog timer") },
+    { debug_set_script_watchdog_timeout_msec, "set_script_watchdog_timeout_msec(timeout_msec: int): int", SQ_DOC("Sets the script watchdog timeout in milliseconds and returns the previous value") },
+    { debug_get_function_decl_string, "get_function_decl_string(func: function): string|null", SQ_DOC("Returns a function declaration string") },
+    { debug_type_mask_to_string, "type_mask_to_string(mask: int): string", SQ_DOC("Convert type mask to human-readable string") },
+    { debug_get_function_info_table, "get_function_info_table(func: function): table|null", SQ_DOC("Returns meta information about a function as table") },
+    { debug_doc, "doc(subject: function|instance|class): string|null", SQ_DOC("Returns a documentation string for a function, class, or instance") },
 #ifndef NO_GARBAGE_COLLECTOR
-    { debug_collectgarbage, "collectgarbage(): int", "Runs the garbage collector and returns the number of reclaimed objects" },
-    { debug_resurrectunreachable, "resurrectunreachable(): array|null", "Resurrects unreachable objects for inspection" },
+    { debug_collectgarbage, "collectgarbage(): int", SQ_DOC("Runs the garbage collector and returns the number of reclaimed objects") },
+    { debug_resurrectunreachable, "resurrectunreachable(): array|null", SQ_DOC("Resurrects unreachable objects for inspection") },
 #endif
-    { debug_getbuildinfo, "getbuildinfo(): table", "Returns a table describing the Quirrel build (version, sizes, GC status)" },
+    { debug_getbuildinfo, "getbuildinfo(): table", SQ_DOC("Returns a table describing the Quirrel build (version, sizes, GC status)") },
     { NULL, NULL, NULL }
 };
 

@@ -1,0 +1,3 @@
+loadoutTemplate.weaponName = ak74
+squadLoadout.weaponName = svd
+loadoutTemplate.ammoBelt.len() = 3

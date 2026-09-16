@@ -1,0 +1,2 @@
+greet.pcall({name = "Bob"}, "Hi") = Hi Bob
+loopy(60) throws: Native stack overflow

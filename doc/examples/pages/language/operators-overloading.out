@@ -1,0 +1,8 @@
+muzzle + recoil = (4, 6)
+muzzle - recoil = (2, 2)
+muzzle * 2 = (6, 8)
+-muzzle = (-3, -4)
+muzzle > recoil = true
+muzzle == recoil = false
+typeof muzzle = MyPoint2
+type(muzzle) = instance

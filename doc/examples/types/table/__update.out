@@ -1,0 +1,4 @@
+r == t: true
+t.fizz = 10 t.buzz = 2
+t.__update() throws: wrong number of parameters passed to native closure '__update' (1 passed, at least 2 required)
+t.__update("not a table") throws: parameter 1 of '__update' has an invalid type 'string' ; expected: 'table|class|instance'

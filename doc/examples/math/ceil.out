@@ -1,0 +1,3 @@
+ceil(3.2) = 4
+ceil(-3.2) = -3
+type(ceil(3.2)) = float

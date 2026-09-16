@@ -1,0 +1,2 @@
+Import error at testData/diagnostics/import_06.nut:5:8: Script file dagor2.math (dagor2.math) not found
+testData/diagnostics/import_06.nut:5:8

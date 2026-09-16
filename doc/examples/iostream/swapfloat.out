@@ -1,0 +1,2 @@
+swapfloat(swapfloat(1.5)) == 1.5 = true
+swapfloat(2) == swapfloat(2.0) = true

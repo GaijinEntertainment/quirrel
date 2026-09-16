@@ -69,6 +69,10 @@ typedef SQInteger SQRESULT;
 #else
     #define _PRINT_INT_FMT "%d"
 #endif
+
+#define SQ_USED_MEM_COUNTER_DECL namespace sqmemtrace { extern unsigned mem_used; }
+#define SQ_USED_MEM_COUNTER sqmemtrace::mem_used
+
 #define SQ_CHECK_THREAD_LEVEL_NONE 0
 #define SQ_CHECK_THREAD_LEVEL_FAST 1
 #define SQ_CHECK_THREAD_LEVEL_DEEP 2
@@ -77,9 +81,23 @@ typedef SQInteger SQRESULT;
 #define SQ_CHECK_THREAD SQ_CHECK_THREAD_LEVEL_NONE
 #endif
 
-// doc strings and native function declaration strings
+// Runtime docstrings and native function declaration strings.
 #ifndef SQ_STORE_DOC_OBJECTS
+#if defined(DAGOR_DBGLEVEL) && DAGOR_DBGLEVEL <= 0
+#define SQ_STORE_DOC_OBJECTS 0
+#else
 #define SQ_STORE_DOC_OBJECTS 1
+#endif
+#endif
+
+#if defined(DAGOR_DBGLEVEL) && DAGOR_DBGLEVEL <= 0 && SQ_STORE_DOC_OBJECTS
+#error Release builds cannot store Quirrel docstrings
+#endif
+
+#if SQ_STORE_DOC_OBJECTS
+#define SQ_DOC(text) text
+#else
+#define SQ_DOC(text) ((const char *)0)
 #endif
 
 // if SQ_RANDOMIZE_FOREACH == 1, the foreach loop for tables will be randomized

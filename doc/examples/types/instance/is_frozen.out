@@ -1,0 +1,3 @@
+inst.is_frozen() before freeze = false
+frozenInst.is_frozen() = true
+inst.is_frozen() after freeze = false

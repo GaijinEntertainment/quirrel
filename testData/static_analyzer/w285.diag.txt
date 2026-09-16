@@ -30,3 +30,12 @@ let _h = regions3 != null
          ^-------
 
 
+WARNING: w285 (expr-cannot-be-null) The expression to the left of the 'equal check' cannot be null.
+testData/static_analyzer/w285.nut:55:9
+
+  local x = 5
+  while (x != null)
+         ^
+    x++
+
+

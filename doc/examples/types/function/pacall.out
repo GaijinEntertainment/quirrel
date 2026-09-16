@@ -1,0 +1,2 @@
+greet.pacall([{name = "Bob"}, "Hi"]) = Hi Bob
+caught: boom

@@ -1,0 +1,2 @@
+casti2f(castf2i(2.5)) = 2.5
+casti2f(0x89) == casti2f(0x100000089) = true

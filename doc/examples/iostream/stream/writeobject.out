@@ -1,0 +1,3 @@
+b.len() = 6
+b.writeobject(Point()) throws: Unsupported class for serialization
+b.writeobject(print) throws: Unsupported object type for serialization

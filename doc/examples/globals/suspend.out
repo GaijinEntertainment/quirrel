@@ -1,0 +1,3 @@
+co.call() = ready
+co.wakeup("a") = got a
+finished with b

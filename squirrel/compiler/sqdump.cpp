@@ -2,7 +2,6 @@
     see copyright notice in squirrel.h
 */
 #include "sqpcheader.h"
-#ifndef NO_COMPILER
 #include "sqstring.h"
 #include "sqfuncproto.h"
 #include "sqtable.h"
@@ -223,6 +222,10 @@ void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int 
                 streamprintf(stream, "  // (call r%d) -> r%d", int(inst._arg1), int(inst._arg0));
                 break;
 
+            case _OP_FASTCALL:
+                streamprintf(stream, "  // (fastcall r%d) -> r%d", int(inst._arg1), int(inst._arg0));
+                break;
+
             case _OP_NULLCALL:
                 streamprintf(stream, "  // (if r%d then call r%d) -> r%d", int(inst._arg1), int(inst._arg1), int(inst._arg0));
                 break;
@@ -252,6 +255,10 @@ void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int 
                 streamprintf(stream, " -> r%d", int(inst._arg0));
                 break;
             }
+
+            case _OP_SPREAD:
+                streamprintf(stream, "  // spread r%d into r%d, reserve %d more", int(inst._arg1), int(inst._arg0), int(inst._arg2));
+                break;
 
             case _OP_APPENDARRAY: {
                 streamprintf(stream, "  // r%d.append(", int(inst._arg0));
@@ -675,8 +682,8 @@ void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int 
                 streamprintf(stream, "  // pop %d trap(s)", int(inst._arg0));
                 break;
 
-            case _OP_PATCH_DOCOBJ:
-                streamprintf(stream, "  // patch docobj r%d", int(inst._arg0));
+            case _OP_SET_CLASS_DOCSTRING:
+                streamprintf(stream, "  // set class docstring %u on r%d", unsigned(inst._arg1), int(inst._arg0));
                 break;
 
             default:
@@ -788,5 +795,3 @@ void Dump(SQStreamWriteFunc write, void *ud, SQFunctionProto *func, bool deep, i
 void Dump(SQFunctionProto *func, int instruction_index) {
     Dump(&sq_stream_write_file, stdout, func, false, instruction_index);
 }
-
-#endif

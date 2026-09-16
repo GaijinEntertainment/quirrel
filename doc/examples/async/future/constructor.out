@@ -1,0 +1,2 @@
+p.getState() = pending
+Twice() throws: Future: constructor called more than once

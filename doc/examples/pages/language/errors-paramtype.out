@@ -1,0 +1,2 @@
+caught: parameter 2 of 'heal' has an invalid type 'string' ; expected: 'integer'
+heal(medic, 10) = 60

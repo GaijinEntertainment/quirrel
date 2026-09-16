@@ -1,0 +1,2 @@
+Dog.getbase() == Animal = true
+Animal.getbase() = null

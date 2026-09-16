@@ -1,0 +1,5 @@
+type_mask_to_string(argTypeMask[0]) = int
+type_mask_to_string(argTypeMask[1]) = float
+type_mask_to_string(argTypeMask[0] | argTypeMask[1]) = number
+type_mask_to_string(-1) = any
+type_mask_to_string(0) = []

@@ -1,0 +1,3 @@
+asFloat.tointeger() = 16777216
+shellCount == asFloat = true
+getbuildinfo().floatsize = 4

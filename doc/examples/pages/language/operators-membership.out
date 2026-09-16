@@ -1,0 +1,8 @@
+"rifle" in loadout = true
+"boots" not in loadout = true
+true
+false
+myTank instanceof Vehicle = true
+myTank instanceof Tank = true
+typeof myTank = instance
+typeof ammoBelt = array

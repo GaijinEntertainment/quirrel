@@ -14,7 +14,7 @@ async function consumer() {
   try {
     await faults()
   } catch (e) {
-    print("caught: " + e + "\n")
+    println($"caught: {e}")
   }
 }
 

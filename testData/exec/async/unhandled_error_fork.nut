@@ -18,7 +18,7 @@ seterrorhandler(function(err, trace) {
     }
     assert(sawOrigin)                 // pre-fork origin is present on every branch
     assert(awaitedFuncs.len() == 1)   // exactly this branch's hop, no sibling pollution
-    print("unhandled via " + awaitedFuncs[0] + "\n")
+    println($"unhandled via {awaitedFuncs[0]}")
 })
 
 let gate = Future()

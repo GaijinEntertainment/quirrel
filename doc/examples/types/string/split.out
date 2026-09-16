@@ -1,0 +1,3 @@
+" a  b\tc ".split() joined = a,b,c
+"a::b::c".split("::") joined = a,b,c
+"a,b,".split(",").len() = 3

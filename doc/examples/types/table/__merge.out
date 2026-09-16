@@ -1,0 +1,4 @@
+r == t: false
+r.fizz = 1 r.buzz = 2
+"buzz" in t: false
+frozen.__merge({b=2}).b = 2

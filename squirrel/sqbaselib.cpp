@@ -79,12 +79,13 @@ static bool sq_parse_int(const char* str_begin, const char* str_end, SQObjectPtr
 static SQInteger get_allowed_args_count(const SQObject &closure, SQInteger num_supported)
 {
     if(sq_type(closure) == OT_CLOSURE) {
-        return _closure(closure)->_function->_nparameters;
+        SQInteger nParams = _closure(closure)->_function->_nparameters;
+        return nParams < num_supported ? nParams : num_supported;
     }
     else if (sq_type(closure) == OT_NATIVECLOSURE) {
         SQInteger nParamsCheck = _nativeclosure(closure)->_nparamscheck;
         if (nParamsCheck > 0)
-            return nParamsCheck;
+            return nParamsCheck < num_supported ? nParamsCheck : num_supported;
         else // push all params when there is no check or only minimal count set
             return num_supported;
     }
@@ -275,6 +276,9 @@ static SQInteger base_compilestring(HSQUIRRELVM v)
 static SQInteger base_newthread(HSQUIRRELVM v)
 {
     SQObjectPtr &func = stack_get(v,2);
+    if (sq_type(func) != OT_CLOSURE)
+        return sq_throwerror(v, "newthread expects a non-native closure");
+
     SQInteger stksize = (_closure(func)->_function->_stacksize << 1) + 2; // -V629
     HSQUIRRELVM newv = sq_newthread(v, (stksize < MIN_STACK_OVERHEAD + 2)? MIN_STACK_OVERHEAD + 2 : stksize);
     sq_move(newv,v,-2);
@@ -595,7 +599,8 @@ static SQInteger container_each(HSQUIRRELVM v)
     while (SQ_SUCCEEDED(sq_next(v, 1))) {
         SQInteger iterTop = sq_gettop(v);
         v->PushNull();
-        v->Push(stack_get(v, iterTop));
+        if (nArgs >= 2)
+            v->Push(stack_get(v, iterTop));
         if (nArgs >= 3)
             v->Push(stack_get(v, iterTop-1));
         if (nArgs >= 4)
@@ -623,7 +628,8 @@ static SQInteger container_findindex(HSQUIRRELVM v)
     while (SQ_SUCCEEDED(sq_next(v, 1))) {
         SQInteger iterTop = sq_gettop(v);
         v->PushNull();
-        v->Push(stack_get(v, iterTop));
+        if (nArgs >= 2)
+            v->Push(stack_get(v, iterTop));
         if (nArgs >= 3)
             v->Push(stack_get(v, iterTop-1));
         if (nArgs >= 4)
@@ -659,7 +665,8 @@ static SQInteger container_findvalue(HSQUIRRELVM v)
         SQInteger iterTop = sq_gettop(v);
 
         v->PushNull();
-        v->Push(stack_get(v, iterTop));
+        if (nArgs >= 2)
+            v->Push(stack_get(v, iterTop));
         if (nArgs >= 3)
             v->Push(stack_get(v, iterTop-1));
         if (nArgs >= 4)
@@ -772,7 +779,8 @@ static SQInteger table_filter(HSQUIRRELVM v)
         itr = (SQInteger)nitr;
 
         v->PushNull();
-        v->Push(val);
+        if (nArgs >= 2)
+            v->Push(val);
         if (nArgs >= 3)
             v->Push(key);
         if (nArgs >= 4)
@@ -855,7 +863,7 @@ static SQInteger swap(HSQUIRRELVM v)
             SQInteger k2 = tointeger(key2);
             k2 = k2 >= 0 ? k2 : asize + k2 ;
             if( k1 >= asize || k2 >= asize || k1 < 0 || k2 < 0)
-                return sq_throwerror(v,"index is out of range");
+                return sq_throwerror(v,"index out of range");
 
             _Swap(_array(o)->_values[k1], _array(o)->_values[k2]);
             break;
@@ -863,7 +871,7 @@ static SQInteger swap(HSQUIRRELVM v)
         case OT_TABLE: {
             SQObjectPtr val1, val2;
             if (!_table(o)->Get(key1, val1) || !_table(o)->Get(key2, val2))
-                sq_throwerror(v,"the index doesn't exist");
+                return sq_throwerror(v,"the index doesn't exist");
 
             _table(o)->Set(key1, val2);
             _table(o)->Set(key2, val1);
@@ -941,7 +949,8 @@ static SQInteger __map_table(SQTable *dest, SQTable *src, HSQUIRRELVM v) {
         itr = (SQInteger)nitr;
 
         v->PushNull();
-        v->Push(val);
+        if (nArgs >= 2)
+            v->Push(val);
         if (nArgs >= 3)
             v->Push(key);
         if (nArgs >= 4)
@@ -999,8 +1008,10 @@ static SQInteger table_reduce(HSQUIRRELVM v)
             gotAccum = true;
         } else {
             v->PushNull();
-            v->Push(accum);
-            v->Push(val);
+            if (nArgs >= 2)
+                v->Push(accum);
+            if (nArgs >= 3)
+                v->Push(val);
             if (nArgs >= 4)
                 v->Push(key);
             if (nArgs >= 5)
@@ -1025,6 +1036,11 @@ static SQInteger table_replace_with(HSQUIRRELVM v)
     SQ_CHECK_IMMUTABLE_SELF;
 
     SQTable *dst = _table(stack_get(v, 1));
+    SQTable *src = _table(stack_get(v, 2));
+    if (dst == src) {
+        v->Pop(1);
+        return 1;
+    }
     dst->Clear(false);
 
     // Alternatively, consider copying hash nodes directly instead of iterating slots
@@ -1185,7 +1201,7 @@ static SQInteger array_remove(HSQUIRRELVM v)
         v->Push(val);
         return 1;
     }
-    return sq_throwerror(v, "idx out of range");
+    return sq_throwerror(v, "index out of range");
 }
 
 static SQInteger array_resize(HSQUIRRELVM v)
@@ -1219,7 +1235,8 @@ static SQInteger __map_array(SQArray *dest,SQArray *src,HSQUIRRELVM v, bool appe
     for(SQInteger n = 0; n < size; n++) {
         src->Get(n,temp);
         v->PushNull();
-        v->Push(temp);
+        if (nArgs >= 2)
+            v->Push(temp);
         if (nArgs >= 3)
             v->Push(SQObjectPtr(n));
         if (nArgs >= 4)
@@ -1292,8 +1309,10 @@ static SQInteger array_reduce(HSQUIRRELVM v)
         for (SQInteger n = iterStart; n < size; n++) {
             a->Get(n,other);
             v->PushNull();
-            v->Push(accum);
-            v->Push(other);
+            if (nArgs >= 2)
+                v->Push(accum);
+            if (nArgs >= 3)
+                v->Push(other);
             if (nArgs >= 4)
                 v->Push(SQObjectPtr(n));
             if (nArgs >= 5)
@@ -1323,7 +1342,8 @@ static SQInteger array_filter(HSQUIRRELVM v)
     for(SQInteger n = 0; n < size; n++) {
         a->Get(n,val);
         v->PushNull();
-        v->Push(val);
+        if (nArgs >= 2)
+            v->Push(val);
         if (nArgs >= 3)
             v->Push(SQObjectPtr(n));
         if (nArgs >= 4)
@@ -2187,7 +2207,7 @@ static SQInteger closure_pcall(HSQUIRRELVM v)
 
 static SQInteger closure_call(HSQUIRRELVM v)
 {
-    SQObjectPtr &c = stack_get(v, -1);
+    SQObjectPtr &c = stack_get(v, 1);
     if (sq_type(c) == OT_CLOSURE && (_closure(c)->_function->_bgenerator == false))
     {
         return sq_tailcall(v, sq_gettop(v) - 1);
@@ -2259,8 +2279,9 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
             _array(defparams)->Set((SQInteger)j,_closure(o)->_defaultparams[j]);
         }
         SET_SLOT("native", false);
-        SET_SLOT("pure", f->_purefunction);
-        SET_SLOT("nodiscard", f->_nodiscard);
+        SET_SLOT("pure", bool(f->_purefunction));
+        SET_SLOT("nodiscard", bool(f->_nodiscard));
+        SET_SLOT("fastcall", false);  // script closures are never fastcall
         SET_SLOT("name", f->_name);
         SET_SLOT("freevars", f->_noutervalues);
         SET_SLOT("src", f->_sourcename);
@@ -2273,11 +2294,9 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
         SET_SLOT("return_type_mask", SQObjectPtr(int(f->_result_type_mask)));
         SET_SLOT("varargs_type_mask", SQObjectPtr(int(f->_varparams ? f->_param_type_masks[f->_nparameters - 1] : 0)));
 
-        SQObjectPtr key;
         SQObjectPtr docObject;
-        key._type = OT_USERPOINTER;
-        key._unVal.pUserPointer = (void *)_closure(o)->_function;
-        _table(_ss(v)->doc_objects)->Get(key, docObject);
+        if (SQString *doc = _ss(v)->GetDocString(sq_getdocstring_id(o)))
+            docObject = doc;
         SET_SLOT("doc", docObject);
     }
     else { //OT_NATIVECLOSURE
@@ -2291,35 +2310,30 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
         SQObjectPtr parameters;
         SQObjectPtr defparams;
         SQObjectPtr typecheck;
-        SQObjectPtr key;
-        SQObjectPtr value;
-        key._type = OT_USERPOINTER;
-        key._unVal.pUserPointer = (void *)((size_t)(void *)nc->_function ^ ~size_t(0));
-        if (_table(_ss(v)->doc_objects)->Get(key, value)) {
+        SQString *declString = _ss(v)->GetNativeDeclString(nc->_docstring_id);
+        if (declString) {
             SQFunctionType ft(_ss(v));
             SQInteger errorPos = -1;
             SQObjectPtr errorString;
-            if (sq_isstring(value)) {
-               if (sq_parse_function_type_string(v, _stringval(value), ft, errorPos, errorString)) {
+            if (sq_parse_function_type_string(v, declString->_val, ft, errorPos, errorString)) {
 
-                   parameters = SQObjectPtr(SQArray::Create(_ss(v), ft.argNames.size() + 1));
-                   _array(parameters)->Set(SQInteger(0), SQObjectPtr(SQString::Create(_ss(v), "this", -1)));
-                   for (SQUnsignedInteger n = 0; n < ft.argNames.size(); n++) {
-                       _array(parameters)->Set((SQInteger)n + 1, SQObjectPtr(ft.argNames[n]));
-                   }
+                parameters = SQObjectPtr(SQArray::Create(_ss(v), ft.argNames.size() + 1));
+                _array(parameters)->Set(SQInteger(0), SQObjectPtr(SQString::Create(_ss(v), "this", -1)));
+                for (SQUnsignedInteger n = 0; n < ft.argNames.size(); n++) {
+                    _array(parameters)->Set((SQInteger)n + 1, SQObjectPtr(ft.argNames[n]));
+                }
 
-                   int defParamsCount = ft.argNames.size() - ft.requiredArgs;
-                   defparams = SQObjectPtr(SQArray::Create(_ss(v), defParamsCount));
-                   for (SQUnsignedInteger n = 0; n < defParamsCount; n++) {
-                       _array(parameters)->Set((SQInteger)n, SQObjectPtr());
-                   }
+                int defParamsCount = ft.argNames.size() - ft.requiredArgs;
+                defparams = SQObjectPtr(SQArray::Create(_ss(v), defParamsCount));
+                for (SQUnsignedInteger n = 0; n < defParamsCount; n++) {
+                    _array(defparams)->Set((SQInteger)n, ft.defaultValues[ft.requiredArgs + n]);
+                }
 
-                   varargs = ft.ellipsisArgTypeMask != 0;
-                   varargsTypeMask = int(ft.ellipsisArgTypeMask);
-               }
-               else {
-                   // TODO: raise errorString
-               }
+                varargs = ft.ellipsisArgTypeMask != 0;
+                varargsTypeMask = int(ft.ellipsisArgTypeMask);
+            }
+            else {
+                // TODO: raise errorString
             }
         }
         else {
@@ -2341,8 +2355,9 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
         }
 
         SET_SLOT("native", true);
-        SET_SLOT("pure", nc->_purefunction);
-        SET_SLOT("nodiscard", nc->_nodiscard);
+        SET_SLOT("pure", bool(nc->_purefunction));
+        SET_SLOT("nodiscard", bool(nc->_nodiscard));
+        SET_SLOT("fastcall", bool(nc->_isfastcall));
         SET_SLOT("name", nc->_name);
         SET_SLOT("freevars", SQInteger(nc->_noutervalues));
         SET_SLOT("src", SQObjectPtr());
@@ -2357,8 +2372,8 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
         SET_SLOT("varargs_type_mask", varargsTypeMask);
 
         SQObjectPtr docObject;
-        key._unVal.pUserPointer = (void *)nc->_function;
-        _table(_ss(v)->doc_objects)->Get(key, docObject);
+        if (SQString *doc = _ss(v)->GetDocString(sq_getdocstring_id(o)))
+            docObject = doc;
         SET_SLOT("doc", docObject);
     }
 
@@ -2614,16 +2629,13 @@ static SQInteger class_newmember(HSQUIRRELVM v)
 {
     SQInteger top = sq_gettop(v);
     SQBool bstatic = SQFalse;
-    if(top == 5)
+    if(top == 4)
     {
         sq_tobool(v,-1,&bstatic);
         sq_pop(v,1);
     }
 
-    if(top < 4) {
-        sq_pushnull(v);
-    }
-    return SQ_SUCCEEDED(sq_newmember(v,-4,bstatic))?1:SQ_ERROR;
+    return SQ_SUCCEEDED(sq_newmember(v,-3,bstatic))?1:SQ_ERROR;
 }
 
 

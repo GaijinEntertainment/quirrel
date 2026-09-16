@@ -1,0 +1,1 @@
+f.readblob(4).as_string() = ammo

@@ -1,0 +1,3 @@
+"hello".contains("ell") = true
+"hello".contains("xyz") = false
+"hello".contains("l", -2) = false

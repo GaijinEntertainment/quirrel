@@ -1,0 +1,2 @@
+keys of getbuildinfo() = charsize, docstring_registry_slots, floatsize, gc, intsize, version
+types of version/charsize/intsize/floatsize/docstring_registry_slots/gc = string integer integer integer integer string

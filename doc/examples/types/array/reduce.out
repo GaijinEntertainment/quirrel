@@ -1,0 +1,5 @@
+reduce([1, 2, 3]), no initial = 6
+reduce([1, 2, 3]), initial 10 = 16
+reduce([7]), no initial = 7
+reduce([]), no initial = null
+reduce([]), initial 42 = 42

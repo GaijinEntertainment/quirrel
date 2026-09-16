@@ -1,0 +1,3 @@
+bytes after 1st swap4() = 17,34,51,68
+b[4] = 154
+bytes after 2nd swap4() = 68,51,34,17

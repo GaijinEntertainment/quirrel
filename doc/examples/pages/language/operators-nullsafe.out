@@ -1,0 +1,4 @@
+vehicle.turretAngle ?? 45.0 = 0
+vehicle.turretAngle || 45.0 = 45
+vehicle.gunner?.rank.tostring() = null
+squad?["leader"] = null

@@ -1,0 +1,4 @@
+r.match("item42") = true
+r.match("42item") = false
+r.match("abc") = true
+regexp("[a-z") throws: unterminated character class

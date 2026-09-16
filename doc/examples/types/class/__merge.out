@@ -1,0 +1,2 @@
+merged.a = 1 merged.b = 2
+A.rawin("b") = false

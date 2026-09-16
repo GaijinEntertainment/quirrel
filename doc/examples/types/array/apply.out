@@ -1,0 +1,4 @@
+same == a: true
+a (squared) = 1, 4, 9
+apply() throws: stop
+b (after throw) = 10, 20, 3, 4

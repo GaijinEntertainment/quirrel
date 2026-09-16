@@ -1,0 +1,4 @@
+b.tell() at start = 0
+b.tell() after readn('i') = 4
+b.tell() after seek(1) = 1
+b.tell() after writen('c') = 2

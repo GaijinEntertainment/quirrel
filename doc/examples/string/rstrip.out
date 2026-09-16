@@ -1,0 +1,2 @@
+rstrip("  hi  ") = [  hi]
+rstrip("hi") = [hi]

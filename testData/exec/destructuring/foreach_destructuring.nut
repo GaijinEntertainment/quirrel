@@ -80,5 +80,5 @@ foreach (f in fns) {
 
 result.sort()
 foreach (line in result) {
-  print(line + "\n")
+  println(line)
 }

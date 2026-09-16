@@ -1,0 +1,6 @@
+type(a[0]) = null
+b[0] = 0
+b[1] = 9
+b[2] = 0
+c[1].n = 5
+array(-1) throws: array size must be non-negative

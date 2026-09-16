@@ -1,0 +1,3 @@
+p.getState() = pending
+p.getState() = fulfilled
+q.getState() = faulted

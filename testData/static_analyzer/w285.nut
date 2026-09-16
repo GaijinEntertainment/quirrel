@@ -25,3 +25,33 @@ function _foo(a=null){
   a = a ?? 3
   return [b ?? 2, a]
 }
+
+function _countSubStr(row, subStr) {
+  local res = 0
+  local i = -subStr.len()
+  while (i != null) {
+    i = row.indexof(subStr, i + subStr.len())
+    if (i != null)
+      res++
+  }
+  return res
+}
+
+function _countSubStrWithFor(row, subStr) {
+  local res = 0
+  for (local i = -subStr.len(); i != null; i = row.indexof(subStr, i + subStr.len()))
+    res++
+  return res
+}
+
+function _checkNullableLoopCondition(row) {
+  local pos = row.indexof("x")
+  while (pos != null && pos < 10)
+    pos = pos + 1
+}
+
+function _checkLoopCondition() {
+  local x = 5
+  while (x != null)
+    x++
+}

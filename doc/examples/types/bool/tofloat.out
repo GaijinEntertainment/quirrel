@@ -1,0 +1,2 @@
+true.tofloat() = 1
+false.tofloat() = 0

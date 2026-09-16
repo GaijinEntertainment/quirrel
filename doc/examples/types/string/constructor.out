@@ -1,0 +1,4 @@
+types.String(123) = 123
+types.String(true) = true
+types.String(null) = null
+types.String() throws: wrong number of parameters passed to native closure 'constructor' (1 passed, 2 required)

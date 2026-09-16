@@ -1,9 +1,28 @@
 null
 null
 null
+Class docstring
+Class docstring
 null
-Class docstring
-Class docstring
-Table docstring
+null
+Derived docstring
+Derived docstring
 Function docstring
-Returns a documentation string for a function, class, or table
+Shared function docstring
+Shared function docstring
+Repeated class docstring
+Repeated class docstring
+true
+true
+true
+Returns a documentation string for a function, class, or instance
+null
+true
+Native setter docstring
+true
+Script setter docstring
+true
+Class setter docstring
+table rejected
+table setter rejected
+instance setter rejected

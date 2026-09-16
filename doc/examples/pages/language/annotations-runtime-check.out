@@ -1,0 +1,2 @@
+parameter 1 of 'reload' has an invalid type 'string' ; expected: 'integer'
+type 'string' differs from the declared type 'int'

@@ -6,7 +6,7 @@ lib/
 build*/
 
 # Folders created at documentation generation
-doc/build/
+doc/_site/
 
 Release/
 .vs/

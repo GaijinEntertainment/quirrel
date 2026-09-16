@@ -1,0 +1,4 @@
+t.hasvalue(2) = true
+t.hasvalue(99) = false
+u.hasvalue({tag=1}) = false
+u.hasvalue(marker) = true

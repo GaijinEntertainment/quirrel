@@ -1,0 +1,46 @@
+array: 1 2 
+array: 0 1 2 
+array: 1 2 3 
+array: 0 1 2 3 1 2 
+array: 
+array: 1 2 1 2 
+array: 1 2 
+table: x=1 y=2 
+table: x=1 y=2 z=0 
+table: x=1 y=20 
+table: x=1 y=2 
+table: x=1 y=20 z=30 
+table: x=1 y=2 
+array: 7 
+table: k=1 
+table: p=5 
+table: p=1 
+array: 1 2 3 
+table: dims=2 len=overridden x=10 
+10
+2
+function
+array: 0 1 2 3 
+table: a=1 b=20 c=3 
+array: 1 2 
+table: a=1 
+array: 1 2 
+table: a=1 b=2 
+only an array can be spread into an array, got table
+only an array can be spread into an array, got integer
+only a table, a class or an instance can be spread into a table, got array
+only a table, a class or an instance can be spread into a table, got integer
+kept alive by the copy
+kept alive by the copy
+kept alive by the copy
+table: a=1 null=n 
+table: a=1 null=n 
+table: null=c 
+trying to modify immutable 'table'
+trying to modify immutable 'table'
+trying to modify immutable 'table'
+trying to modify immutable 'table'
+trying to modify immutable 'table'
+trying to modify immutable 'table'
+table: x=1 y=2 
+table: lead=0 x=1 y=2 

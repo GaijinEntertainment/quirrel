@@ -1,0 +1,4 @@
+level 0 func: getstackinfos
+level 1 func: inner
+"x" in si1.locals = true
+getstackinfos(100) = null

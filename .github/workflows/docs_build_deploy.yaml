@@ -1,11 +1,19 @@
 name: Docs - build and deploy
 
+# The reference site takes its signatures from a running interpreter and the C API
+# from the headers, so a source change is a doc change.
 on:
   push:
     branches:
     - master
     paths:
     - "doc/**"
+    - "include/**"
+    - "squirrel/**"
+    - "sqstdlib/**"
+    - "sqmodules/**"
+    - "sq/**"
+    - "CMakeLists.txt"
 
   workflow_dispatch:
 
@@ -25,15 +33,14 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: "3.11"
-        cache: "pip"
 
-    - name: Install dependencies
+    # build.py builds sq with cmake, refreshes the API dump from it and writes
+    # doc/_site; check.py then verifies the dump and the pages as a set.
+    - name: Build the reference site
       working-directory: ./doc
-      run: python3 -m pip install -r requirements.txt
-
-    - name: Build documentation with sphinx-build
-      working-directory: ./doc
-      run: sphinx-build -b html -d build/doctrees source build/html
+      run: |
+        python3 build.py
+        python3 gen/check.py
 
     - name: Generate artifact name
       id: artifact_name
@@ -47,7 +54,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.ARTIFACT_NAME }}
-        path: ./doc/build/html
+        path: ./doc/_site
         retention-days: 1
         if-no-files-found: error
 
@@ -75,5 +82,5 @@ jobs:
 
     - name: Update target
       run: |
-        aws s3 sync ./doc s3://quirrel.io/doc
+        aws s3 sync ./doc s3://quirrel.io/doc --delete
         aws cloudfront create-invalidation --distribution-id ${{ secrets.DOC_DISTID }} --paths "/*"

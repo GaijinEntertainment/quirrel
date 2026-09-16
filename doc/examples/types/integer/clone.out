@@ -1,0 +1,3 @@
+clone 5 = 5
+x["clone"]() = 5
+x["clone"]() == x = true

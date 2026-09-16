@@ -1,0 +1,4 @@
+r.len() = 2
+b.tell() = 4
+b.readblob(-1) throws: invalid size
+b.readblob(1) at eos throws: no data left to read

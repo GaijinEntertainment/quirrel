@@ -1,0 +1,3 @@
+"abc".toupper() = ABC
+"abcdef".toupper(1, 3) = aBCdef
+mb.toupper() == mb = true

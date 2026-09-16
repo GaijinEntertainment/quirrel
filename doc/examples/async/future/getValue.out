@@ -1,0 +1,4 @@
+pending: Future.getValue: future is still pending
+fulfilled: 42
+settled null: true
+faulted: boom

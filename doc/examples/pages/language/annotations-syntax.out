@@ -1,0 +1,5 @@
+damageAt(20) = 90
+describe("scout") = scout
+tank (800 hp)
+totalAmmo(30, 30, 12) = 72
+weaponName, ammoLeft = mg42 120

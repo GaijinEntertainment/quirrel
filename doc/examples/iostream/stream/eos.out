@@ -1,0 +1,4 @@
+b.eos() at start = 1
+b.eos() after writen = 1
+b.eos() after seek(0) = null
+b.eos() after seek(0, 'e') = 1

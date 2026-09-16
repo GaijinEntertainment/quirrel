@@ -1,0 +1,3 @@
+startswith("hello world", "hello") = true
+startswith("hello", "hello world") = false
+startswith("anything", "") = true

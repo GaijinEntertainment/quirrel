@@ -1,0 +1,2 @@
+v.getmetamethod("_add") != null = true
+v.getmetamethod("_sub") == null = true

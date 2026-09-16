@@ -1,0 +1,6 @@
+g.getstatus() = suspended
+resume g = 1
+g.getstatus() = suspended
+resume g = null
+g.getstatus() = dead
+resume g throws: resuming dead generator

@@ -1,0 +1,3 @@
+t.getstackinfos(0).func = inner
+t.getstackinfos(1).func = body
+t.getstackinfos(99) = null

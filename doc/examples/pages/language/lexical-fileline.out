@@ -1,0 +1,3 @@
+__LINE__ = 5
+reportLine() = 2
+type(__FILE__) = string

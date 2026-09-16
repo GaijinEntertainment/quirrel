@@ -1,0 +1,2 @@
+true.tointeger() = 1
+false.tointeger() = 0

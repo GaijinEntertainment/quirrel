@@ -68,6 +68,7 @@
     DEF_TREE_OP(TYPEOF), \
     DEF_TREE_OP(STATIC_MEMO), \
     DEF_TREE_OP(INLINE_CONST), \
+    DEF_TREE_OP(SPREAD), \
     DEF_TREE_OP(RESUME), \
     DEF_TREE_OP(AWAIT), \
     DEF_TREE_OP(CLONE), \
@@ -244,6 +245,11 @@ public:
 private:
     Expr *_arg;
 };
+
+inline Expr *spreadSourceOf(Expr *spread) {
+    assert(spread->op() == TO_SPREAD);
+    return static_cast<UnExpr *>(spread)->argument();
+}
 
 class BinExpr : public Expr {
 public:
@@ -662,6 +668,8 @@ struct TableMember {
     bool isStatic() const { return (flags & TMF_STATIC) != 0; }
     bool isDynamicKey() const { return (flags & TMF_DYNAMIC_KEY) != 0; }
     bool isJson() const { return (flags & TMF_JSON) != 0; }
+    bool hasKey() const { return key != nullptr; }
+    bool isSpread() const { return !hasKey(); }
 };
 
 class TableExpr : public Expr {
@@ -1366,6 +1374,7 @@ void Node::visit(V *visitor) {
     case TO_PAREN:
     case TO_DELETE:
     case TO_STATIC_MEMO:
+    case TO_SPREAD:
     case TO_INLINE_CONST:
         visitor->visitUnExpr(static_cast<UnExpr *>(this)); return;
     case TO_CODE_BLOCK_EXPR:
@@ -1483,6 +1492,7 @@ Node *Node::transform(T *transformer) {
   case TO_PAREN:
   case TO_DELETE:
   case TO_STATIC_MEMO:
+  case TO_SPREAD:
   case TO_INLINE_CONST:
     return transformer->transformUnExpr(static_cast<UnExpr *>(this));
   case TO_CODE_BLOCK_EXPR:

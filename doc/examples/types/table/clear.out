@@ -1,0 +1,4 @@
+t.len() = 0
+r == t: true
+alias.len() = 0
+frozen.clear() throws: Cannot modify immutable object

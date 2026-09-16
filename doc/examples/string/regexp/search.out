@@ -1,0 +1,4 @@
+m.begin..m.end = 4..7
+"123 abc 456".slice(m.begin, m.end) = abc
+r.search("ABC", 0) = null
+regexp("^b").search("ab", 1) != null = true

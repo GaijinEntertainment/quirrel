@@ -1,0 +1,4 @@
+a.remove(0) = 1
+a = 2, 3
+a.remove(-1) throws: index out of range
+a.remove(a.len()) throws: index out of range

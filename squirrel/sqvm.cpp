@@ -72,7 +72,7 @@ bool SQVM::BW_OP(SQUnsignedInteger op,SQObjectPtr &trg,const SQObjectPtr &o1,con
     SQInteger tmask = sq_type(o1)|sq_type(o2); \
     switch(tmask) { \
         case OT_INTEGER: { SQInteger i2 = _integer(o2); \
-            if (i2 == 0) { Raise_Error("division by zero"); SQ_THROW(); } \
+            if (i2 == 0) { Raise_Error("integer division by zero"); SQ_THROW(); } \
             else if (i2 == -1 && _integer(o1) == MIN_SQ_INTEGER) { Raise_Error("integer overflow"); SQ_THROW(); } \
             trg = _integer(o1) op i2; } break; \
         case (OT_FLOAT|OT_INTEGER): \
@@ -211,7 +211,7 @@ bool SQVM::ArithMetaMethod(SQInteger op,const SQObjectPtr &o1,const SQObjectPtr 
             return CallMetaMethod(closure,mm,2,dest);
         }
     }
-    Raise_Error("arith op %c on between '%s' and '%s'",(char)op,GetTypeName(o1),GetTypeName(o2));
+    Raise_Error("arith op %c between '%s' and '%s'",(char)op,GetTypeName(o1),GetTypeName(o2));
     return false;
 }
 
@@ -730,6 +730,8 @@ SQRESULT SQVM::Suspend()
 {
     if (_suspended)
         return sq_throwerror(this, "cannot suspend an already suspended vm");
+    if (this == _thread(_sharedstate->_root_vm))
+        return sq_throwerror(this, "cannot suspend the root vm");
     if (_nnativecalls!=2)
         return sq_throwerror(this, "cannot suspend through native calls/metamethods");
     return SQ_SUSPEND_FLAG;
@@ -783,7 +785,9 @@ bool SQVM::FOREACH_OP(SQObjectPtr &o1,SQObjectPtr &o2,SQObjectPtr
             if ((nrefidx = (_delegable(o1)->_delegate)->Next(false, o4, o2, o3)) == -1)
               _FINISH(exitpos);
 
-            _instance(o1)->Get(o2, o3);
+            if (sq_type(o1) == OT_INSTANCE)
+              _instance(o1)->Get(o2, o3);
+
             _CHECK_FREEZE();
             o4 = (SQInteger)nrefidx;
             _FINISH(1);
@@ -807,6 +811,60 @@ bool SQVM::FOREACH_OP(SQObjectPtr &o1,SQObjectPtr &o2,SQObjectPtr
     return false;
 }
 #undef _CHECK_FREEZE
+
+bool SQVM::SPREAD_OP(SQObjectPtr &dest,SQObjectPtr &src,SQInteger elementsAfterSpread)
+{
+    if (sq_type(src) == OT_NULL)
+        return true;
+
+    if (sq_type(dest) == OT_ARRAY) {
+        if (sq_type(src) != OT_ARRAY) {
+            Raise_Error("only an array can be spread into an array, got %s", GetTypeName(src));
+            return false;
+        }
+        SQArray *destArray = _array(dest);
+        SQArray *sourceArray = _array(src);
+        const bool propagateImmutable = (src._flags & SQOBJ_FLAG_IMMUTABLE) != 0;
+        destArray->ReserveAtLeast(destArray->Size() + sourceArray->Size() + elementsAfterSpread);
+        for (SQInteger i = 0, n = sourceArray->Size(); i < n; ++i) {
+            const SQObjectPtr &raw = sourceArray->_values[i];
+            if (!propagateImmutable && sq_type(raw) != OT_WEAKREF) {
+                destArray->Append(raw);
+                continue;
+            }
+            SQObjectPtr element;
+            element = _realval(raw);
+            if (propagateImmutable)
+                element._flags |= SQOBJ_FLAG_IMMUTABLE;
+            destArray->Append(element);
+        }
+        return true;
+    }
+
+    assert(sq_type(dest) == OT_TABLE);
+
+    if (!(sq_type(src) & (_RT_TABLE | _RT_CLASS | _RT_INSTANCE))) {
+        Raise_Error("only a table, a class or an instance can be spread into a table, got %s", GetTypeName(src));
+        return false;
+    }
+
+    const bool sourceKeepsValuesMutable = (src._flags & SQOBJ_FLAG_IMMUTABLE) == 0;
+    if (sq_type(src) == OT_TABLE && sourceKeepsValuesMutable && _table(dest)->CountUsed() == 0) {
+        dest = _table(src)->CopyNodesResolvingWeakRefs();
+        return true;
+    }
+
+    SQObjectPtr key, val, iterator;
+    for (;;) {
+        int step = 0;
+        if (!FOREACH_OP(src, key, val, iterator, FOREACH_NO_MORE_ELEMENTS, step))
+            return false;
+        if (step == FOREACH_NO_MORE_ELEMENTS)
+            return true;
+        if (!NewSlot(dest, key, val, false))
+            return false;
+    }
+}
 
 #define COND_LITERAL (arg3!=0?ci->_literals[arg1]:STK(arg1))
 
@@ -949,6 +1007,58 @@ bool SQVM::trapMatches(const SQExceptionTrap &et, const SQObjectPtr &err)
 
 extern SQInstructionDesc g_InstrDesc[];
 
+// Defined before Execute/CallNative so both inline it within this TU.
+inline bool SQVM::CheckNativeParamTypes(SQNativeClosure *nclosure, SQInteger base, SQInteger nargs)
+{
+    SQIntVec &tc = nclosure->_typecheck;
+    SQInteger tcs = tc.size();
+    for (SQInteger i = 0; i < nargs && i < tcs; i++) {
+        if ((tc._vals[i] != -1) && !check_typemask(sq_type(_stack._vals[base+i]), tc._vals[i])) {
+            Raise_ParamTypeError(i, tc._vals[i], sq_type(_stack._vals[base+i]),
+                sq_type(nclosure->_name) == OT_STRING ? _stringval(nclosure->_name) : nullptr);
+            return false;
+        }
+    }
+    return true;
+}
+
+inline bool SQVM::CheckNativeResult(SQNativeClosure *nclosure, SQObjectType retType, bool discarded)
+{
+#if SQ_RUNTIME_TYPE_CHECK
+    if (!discarded) {
+        if (!check_typemask(retType, nclosure->_result_type_mask)) {
+            char buf[160];
+            sq_stringify_type_mask(buf, sizeof(buf), nclosure->_result_type_mask);
+            Raise_Error("Function '%s' returned invalid type '%s', expected '%s'",
+                sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : "<unknown>",
+                IdType2Name(retType), buf);
+            return false;
+        }
+    } else if (nclosure->_nodiscard) {
+        Raise_Error("Discarding return value of function '%s' with 'nodiscard' attribute",
+            sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : "<unknown>");
+        return false;
+    }
+#else
+    (void)nclosure; (void)retType; (void)discarded;
+#endif
+    return true;
+}
+
+SQ_NOINLINE void SQVM::RaiseFastcallError(SQNativeClosure *nclosure, SQInteger base, SQInteger top, SQInteger r)
+{
+    for (SQInteger i = base; i < top; i++)
+        _stack._vals[i].Null();
+    // A fastcall native must not suspend or tailcall (contract); those flag
+    // returns carry no _lasterror, so diagnose them instead of raising a
+    // stale/empty error.
+    if (r == SQ_SUSPEND_FLAG || r == SQ_TAILCALL_FLAG)
+        Raise_Error("fastcall function '%s' must not suspend or tailcall",
+            sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : "<unknown>");
+    else
+        Raise_Error(_lasterror);
+}
+
 template <bool debughookPresent>
 bool SQVM::Execute(const SQObjectPtr &closure, SQInteger nargs, SQInteger stackbase,SQObjectPtr &outres, SQBool invoke_err_handler,ExecutionType et)
 {
@@ -1070,6 +1180,58 @@ exception_restore:
                     continue;
                 }
                               }
+            case _OP_FASTCALL:
+            {
+                    const SQObjectPtr &fclo = STK(arg1);
+                    if (SQ_LIKELY(sq_type(fclo) == OT_NATIVECLOSURE && _nativeclosure(fclo)->_isfastcall)) {
+                        SQNativeClosure *nc = _nativeclosure(fclo);
+                        SQInteger newbase = _stackbase + arg2;
+
+                        // Arity is already checked at codegen for the emitted callee.
+                        if (!CheckNativeParamTypes(nc, newbase, arg3))
+                            SQ_THROW();
+
+                        // The caller frame's EnterFrame reserves STACK_GROW_THRESHOLD
+                        // headroom and eligible natives push O(1) values, so _stack
+                        // never reallocates here: _stkbase stays valid (no RELOAD_STK)
+                        // and TARGET below still points into the caller frame.
+                        // A fastcall native is a leaf (no VM re-entry per its
+                        // contract), so it does not participate in _nnativecalls
+                        // depth accounting - nothing to bump or bound here.
+                        SQInteger savedBase = _stackbase, savedTop = _top;
+                        _stackbase = newbase;
+                        _top = newbase + arg3;
+                        SQObjectPtr *dbgStackVals = _stack._vals;
+                        (void)dbgStackVals;
+                        SQInteger r = (nc->_function)(this);
+                        SQInteger pushedTop = _top;
+                        _stackbase = savedBase;
+                        _top = savedTop;
+                        assert(_stack._vals == dbgStackVals && "fastcall native reallocated the VM stack");
+
+                        if (SQ_UNLIKELY(r < 0)) {
+                            RaiseFastcallError(nc, newbase + arg3, pushedTop, r);
+                            SQ_THROW();
+                        }
+
+                        SQObjectType rt = r ? sq_type(_stack._vals[pushedTop - 1]) : OT_NULL;
+                        if (!CheckNativeResult(nc, rt, arg0 == 255)) {
+                            for (SQInteger i = newbase + arg3; i < pushedTop; i++)
+                                _stack._vals[i].Null();
+                            SQ_THROW();
+                        }
+
+                        if (arg0 != 255) {
+                            if (r)
+                                _Swap(TARGET, _stack._vals[pushedTop - 1]);
+                            else
+                                TARGET.Null();
+                        }
+                        for (SQInteger i = newbase + arg3; i < pushedTop; i++)
+                            _stack._vals[i].Null();
+                        continue;
+                    }
+            } // fall through to the generic call path on guard failure
             case _OP_CALL:
             case _OP_NULLCALL:
             {
@@ -1576,6 +1738,9 @@ exception_restore:
                 }
                 _array(STK(arg0))->Append(val); continue;
                 }
+            case _OP_SPREAD:
+                _GUARD(SPREAD_OP(STK(arg0), STK(arg1), arg2));
+                continue;
             case _OP_COMPARITH:
             case _OP_COMPARITH_K: {
                 SQInteger selfidx = (((SQUnsignedInteger)arg1&0xFFFF0000)>>16);
@@ -1678,7 +1843,7 @@ exception_restore:
                 }
                 continue;
             case _OP_RESUME:
-                if(sq_type(STK(arg1)) != OT_GENERATOR){ Raise_Error("trying to resume a '%s',only genenerator can be resumed", GetTypeName(STK(arg1))); SQ_THROW();}
+                if(sq_type(STK(arg1)) != OT_GENERATOR){ Raise_Error("trying to resume a '%s', only generator can be resumed", GetTypeName(STK(arg1))); SQ_THROW();}
                 SYNC_IP();
                 _GUARD(_generator(STK(arg1))->Resume(this, TARGET));
                 traps += ci->_etraps;
@@ -1691,7 +1856,9 @@ exception_restore:
                 SYNC_IP();
                 _GUARD(FOREACH_OP(arg0Stack,STK(arg2),STK(arg2+1),STK(arg2+2),2,tojump));
                 RELOAD_IP();
-                if (tojump == 1)
+                if (tojump == 0)
+                    traps += ci->_etraps;
+                else if (tojump == 1)
                     _ip ++;
                 else if (tojump == 2) // empty
                     _ip += sarg1;
@@ -1712,6 +1879,8 @@ exception_restore:
                 int tojump;
                 _GUARD(FOREACH_OP(arg0Stack,STK(arg2),STK(arg2+1),STK(arg2+2),2,tojump));
                 RELOAD_IP();
+                if (tojump == 0)
+                    traps += ci->_etraps;
                 assert((tojump == 0 && isGenerator) || (tojump != 0 && !isGenerator));
                 if (tojump == 1)
                     _ip += jumpToBodyOffset;
@@ -1756,20 +1925,13 @@ exception_restore:
             case _OP_CLOSE:
                 if(_openouters) CloseOuters(&(STK(arg1)));
                 continue;
-            case _OP_PATCH_DOCOBJ: {
+            case _OP_SET_CLASS_DOCSTRING: {
                 SQObjectPtr &o = TARGET;
-                SQObjectPtr findKey;
-                SQObjectPtr foundValue;
-                findKey._unVal.raw = arg1;
-                findKey._type = OT_USERPOINTER;
-                SQTable * tbl = _table(_sharedstate->doc_objects);
-                if (tbl->Get(findKey, foundValue)) {
-                    SQObjectPtr replaceWithKey;
-                    replaceWithKey._unVal.pUserPointer = o._unVal.pUserPointer;
-                    replaceWithKey._type = OT_USERPOINTER;
-                    tbl->NewSlot(replaceWithKey, foundValue);
-                    tbl->Remove(findKey);
+                if (sq_type(o) != OT_CLASS) {
+                    Raise_Error("class docstring target is not a class");
+                    SQ_THROW();
                 }
+                _class(o)->_docstring_id = SQDocStringId(arg1);
                 continue;
                 }
             case _OP_LOAD_STATIC_MEMO:
@@ -1859,12 +2021,10 @@ exception_trap:
                 _pendingValueFaultTrace = sq_capture_error_trace(this);
         }
 
-        // Typed catches mean an active trap may not catch this value, so !traps is no
-        // longer a sound "will be caught" test. Pre-scan this invocation's traps (the
-        // topmost `traps` entries) read-only; only a real miss reaches the handler here,
-        // at the throw site with the live ci chain.
+        // A callback can cross a native frame before an outer trap catches it.
+        // Include all active traps so the handler sees only unhandled values.
         bool willBeCaught = false;
-        for (SQInteger i = 0; i < traps; i++) {
+        for (SQUnsignedInteger i = 0; i < _etraps.size(); i++) {
             if (trapMatches(_etraps._vals[_etraps.size() - 1 - i], currerror)) { willBeCaught = true; break; }
         }
 
@@ -2023,14 +2183,14 @@ void SQVM::CallDebugHook(SQInteger type,SQInteger forcedline)
         _debughook_native(this,type,src,line,fname);
     }
     else {
-        SQObjectPtr temp_reg;
+        SQObjectPtr tmp;
         SQInteger nparams=5;
         PushNull();
         Push(SQObjectPtr(type));
         Push(func->_sourcename);
         Push(SQObjectPtr(forcedline ? forcedline : func->GetLine(ci->_ip)));
         Push(func->_name);
-        Call(_debughook_closure,nparams,_top-nparams,temp_reg,SQFalse);
+        Call(_debughook_closure,nparams,_top-nparams,tmp,SQFalse);
         Pop(nparams);
     }
     _debughook = true;
@@ -2062,17 +2222,8 @@ bool SQVM::CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newb
         return false;
     }
 
-    SQInteger tcs;
-    SQIntVec &tc = nclosure->_typecheck;
-    if((tcs = tc.size())) {
-        for(SQInteger i = 0; i < nargs && i < tcs; i++) {
-            if((tc._vals[i] != -1) && !check_typemask(sq_type(_stack._vals[newbase+i]), tc._vals[i])) {
-                Raise_ParamTypeError(i,tc._vals[i], sq_type(_stack._vals[newbase+i]),
-                    sq_type(nclosure->_name) == OT_STRING ? _stringval(nclosure->_name) : nullptr);
-                return false;
-            }
-        }
-    }
+    if(!CheckNativeParamTypes(nclosure, newbase, nargs))
+        return false;
 
     if(!EnterFrame(newbase, newtop, false)) return false;
     ci->_closure  = nclosure;
@@ -2112,21 +2263,8 @@ bool SQVM::CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newb
     }
     LeaveFrame();
 
-#if SQ_RUNTIME_TYPE_CHECK
-    if (target != -1) {
-        if (!check_typemask(sq_type(retval), nclosure->_result_type_mask)) {
-            char buf[160];
-            sq_stringify_type_mask(buf, sizeof(buf), nclosure->_result_type_mask);
-            Raise_Error("Function '%s' returned invalid type '%s', expected '%s'",
-                sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : "<unknown>",
-                GetTypeName(retval), buf);
-            return false;
-        }
-    } else if (nclosure->_nodiscard) {
-        Raise_Error("Discarding return value of function '%s' with 'nodiscard' attribute", sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : "<unknown>");
+    if (!CheckNativeResult(nclosure, sq_type(retval), target == -1))
         return false;
-    }
-#endif
 
     return true;
 }
@@ -2450,7 +2588,7 @@ SQInteger SQVM::FallBackSet(const SQObjectPtr &self,const SQObjectPtr &key,const
 
 bool SQVM::Clone(const SQObjectPtr &self,SQObjectPtr &target)
 {
-    SQObjectPtr temp_reg;
+    SQObjectPtr tmp;
     SQObjectPtr newobj;
     switch(sq_type(self)){
     case OT_TABLE:
@@ -2463,7 +2601,7 @@ cloned_mt:
         if(_delegable(newobj)->_delegate && _delegable(newobj)->GetMetaMethod(this,MT_CLONED,closure)) {
             Push(newobj);
             Push(self);
-            if(!CallMetaMethod(closure,MT_CLONED,2,temp_reg))
+            if(!CallMetaMethod(closure,MT_CLONED,2,tmp))
                 return false;
         }
         }

@@ -1,0 +1,2 @@
+Foo.hasindex("x") = true
+Foo.hasindex("y") = false

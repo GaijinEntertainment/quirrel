@@ -1,0 +1,2 @@
+got.len() = 1
+b.readblob(1) throws: no data left to read

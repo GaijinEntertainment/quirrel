@@ -1,0 +1,3 @@
+reloadSeconds = 1.5
+maxReloadSeconds = 4
+ammoBelt.len() = 2

@@ -2095,7 +2095,7 @@ local_str3"
 |         Id 'A'
 |-VarDecl 'let', name = '$ch3', type = 'any'
 |   Initializer
-|     FunctionExpr name = '(all_syntax.nut:430)', pure = 0, nodiscard = 0, resultType = 'any'
+|     FunctionExpr name = '(all_syntax.nut:429)', pure = 0, nodiscard = 0, resultType = 'any'
 |     |-Parameters count = 0
 |     `-Body
 |         Block isRoot = 0, isBody = 1
@@ -2144,20 +2144,6 @@ local_str3"
 |         `-Arguments
 |             Argument #1
 |               Id 'instance_a'
-|-ExprStatement
-|   CallExpr
-|   |-Callee
-|   |   Id 'println'
-|   `-Arguments
-|       Argument #1
-|         CallExpr
-|         |-Callee
-|         |   Id 'doc'
-|         `-Arguments
-|             Argument #1
-|               CallExpr
-|                 Callee
-|                   Id 'test'
 |-ExprStatement
 |   CallExpr
 |   |-Callee

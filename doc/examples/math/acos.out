@@ -1,0 +1,5 @@
+acos(1) = 0
+acos(0.5) = 1.0472
+acos(-1) = 3.14159
+acos(2) == acos(1) = true
+acos(-2) == acos(-1) = true

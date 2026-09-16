@@ -1,0 +1,2 @@
+f.readblob(5).len() = 2
+f.readblob(1) throws: no data left to read

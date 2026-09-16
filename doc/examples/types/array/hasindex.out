@@ -1,0 +1,5 @@
+a.hasindex(0) = true
+a.hasindex(2) = true
+a.hasindex(3) = false
+a.hasindex(-1) = false
+a[3] throws: the index '3' (type='integer') does not exist

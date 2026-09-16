@@ -1,0 +1,2 @@
+same == Foo = true Foo.x = 99
+Foo.rawset("x", 5) throws: trying to modify a class that has already been instantiated, inherited or is locked manually

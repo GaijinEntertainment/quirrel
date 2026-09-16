@@ -1,0 +1,2 @@
+loadout.ammo = 10
+loadout.ammo = 20 throws: trying to modify immutable 'table'

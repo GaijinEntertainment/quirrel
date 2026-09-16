@@ -46,6 +46,10 @@ static SQInteger _stream_readblob(HSQUIRRELVM v)
     if(self->Read(ptr,len) != len) return sq_throwerror(v,"io error"); \
     }
 
+#define SAFE_WRITEN(ptr,len) { \
+    if(self->Write(ptr,len) != len) return sq_throwerror(v,"io error"); \
+    }
+
 static SQInteger _stream_readn(HSQUIRRELVM v)
 {
     SETUP_STREAM(v);
@@ -146,56 +150,56 @@ static SQInteger _stream_writen(HSQUIRRELVM v)
         SQInteger i;
         sq_getinteger(v, 2, &ti);
         i = ti;
-        self->Write(&i, sizeof(SQInteger));
+        SAFE_WRITEN(&i, sizeof(SQInteger));
               }
         break;
     case 'i': {
         SQInt32 i;
         sq_getinteger(v, 2, &ti);
         i = (SQInt32)ti;
-        self->Write(&i, sizeof(SQInt32));
+        SAFE_WRITEN(&i, sizeof(SQInt32));
               }
         break;
     case 's': {
         short s;
         sq_getinteger(v, 2, &ti);
         s = (short)ti;
-        self->Write(&s, sizeof(short));
+        SAFE_WRITEN(&s, sizeof(short));
               }
         break;
     case 'w': {
         unsigned short w;
         sq_getinteger(v, 2, &ti);
         w = (unsigned short)ti;
-        self->Write(&w, sizeof(unsigned short));
+        SAFE_WRITEN(&w, sizeof(unsigned short));
               }
         break;
     case 'c': {
         signed char c;
         sq_getinteger(v, 2, &ti);
         c = (signed char)ti;
-        self->Write(&c, sizeof(signed char));
+        SAFE_WRITEN(&c, sizeof(signed char));
                   }
         break;
     case 'b': {
         unsigned char b;
         sq_getinteger(v, 2, &ti);
         b = (unsigned char)ti;
-        self->Write(&b, sizeof(unsigned char));
+        SAFE_WRITEN(&b, sizeof(unsigned char));
               }
         break;
     case 'f': {
         float f;
         sq_getfloat(v, 2, &tf);
         f = (float)tf;
-        self->Write(&f, sizeof(float));
+        SAFE_WRITEN(&f, sizeof(float));
               }
         break;
     case 'd': {
         double d;
         sq_getfloat(v, 2, &tf);
         d = tf;
-        self->Write(&d, sizeof(double));
+        SAFE_WRITEN(&d, sizeof(double));
               }
         break;
     default:
@@ -287,19 +291,19 @@ static SQInteger _stream__cloned(HSQUIRRELVM v)
 }
 
 static const SQRegFunctionFromStr _stream_methods[] = {
-    { _stream_readblob,    "instance.readblob(size: int): instance",         "Reads up to size bytes and returns them as a blob" },
-    { _stream_readn,       "instance.readn(format: int): number",            "Reads a value of the given numeric format and returns it" },
-    { _stream_writeblob,   "instance.writeblob(blob: instance): int",        "Writes the given blob and returns the number of bytes written" },
-    { _stream_writestring, "instance.writestring(str: string): int",         "Writes the string and returns the number of characters written" },
-    { _stream_writen,      "instance.writen(value: number, format: int)",    "Writes a numeric value in the given format" },
-    { _stream_seek,        "instance.seek(offset: int, [origin: int]): int", "Seeks to the given offset; origin is 'b' (begin), 'c' (current) or 'e' (end)" },
-    { _stream_tell,        "instance.tell(): int",                           "Returns the current stream position" },
-    { _stream_len,         "instance.len(): int",                            "Returns the stream length" },
-    { _stream_eos,         "instance.eos(): int|null",                       "Returns non-null if the stream is at end-of-stream" },
-    { _stream_flush,       "instance.flush(): int|null",                     "Flushes the stream and returns non-null on success" },
-    { _stream_writeobject, "instance.writeobject(obj, [classes: table|null])",    "Serializes the object to the stream" },
-    { _stream_readobject,  "instance.readobject([classes: table|null]): any",     "Deserializes an object from the stream" },
-    { _stream__cloned,     "instance._cloned(other)",                        "Stream cloning is not supported" },
+    { _stream_readblob,    "instance.readblob(size: int): instance",         SQ_DOC("Reads up to size bytes and returns them as a blob") },
+    { _stream_readn,       "instance.readn(format: int): number",            SQ_DOC("Reads a value of the given numeric format and returns it") },
+    { _stream_writeblob,   "instance.writeblob(blob: instance): int",        SQ_DOC("Writes the given blob and returns the number of bytes written") },
+    { _stream_writestring, "instance.writestring(str: string): int",         SQ_DOC("Writes the string and returns the number of characters written") },
+    { _stream_writen,      "instance.writen(value: number, format: int)",    SQ_DOC("Writes a numeric value in the given format") },
+    { _stream_seek,        "instance.seek(offset: int, [origin: int]): int", SQ_DOC("Seeks to the given offset; origin is 'b' (begin), 'c' (current) or 'e' (end)") },
+    { _stream_tell,        "instance.tell(): int",                           SQ_DOC("Returns the current stream position") },
+    { _stream_len,         "instance.len(): int",                            SQ_DOC("Returns the stream length") },
+    { _stream_eos,         "instance.eos(): int|null",                       SQ_DOC("Returns non-null if the stream is at end-of-stream") },
+    { _stream_flush,       "instance.flush(): int|null",                     SQ_DOC("Flushes the stream and returns non-null on success") },
+    { _stream_writeobject, "instance.writeobject(obj, [classes: table|null])",    SQ_DOC("Serializes the object to the stream") },
+    { _stream_readobject,  "instance.readobject([classes: table|null]): any",     SQ_DOC("Deserializes an object from the stream") },
+    { _stream__cloned,     "instance._cloned(other)",                        SQ_DOC("Stream cloning is not supported") },
     { NULL, NULL, NULL }
 };
 

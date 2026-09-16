@@ -1,0 +1,9 @@
+WARNING: w214 (operator-returns-same-val) Both branches of operator '<> ? <> : <>' are equivalent.
+testData/static_analyzer/w214_spread.nut:3:8
+
+let c = true
+let x = c ? { ...t } : { ...t }
+        ^----------------------
+println(x.a)
+
+

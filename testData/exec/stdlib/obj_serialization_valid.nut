@@ -32,7 +32,7 @@ function testValidStringIndex()
 
     println("PASS: Valid string index test")
   } catch (e) {
-    println("FAIL: Valid string index test - unexpected error: " + e)
+    println($"FAIL: Valid string index test - unexpected error: {e}")
   }
 }
 
@@ -82,7 +82,7 @@ function testValidClassIndex()
 
     println("PASS: Valid class index test")
   } catch (e) {
-    println("FAIL: Valid class index test - unexpected error: " + e)
+    println($"FAIL: Valid class index test - unexpected error: {e}")
   }
 }
 

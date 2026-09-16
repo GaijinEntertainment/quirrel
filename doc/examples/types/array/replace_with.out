@@ -1,0 +1,3 @@
+same == a: true
+a.len() = 2
+a = 7, 8

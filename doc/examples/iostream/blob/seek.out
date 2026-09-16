@@ -1,0 +1,9 @@
+b.seek(2, 'b') = 0
+b.tell() after seek(2, 'b') = 2
+b.seek(-1, 'c') = 0
+b.tell() after seek(-1, 'c') = 1
+b.seek(0, 'e') = 0
+b.tell() after seek(0, 'e') = 4
+b.seek(100, 'b') = -1
+b.tell() after seek(100, 'b') = 4
+b.seek(0, 'z') throws: invalid origin

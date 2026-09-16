@@ -1,0 +1,3 @@
+get_stack_top() = 1
+inner() = 1
+get_stack_top(42) throws: wrong number of parameters passed to native closure 'get_stack_top' (2 passed, 1 required)

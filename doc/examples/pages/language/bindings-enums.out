@@ -1,0 +1,6 @@
+AmmoType.ap = 10
+AmmoType.he = 0
+AmmoType.sabot = 1
+AmmoType.designation = smoke
+type(AmmoType.he) = integer
+type(AmmoType.designation) = string

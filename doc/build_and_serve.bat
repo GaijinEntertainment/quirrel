@@ -1,0 +1,1 @@
+py build.py && py serve.py

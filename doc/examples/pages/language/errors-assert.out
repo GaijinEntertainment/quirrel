@@ -1,0 +1,4 @@
+first assert passed
+second assert passed, describeSquad was never called
+building diagnostic message
+caught: squad alpha has 4 left

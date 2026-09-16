@@ -1,0 +1,2 @@
+typeof w, (w.ref() == g) = weakref true
+w.ref() = null

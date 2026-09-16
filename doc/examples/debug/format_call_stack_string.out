@@ -1,0 +1,11 @@
+
+CALLSTACK
+*FUNCTION [inner()] doc/examples/debug/format_call_stack_string.nut:4
+*FUNCTION [__main__()] doc/examples/debug/format_call_stack_string.nut:7
+
+LOCALS
+[this] NULL
+[inner] CLOSURE=FN:inner
+[vargv] ARRAY=[]
+[this] NULL
+

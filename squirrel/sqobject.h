@@ -8,6 +8,9 @@
 
 struct SQSharedState;
 
+typedef SQUnsignedInteger32 SQDocStringId;
+static const SQDocStringId SQ_MAX_DOCSTRING_ID = 0xFFFFFFu;
+
 #define METAMETHODS_LIST \
     MM_IMPL(MT_ADD      ,"_add")\
     MM_IMPL(MT_SUB      ,"_sub")\
@@ -296,6 +299,8 @@ inline void _Swap(SQObject &a,SQObject &b)
     a = b;
     b = t;
 }
+
+SQDocStringId sq_getdocstring_id(const SQObject &obj);
 
 struct SQCollectable;
 // Counterpart to SQRELEASEHOOK: lets a native binding trace HSQOBJECTs hidden behind an

@@ -62,14 +62,13 @@ static SQInteger _system_rename(HSQUIRRELVM v)
 
 
 static const SQRegFunctionFromStr systemlib_funcs[] = {
-    { _system_getenv, "getenv(name: string): string|null",            "Returns the value of the environment variable or null" },
-    { _system_setenv, "setenv(name: string, value: string)",          "Sets the environment variable to the given value" },
-    { _system_system, "system(cmd: string): int",                     "Executes a shell command and returns its exit code" },
-    { _system_remove, "remove(path: string)",                         "Deletes the file at the given path, throws error in case of fail" },
-    { _system_rename, "rename(old: string, new: string)",             "Renames the file from old to new path, throws error in case of fail" },
+    { _system_getenv, "getenv(name: string): string|null",            SQ_DOC("Returns the value of the environment variable or null") },
+    { _system_setenv, "setenv(name: string, value: string)",          SQ_DOC("Sets the environment variable to the given value") },
+    { _system_system, "system(cmd: string): int",                     SQ_DOC("Executes a shell command and returns its exit code") },
+    { _system_remove, "remove(path: string)",                         SQ_DOC("Deletes the file at the given path, throws error in case of fail") },
+    { _system_rename, "rename(old: string, new: string)",             SQ_DOC("Renames the file from old to new path, throws error in case of fail") },
     { NULL, NULL, NULL }
 };
-#undef _DECL_FUNC
 
 
 SQRESULT sqstd_register_command_line_args(HSQUIRRELVM v, int argc, char ** argv)

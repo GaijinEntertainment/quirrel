@@ -3,6 +3,6 @@ testData/diagnostics/compilation_errors/sema_errors/inc_dec_not_assignable.nut:2
 
 // EXPECT_ERROR: "not assignable"
 (1 + 2)++
-^-----
+^------
 
 

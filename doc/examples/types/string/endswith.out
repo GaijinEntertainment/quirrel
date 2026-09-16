@@ -1,0 +1,2 @@
+"hello world".endswith("world") = true
+"hello world".endswith("hello") = false

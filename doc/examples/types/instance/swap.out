@@ -1,0 +1,2 @@
+p.a = 2 p.b = 1
+p.swap("a", "missing") throws: the index doesn't exist

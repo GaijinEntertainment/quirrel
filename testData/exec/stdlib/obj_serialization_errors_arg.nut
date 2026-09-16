@@ -17,7 +17,7 @@ function testInvalidAvailableClasses()
     b.writeobject(obj, "not a table")
     println("FAIL: Invalid available classes test should have failed")
   } catch (e) {
-    println("PASS: Invalid available classes test - " + e)
+    println($"PASS: Invalid available classes test - {e}")
   }
 }
 
@@ -38,7 +38,7 @@ function testClassNotFound()
     b.readobject({}) // empty available classes
     println("FAIL: Class not found test should have failed")
   } catch (e) {
-    println("PASS: Class not found test - " + e)
+    println($"PASS: Class not found test - {e}")
   }
 }
 
@@ -59,7 +59,7 @@ function testInvalidConstructor()
     local x = b.readobject()
     println("FAIL: Invalid constructor test should have failed")
   } catch (e) {
-    println("PASS: Invalid constructor test - " + e)
+    println($"PASS: Invalid constructor test - {e}")
   }
 }
 

@@ -1,0 +1,4 @@
+sin(0) = 0
+sin(PI/6) = 0.5
+sin(PI/2) = 1
+type(sin(0)) = float

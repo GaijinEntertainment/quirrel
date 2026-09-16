@@ -1,0 +1,6 @@
+t.reduce(add), no initial = 6
+t.reduce(add), initial 100 = 106
+one.reduce(add) = 42
+calls = 0
+{}.reduce(add) == null: true
+t.reduce(add, 0, "unused") = 6

@@ -1,0 +1,5 @@
+Foo.newmember("k", "v") == Foo = true
+Foo.k = v
+Bar().shared = 42
+Locked.also_shared = 7
+newmember("nope", 1) error: trying to modify a class that has already been instantiated, inherited or is locked manually

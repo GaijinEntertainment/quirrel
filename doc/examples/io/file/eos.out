@@ -1,0 +1,2 @@
+f.eos() after write = 1
+f.eos() after seek(0) = null

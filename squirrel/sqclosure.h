@@ -154,7 +154,7 @@ struct SQNativeClosure : public CHAINABLE_OBJ
 {
 private:
     SQNativeClosure(SQSharedState *ss,SQFUNCTION func) :
-      _typecheck(ss->_alloc_ctx), _purefunction(false), _nodiscard(false)
+      _docstring_id(0), _purefunction(false), _nodiscard(false), _isfastcall(false), _typecheck(ss->_alloc_ctx)
     {
       _function=func;INIT_CHAIN();ADD_TO_CHAIN(&_ss(this)->_gc_chain,this); _env = NULL;
     }
@@ -169,6 +169,7 @@ public:
         nc->_result_type_mask = ~0u;
         nc->_purefunction = false;
         nc->_nodiscard = false;
+        nc->_isfastcall = false;
         _CONSTRUCT_VECTOR(SQObjectPtr,nc->_noutervalues,nc->_outervalues);
         return nc;
     }
@@ -184,6 +185,8 @@ public:
         ret->_nparamscheck = _nparamscheck;
         ret->_purefunction = _purefunction;
         ret->_nodiscard = _nodiscard;
+        ret->_isfastcall = _isfastcall;
+        ret->_docstring_id = _docstring_id;
         return ret;
     }
     ~SQNativeClosure()
@@ -207,8 +210,14 @@ public:
     SQInteger _nparamscheck;
     SQUnsignedInteger32 _noutervalues;
     SQUnsignedInteger32 _result_type_mask;
-    bool _purefunction;
-    bool _nodiscard;
+    SQUnsignedInteger32 _docstring_id : 24;
+    SQUnsignedInteger32 _purefunction : 1;
+    SQUnsignedInteger32 _nodiscard : 1;
+    // Eligible for the _OP_FASTCALL mini-frame (see sqvm.cpp). Contract for a
+    // marked function: it must not call back into the VM (sq_call, metamethods)
+    // or read CallInfo/sq_stackinfos, must not return SQ_SUSPEND_FLAG or
+    // SQ_TAILCALL_FLAG, must push O(1) values, and must not use _env or outers.
+    SQUnsignedInteger32 _isfastcall : 1;
     SQIntVec _typecheck;
     SQObjectPtr *_outervalues;
     SQWeakRef *_env;

@@ -30,3 +30,7 @@ Feedback, PRs and suggestions are appreciated!
 [Documentation project page](http://quirrel.io)
 
 [GitHub page](https://github.com/GaijinEntertainment/quirrel)
+
+Quirrel is developed in the [Dagor engine](https://github.com/GaijinEntertainment/DagorEngine)
+tree, at `prog/1stPartyLibs/quirrel/quirrel`; the standalone repository is updated
+from it in batches.

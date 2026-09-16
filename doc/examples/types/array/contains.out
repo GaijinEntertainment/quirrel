@@ -1,0 +1,4 @@
+a.contains(2) = true
+a.contains(9) = false
+[t].contains(t) = true
+[{x = 1}].contains(t) = false

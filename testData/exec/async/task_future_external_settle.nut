@@ -4,7 +4,7 @@ from "async" import Future
 // function) must throw regardless of task lifecycle. Task identity is
 // latched at construction, not derived from generator presence. Three phases:
 //   - inflight: task has not finished its body
-//   - after_adopt: task body returned a Future (chain-unwrap adoption)
+//   - returns_future: task body returned a Future (stored verbatim, no adoption)
 //   - after_done: task body fully complete
 // Bare Futures remain unaffected.
 
@@ -16,21 +16,21 @@ async function section_inflight() {
     task.resolve(99)
     print("BUG: resolve no throw\n")
   } catch (e) {
-    print("resolve threw: " + e + "\n")
+    println($"resolve threw: {e}")
   }
   let bare = Future()
   bare.resolve("ok")
-  print("bare: " + bare.getState() + "\n")
+  println($"bare: {bare.getState()}")
   let r = await task
-  print("consumer got: " + r + "\n")
+  println($"consumer got: {r}")
 }
 
-async function section_after_adopt() {
-  print("=== after_adopt ===\n")
+async function section_returns_future() {
+  print("=== returns_future ===\n")
   let inner = Future()
-  async function f() { return inner }   // chain-unwrap: task-future adopts `inner`
+  async function f() { return inner }   // body returns a Future; no adoption, fulfils with it verbatim
   let task = f()
-  // One suspension so f's body reaches eDead and adopts `inner`.
+  // One suspension so f's body completes and the task-future fulfils.
   let tick = Future()
   tick.resolve(null)
   let _ = await tick
@@ -38,11 +38,13 @@ async function section_after_adopt() {
     task.resolve(99)
     print("BUG: resolve no longer throws\n")
   } catch (e) {
-    print("resolve still throws: " + e + "\n")
+    println($"resolve still throws: {e}")
   }
   inner.resolve("real")
-  let r = await task
-  print("consumer got: " + r + "\n")
+  // No adoption: `await task` yields the inner Future (one level); await again for the value.
+  let innerFut = await task
+  let r = await innerFut
+  println($"consumer got: {r}")
 }
 
 async function section_after_done() {
@@ -54,15 +56,15 @@ async function section_after_done() {
     task.resolve(99)
     print("BUG: resolve no longer throws\n")
   } catch (e) {
-    print("resolve throws: " + e + "\n")
+    println($"resolve throws: {e}")
   }
   let r2 = await task
-  print("after probe, task awaits to: " + r2 + "\n")
+  println($"after probe, task awaits to: {r2}")
 }
 
 async function runAll() {
   await section_inflight()
-  await section_after_adopt()
+  await section_returns_future()
   await section_after_done()
   print("script done\n")
 }

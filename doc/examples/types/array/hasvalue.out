@@ -1,0 +1,2 @@
+a.hasvalue(2) = true a.hasvalue(9) = false
+a.hasvalue(2) == a.contains(2): true

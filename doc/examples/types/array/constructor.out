@@ -1,0 +1,3 @@
+a.len() = 3 a[0] = 0
+type(b[0]) = null
+types.Array(-1) throws: array size must be non-negative

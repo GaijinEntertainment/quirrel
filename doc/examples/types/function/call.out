@@ -1,0 +1,2 @@
+greet.call(bob, "Hi") = Hi Bob
+typeof g + " " + resume g = generator 3

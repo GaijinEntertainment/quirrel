@@ -1,0 +1,22 @@
+{
+ "_comment": "Every metamethod the VM recognizes (the MM_IMPL list in squirrel/sqobject.h), mapped to the section that gives its contract. Drives the table on the Metamethods page and the metamethod entries in the search index, and lets the operator table link an overload to what it does. gen/check.py fails when this list and the VM's disagree.",
+ "metamethods": {
+  "_get":      { "sig": "_get(key)",             "when": "a read finds no slot",             "this": "the object",        "target": "language/metamethods#reading-and-writing-missing-slots" },
+  "_set":      { "sig": "_set(key, value)",      "when": "a write finds no slot",            "this": "the object",        "target": "language/metamethods#reading-and-writing-missing-slots" },
+  "_newslot":  { "sig": "_newslot(key, value)",  "when": "`<-` creates a slot",              "this": "the object",        "target": "language/metamethods#slot-creation-and-deletion" },
+  "_delslot":  { "sig": "_delslot(key)",         "when": "`delete` removes a slot",          "this": "the object",        "target": "language/metamethods#slot-creation-and-deletion" },
+  "_nexti":    { "sig": "_nexti(previdx)",       "when": "`foreach` asks for the next key",  "this": "the object",        "target": "language/metamethods#iterating" },
+  "_add":      { "sig": "_add(other)",           "when": "the `+` operator",                 "this": "the **left** operand", "target": "language/metamethods#arithmetic" },
+  "_sub":      { "sig": "_sub(other)",           "when": "the `-` operator",                 "this": "the **left** operand", "target": "language/metamethods#arithmetic" },
+  "_mul":      { "sig": "_mul(other)",           "when": "the `*` operator",                 "this": "the **left** operand", "target": "language/metamethods#arithmetic" },
+  "_div":      { "sig": "_div(other)",           "when": "the `/` operator",                 "this": "the **left** operand", "target": "language/metamethods#arithmetic" },
+  "_modulo":   { "sig": "_modulo(other)",        "when": "the `%` operator",                 "this": "the **left** operand", "target": "language/metamethods#arithmetic" },
+  "_unm":      { "sig": "_unm()",                "when": "unary `-`",                        "this": "the operand",       "target": "language/metamethods#arithmetic" },
+  "_cmp":      { "sig": "_cmp(other)",           "when": "`<` `<=` `>` `>=` and `<=>`",      "this": "the left operand",  "target": "language/metamethods#comparison" },
+  "_call":     { "sig": "_call(callerThis, ...)","when": "the object is called",             "this": "the object",        "target": "language/metamethods#calling-and-cloning" },
+  "_cloned":   { "sig": "_cloned(original)",     "when": "`clone` has just copied it",       "this": "the **new** object", "target": "language/metamethods#calling-and-cloning" },
+  "_typeof":   { "sig": "_typeof()",             "when": "`typeof`",                         "this": "the object",        "target": "language/metamethods#type-name-and-text" },
+  "_tostring": { "sig": "_tostring()",           "when": "printing or string concatenation", "this": "the object",        "target": "language/metamethods#type-name-and-text" },
+  "_lock":     { "sig": "_lock()",               "when": "the class locks",                  "this": "the **class**",     "target": "language/metamethods#lock" }
+ }
+}

@@ -1,0 +1,2 @@
+lstrip("  hi  ") = [hi  ]
+lstrip("hi") = [hi]

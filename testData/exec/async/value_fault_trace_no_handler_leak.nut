@@ -13,7 +13,7 @@ seterrorhandler(function(err, trace) {
     foreach (fr in trace)
         if (fr.func == "HANDLER_MARK") leaked = true
     if (!leaked)
-        println("report " + reports + " clean")
+        println($"report {reports} clean")
     trace.append({ func = "HANDLER_MARK", src = "", line = 0 })
 })
 

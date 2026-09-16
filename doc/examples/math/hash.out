@@ -1,0 +1,6 @@
+hash("abc") == hash("abc") = true
+hash("abc") == hash("abd") = false
+hash(42) == hash(42) = true
+hash([1,2,3]) == hash(["x"]) = true
+hash({a=1}) == hash({}) = true
+hash(hash) throws: unsupported type for hashing

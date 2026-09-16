@@ -1,0 +1,6 @@
+types.Bool() = false
+types.Bool(0) = false
+types.Bool(0.0) = false
+types.Bool("") = true
+types.Bool([]) = true
+types.Bool(5) = true

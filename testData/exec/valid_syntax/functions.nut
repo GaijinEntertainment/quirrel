@@ -41,7 +41,7 @@ assert(complex_fn(5) == 11)
 
 // Default parameters
 function greet(name = "World") {
-    return "Hello " + name
+    return $"Hello {name}"
 }
 assert(greet() == "Hello World")
 assert(greet("Quirrel") == "Hello Quirrel")

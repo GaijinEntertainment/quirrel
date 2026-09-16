@@ -1,0 +1,3 @@
+via println
+via stdout.writestring
+still open after close

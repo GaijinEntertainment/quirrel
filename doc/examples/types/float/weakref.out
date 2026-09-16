@@ -1,0 +1,2 @@
+wr = 3.5
+type(wr) = float

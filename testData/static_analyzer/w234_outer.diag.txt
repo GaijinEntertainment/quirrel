@@ -3,7 +3,7 @@ testData/static_analyzer/w234_outer.nut:12:8
 
 function fn2() { //-declared-never-used
   print(1 / (y))
-        ^-----
+        ^------
 }
 
 

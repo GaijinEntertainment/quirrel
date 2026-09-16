@@ -1,0 +1,2 @@
+"a,,b,".split_by_chars(",") joined = a,,b
+"a,,b,".split_by_chars(",", true) joined = a,b

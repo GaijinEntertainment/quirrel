@@ -1,0 +1,3 @@
+exp(0) = 1
+exp(1) = 2.71828
+type(exp(0)) = float

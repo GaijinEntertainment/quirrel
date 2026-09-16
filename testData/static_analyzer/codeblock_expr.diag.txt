@@ -1,0 +1,9 @@
+WARNING: w217 (unconditional-terminated-loop) Unconditional 'throw' inside a loop.
+testData/static_analyzer/codeblock_expr.nut:34:6
+
+    $${
+      throw $"bad {v}"
+      ^---------------
+    }
+
+

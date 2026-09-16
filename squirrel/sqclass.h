@@ -131,7 +131,8 @@ public:
     SQInteger _constructoridx;
     SQInteger _udsize;
     uint64_t _lockedTypeId;
-    bool _is_builtin_type;
+    SQUnsignedInteger32 _docstring_id : 24;
+    SQUnsignedInteger32 _is_builtin_type : 1;
     SQObjectType _builtin_type_id;  // only valid if _is_builtin_type is true
 };
 
