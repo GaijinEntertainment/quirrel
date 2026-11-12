@@ -13,8 +13,8 @@ cannot customize its own conversion.
 
 A `_tostring` method defined in a class body customizes how *instances* of
 that class convert to a string (see `types.Instance.tostring`); it has no
-effect on the class object itself, since class-level indexing has no delegate
-lookup for `class.tostring()` to fall back through. `Foo.tostring()` and
+effect on the class object itself, since the class object reads no metamethod
+for `class.tostring()` to fall back through. `Foo.tostring()` and
 `(class)Foo.tostring()`-style string concatenation both always show the raw
 pointer form, whatever `Foo` defines.
 

@@ -16,9 +16,9 @@ methods, `false` otherwise.
 
 ## Notes
 
-Marked `pure`. Unlike a table, an instance's methods live on its class rather
-than in a separate delegate, and `hasindex`/`rawget`/`rawin` all see them
-directly: they are not something "raw" access skips here.
+Marked `pure`. An instance's methods live on its class, and
+`hasindex`/`rawget`/`rawin` all see them directly: they are not something "raw"
+access skips here.
 
 ## Example
 

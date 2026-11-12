@@ -1,9 +1,6 @@
 // Demonstrates SQVM::FallBackGet <-> SQVM::Get recursion (1.3)
 //
-// Note: The pure delegation chain path (table -> delegate -> table)
-// requires setdelegate() which is a C API only, not exposed to script.
-// But the SAME FallBackGet function also handles OT_INSTANCE via _get
-// metamethod (sqvm.cpp:2172-2188), which re-enters Get().
+// FallBackGet handles OT_INSTANCE via the _get metamethod, which re-enters Get().
 //
 // Call chain for `a.missing_key` where a is instance of class with _get:
 //   GetImpl(a, "missing_key")           // sqvm.cpp:2053

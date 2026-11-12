@@ -1,0 +1,36 @@
+WARNING: w309 (missing-destructured-value) No value for 'y' in destructured declaration.
+testData/static_analyzer/w309_literal.nut:8:11
+
+function f(k, src, extra) {
+  let { x, y } = { x = 1 }
+           ^
+  let { a, b } = C
+
+
+WARNING: w309 (missing-destructured-value) No value for 'b' in destructured declaration.
+testData/static_analyzer/w309_literal.nut:9:11
+
+  let { x, y } = { x = 1 }
+  let { a, b } = C
+           ^
+  let [ p, q ] = [ 1 ]
+
+
+WARNING: w309 (missing-destructured-value) No value for 'q' in destructured declaration.
+testData/static_analyzer/w309_literal.nut:10:11
+
+  let { a, b } = C
+  let [ p, q ] = [ 1 ]
+           ^
+  let [ e, g ] = ARR
+
+
+WARNING: w309 (missing-destructured-value) No value for 'g' in destructured declaration.
+testData/static_analyzer/w309_literal.nut:11:11
+
+  let [ p, q ] = [ 1 ]
+  let [ e, g ] = ARR
+           ^
+  let { d = 2 } = { x = 1 }
+
+

@@ -16,6 +16,7 @@ struct TestNativeVec
 {
   float x, y, z;
   int32_t w;
+  bool flag;
 };
 
 static SQInteger nativevec_ctor(HSQUIRRELVM vm)
@@ -81,15 +82,10 @@ static SQInteger test_reserve_stack(HSQUIRRELVM vm)
   return 0;
 }
 
-static SQInteger test_ud_with_delegate(HSQUIRRELVM vm)
+static SQInteger test_new_userdata(HSQUIRRELVM vm)
 {
   sq_newuserdata(vm, 4);
-  sq_newtable(vm);
-  sq_pushstring(vm, "a", -1); sq_pushinteger(vm, 10); sq_newslot(vm, -3, SQFalse);
-  sq_pushstring(vm, "b", -1); sq_pushinteger(vm, 20); sq_newslot(vm, -3, SQFalse);
-  if (SQ_FAILED(sq_setdelegate(vm, -2))) // sets the table (top) as delegate of the userdata
-    return SQ_ERROR;
-  return 1; // userdata now on top
+  return 1;
 }
 
 static SQInteger test_arg_count(HSQUIRRELVM vm)
@@ -133,17 +129,18 @@ void register_test_natives(SqModules *module_mgr)
     .NativeVar("x", &TestNativeVec::x)
     .NativeVar("y", &TestNativeVec::y)
     .NativeVar("z", &TestNativeVec::z)
-    .NativeVar("w", &TestNativeVec::w);
+    .NativeVar("w", &TestNativeVec::w)
+    .NativeVar("flag", &TestNativeVec::flag);
 
   Sqrat::Table exports(vm);
   exports.Bind("NativeVec", cls);
   exports.SquirrelFunc("raw_cmp", test_raw_cmp, 3, "...");
+  exports.SquirrelFunc("new_userdata", test_new_userdata, 1, ".");
   exports.SquirrelFuncDeclString(test_aliased, "aliased_first(): int", SQ_DOC("doc of the first slot"));
   exports.SquirrelFuncDeclString(test_aliased, "aliased_second(x: int): int", SQ_DOC("doc of the second slot"));
   exports.SquirrelFunc("doc_registry_slot_count", test_doc_registry_slot_count, 1, ".", SQ_DOC("doc set without a decl string"));
   exports.SquirrelFuncDeclString(test_set_object_docstring, "set_object_docstring(subject, text: string): bool");
   exports.SquirrelFunc("reserve_stack", test_reserve_stack, -1, ".n");
-  exports.SquirrelFunc("ud_with_delegate", test_ud_with_delegate, 1, ".");
   exports.Func("identity_i64", test_identity_i64);
   exports.SquirrelFunc("takes_four_args", test_arg_count, 5, ".....");
   exports.SquirrelFunc("takes_five_args", test_arg_count, 6, "......");

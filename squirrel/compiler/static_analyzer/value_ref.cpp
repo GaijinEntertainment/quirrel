@@ -26,14 +26,6 @@ void ValueRef::intersectValue(const ValueRef *other) {
   assert((flagsNegative & flagsPositive) == 0);
 
   assigned &= other->assigned;
-  if (lastAssigneeScope) {
-    if (other->lastAssigneeScope && other->lastAssigneeScope->depth > lastAssigneeScope->depth) {
-      lastAssigneeScope = other->lastAssigneeScope;
-    }
-  }
-  else {
-    lastAssigneeScope = other->lastAssigneeScope;
-  }
 
   // TODO: intersect bounds
 
@@ -49,14 +41,6 @@ void ValueRef::merge(const ValueRef *other, bool joinFlags) {
   assert(info == other->info);
 
   assigned &= other->assigned;
-  if (lastAssigneeScope) {
-    if (other->lastAssigneeScope && other->lastAssigneeScope->depth > lastAssigneeScope->depth) {
-      lastAssigneeScope = other->lastAssigneeScope;
-    }
-  }
-  else {
-    lastAssigneeScope = other->lastAssigneeScope;
-  }
 
   // Control-flow join: a guarantee (flagsNegative) survives only when both
   // paths provide it, a possibility (flagsPositive) when either does.

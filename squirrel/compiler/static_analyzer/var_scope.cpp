@@ -142,12 +142,10 @@ VarScope *VarScope::copy(Arena *a, bool forClosure) const {
       vcopy->expression = nullptr;
       vcopy->flagsNegative = vcopy->flagsPositive = 0;
       vcopy->assigned = v->assigned;
-      vcopy->lastAssigneeScope = v->lastAssigneeScope;
     }
     else {
       memcpy(vcopy, v, sizeof(ValueRef));
       vcopy->assigned = false;
-      vcopy->lastAssigneeScope = nullptr;
     }
     thisCopy->symbols[k] = vcopy;
   }

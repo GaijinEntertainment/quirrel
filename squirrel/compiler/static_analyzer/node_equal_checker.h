@@ -365,7 +365,6 @@ public:
     case TO_BREAK:
     case TO_CONTINUE:
     case TO_EMPTY:
-    case TO_BASE:
     case TO_ROOT_TABLE_ACCESS:
       return true;
     case TO_DIRECTIVE:
@@ -411,7 +410,6 @@ public:
     case TO_BNOT:
     case TO_NEG:
     case TO_TYPEOF:
-    case TO_STATIC_MEMO:
     case TO_INLINE_CONST:
     case TO_RESUME:
     case TO_AWAIT:

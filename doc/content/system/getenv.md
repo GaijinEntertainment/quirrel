@@ -21,11 +21,11 @@ pointer straight into `sq_pushstring` without an explicit null check, but
 `sq_pushstring` treats a null pointer as "push `null`", so the missing case is
 safe.
 
-This signature is the PC one. `sqstdsystem.cpp` builds `getenv`, [setenv](sym:system.setenv)
-and [system](sym:system.system) only `#if _TARGET_PC`; on every other target (consoles,
-mobile) each is replaced by a stub that throws `getenv() not available for this
-platform`. Code meant to run on those targets should treat this function as
-absent and catch the error, or avoid it.
+This signature is the desktop one. A host built with `SQ_SYSTEM_STUBS=1`
+(consoles, mobile) replaces `getenv`, [setenv](sym:system.setenv) and
+[system](sym:system.system) with stubs, and this one throws `getenv() not
+available for this platform`. Code meant to run on those targets should treat
+this function as absent and catch the error, or avoid it.
 
 ## Example
 

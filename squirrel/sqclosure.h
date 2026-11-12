@@ -6,13 +6,12 @@
 #define _CALC_CLOSURE_SIZE(func) (sizeof(SQClosure) + (func->_noutervalues*sizeof(SQObjectPtr)) + (func->_ndefaultparams*sizeof(SQObjectPtr)))
 
 struct SQFunctionProto;
-struct SQClass;
 struct SQClosure : public CHAINABLE_OBJ
 {
 private:
     SQClosure(SQSharedState *ss,SQFunctionProto *func)
     {
-      _function = func; __ObjAddRef(_function); _base = NULL; INIT_CHAIN();ADD_TO_CHAIN(&_ss(this)->_gc_chain,this); _env = NULL;
+      _function = func; __ObjAddRef(_function); INIT_CHAIN();ADD_TO_CHAIN(&_ss(this)->_gc_chain,this); _env = NULL;
     }
 
 public:
@@ -29,7 +28,7 @@ public:
     void Release(){
         SQFunctionProto *f = _function;
         SQInteger size = _CALC_CLOSURE_SIZE(f);
-        SQAllocContext ctx = f->_alloc_ctx;
+        SQAllocContext ctx = _sharedstate->_alloc_ctx;
         _DESTRUCT_VECTOR(SQObjectPtr,f->_noutervalues,_outervalues);
         _DESTRUCT_VECTOR(SQObjectPtr,f->_ndefaultparams,_defaultparams);
         __ObjRelease(_function);
@@ -57,8 +56,9 @@ public:
     }
     SQObjectType GetType() {return OT_CLOSURE;}
 #endif
+    // The storage of an outer value: in a shared SQOuter, or in the slot itself for a copy
+    SQObjectPtr &OuterValue(SQInteger i);
     SQWeakRef *_env;
-    SQClass *_base;
     SQFunctionProto *_function;
     SQObjectPtr *_outervalues;
     SQObjectPtr *_defaultparams;
@@ -82,8 +82,7 @@ public:
 
     void Release()
     {
-        this->~SQOuter();
-        sq_vm_free(_sharedstate->_alloc_ctx, this, sizeof(SQOuter));
+        sq_delete(_sharedstate->_alloc_ctx, this, SQOuter);
     }
 
 #ifndef NO_GARBAGE_COLLECTOR
@@ -97,6 +96,12 @@ public:
     SQObjectPtr  _value;   /* value of outer after stack frame is closed */
     SQOuter     *_next;    /* pointer to next outer when frame is open   */
 };
+
+inline SQObjectPtr &SQClosure::OuterValue(SQInteger i)
+{
+    SQObjectPtr &o = _outervalues[i];
+    return sq_type(o) == OT_OUTER ? *_outer(o)->_valptr : o;
+}
 
 //////////////////////////////////////////////
 struct SQGenerator : public CHAINABLE_OBJ
@@ -167,9 +172,6 @@ public:
         nc->_outervalues = (SQObjectPtr *)(nc + 1);
         nc->_noutervalues = nouters;
         nc->_result_type_mask = ~0u;
-        nc->_purefunction = false;
-        nc->_nodiscard = false;
-        nc->_isfastcall = false;
         _CONSTRUCT_VECTOR(SQObjectPtr,nc->_noutervalues,nc->_outervalues);
         return nc;
     }

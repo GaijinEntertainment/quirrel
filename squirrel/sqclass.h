@@ -101,17 +101,13 @@ public:
     uint64_t lockedTypeId() const {return _lockedTypeId;}
 
     enum {CLASS_BITS = 40};
-    //all x64 bit platforms have only 48 meaningful bits in pointers. Yet, 3 lsb are always zero (or meaningless, as pointers are aligned)
-    //actually, even more bits are meaningless - as any class can't alias with other, there should be at least sizeof(SQClass) difference
-    //sizeof is at least 256 on all platforms, so there are no more than 40 meaningful bits (after first 8)
-    //still more than 32, unfortunately
     bool isLocked() const {return _lockedTypeId != 0;}
     static uint64_t classTypeFromHint(uint64_t hint)
     {
-      static_assert(sizeof(SQClass)>=256);
       return hint&((1ull<<uint64_t(CLASS_BITS)) - 1);
     }
-    uint64_t currentHint() const {return classTypeFromHint(uintptr_t(this)>>uintptr_t(8));}
+    // not the address: a reused address keeps old hints
+    uint64_t newLockedTypeId() {return classTypeFromHint(++_sharedstate->_classTypeIdCounter);}
     void Finalize();
 #ifndef NO_GARBAGE_COLLECTOR
     void Mark(SQCollectable ** );
@@ -139,7 +135,7 @@ public:
 #define calcinstancesize(_theclass_) \
     (_theclass_->_udsize + sq_aligning(sizeof(SQInstance) +  (sizeof(SQObjectPtr)*(_theclass_->_defaultvalues.size()>0?_theclass_->_defaultvalues.size()-1:0))))
 
-struct SQInstance : public SQDelegable
+struct SQInstance : public CHAINABLE_OBJ
 {
     void Init(SQSharedState *ss);
     SQInstance(SQSharedState *ss, SQClass *c, SQInteger memsize);
@@ -181,7 +177,7 @@ public:
         case SQNFT_FLOAT64: val = SQObjectPtr((SQFloat)*(const double *)p); break;
         case SQNFT_INT32:   val = SQObjectPtr((SQInteger)*(const int32_t *)p); break;
         case SQNFT_INT64:   val = SQObjectPtr((SQInteger)*(const int64_t *)p); break;
-        case SQNFT_BOOL:    val._type = OT_BOOL; val._unVal.nInteger = *(const bool *)p ? 1 : 0; break;
+        case SQNFT_BOOL:    val = SQObjectPtr(*(const bool *)p); break;
         }
     }
 
@@ -257,7 +253,7 @@ public:
         _uiRef--;
         if(_uiRef > 0) return;
         SQInteger size = _memsize;
-        SQAllocContext ctx = _alloc_ctx;
+        SQAllocContext ctx = _sharedstate->_alloc_ctx;
         this->~SQInstance();
         SQ_FREE(ctx, this, size);
     }
@@ -267,12 +263,11 @@ public:
     SQObjectType GetType() {return OT_INSTANCE;}
 #endif
     bool InstanceOf(const SQClass *trg) const;
-    bool GetMetaMethod(SQVM *v,SQMetaMethod mm,SQObjectPtr &res);
+    bool GetMetaMethod(SQMetaMethod mm,SQObjectPtr &res);
 
     SQClass *_class;
     SQUserPointer _userpointer;
     SQRELEASEHOOK _hook;
-    SQAllocContext _alloc_ctx;
     SQInteger _memsize;
     SQObjectPtr _values[1];
 };

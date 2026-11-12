@@ -93,7 +93,7 @@ separate types, and reading a key that is not there is an error.
 | --- | --- |
 | `class A extends B` | `class A(B) { }`, with one base class only | page:language/classes#declaring-a-class |
 | `constructor()` | `constructor()` | page:language/classes#declaring-a-class |
-| `super.m()`, `super()` | `base.m()`, `base.constructor()` | page:language/classes#inheritance-and-base |
+| `super.m()`, `super()` | `B.m.call(this)`, `B.constructor.call(this)` | page:language/classes#inheritance |
 | a field assigned in the constructor | declare it in the class body; an instance takes no new slots later |
 | `static x = 1` | `static x = 1` | page:language/classes#static-members |
 | `get x()`, `set x(v)` | the `_get` and `_set` [metamethods](page:language/metamethods) |

@@ -1,0 +1,36 @@
+true false true false
+true false
+false false false
+true false
+false attempt to call 'integer'
+true false false false
+true the index 'len' (type='string') does not exist true
+true false
+true false true
+raw true
+cannot iterate null false
+true false
+true false false true true
+true false false
+true false true true
+boom
+stack overflow, cannot resize stack 10997
+true true 2 x 5 null
+true true true wrong number of parameters passed to native closure 'copy' (3 passed, 2 required)
+true true 1 true true
+true true
+Native stack overflow
+true true
+0 0
+true the index 'map' (type='string') does not exist the index 'map' (type='string') does not exist
+7 7
+false 1
+true true
+throws null
+true 1 true true true
+1 null 1 null
+null Native stack overflow null Native stack overflow
+null copy_graph: the value is nested deeper than 1000 levels
+null Native stack overflow
+null Native stack overflow
+500 0

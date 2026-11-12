@@ -27,6 +27,7 @@ HEADERS = [
     ("sqstdblob.h", "stdblob"),
     ("sqstddatetime.h", "stddatetime"),
     ("sqstddebug.h", "stddebug"),
+    ("sqstddeep.h", "stddeep"),
     ("sqstdio.h", "stdio"),
     ("sqstdmath.h", "stdmath"),
     ("sqstdstring.h", "stdstring"),

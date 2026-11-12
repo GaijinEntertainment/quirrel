@@ -43,7 +43,7 @@ inline SQHash HashObj(const SQObject &key)
     }
 }
 
-struct SQTable : public SQDelegable
+struct SQTable : public CHAINABLE_OBJ
 {
 private:
     friend struct SQVM;
@@ -61,7 +61,6 @@ private:
     _HashNode *_nodes;
     uint32_t _numofnodes_minus_one;
     uint32_t _usednodes;
-    SQAllocContext _alloc_ctx;
     uint64_t _classTypeId;
     ///////////////////////
     SQTable *CopyNodes();
@@ -74,21 +73,19 @@ public:
     {
         SQTable *newtable = (SQTable*)SQ_MALLOC(ss->_alloc_ctx, sizeof(SQTable));
         new (newtable) SQTable(ss, nInitialSize);
-        newtable->_delegate = NULL;
         return newtable;
     }
     void Finalize();
     SQTable *Clone();
-    SQTable *CopyNodesResolvingWeakRefs();
+    SQTable *CopyForSpread(SQObjectFlags addedFlags);
     ~SQTable()
     {
         uint32_t cnt = _numofnodes_minus_one + 1;
         _HashNode *__restrict lNodes = _nodes;
-        SetDelegate(NULL);
         REMOVE_FROM_CHAIN(&_sharedstate->_gc_chain, this);
         for (_HashNode *i = lNodes, *e = i + cnt; i != e; i++)
           i->~_HashNode();
-        SQ_FREE(_alloc_ctx, lNodes, cnt  * sizeof(_HashNode));
+        SQ_FREE(_sharedstate->_alloc_ctx, lNodes, cnt  * sizeof(_HashNode));
     }
 #ifndef NO_GARBAGE_COLLECTOR
     void Mark(SQCollectable **chain);
@@ -158,6 +155,16 @@ public:
     //returns true if a new slot has been created false if it was already present
     bool NewSlot(const SQObjectPtr &key,const SQObjectPtr &val  VT_DECL_ARG_DEF);
     SQInteger Next(bool getweakrefs,const SQObjectPtr &refpos, SQObjectPtr &outkey, SQObjectPtr &outval);
+    template <typename F>
+    void ForEachSlot(F f) const
+    {
+        for (uint32_t i = 0; i <= _numofnodes_minus_one; i++)
+        {
+            const _HashNode &n = _nodes[i];
+            if (!(sq_type(n.key) & OT_FREE_TABLE_SLOT))
+                f(n.key, _realval(n.val));
+        }
+    }
 
     SQInteger CountUsed(){ return _usednodes;}
     SQInteger AllocatedNodes(){ return _numofnodes_minus_one + 1; }
@@ -165,7 +172,8 @@ public:
     void Clear(SQBool rehash = SQTrue);
     void Release()
     {
-        sq_delete(_alloc_ctx, this, SQTable);
+        SQAllocContext ctx = _sharedstate->_alloc_ctx;
+        sq_delete(ctx, this, SQTable);
     }
 
 };

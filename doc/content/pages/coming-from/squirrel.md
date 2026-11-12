@@ -24,7 +24,7 @@ everything else.
 | `delete t.k` | `t.$rawdelete("k")`; the `delete` operator is off by default | sym:types.Table.rawdelete |
 | `a.push(v)` | `a.append(v)`, and it takes several values | sym:types.Array.append |
 | `a.find(v)`, `s.find(sub)` | `a.indexof(v)`, `s.indexof(sub)` | sym:types.Array.indexof |
-| `f.getinfos()` | [getfuncinfos](sym:types.Function.getfuncinfos), which also works on a callable table or instance |
+| `f.getinfos()` | [getfuncinfos](sym:types.Function.getfuncinfos), which also works on a callable instance |
 | `t.setdelegate(d)`, `t.getdelegate()` | gone; use a class |
 | `function A::m() { }` | declare `m` in the class body, or `A.m <- function() { }` before the class is used |
 | `class A { </ x = 1 /> }` | class and member attributes are gone |
@@ -50,6 +50,10 @@ These compile and run. Test a ported file; a build alone does not find them.
   see [modules](page:language/modules).
 - **`const` and `enum` are local too**, unless they are declared `global const` or
   `global enum`.
+- **A class is read-only once it locks.** Squirrel still lets `A.m <- function() { }`
+  add or replace a method after the first instance; Quirrel throws. The class
+  locks at its first instance, when another class inherits it, or on
+  [lock](sym:types.Class.lock).
 - **`switch` is off by default.** Without `#allow-switch-statement` the words
   `switch`, `case` and `default` are ordinary identifiers, so the block fails to
   parse.
@@ -77,8 +81,8 @@ These compile and run. Test a ported file; a build alone does not find them.
   compile time. Both are on the [modules](page:language/modules) page.
 - `.$method` calls a type method even when a slot has the same name, so
   `data.$len()` is the length no matter what `data.len` holds.
-- `not in`, `1_000_000`, docstrings written `@@"text"`, `static` for a value
-  computed once, type annotations, and compiler directives.
+- `not in`, `1_000_000`, docstrings written `@@"text"`, inline `const` for a
+  value folded at compile time, type annotations, and compiler directives.
 - `println` and `errorln`, and every print function takes several values.
 - String methods moved onto the type: `strip`, `split`, `startswith`, `endswith`,
   `indexof`, `subst`, `replace`, `join`, `escape`, `hash`. The

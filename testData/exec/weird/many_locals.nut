@@ -31,7 +31,7 @@ try {
       function compute(x) { return x + 0xFF }
     }
     let u6_Der = class(u6_Base) {
-      function compute(x) { return base.compute(x) * -32770 }
+      function compute(x) { return u6_Base.compute.call(this, x) * -32770 }
     }
     let u6 = u6_Der().compute(u0)  // [class_method_override]
     let u7 = $"val={u1}"  // [string_interp]
@@ -41,7 +41,7 @@ try {
   let v4_fn = function() {
     local u0 = v1
     u0++  // [postfix_inc]
-    let u1 = static({x = -2147483649, y = -32768})  // [static_table]
+    let u1 = const({x = -2147483649, y = -32768})  // [const_table]
     let u2 = v3.len() > 2 ? v3.slice(-2) : v3  // [string_slice_neg]
     const u3 = -1  // [const_int]
     local u4_val = 0
@@ -188,7 +188,7 @@ try {
     let u3_fn = function(q0, q1, q2) {
       let w0 = u0 | v7  // [int_bitor]
       let w1_Base = class { xv = 0; constructor(x) { this.xv = x } }
-      let w1_Der = class(w1_Base) { constructor(x) { base.constructor(x) } }
+      let w1_Der = class(w1_Base) { constructor(x) { w1_Base.constructor.call(this, x) } }
       let w1_obj = w1_Der(q0)
       let w1 = w1_obj instanceof w1_Base  // [class_instanceof_base]
       let w2_t = {x = w0}
@@ -222,7 +222,7 @@ try {
       }  // [switch_default]
       let w2_fn = function(r0, r1, r2) {
         let z0_Base = class { xv = 0; constructor(x) { this.xv = x } }
-        let z0_Der = class(z0_Base) { constructor(x) { base.constructor(x) } }
+        let z0_Der = class(z0_Base) { constructor(x) { z0_Base.constructor.call(this, x) } }
         let z0_obj = z0_Der(w1)
         let z0 = z0_obj instanceof z0_Base  // [class_instanceof_base]
         let z1_make = @(bv) @(x) x + bv
@@ -452,7 +452,7 @@ try {
     function compute(x) { return x + -127 }
   }
   let v41_Der = class(v41_Base) {
-    function compute(x) { return base.compute(x) * 2 }
+    function compute(x) { return v41_Base.compute.call(this, x) * 2 }
   }
   let v41 = v41_Der().compute(v23)  // [class_method_override]
   local v42_ops = {

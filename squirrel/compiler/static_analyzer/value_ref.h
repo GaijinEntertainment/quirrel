@@ -50,7 +50,6 @@ struct ValueRef {
     : info(i), evalIndex(eid), state(), expression(nullptr), externalValue(nullptr)
   {
     assigned = false;
-    lastAssigneeScope = nullptr;
     flagsPositive = flagsNegative = 0;
     origin = nullptr;
     originEvalIndex = -1;
@@ -65,7 +64,6 @@ struct ValueRef {
   }
 
   bool assigned;
-  const VarScope *lastAssigneeScope;
 
   unsigned flagsPositive, flagsNegative;
 

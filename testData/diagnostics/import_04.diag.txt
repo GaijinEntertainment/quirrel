@@ -1,8 +1,8 @@
 ERROR: expected 'identifier'
-testData/diagnostics/import_04.nut:2:1
+testData/diagnostics/import_04.nut:2:0
 
 import "a" as
 
- ^
+^
 
 

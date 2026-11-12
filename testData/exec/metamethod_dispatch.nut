@@ -35,7 +35,7 @@ println(a.tostring())     // Vec(10) -> _tostring
 println(typeof a)         // Vec     -> _typeof
 
 // Instance _get / _set / _newslot / _delslot metamethods drive FallBackGet,
-// FallBackSet and DeleteSlot fallback paths (table setdelegate is C-API only).
+// FallBackSet and DeleteSlot fallback paths.
 class Proxy {
   store = null
   constructor() { this.store = {} }

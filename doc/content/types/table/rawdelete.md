@@ -3,7 +3,7 @@ params: [key]
 see_also: [types.Table.rawset, types.Table.clear, types.Table.rawin]
 ---
 
-Removes the slot at `key`, without calling a `_delslot` metamethod.
+Removes the slot at `key`.
 
 ## Parameters
 

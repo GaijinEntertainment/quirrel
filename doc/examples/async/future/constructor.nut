@@ -5,8 +5,8 @@ println("p.getState() =", p.getState())            // pending
 
 class Twice(Future) {
   constructor() {
-    base.constructor()
-    base.constructor()           // constructing twice on the same instance
+    Future.constructor.call(this)
+    Future.constructor.call(this)    // constructing twice on the same instance
   }
 }
 try { Twice() } catch (e) { println("Twice() throws:", e) }

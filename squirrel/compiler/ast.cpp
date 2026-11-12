@@ -71,7 +71,6 @@ void Node::visitChildren(Visitor *visitor) {
     case TO_CLONE:
     case TO_PAREN:
     case TO_DELETE:
-    case TO_STATIC_MEMO:
     case TO_SPREAD:
     case TO_INLINE_CONST:
         static_cast<UnExpr *>(this)->visitChildren(visitor); return;
@@ -79,8 +78,6 @@ void Node::visitChildren(Visitor *visitor) {
         static_cast<CodeBlockExpr *>(this)->visitChildren(visitor); return;
     case TO_LITERAL:
         static_cast<LiteralExpr *>(this)->visitChildren(visitor); return;
-    case TO_BASE:
-        static_cast<BaseExpr *>(this)->visitChildren(visitor); return;
     case TO_ROOT_TABLE_ACCESS:
         static_cast<RootTableAccessExpr *>(this)->visitChildren(visitor); return;
     case TO_INC:
@@ -184,7 +181,6 @@ void Node::transformChildren(Transformer *transformer) {
   case TO_CLONE:
   case TO_PAREN:
   case TO_DELETE:
-  case TO_STATIC_MEMO:
   case TO_SPREAD:
   case TO_INLINE_CONST:
     static_cast<UnExpr *>(this)->transformChildren(transformer); return;
@@ -192,8 +188,6 @@ void Node::transformChildren(Transformer *transformer) {
     static_cast<CodeBlockExpr *>(this)->transformChildren(transformer); return;
   case TO_LITERAL:
     static_cast<LiteralExpr *>(this)->transformChildren(transformer); return;
-  case TO_BASE:
-    static_cast<BaseExpr *>(this)->transformChildren(transformer); return;
   case TO_ROOT_TABLE_ACCESS:
     static_cast<RootTableAccessExpr *>(this)->transformChildren(transformer); return;
   case TO_INC:
@@ -417,11 +411,11 @@ void FunctionExpr::setBody(Block *body) {
 
 FunctionExpr *ClassExpr::findConstructor() const {
   for (const auto &m : members()) {
-    if (m.value->op() == TO_FUNCTION) {
-      FunctionExpr *f = m.value->asFunctionExpr();
-      if (f->name() && strcmp(f->name(), "constructor") == 0)
-        return f;
-    }
+    if (m.value->op() != TO_FUNCTION || !m.key || m.key->op() != TO_LITERAL)
+      continue;
+    const LiteralExpr *key = m.key->asLiteral();
+    if (key->kind() == LK_STRING && strcmp(key->s(), "constructor") == 0)
+      return m.value->asFunctionExpr();
   }
   return nullptr;
 }

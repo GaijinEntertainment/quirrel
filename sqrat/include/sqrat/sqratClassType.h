@@ -330,7 +330,7 @@ public:
         }
 
         if (!ptr) {
-            SQRAT_ASSERTF(0, "got unconstructed native class (call base.constructor in the constructor of Squirrel classes that extend native classes)");
+            SQRAT_ASSERTF(0, "got unconstructed native class (call Parent.constructor.call(this) in the constructor of Quirrel classes that extend native classes)");
             return nullptr;
         }
 

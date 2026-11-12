@@ -1,6 +1,6 @@
-// `async` is not allowed on metamethods inside a table literal either:
-// a delegate table assigned via setdelegate exposes _add/_unm/etc. as
-// metamethods that must return synchronously.
+// `async` is not allowed on a metamethod name inside a table literal either:
+// a table has no metamethods, but the parser has one path for a table and
+// a class.
 let delegate = {
   async function _add(other) {
     return other

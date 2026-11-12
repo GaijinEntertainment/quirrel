@@ -3,6 +3,9 @@
 #define _SQUTILS_H_
 
 #include <memory>
+#if defined(_MSC_VER) && !defined(__clang__)
+#include <intrin.h>
+#endif
 
 typedef struct SQAllocContextT * SQAllocContext;
 
@@ -14,7 +17,7 @@ void *sq_vm_realloc(SQAllocContext ctx, void *p,SQUnsignedInteger oldsize,SQUnsi
 void sq_vm_free(SQAllocContext ctx, void *p,SQUnsignedInteger size);
 
 #define sq_new(__ctx,__ptr,__type, ...) {__ptr=(__type *)sq_vm_malloc((__ctx),sizeof(__type));new (__ptr) __type(__VA_ARGS__);}
-#define sq_delete(__ctx,__ptr,__type) {__ptr->~__type();sq_vm_free((__ctx),__ptr,sizeof(__type));}
+#define sq_delete(__ctx,__ptr,__type) {SQAllocContext __ctxval=(__ctx);__ptr->~__type();sq_vm_free(__ctxval,__ptr,sizeof(__type));}
 #define SQ_MALLOC(__ctx,__size) sq_vm_malloc((__ctx),(__size));
 #define SQ_FREE(__ctx,__ptr,__size) sq_vm_free((__ctx),(__ptr),(__size));
 #define SQ_REALLOC(__ctx,__ptr,__oldsize,__size) sq_vm_realloc((__ctx),(__ptr),(__oldsize),(__size));
@@ -46,6 +49,17 @@ void sq_vm_free(SQAllocContext ctx, void *p,SQUnsignedInteger size);
   #endif
 #endif
 
+// floor(log2(x)); x must not be 0
+inline unsigned sq_log2(unsigned x)
+{
+#if defined(_MSC_VER) && !defined(__clang__)
+    unsigned long bit;
+    _BitScanReverse(&bit, x);
+    return bit;
+#else
+    return 31 - __builtin_clz(x);
+#endif
+}
 
 //sqvector mini vector class, supports objects by value
 template<typename T, typename SizeT = uint32_t> class sqvector

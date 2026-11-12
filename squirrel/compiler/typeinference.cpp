@@ -23,6 +23,7 @@ Expr *CodeGenVisitor::deparen(Expr *e) const {
 
 
 unsigned CodeGenVisitor::inferExprTypeMask(Expr *expr) {
+#if SQ_RUNTIME_TYPE_CHECK
     if (expr->isTypeInferred())
         return expr->getTypeMask();
 
@@ -30,9 +31,14 @@ unsigned CodeGenVisitor::inferExprTypeMask(Expr *expr) {
     expr->setTypeMask(mask);
     expr->setTypeInferred();
     return mask;
+#else
+    (void)expr;
+    return ~0u; // the masks only remove type checks, so do not spend compile time on them
+#endif
 }
 
 
+#if SQ_RUNTIME_TYPE_CHECK
 unsigned CodeGenVisitor::inferExprTypeMaskImpl(Expr *expr) {
     switch (expr->op()) {
     case TO_LITERAL: {
@@ -164,40 +170,14 @@ unsigned CodeGenVisitor::inferExprTypeMaskImpl(Expr *expr) {
 
     // Identifiers: look up declared type
     case TO_ID: {
-        Id *id = expr->asId();
-        SQObjectPtr nameObj(_fs->CreateString(id->name()));
-        SQCompiletimeVarInfo varInfo;
-        if (_fs->GetLocalVariable(nameObj, varInfo) != -1 ||
-            _fs->GetOuterVariable(nameObj, varInfo) != -1) {
-            // If the variable was initialized with a known-type expression, use that
-            if (varInfo.initializer && (varInfo.var_flags & (VF_ASSIGNABLE | VF_PARAM)) == 0) {
-                unsigned initMask = inferExprTypeMask(varInfo.initializer);
-                if (initMask != ~0u) {
-                    return initMask;
-                }
-            }
-            // For functions initialized with pure calls, check the initializer
-            if (varInfo.initializer && (varInfo.var_flags & VF_INIT_WITH_PURE)) {
-                if (varInfo.initializer->op() == TO_CALL) {
-                    CallExpr *call = varInfo.initializer->asCallExpr();
-                    Expr *callee = call->callee();
-                    if (callee->op() == TO_ID) {
-                        SQObjectPtr calleeName(_fs->CreateString(callee->asId()->name()));
-                        SQCompiletimeVarInfo calleeInfo;
-                        if ((_fs->GetLocalVariable(calleeName, calleeInfo) != -1 ||
-                             _fs->GetOuterVariable(calleeName, calleeInfo) != -1) &&
-                            calleeInfo.initializer && calleeInfo.initializer->op() == TO_FUNCTION) {
-                            return calleeInfo.initializer->asFunctionExpr()->getResultTypeMask();
-                        }
-                    }
-                }
-            }
-            return varInfo.type_mask;
+        NameBinding b = lookupName(expr->asId());
+        if (b.kind == NameBinding::LOCAL || b.kind == NameBinding::OUTER) {
+            if (b.info.init_type_mask != ~0u)
+                return b.info.init_type_mask;
+            return b.info.type_mask;
         }
-        // Check named constants (const s = "err")
-        SQObjectPtr constant;
-        if (IsConstant(nameObj, constant)) {
-            SQObjectType ctype = sq_type(constant);
+        if (b.kind == NameBinding::CONST) {
+            SQObjectType ctype = sq_type(b.value);
             switch (ctype) {
             case OT_INTEGER:       return _RT_INTEGER;
             case OT_FLOAT:         return _RT_FLOAT;
@@ -253,8 +233,6 @@ unsigned CodeGenVisitor::inferExprTypeMaskImpl(Expr *expr) {
 
     case TO_PAREN:
     case TO_CLONE:
-    // Static memo wraps an expression
-    case TO_STATIC_MEMO:
     // Inline const wraps a literal
     case TO_INLINE_CONST:
         return inferExprTypeMask(static_cast<UnExpr *>(expr)->argument());
@@ -294,13 +272,13 @@ unsigned CodeGenVisitor::inferExprTypeMaskImpl(Expr *expr) {
     case TO_GETSLOT:
     case TO_SETFIELD:
     case TO_SETSLOT:
-    case TO_BASE:
     case TO_ASSIGN: case TO_NEWSLOT:
     case TO_CODE_BLOCK_EXPR:
     default:
         return ~0u;
     }
 }
+#endif
 
 
 // Statically resolve a callee expression to (isAsync, isNative, resultMask).
@@ -313,11 +291,12 @@ CodeGenVisitor::ResolvedCallee CodeGenVisitor::resolveCallee(Expr *callee) {
     ResolvedCallee r{false, false, false, false, ~0u};
 
     if (callee->op() == TO_ID) {
-        SQObjectPtr calleeName(_fs->CreateString(callee->asId()->name()));
-        SQCompiletimeVarInfo calleeInfo;
-        if ((_fs->GetLocalVariable(calleeName, calleeInfo) != -1 ||
-             _fs->GetOuterVariable(calleeName, calleeInfo) != -1) &&
-            calleeInfo.initializer) {
+        NameBinding b = lookupName(callee->asId());
+        if (b.kind == NameBinding::LOCAL || b.kind == NameBinding::OUTER) {
+            const SQCompiletimeVarInfo &calleeInfo = b.info;
+            // Only a 'let' still holds its initializer value at the call
+            if (!calleeInfo.initializer || (calleeInfo.var_flags & VF_ASSIGNABLE))
+                return r;
             if (calleeInfo.initializer->op() == TO_FUNCTION) {
                 FunctionExpr *fn = calleeInfo.initializer->asFunctionExpr();
                 r.known = true;
@@ -331,10 +310,11 @@ CodeGenVisitor::ResolvedCallee CodeGenVisitor::resolveCallee(Expr *callee) {
                 r.resultMask = _RT_INSTANCE;
                 return r;
             }
+            return r;
         }
         // Named constants: const closure (compiled async possible) or native closure.
-        SQObjectPtr constant;
-        if (IsConstant(calleeName, constant)) {
+        if (b.kind == NameBinding::CONST) {
+            const SQObjectPtr &constant = b.value;
             if (sq_type(constant) == OT_CLOSURE) {
                 SQClosure *cls = _closure(constant);
                 if (cls->_function) {

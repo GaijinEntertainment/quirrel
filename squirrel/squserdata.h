@@ -2,13 +2,12 @@
 #ifndef _SQUSERDATA_H_
 #define _SQUSERDATA_H_
 
-struct SQUserData : SQDelegable
+struct SQUserData : CHAINABLE_OBJ
 {
-    SQUserData(SQSharedState *ss){ _delegate = 0; _hook = NULL; INIT_CHAIN(); ADD_TO_CHAIN(&_ss(this)->_gc_chain, this); }
+    SQUserData(SQSharedState *ss){ _hook = NULL; INIT_CHAIN(); ADD_TO_CHAIN(&_ss(this)->_gc_chain, this); }
     ~SQUserData()
     {
         REMOVE_FROM_CHAIN(&_ss(this)->_gc_chain, this);
-        SetDelegate(NULL);
     }
     static SQUserData* Create(SQSharedState *ss, SQInteger size)
     {
@@ -20,14 +19,15 @@ struct SQUserData : SQDelegable
     }
 #ifndef NO_GARBAGE_COLLECTOR
     void Mark(SQCollectable **chain);
-    void Finalize(){SetDelegate(NULL);}
+    void Finalize(){}
     SQObjectType GetType(){ return OT_USERDATA;}
 #endif
     void Release() {
         if (_hook) _hook(_thread(_sharedstate->_root_vm),(SQUserPointer)sq_aligning(this + 1),_size);
         SQInteger tsize = _size;
+        SQAllocContext ctx = _sharedstate->_alloc_ctx;
         this->~SQUserData();
-        SQ_FREE(_sharedstate->_alloc_ctx, this, sq_aligning(sizeof(SQUserData)) + tsize);
+        SQ_FREE(ctx, this, sq_aligning(sizeof(SQUserData)) + tsize);
     }
 
 

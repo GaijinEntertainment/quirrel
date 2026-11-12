@@ -1,0 +1,20 @@
+get: THROW the index 'missing' (type='string') does not exist
+set: THROW the index 'missing' (type='string') does not exist
+newslot: 1
+add: THROW arith op + between 'table' and 'table'
+sub: THROW arith op - between 'table' and 'table'
+mul: THROW arith op * between 'table' and 'table'
+div: THROW arith op / between 'table' and 'table'
+modulo: THROW arith op % between 'table' and 'table'
+unm: THROW attempt to negate a table
+cmp: THROW comparison between table and table
+typeof: table
+call: THROW attempt to call 'table'
+tostring: (table
+interpolation: (table
+foreach: 18
+clone: 18
+getfuncinfos: THROW the index 'getfuncinfos' (type='string') does not exist
+getarity: THROW the index 'getarity' (type='string') does not exist
+setdelegate: THROW the index 'setdelegate' (type='string') does not exist
+getdelegate: THROW the index 'getdelegate' (type='string') does not exist

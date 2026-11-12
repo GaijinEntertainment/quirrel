@@ -1,8 +1,8 @@
 ERROR: expected 'while'
-testData/diagnostics/compilation_errors/syntax_errors/expected_while.nut:4:2
+testData/diagnostics/compilation_errors/syntax_errors/expected_while.nut:4:1
 
     local x = 42
 }
-  ^
+ ^
 
 

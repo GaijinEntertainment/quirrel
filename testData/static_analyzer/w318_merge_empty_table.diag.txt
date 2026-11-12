@@ -1,7 +1,14 @@
-WARNING: w318 (merge-empty-table) '__merge({})' with an empty table is equivalent to 'clone'. Use 'clone' instead.
-testData/static_analyzer/w318_merge_empty_table.nut:5:8
+WARNING: w318 (merge-empty-table) '__merge({})' copies the table; '{ ...t }' does the same but faster.
+testData/static_analyzer/w318_merge_empty_table.nut:7:8
 
 let a = t.__merge({}) //warning:merge-empty-table
         ^------------
+
+
+WARNING: w318 (merge-empty-table) '__merge({})' copies the table; '{ ...cfg.inner }' does the same but faster.
+testData/static_analyzer/w318_merge_empty_table.nut:9:13
+
+let dotted = cfg.inner.__merge({}) //warning:merge-empty-table
+             ^--------------------
 
 

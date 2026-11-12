@@ -76,7 +76,7 @@ The three ways to ask for a value's type:
   the result of that method is returned. Use `type()` when the raw category
   matters.
 - [classof](sym:types.classof)`(v)` returns the class object. For a scalar
-  or container it is the built-in delegate (`Integer`, `String`, ...,
+  or container it is the built-in class (`Integer`, `String`, ...,
   imported from `"types"`). For a script class instance it is that class.
 
 `instanceof` only walks the script class hierarchy, so `instance instanceof`

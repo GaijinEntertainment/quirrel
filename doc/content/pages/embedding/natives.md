@@ -68,7 +68,8 @@ the VM the call succeeded.
 `sq_newuserdata` allocates a block of a given size, pushes it as a value, and
 returns a pointer to the payload. The VM owns the memory and frees it with every
 other object. This is the way to attach a C struct to a value a script holds. A
-userdata can have a delegate, and then it behaves like a table.
+userdata has only the built-in `clone` and `is_frozen`; a value that scripts call
+other methods on is an instance of a native class.
 
 To learn when the userdata is freed, install a release hook:
 
@@ -77,8 +78,8 @@ typedef SQInteger (*SQRELEASEHOOK)(HSQUIRRELVM vm, SQUserPointer, SQInteger size
 sq_setreleasehook(v, idx, my_release);
 ```
 
-A **userpointer** is a bare `void *` passed by value. It has no allocation, no
-delegate and no release hook. `sq_pushuserpointer` costs nothing. The host owns
+A **userpointer** is a bare `void *` passed by value. It has no allocation and
+no release hook. `sq_pushuserpointer` costs nothing. The host owns
 the lifetime of the memory it points to.
 
 ## Runtime errors from script

@@ -265,7 +265,6 @@ static const SQRegFunctionFromStr iolib_funcs[] = {
 SQRESULT sqstd_register_iolib(HSQUIRRELVM v)
 {
     SQInteger top = sq_gettop(v);
-    //create delegate
     declare_stream(v,"file",(SQUserPointer)SQSTD_FILE_TYPE_TAG,"std_file",_file_methods,iolib_funcs);
     sq_pushstring(v,"stdout",-1);
     sqstd_createfile(v,stdout,SQFalse);

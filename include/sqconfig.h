@@ -46,13 +46,7 @@ typedef void* SQUserPointer;
 typedef SQUnsignedInteger SQBool;
 typedef SQInteger SQRESULT;
 
-#if defined __EMSCRIPTEN__
 #define scsprintf   snprintf
-#elif _MSC_VER
-#define scsprintf   _snprintf
-#else
-#define scsprintf   snprintf
-#endif
 #ifdef _SQ64
 #ifdef _MSC_VER
 #define scstrtol    _strtoi64
@@ -83,21 +77,18 @@ typedef SQInteger SQRESULT;
 
 // Runtime docstrings and native function declaration strings.
 #ifndef SQ_STORE_DOC_OBJECTS
-#if defined(DAGOR_DBGLEVEL) && DAGOR_DBGLEVEL <= 0
-#define SQ_STORE_DOC_OBJECTS 0
-#else
 #define SQ_STORE_DOC_OBJECTS 1
-#endif
-#endif
-
-#if defined(DAGOR_DBGLEVEL) && DAGOR_DBGLEVEL <= 0 && SQ_STORE_DOC_OBJECTS
-#error Release builds cannot store Quirrel docstrings
 #endif
 
 #if SQ_STORE_DOC_OBJECTS
 #define SQ_DOC(text) text
 #else
 #define SQ_DOC(text) ((const char *)0)
+#endif
+
+// 1 replaces getenv, setenv and system with stubs that throw (console, mobile).
+#ifndef SQ_SYSTEM_STUBS
+#define SQ_SYSTEM_STUBS 0
 #endif
 
 // if SQ_RANDOMIZE_FOREACH == 1, the foreach loop for tables will be randomized

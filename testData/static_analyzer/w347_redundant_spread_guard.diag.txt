@@ -1,0 +1,44 @@
+WARNING: w347 (redundant-spread-guard) A null source adds nothing to a spread, so the '??' fallback to an empty table can go.
+testData/static_analyzer/w347_redundant_spread_guard.nut:7:38
+
+function mkWnd(wnd = null, extra = null, arr = null) {
+  let plain     = { ...WND_PARAMS, ...wnd ?? {} }            //warning:redundant-spread-guard
+                                      ^--------
+  let inlined   = { ...WND_PARAMS, ...wnd ?? const {} }      //warning:redundant-spread-guard
+
+
+WARNING: w347 (redundant-spread-guard) A null source adds nothing to a spread, so the '??' fallback to an empty table can go.
+testData/static_analyzer/w347_redundant_spread_guard.nut:8:38
+
+  let plain     = { ...WND_PARAMS, ...wnd ?? {} }            //warning:redundant-spread-guard
+  let inlined   = { ...WND_PARAMS, ...wnd ?? const {} }      //warning:redundant-spread-guard
+                                      ^--------------
+  let parens    = { ...WND_PARAMS, ...(wnd ?? ({})) }        //warning:redundant-spread-guard
+
+
+WARNING: w347 (redundant-spread-guard) A null source adds nothing to a spread, so the '??' fallback to an empty table can go.
+testData/static_analyzer/w347_redundant_spread_guard.nut:9:39
+
+  let inlined   = { ...WND_PARAMS, ...wnd ?? const {} }      //warning:redundant-spread-guard
+  let parens    = { ...WND_PARAMS, ...(wnd ?? ({})) }        //warning:redundant-spread-guard
+                                       ^----------
+  let arrGuard  = [...BASE, ...arr ?? []]                    //warning:redundant-spread-guard
+
+
+WARNING: w347 (redundant-spread-guard) A null source adds nothing to a spread, so the '??' fallback to an empty array can go.
+testData/static_analyzer/w347_redundant_spread_guard.nut:10:31
+
+  let parens    = { ...WND_PARAMS, ...(wnd ?? ({})) }        //warning:redundant-spread-guard
+  let arrGuard  = [...BASE, ...arr ?? []]                    //warning:redundant-spread-guard
+                               ^--------
+  let arrConst  = [...BASE, ...arr ?? const []]              //warning:redundant-spread-guard
+
+
+WARNING: w347 (redundant-spread-guard) A null source adds nothing to a spread, so the '??' fallback to an empty array can go.
+testData/static_analyzer/w347_redundant_spread_guard.nut:11:31
+
+  let arrGuard  = [...BASE, ...arr ?? []]                    //warning:redundant-spread-guard
+  let arrConst  = [...BASE, ...arr ?? const []]              //warning:redundant-spread-guard
+                               ^--------------
+
+

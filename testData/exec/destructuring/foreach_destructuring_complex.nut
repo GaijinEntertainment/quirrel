@@ -132,7 +132,7 @@ class Base {
 }
 class Derived (Base) {
   z = 0
-  constructor(x_, y_, z_) { base.constructor(x_, y_); this.z = z_ }
+  constructor(x_, y_, z_) { Base.constructor.call(this, x_, y_); this.z = z_ }
 }
 let pts = [Base(1, 2), Derived(3, 4, 5), Base(6, 7), Derived(8, 9, 10)]
 foreach (i, {x, y, z = -1} in pts) {
