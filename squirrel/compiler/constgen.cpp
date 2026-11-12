@@ -1,5 +1,4 @@
 #include "sqpcheader.h"
-#include <stdarg.h>
 #include "opcodes.h"
 #include "sqstring.h"
 #include "sqfuncproto.h"
@@ -14,6 +13,23 @@
 
 namespace SQCompilation {
 
+// Code that the evaluation runs reads the position with sq_getconstevalpos
+class ConstEvalPosScope {
+    SQSharedState *_state;
+    const SQStackInfos *_prev;
+    SQStackInfos _pos;
+public:
+    ConstEvalPosScope(SQFuncState *fs, const Node *n)
+        : _state(fs->_sharedstate), _prev(fs->_sharedstate->_constEvalPos)
+    {
+        _pos.funcname = _stringval(fs->_name);
+        _pos.source = _stringval(fs->_sourcename);
+        _pos.line = n->lineStart();
+        _state->_constEvalPos = &_pos;
+    }
+    ~ConstEvalPosScope() { _state->_constEvalPos = _prev; }
+};
+
 void ConstGenVisitor::throwUnsupported(Node *n, const char *type)
 {
     _ctx.throwError(n, "%s is not allowed in constant", type);
@@ -24,17 +40,24 @@ void ConstGenVisitor::throwGeneralError(Node *n, const char *msg)
     _ctx.throwError(n, "%s", msg);
 }
 
-void ConstGenVisitor::throwGeneralErrorFmt(Node *n, const char *fmt, ...)
+void ConstGenVisitor::throwDuplicateKey(Node *n, const SQObjectPtr &key)
 {
-    va_list args;
-    va_start(args, fmt);
-    _ctx.vthrowError(n->lineStart(), n->columnStart(), n->textWidth(), fmt, args);
-    va_end(args); // unreachable; vthrowError throws
+    SQObjectPtr str;
+    bool hasStableText = sq_isstring(key) || !ISREFCOUNTED(sq_type(key));
+    const char *keyName = hasStableText && _vm->ToString(key, str) ? _stringval(str) : GetTypeName(key);
+    _ctx.throwError(n, "duplicate key '%s'", keyName);
+}
+
+void ConstGenVisitor::throwLookupError(Node *n, const char *what)
+{
+    SQObjectPtr err = _vm->_lasterror;
+    _ctx.throwError(n, "%s: %s", what, sq_isstring(err) ? _stringval(err) : "<unknown>");
 }
 
 void ConstGenVisitor::process(Expr *expr, SQObjectPtr &out)
 {
     assert(sq_type(_result) == OT_NULL);
+    ConstEvalPosScope posScope(_fs, expr);
     expr->visit(this);
     out = _result;
 }
@@ -94,6 +117,8 @@ void ConstGenVisitor::visitTableExpr(TableExpr *tblExpr)
     SQTable *table = SQTable::Create(_ss(_vm), tblExpr->members().size());
 
     const auto &members = tblExpr->members();
+    SQObjectPtr explicitKeys(SQTable::Create(_ss(_vm), members.size()));
+
     for (SQUnsignedInteger i = 0; i < members.size(); ++i) {
         const TableMember &m = members[i];
 
@@ -120,6 +145,11 @@ void ConstGenVisitor::visitTableExpr(TableExpr *tblExpr)
         m.key->visit(this);
         SQObjectPtr key(_result);
 
+        SQObjectPtr seen;
+        if (_table(explicitKeys)->Get(key, seen))
+            throwDuplicateKey(m.key, key);
+        _table(explicitKeys)->NewSlot(key, SQObjectPtr(true));
+
         m.value->visit(this);
         SQObjectPtr value(_result);
 
@@ -135,12 +165,11 @@ void ConstGenVisitor::visitTableExpr(TableExpr *tblExpr)
 
 void ConstGenVisitor::visitId(Id *id)
 {
-    SQObjectPtr idObj = _fs->CreateString(id->name());
-    SQObjectPtr constant;
-    if (_codegen.IsConstant(idObj, constant)) {
-        _result = constant;
+    NameBinding b = _codegen.lookupName(id);
+    if (b.kind == NameBinding::CONST) {
+        _result = b.value;
     } else {
-        _ctx.throwError(id, "Identifier '%s' is not a compile-time constant", _stringval(idObj));
+        _ctx.throwError(id, "Identifier '%s' is not a compile-time constant", id->name());
     }
 
     _call_target.Null();
@@ -155,6 +184,7 @@ void ConstGenVisitor::visitCallExpr(CallExpr *expr)
     }
 
     ConstGenVisitor funcEval(_vm, _fs, _ctx, _codegen);
+    funcEval._callee = _codegen.deparen(expr->callee());
 
     expr->callee()->visit(&funcEval);
     SQObjectPtr func = funcEval._result;
@@ -162,7 +192,7 @@ void ConstGenVisitor::visitCallExpr(CallExpr *expr)
     if (!sq_is_pure_function(&func))
         throwGeneralError(expr, "Only calls to pure functions are allowed in constant expressions");
 
-    sqvector<SQObjectPtr> argValues(nullptr);
+    sqvector<SQObjectPtr> argValues(_ss(_vm)->_alloc_ctx);
     argValues.reserve(expr->arguments().size());
 
     auto &argExprs = expr->arguments();
@@ -174,6 +204,7 @@ void ConstGenVisitor::visitCallExpr(CallExpr *expr)
     }
 
     SQInteger prevTop = sq_gettop(_vm);
+    ConstEvalPosScope posScope(_fs, expr);
 
     sq_pushobject(_vm, func);
     sq_pushobject(_vm, funcEval._call_target);
@@ -182,8 +213,9 @@ void ConstGenVisitor::visitCallExpr(CallExpr *expr)
     }
     if (SQ_FAILED(sq_call(_vm, 1 + argValues.size(), SQTrue, SQTrue))) {
         sq_settop(_vm, prevTop);
-        throwGeneralError(expr, "Failed to evaluate constant initializer call");
+        throwLookupError(expr, "Compile-time call failed");
     }
+    _ranCall = true;
 
     HSQOBJECT callRes;
     sq_getstackobj(_vm, -1, &callRes);
@@ -204,32 +236,25 @@ void ConstGenVisitor::visitGetFieldExpr(GetFieldExpr *expr)
 
     SQObjectPtr slotName = _fs->CreateString(expr->fieldName());
 
-    SQInteger prevTop = sq_gettop(_vm);
-    sq_pushobject(_vm, container);
-    sq_pushobject(_vm, slotName);
-    bool hasSlot = SQ_SUCCEEDED(sq_get(_vm, -2));
-    if (hasSlot) {
-        HSQOBJECT value;
-        sq_getstackobj(_vm, -1, &value);
-        value._flags = SQOBJ_FLAG_IMMUTABLE;
-        _result = SQObjectPtr(value);
+    SQUnsignedInteger flags = GET_FLAG_DO_NOT_RAISE_ERROR;
+    if (expr->isTypeMethod())
+        flags |= GET_FLAG_TYPE_METHODS_ONLY;
+    else if (_fs->lang_features & LF_FORBID_IMPLICIT_TYPE_METHODS)
+        flags |= GET_FLAG_NO_TYPE_METHODS;
+    SQObjectPtr value;
+    SQInteger status = _vm->GetImpl(container, slotName, value, flags);
+    if (status == SLOT_STATUS_OK) {
+        _result = value;
+        _result._flags = SQOBJ_FLAG_IMMUTABLE;
     }
     else if (expr->isNullable()) {
-        if (!sq_isnull(_vm->_lasterror)) {
-            SQObjectPtr err = _vm->_lasterror;
-            sq_reseterror(_vm);
-            sq_settop(_vm, prevTop);
-            throwGeneralErrorFmt(expr, "error in get operation: %s",
-                sq_isstring(err) ? _stringval(err) : "<unknown>");
-        }
+        if (status == SLOT_STATUS_ERROR)
+            throwLookupError(expr, "error in get operation");
         _result.Null();
     }
     else {
-        sq_settop(_vm, prevTop);
         _ctx.throwError(expr, "Field '%s' not found in constant object", _stringval(slotName));
     }
-
-    sq_settop(_vm, prevTop);
 }
 
 
@@ -237,54 +262,36 @@ void ConstGenVisitor::visitGetSlotExpr(GetSlotExpr *expr)
 {
     expr->receiver()->visit(this);
     SQObjectPtr container(_result);
-    _call_target = container;
 
     expr->key()->visit(this);
     SQObjectPtr key(_result);
+    _call_target = container; // after the key, whose visit clears it
 
-    SQInteger prevTop = sq_gettop(_vm);
-    sq_pushobject(_vm, container);
-    sq_pushobject(_vm, key);
-    bool hasSlot = SQ_SUCCEEDED(sq_get(_vm, -2));
-    if (hasSlot) {
-        HSQOBJECT value;
-        sq_getstackobj(_vm, -1, &value);
-        value._flags = SQOBJ_FLAG_IMMUTABLE;
-        _result = SQObjectPtr(value);
+    const bool typeMethods = expr == _callee && !(_fs->lang_features & LF_FORBID_IMPLICIT_TYPE_METHODS);
+    SQObjectPtr value;
+    SQInteger status = _vm->GetImpl(container, key, value, GET_FLAG_DO_NOT_RAISE_ERROR | (typeMethods ? 0 : GET_FLAG_NO_TYPE_METHODS));
+    if (status == SLOT_STATUS_OK) {
+        _result = value;
+        _result._flags = SQOBJ_FLAG_IMMUTABLE;
     }
     else if (expr->isNullable()) {
-        if (!sq_isnull(_vm->_lasterror)) {
-            SQObjectPtr err = _vm->_lasterror;
-            sq_reseterror(_vm);
-            sq_settop(_vm, prevTop);
-            throwGeneralErrorFmt(expr, "error in get operation: %s",
-                sq_isstring(err) ? _stringval(err) : "<unknown>");
-        }
+        if (status == SLOT_STATUS_ERROR)
+            throwLookupError(expr, "error in get operation");
         _result.Null();
     }
     else {
         SQObjectPtr keyAsString;
-        sq_pushobject(_vm, key);
-        if (SQ_SUCCEEDED(sq_tostring(_vm, -1))) {
-            SQObject t;
-            sq_getstackobj(_vm, -1, &t);
-            keyAsString = t;
-        } else {
+        if (!_vm->ToString(key, keyAsString))
             keyAsString = _fs->CreateString("<???>", 5);
-        }
-
-        sq_settop(_vm, prevTop);
 
         _ctx.throwError(expr->key(), "%s slot %s not found in constant object",
             IdType2Name(sq_type(key)), _stringval(keyAsString));
     }
-    sq_settop(_vm, prevTop);
 }
 
 
 void ConstGenVisitor::visitUnExpr(UnExpr *unary)
 {
-    sq_reseterror(_vm);
     _call_target.Null();
 
     switch (unary->op())
@@ -293,7 +300,6 @@ void ConstGenVisitor::visitUnExpr(UnExpr *unary)
         unary->argument()->visit(this);
         if (!_vm->NEG_OP(_result, _result)) {
             SQObjectPtr err = _vm->_lasterror;
-            sq_reseterror(_vm);
             throwGeneralError(unary->argument(),
                 sq_isstring(err) ? _stringval(err) : "negation failed");
         }
@@ -326,7 +332,6 @@ void ConstGenVisitor::visitUnExpr(UnExpr *unary)
 
 void ConstGenVisitor::visitBinExpr(BinExpr *expr)
 {
-    sq_reseterror(_vm);
     _call_target.Null();
 
     switch (expr->op()) {
@@ -349,8 +354,6 @@ void ConstGenVisitor::visitBinExpr(BinExpr *expr)
 
     expr->rhs()->visit(this);
     SQObjectPtr rhs(_result);
-
-    assert(sq_isnull(_vm->_lasterror) && "Error thrown while evaluating binary expression operands");
 
     bool ok = true;
 
@@ -423,13 +426,10 @@ void ConstGenVisitor::visitBinExpr(BinExpr *expr)
 
         case TO_IN: {
             SQObjectPtr tmpVal;
-            bool exists = _vm->Get(rhs, lhs, tmpVal, GET_FLAG_DO_NOT_RAISE_ERROR | GET_FLAG_NO_TYPE_METHODS);
-            _result = SQObjectPtr(exists);
-            if (!sq_isnull(_vm->_lasterror)) { // handle errors that can happen in _get() metamethod
-                ok = false;
-                _vm->Raise_Error("Error while applying 'in' operator: %s",
-                    sq_isstring(_vm->_lasterror) ? _stringval(_vm->_lasterror) : "<unknown>");
-            }
+            SQInteger status = _vm->GetImpl(rhs, lhs, tmpVal, GET_FLAG_DO_NOT_RAISE_ERROR | GET_FLAG_NO_TYPE_METHODS);
+            _result = SQObjectPtr(status == SLOT_STATUS_OK);
+            if (status == SLOT_STATUS_ERROR)
+                throwLookupError(expr, "Error while applying 'in' operator");
             break;
         }
         case TO_INSTANCEOF: {
@@ -443,10 +443,8 @@ void ConstGenVisitor::visitBinExpr(BinExpr *expr)
             break;
     }
 
-    assert(ok == sq_isnull(_vm->_lasterror));
     if (!ok) {
         SQObjectPtr err = _vm->_lasterror;
-        sq_reseterror(_vm);
         throwGeneralError(expr, sq_isstring(err) ? _stringval(err) : "internal error in binary operation");
     }
 }

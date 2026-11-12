@@ -1,0 +1,33 @@
+two arguments: ok 5
+result not used: ok 2
+return with no value: ok null
+default param, all passed: ok 3
+default param, one missing: ok 11
+typed param: ok 8
+typed param, wrong type: error: parameter 1 of 'typed' has an invalid type 'string' ; expected: 'integer'
+vararg: ok 3
+too few arguments: error: wrong number of parameters passed to 'two' testData/exec/call_shapes.nut:36 (2 passed, 3 required)
+too many arguments: error: wrong number of parameters passed to 'add' testData/exec/call_shapes.nut:31 (4 passed, 3 required)
+bound env: ok 7
+generator: ok 1,2
+method this: ok 5
+class method: ok 3
+deep recursion: ok 10000
+outers closed at return: ok 10
+error in a nested call: error: bad
+caller line: ok caller:44
+throw through calls: ok zero
+null call of a closure: ok 2
+null call of null: ok null
+callee dropped during the call: ok alive
+native result: ok 3
+native result not used: ok 3
+native result not kept: ok true
+native error: error: empty array
+native wrong argument count: error: wrong number of parameters passed to native closure 'append' (1 passed, at least 2 required)
+native tail call: ok 9
+native calls back: ok 11,12
+native closure in a local: ok integer
+native dropped during the call: ok integer null
+under a debug hook: ok 15 calls 3 returns 4
+debug hook set in the same loop: ok 3 calls 0; under a debug hook: ok 3 calls 1

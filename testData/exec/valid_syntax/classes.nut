@@ -74,7 +74,7 @@ assert(r.name() == "rect")
 assert(r instanceof Rect)
 assert(r instanceof Shape)
 
-// Inheritance with base call
+// Inheritance with a call of the parent class method
 class Base {
     value = 0
     constructor(v = 0) { this.value = v }
@@ -84,11 +84,11 @@ class Base {
 class Derived(Base) {
     extra = 0
     constructor(v, e) {
-        base.constructor(v)
+        Base.constructor.call(this, v)
         this.extra = e
     }
     function get() {
-        return base.get() + this.extra
+        return Base.get.call(this) + this.extra
     }
 }
 

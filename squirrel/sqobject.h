@@ -82,6 +82,8 @@ struct SQWeakRef : SQRefCounted
     void Release();
     SQObject _obj;
     SQAllocContext _alloc_ctx;
+    // An object has one weakref per handle flags value, so ref() keeps the flags
+    SQWeakRef *_next;
 };
 
 #define _realval(o) (sq_type((o)) != OT_WEAKREF?(SQObject)o:_weakref(o)->_obj)
@@ -111,7 +113,6 @@ struct SQObjectPtr;
     (obj)->_uiRef++; \
 }
 
-#define is_delegable(t) (sq_type(t)&SQOBJECT_DELEGABLE)
 #define raw_type(obj) _RAW_TYPE((obj)._type)
 
 #define _integer(obj) ((obj)._unVal.nInteger)
@@ -128,7 +129,6 @@ struct SQObjectPtr;
 #define _funcproto(obj) ((obj)._unVal.pFunctionProto)
 #define _class(obj) ((obj)._unVal.pClass)
 #define _instance(obj) ((obj)._unVal.pInstance)
-#define _delegable(obj) ((SQDelegable *)(obj)._unVal.pDelegable)
 #define _weakref(obj) ((obj)._unVal.pWeakRef)
 #define _outer(obj) ((obj)._unVal.pOuter)
 #define _refcounted(obj) ((obj)._unVal.pRefCounted)
@@ -196,7 +196,7 @@ struct SQObjectPtr : public SQObject
     SQObjectPtr(const SQObjectPtr &__restrict o)
     {
         memcpy(this, &o, sizeof(o));
-        __AddRef(_type,_unVal);
+        __AddRef(o._type,o._unVal);
     }
     SQObjectPtr(SQObjectPtr &&__restrict o) noexcept
     {
@@ -258,7 +258,7 @@ struct SQObjectPtr : public SQObject
         SQObjectType  tOldType = _type;
         SQObjectValue unOldVal =_unVal;
         memcpy(this, &obj, sizeof(SQObjectPtr));
-        __AddRef(_type,_unVal);
+        __AddRef(obj._type,obj._unVal);
         __Release(tOldType,unOldVal);
         return *this;
     }
@@ -342,12 +342,6 @@ struct SQRefCountedWithSharedState : public SQRefCounted
 #define INIT_CHAIN() {_sharedstate=ss;}
 
 #endif
-
-struct SQDelegable : public CHAINABLE_OBJ {
-    bool SetDelegate(SQTable *m);
-    virtual bool GetMetaMethod(SQVM *v,SQMetaMethod mm,SQObjectPtr &res);
-    SQTable *_delegate;
-};
 
 inline SQUnsignedInteger TranslateIndex(const SQObjectPtr &idx)
 {

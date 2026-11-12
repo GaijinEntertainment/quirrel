@@ -83,6 +83,8 @@ public:
     void    OptionalSemicolon();
 
     RootBlock*  parse();
+    void        parseModuleHeader(RootBlock *root);
+    bool        isImportOutsideHeader(const Expr *e) const;
     Block*      parseStatements(SourceLoc start);
     Statement*  parseStatement(bool closeframe = true);
     Expr*       parseCommaExpr(SQExpressionContext expression_context);
@@ -123,7 +125,7 @@ public:
     unsigned parseTypeMask(bool eol_breaks_type_parsing);
     LiteralExpr* ExpectScalar();
     ConstDecl* parseConstStatement(bool global, SourceLoc globalStart = SourceLoc::invalid());
-    ConstDecl* parseConstFunctionExprStmt(bool global, SourceLoc globalStart = SourceLoc::invalid());
+    ConstDecl* parseConstFunctionExprStmt(bool global, SourceLoc declStart);
     EnumDecl* parseEnumStatement(bool global, SourceLoc globalStart = SourceLoc::invalid());
     TryStatement* parseTryCatchStatement();
     Id* generateSurrogateFunctionName();
@@ -143,12 +145,12 @@ private:
     ArenaVector<DocObject *> _docObjectStack;
     DocObject _moduleDocObject;
     SQInteger _token;
+    SourceLoc _prevTokEnd = SourceLoc::invalid();
     const char *_sourcename;
     SQLexer _lex;
     SQExpressionContext _expression_context;
     SQUnsignedInteger _lang_features;
     SQVM *_vm;
-    bool _are_imports_still_allowed = true;
     uint32_t _foreachDestrCounter = 0;
 };
 

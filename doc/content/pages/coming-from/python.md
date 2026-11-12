@@ -109,7 +109,7 @@ tables.
 | `class Squad(Unit):` | `class Squad(Unit) { }`, with one base class only | page:language/classes#declaring-a-class |
 | `def __init__(self, n):` | `constructor(n) { }` | page:language/classes#declaring-a-class |
 | `self` | `this`, and one method calls another as `this.other()` | page:language/functions#this |
-| `super().__init__()` | `base.constructor()` | page:language/classes#inheritance-and-base |
+| `super().__init__()` | `Unit.constructor.call(this)` | page:language/classes#inheritance |
 | `self.hp = 100` in `__init__` | declare `hp = 100` in the class body; an instance takes no new slots later |
 | `__str__` | `_tostring` | page:language/metamethods#type-name-and-text |
 | `__getitem__`, `__call__` | [`_get`](page:language/metamethods#reading-and-writing-missing-slots), `_call`; see [metamethods](page:language/metamethods) |

@@ -624,7 +624,7 @@ try {
       function compute(x) { return x + -129 }
     }
     let u0_Der = class(u0_Base) {
-      function compute(x) { return base.compute(x) * 32767 }
+      function compute(x) { return u0_Base.compute.call(this, x) * 32767 }
     }
     let u0 = u0_Der().compute(v16)  // [class_method_override]
     let u1 = -v75  // [float_neg]
@@ -946,10 +946,10 @@ try {
     if (c != ' ') v140 += c.tochar()
   }  // [string_build_filtered]
   let v141_fn = function(x) {
-    local cached = static({v = -2147483647 * 4294967296})
+    local cached = const({v = -2147483647 * 4294967296})
     return x + cached.v
   }
-  let v141 = v141_fn(v114)  // [static_complex]
+  let v141 = v141_fn(v114)  // [const_complex]
   let v142 = v97.totable()  // [array_totable]
   let v143_fn = function(x, s, cfg = {
       fmt = @(n, t) $"{n}:{t}",
@@ -1003,10 +1003,10 @@ try {
   let v155 = v97.totable()  // [array_totable]
   let v156 = v5 >= v99  // [int_cmp_ge]
   let v157_fn = function(x) {
-    local cached = static({v = -4294967296 * 2147483648})
+    local cached = const({v = -4294967296 * 2147483648})
     return x + cached.v
   }
-  let v157 = v157_fn(v9)  // [static_complex]
+  let v157 = v157_fn(v9)  // [const_complex]
   enum S126_E6 { LOW = 0, MID = 1, HIGH = 2 }
   let v158 = (v79 & 3) == S126_E6.MID  // [enum_compare]
   let v159 = {}  // [empty_table]
@@ -1064,8 +1064,8 @@ try {
   let v170 = v142.map(@(v) v)  // [table_map]
   let v171 = v170.len() > 0 ? v170.reduce(@(a, _v) a) : 129  // [table_reduce]
   let v172_A = class { v = 0; constructor(x) { this.v = x }; function get() { return this.v } }
-  let v172_B = class(v172_A) { bonus = 0; constructor(x) { base.constructor(x); this.bonus = -4294967297 } }
-  let v172_C = class(v172_B) { extra = 0; constructor(x) { base.constructor(x); this.extra = -3 } }
+  let v172_B = class(v172_A) { bonus = 0; constructor(x) { v172_A.constructor.call(this, x); this.bonus = -4294967297 } }
+  let v172_C = class(v172_B) { extra = 0; constructor(x) { v172_B.constructor.call(this, x); this.extra = -3 } }
   let v172_obj = v172_C(v121)
   let v172 = v172_obj.get() + v172_obj.bonus + v172_obj.extra  // [class_three_level]
   local v173 = 0
@@ -1226,7 +1226,7 @@ try {
   local v202 = 0
   foreach (_i, v in v202_obj) v202 += v  // [meta_nexti]
   let v203_Base = class { xv = 0; constructor(x) { this.xv = x } }
-  let v203_Der = class(v203_Base) { constructor(x) { base.constructor(x) } }
+  let v203_Der = class(v203_Base) { constructor(x) { v203_Base.constructor.call(this, x) } }
   let v203_obj = v203_Der(v182)
   let v203 = v203_obj instanceof v203_Base  // [class_instanceof_base]
 

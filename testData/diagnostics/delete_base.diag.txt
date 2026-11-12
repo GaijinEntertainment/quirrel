@@ -1,8 +1,0 @@
-ERROR: can't delete 'base'
-testData/diagnostics/delete_base.nut:2:0
-
-#allow-delete-operator
-delete base
-^----------
-
-

@@ -12,6 +12,7 @@
     { "id": "types",            "slug": "types",            "title": "types",     "group": "Base library",     "blurb": "The class object of every built-in type." },
 
     { "id": "math",             "slug": "math",             "title": "math",      "group": "Standard library", "blurb": "Arithmetic, trigonometry, rounding and hashing." },
+    { "id": "deep",             "slug": "deep",             "title": "deep",      "group": "Standard library", "blurb": "Deep compare and deep copy of tables, arrays and instances." },
     { "id": "string",           "slug": "string",           "title": "string",    "group": "Standard library", "blurb": "Formatting, trimming, splitting and regular expressions." },
     { "id": "string.regexp",    "slug": "string/regexp",    "title": "regexp",    "group": "Standard library", "blurb": "A compiled regular expression." },
     { "id": "io",               "slug": "io",               "title": "io",        "group": "Standard library", "blurb": "File access." },

@@ -16,6 +16,7 @@
 #include "compiler/arena.h"
 #include "compiler/ast.h"
 #include "ast_tools/ast_indent_render.h"
+#include "ast_tools/ast_json_render.h"
 #include "compiler/static_analyzer/analyzer.h"
 #include "compiler/static_analyzer/config.h"
 
@@ -855,6 +856,7 @@ SQRESULT sq_new_closure_slot_from_decl_string(HSQUIRRELVM v, SQFUNCTION func, SQ
 //  sq_newslot(v, -3, SQFalse);
 
     SQNativeClosure *nc = SQNativeClosure::Create(_ss(v), func, nfreevars);
+    SQObjectPtr closure(nc);
 
     for(SQUnsignedInteger i = 0; i < nfreevars; i++) {
         nc->_outervalues[i] = v->Top();
@@ -897,14 +899,16 @@ SQRESULT sq_new_closure_slot_from_decl_string(HSQUIRRELVM v, SQFUNCTION func, SQ
 
 #if SQ_STORE_DOC_OBJECTS
     SQDocStringId id = _ss(v)->AddNativeStrings(docstring, function_decl);
-    if (id == 0)
+    if (id == 0) {
+        v->Pop();
         return sq_throwerror(v, "too many docstrings in the shared state");
+    }
     nc->_docstring_id = id;
 #else
     (void)(docstring);
 #endif
 
-    v->Push(SQObjectPtr(nc));
+    v->Push(closure);
 
     //printf("%s: typecheck.size() = %d, nparamscheck = %d\n", function_decl,
     //    int(nc->_typecheck.size()), int(nc->_nparamscheck));
@@ -932,10 +936,6 @@ SQRESULT sq_bindenv(HSQUIRRELVM v,SQInteger idx)
         __ObjRelease(c->_env);
         c->_env = w;
         __ObjAddRef(c->_env);
-        if(_closure(o)->_base) {
-            c->_base = _closure(o)->_base;
-            __ObjAddRef(c->_base);
-        }
         ret = c;
     }
     else { //then must be a native closure
@@ -961,7 +961,7 @@ SQRESULT sq_getclosurename(HSQUIRRELVM v,SQInteger idx)
         v->Push(_nativeclosure(o)->_name);
     }
     else { //closure
-        v->Push(_closure(o)->_function->_name);
+        v->Push(_closure(o)->_function->GetName());
     }
     return SQ_OK;
 }
@@ -1431,37 +1431,6 @@ SQRESULT sq_newmember(HSQUIRRELVM v,SQInteger idx,SQBool bstatic)
 }
 
 
-SQRESULT sq_setdelegate(HSQUIRRELVM v,SQInteger idx)
-{
-    SQObjectPtr &self = stack_get(v, idx);
-    SQObjectPtr &mt = v->GetUp(-1);
-    SQObjectType type = sq_type(self);
-    switch(type) {
-    case OT_TABLE:
-        if(sq_type(mt) == OT_TABLE) {
-            if(!_table(self)->SetDelegate(_table(mt))) {
-                return sq_throwerror(v, "delegate cycle");
-            }
-            v->Pop();
-        }
-        else if(sq_type(mt)==OT_NULL) {
-            _table(self)->SetDelegate(NULL); v->Pop(); }
-        else return sq_aux_invalidtype(v,type);
-        break;
-    case OT_USERDATA:
-        if(sq_type(mt)==OT_TABLE) {
-            _userdata(self)->SetDelegate(_table(mt)); v->Pop(); }
-        else if(sq_type(mt)==OT_NULL) {
-            _userdata(self)->SetDelegate(NULL); v->Pop(); }
-        else return sq_aux_invalidtype(v, type);
-        break;
-    default:
-            return sq_aux_invalidtype(v, type);
-        break;
-    }
-    return SQ_OK;
-}
-
 SQRESULT sq_rawdeleteslot(HSQUIRRELVM v,SQInteger idx,SQBool pushval)
 {
     v->ValidateThreadAccess();
@@ -1485,26 +1454,6 @@ SQRESULT sq_rawdeleteslot(HSQUIRRELVM v,SQInteger idx,SQBool pushval)
     else
         v->Pop();
     return SQ_OK;
-}
-
-SQRESULT sq_getdelegate(HSQUIRRELVM v,SQInteger idx)
-{
-    v->ValidateThreadAccess();
-
-    SQObjectPtr &self=stack_get(v,idx);
-    switch(sq_type(self)){
-    case OT_TABLE:
-    case OT_USERDATA:
-        if(!_delegable(self)->_delegate){
-            v->PushNull();
-            break;
-        }
-        v->Push(SQObjectPtr(_delegable(self)->_delegate));
-        break;
-    default: return sq_throwerror(v,"wrong type"); break;
-    }
-    return SQ_OK;
-
 }
 
 SQRESULT sq_get(HSQUIRRELVM v,SQInteger idx)
@@ -1557,8 +1506,8 @@ const char *sq_getlocal(HSQUIRRELVM v,SQUnsignedInteger level,SQUnsignedInteger 
         SQClosure *c=_closure(ci._closure);
         SQFunctionProto *func=c->_function;
         if(func->_noutervalues > (SQInteger)idx) {
-            v->Push(*_outer(c->_outervalues[idx])->_valptr);
-            return _stringval(func->_outervalues[idx]._name);
+            v->Push(c->OuterValue(idx));
+            return func->_outervalues[idx]._name->_val;
         }
         idx -= func->_noutervalues;
         return func->GetLocal(v,stackbase,idx,(SQInteger)(ci._ip-func->_instructions));
@@ -1799,9 +1748,8 @@ const char *sq_getfreevariable(HSQUIRRELVM v,SQInteger idx,SQUnsignedInteger nva
         SQClosure *clo = _closure(self);
         SQFunctionProto *fp = clo->_function;
         if(((SQUnsignedInteger)fp->_noutervalues) > nval) {
-            v->Push(*(_outer(clo->_outervalues[nval])->_valptr));
-            SQOuterVar &ov = fp->_outervalues[nval];
-            name = _stringval(ov._name);
+            v->Push(clo->OuterValue(nval));
+            name = fp->_outervalues[nval]._name->_val;
         }
                     }
         break;
@@ -1826,7 +1774,7 @@ SQRESULT sq_setfreevariable(HSQUIRRELVM v,SQInteger idx,SQUnsignedInteger nval)
     case OT_CLOSURE:{
         SQFunctionProto *fp = _closure(self)->_function;
         if(((SQUnsignedInteger)fp->_noutervalues) > nval){
-            *(_outer(_closure(self)->_outervalues[nval])->_valptr) = stack_get(v,-1);
+            _closure(self)->OuterValue(nval) = stack_get(v,-1);
         }
         else return sq_throwerror(v,"invalid free var index");
                     }
@@ -1919,9 +1867,13 @@ SQRESULT sq_getbyhandle(HSQUIRRELVM v,SQInteger idx,const HSQMEMBERHANDLE *handl
 
 SQRESULT sq_setbyhandle(HSQUIRRELVM v,SQInteger idx,const HSQMEMBERHANDLE *handle)
 {
+    SQObjectPtr &self = stack_get(v,idx);
+    if (self._flags & SQOBJ_FLAG_IMMUTABLE) {
+        v->Raise_Error("trying to modify immutable '%s'",GetTypeName(self));
+        return SQ_ERROR;
+    }
+    SQObjectPtr &newval = stack_get(v,-1);
     if (handle->_isNativeField) {
-        SQObjectPtr &self = stack_get(v,idx);
-        SQObjectPtr &newval = stack_get(v,-1);
         if (sq_type(self) != OT_INSTANCE)
             return sq_throwerror(v,"expected instance for native field");
         if (!_instance(self)->SetNativeField(handle->_index, newval))
@@ -1929,12 +1881,13 @@ SQRESULT sq_setbyhandle(HSQUIRRELVM v,SQInteger idx,const HSQMEMBERHANDLE *handl
         v->Pop();
         return SQ_OK;
     }
-    SQObjectPtr &self = stack_get(v,idx);
-    SQObjectPtr &newval = stack_get(v,-1);
     SQObjectPtr *val = NULL;
     if(SQ_FAILED(_getmemberbyhandle(v,self,handle,val))) {
         return SQ_ERROR;
     }
+    const SQClass *cls = sq_type(self) == OT_CLASS ? _class(self) : handle->_static ? _instance(self)->_class : nullptr;
+    if (cls && cls->isLocked())
+        return sq_throwerror(v,"trying to modify a class that has already been instantiated, inherited or is locked manually");
     *val = newval;
     v->Pop();
     return SQ_OK;
@@ -2020,6 +1973,11 @@ void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, bool nodesLoca
     rv.render(astData->root);
 }
 
+void sq_dumpastjson(HSQUIRRELVM v, SQCompilation::SqASTData *astData, SQStreamWriteFunc write, void *ud)
+{
+    JsonTreeRenderer(write, ud).render(astData->root, astData->sourceName, astData->comments);
+}
+
 void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, SQStreamWriteFunc write, void *ud, int instruction_index)
 {
     if (sq_isfunction(obj)) {
@@ -2031,16 +1989,6 @@ void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, SQStreamWriteFunc write, void
     }
     else {
         write("Object is not a FunctionProto", ud);
-    }
-}
-
-void sq_reset_static_memos(HSQUIRRELVM v, HSQOBJECT func)
-{
-    if (sq_isfunction(func)) {
-        ResetStaticMemos(_funcproto(func), _ss(v));
-    }
-    else if (sq_isclosure(func)) {
-        ResetStaticMemos(_closure(func)->_function, _ss(v));
     }
 }
 
@@ -2152,8 +2100,13 @@ SQRESULT sq_mark_pure_inplace(HSQUIRRELVM v, SQInteger idx)
 {
     SQObjectPtr &o = stack_get(v, idx);
     SQObjectType tp = sq_type(o);
-    if (tp == OT_CLOSURE)
+    if (tp == OT_CLOSURE) {
+        if (_closure(o)->_function->_isAsync) {
+            v->Raise_Error("an async function cannot be pure: each call starts a new task");
+            return SQ_ERROR;
+        }
         _closure(o)->_function->_purefunction = true;
+    }
     else if (tp == OT_NATIVECLOSURE)
         _nativeclosure(o)->_purefunction = true;
     else {

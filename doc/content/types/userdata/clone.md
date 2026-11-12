@@ -1,14 +1,13 @@
 ---
-see_also: [types.UserData.is_frozen, types.UserData.getfuncinfos, types.Table.clone]
+see_also: [types.UserData.is_frozen, types.Table.clone]
 ---
 
 Always throws.
 
 ## Errors
 
-Throws `cloning a userdata` unconditionally. The method exists only so the
-`userdata` delegate has a `clone` slot like every other type; the VM's clone
-implementation refuses `userdata` (and `class`) outright rather than copying
+Throws `cloning a userdata` unconditionally. The VM's clone implementation
+refuses `userdata` (and `class`) outright rather than copying
 their payload, since it has no generic way to duplicate whatever a host bound
 into the raw bytes.
 

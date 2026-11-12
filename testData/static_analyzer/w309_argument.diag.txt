@@ -1,0 +1,85 @@
+WARNING: w309 (missing-destructured-value) No value for 'a' in destructured declaration.
+testData/static_analyzer/w309_argument.nut:16:5
+
+function g(src, extra) {
+  f2({ b = 1 })
+     ^--------
+  f2(C)
+
+
+HINT: h314 (see-other) You can find the parameter here.
+testData/static_analyzer/w309_argument.nut:7:12
+
+function f2({ a, b = 2 }) {
+            ^-----------
+  return a + b
+
+
+WARNING: w309 (missing-destructured-value) No value for 'a' in destructured declaration.
+testData/static_analyzer/w309_argument.nut:17:5
+
+  f2({ b = 1 })
+  f2(C)
+     ^
+  f3([ 1 ])
+
+
+HINT: h314 (see-other) You can find the parameter here.
+testData/static_analyzer/w309_argument.nut:7:12
+
+function f2({ a, b = 2 }) {
+            ^-----------
+  return a + b
+
+
+WARNING: w309 (missing-destructured-value) No value for 'y' in destructured declaration.
+testData/static_analyzer/w309_argument.nut:18:5
+
+  f2(C)
+  f3([ 1 ])
+     ^----
+  f3(ARR)
+
+
+HINT: h314 (see-other) You can find the parameter here.
+testData/static_analyzer/w309_argument.nut:11:12
+
+function f3([ x, y ]) {
+            ^-------
+  return x + y
+
+
+WARNING: w309 (missing-destructured-value) No value for 'y' in destructured declaration.
+testData/static_analyzer/w309_argument.nut:19:5
+
+  f3([ 1 ])
+  f3(ARR)
+     ^--
+  f2({ a = 1 })
+
+
+HINT: h314 (see-other) You can find the parameter here.
+testData/static_analyzer/w309_argument.nut:11:12
+
+function f3([ x, y ]) {
+            ^-------
+  return x + y
+
+
+WARNING: w309 (missing-destructured-value) No value for 'a' in destructured declaration.
+testData/static_analyzer/w309_argument.nut:34:8
+
+function h() {
+  f4(1, { b = 1 })
+        ^--------
+  f4({ b = 1 }, { a = 1 })
+
+
+HINT: h314 (see-other) You can find the parameter here.
+testData/static_analyzer/w309_argument.nut:29:17
+
+function f4(pre, { a }) {
+                 ^----
+  return [pre, a]
+
+

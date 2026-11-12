@@ -9,10 +9,10 @@ project(quirrel-wasm LANGUAGES CXX)
 set(QUIRREL "${PROJECT_SOURCE_DIR}/../..")
 set(CMAKE_CXX_STANDARD 17)
 
-# _TARGET_PC keeps getenv, setenv and system in the system module, so the browser
+# SQ_SYSTEM_STUBS=0 keeps getenv, setenv and system in the system module, so the browser
 # signatures match the ones the site documents. system() itself fails at runtime,
 # which is the honest answer for a sandbox.
-add_compile_definitions(_SQ64 SQ_VAR_TRACE_ENABLED=0 SQ_WATCHDOG_ENABLED=1 _TARGET_PC=1)
+add_compile_definitions(_SQ64 SQ_VAR_TRACE_ENABLED=0 SQ_WATCHDOG_ENABLED=1 SQ_SYSTEM_STUBS=0)
 
 # Exceptions everywhere, not only in the compiler as the library build has it:
 # mixing the two models in one wasm link is not worth the kilobytes it saves.

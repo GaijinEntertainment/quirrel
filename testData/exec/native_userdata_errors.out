@@ -1,0 +1,17 @@
+type: userdata
+typeof: userdata
+get: THROW the index 'x' (type='string') does not exist
+set: THROW trying to set 'userdata'
+newslot: THROW indexing userdata with string
+in: false
+foreach: THROW cannot iterate userdata
+call: THROW attempt to call 'userdata'
+add: THROW arith op + between 'userdata' and 'userdata'
+unm: THROW attempt to negate a userdata
+cmp: THROW comparison between userdata and userdata
+equal to itself: true
+clone: THROW cloning a userdata
+tostring: THROW the index 'tostring' (type='string') does not exist
+is_frozen: false
+getfuncinfos: THROW the index 'getfuncinfos' (type='string') does not exist
+getarity: THROW the index 'getarity' (type='string') does not exist

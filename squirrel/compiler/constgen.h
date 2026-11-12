@@ -18,6 +18,8 @@ private:
 
     SQObjectPtr _result;
     SQObjectPtr _call_target; //< must null it in every node visit and assign the container in get operations
+    Expr *_callee = nullptr; //< a slot read finds a type method only as a callee, as _OP_PREPCALL does
+    bool _ranCall = false;
 
 public:
     ConstGenVisitor(SQVM *vm, SQFuncState *fs, SQCompilationContext &ctx, CodeGenVisitor &codegen)
@@ -29,6 +31,7 @@ public:
     virtual ~ConstGenVisitor() {}
 
     void  process(Expr *expr, SQObjectPtr &out);
+    bool ranCall() const { return _ranCall; }
 
     virtual void visitNode(Node *node) { node->visitChildren(this); }
 
@@ -43,7 +46,6 @@ public:
     virtual void visitSetFieldExpr(SetFieldExpr *expr) { throwUnsupported(expr, "set field expression"); }
     virtual void visitGetSlotExpr(GetSlotExpr *expr);
     virtual void visitSetSlotExpr(SetSlotExpr *expr) { throwUnsupported(expr, "set slot expression"); }
-    virtual void visitBaseExpr(BaseExpr *expr) { throwUnsupported(expr, "base expression"); }
     virtual void visitRootTableAccessExpr(RootTableAccessExpr *expr) { throwUnsupported(expr, "root table access expression"); }
 
     virtual void visitLiteralExpr(LiteralExpr *expr);
@@ -91,7 +93,8 @@ public:
 private:
     void throwUnsupported(Node *n, const char *type);
     void throwGeneralError(Node *n, const char *msg);
-    void throwGeneralErrorFmt(Node *n, const char *fmt, ...);
+    void throwDuplicateKey(Node *n, const SQObjectPtr &key);
+    void throwLookupError(Node *n, const char *what);
     SQObjectPtr convertLiteral(LiteralExpr *lit);
 };
 

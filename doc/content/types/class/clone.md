@@ -2,8 +2,8 @@
 see_also: [types.Class.instance, types.Class.call, types.Instance.clone]
 ---
 
-Always fails. `clone` is one of the type-methods every built-in delegate
-carries, but the VM's generic clone operation explicitly refuses a class.
+Always fails. `clone` is one of the type-methods of a class, but the VM's
+generic clone operation explicitly refuses a class.
 
 ## Return value
 

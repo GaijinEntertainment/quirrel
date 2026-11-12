@@ -100,9 +100,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(MISSING_MODULE, HINT, SEMA, 313, "missing-module", "Module '%s' not found, or it returns null."), \
   DEF_DIAGNOSTIC(SEE_OTHER, HINT, SEMA, 314, "see-other", "You can find %s here."), \
   DEF_DIAGNOSTIC(INVALID_INDENTATION, WARNING, SYNTAX, 315, "invalid-indentation", "Invalid indentation. Pay attention to lines %s and %s."), \
-  DEF_DIAGNOSTIC(NOT_A_CONST, WARNING, COMPILETIME, 316, "not-a-const", "Expression in 'static' context must be a constant expression."), \
-  DEF_DIAGNOSTIC(STATIC_MEMO_TOO_SIMPLE, WARNING, COMPILETIME, 317, "static-too-simple", "'static' is too simple."), \
-  DEF_DIAGNOSTIC(MERGE_EMPTY_TABLE, WARNING, SEMA, 318, "merge-empty-table", "'__merge({})' with an empty table is equivalent to 'clone'. Use 'clone' instead."), \
+  DEF_DIAGNOSTIC(MERGE_EMPTY_TABLE, WARNING, SEMA, 318, "merge-empty-table", "'__merge({})' copies the table; '{ ...%s }' does the same but faster."), \
   DEF_DIAGNOSTIC(EMPTY_ARRAY_RESIZE, WARNING, SEMA, 319, "empty-array-resize", "'[].resize(...)' is slower than 'array(...)'. Use 'array(...)' instead."), \
   DEF_DIAGNOSTIC(CALLBACK_SHOULD_RETURN_VALUE, WARNING, SEMA, 320, "callback-should-return-value", "Callback passed to '%s' must return a value."), \
   DEF_DIAGNOSTIC(PARAM_ASSIGNMENT_IN_LAMBDA, WARNING, SEMA, 321, "param-assign-in-lambda", "Assignment to parameter '%s' in lambda has no effect. Return the expression instead."), \
@@ -125,7 +123,9 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(SAME_ARGS_IN_CALL, WARNING, SEMA, 338, "same-args-in-call", "Both arguments of '%s' are the same expression."), \
   DEF_DIAGNOSTIC(ACCESS_POT_EMPTY, WARNING, SEMA, 339, "access-potentially-empty", "'%s' can be an empty %s here, the accessed element would not exist."), \
   DEF_DIAGNOSTIC(LET_FUNCTION_STYLE, WARNING, SEMA, 344, "let-function-style", "'let %s' is legacy style; the plain form already declares a non-reassignable binding."), \
-  DEF_DIAGNOSTIC(BINDING_NAME_MISMATCH, WARNING, SEMA, 346, "binding-and-function-name", "Binding and function name are not the same ('%s' and '%s').") \
+  DEF_DIAGNOSTIC(BINDING_NAME_MISMATCH, WARNING, SEMA, 346, "binding-and-function-name", "Binding and function name are not the same ('%s' and '%s')."), \
+  DEF_DIAGNOSTIC(REDUNDANT_SPREAD_GUARD, WARNING, SEMA, 347, "redundant-spread-guard", "A null source adds nothing to a spread, so the '??' fallback to an empty %s can go."), \
+  DEF_DIAGNOSTIC(DISCARDED_NODISCARD, WARNING, SEMA, 348, "discarded-nodiscard", "The result of '%s' is discarded, but it is a %s function.") \
 
 
 namespace SQCompilation {

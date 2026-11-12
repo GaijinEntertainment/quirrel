@@ -1,0 +1,45 @@
+WARNING: w310 (destructured-type) Destructured type mismatch, right side is table.
+testData/static_analyzer/w310_literal.nut:11:2
+
+function f(src) {
+  let [ x, y ] = { x = 1 }
+  ^-----------------------
+  let { p } = [ 1 ]
+
+
+WARNING: w310 (destructured-type) Destructured type mismatch, right side is array.
+testData/static_analyzer/w310_literal.nut:12:2
+
+  let [ x, y ] = { x = 1 }
+  let { p } = [ 1 ]
+  ^----------------
+  let [ a ] = C
+
+
+WARNING: w310 (destructured-type) Destructured type mismatch, right side is table.
+testData/static_analyzer/w310_literal.nut:13:2
+
+  let { p } = [ 1 ]
+  let [ a ] = C
+  ^------------
+  let tbl = { m = 1 }
+
+
+WARNING: w310 (destructured-type) Destructured type mismatch, right side is table.
+testData/static_analyzer/w310_literal.nut:15:2
+
+  let tbl = { m = 1 }
+  let [ m ] = tbl
+  ^--------------
+  let [ o ] = outer
+
+
+WARNING: w310 (destructured-type) Destructured type mismatch, right side is table.
+testData/static_analyzer/w310_literal.nut:16:2
+
+  let [ m ] = tbl
+  let [ o ] = outer
+  ^----------------
+  local arr = [ 1 ]
+
+

@@ -66,7 +66,6 @@
     DEF_TREE_OP(BNOT), \
     DEF_TREE_OP(NEG), \
     DEF_TREE_OP(TYPEOF), \
-    DEF_TREE_OP(STATIC_MEMO), \
     DEF_TREE_OP(INLINE_CONST), \
     DEF_TREE_OP(SPREAD), \
     DEF_TREE_OP(RESUME), \
@@ -76,7 +75,6 @@
     DEF_TREE_OP(CODE_BLOCK_EXPR), \
     DEF_TREE_OP(DELETE), \
     DEF_TREE_OP(LITERAL), \
-    DEF_TREE_OP(BASE), \
     DEF_TREE_OP(ROOT_TABLE_ACCESS), \
     DEF_TREE_OP(INC), \
     DEF_TREE_OP(ARRAY), \
@@ -311,7 +309,7 @@ protected:
 
 public:
 
-    bool canBeLiteral(bool typeMethod) const { return receiver()->op() != TO_BASE && !isNullable() && !typeMethod; }
+    bool canBeLiteral(bool typeMethod) const { return !isNullable() && !typeMethod; }
     const char *fieldName() const { return _fieldName; }
 
 private:
@@ -383,14 +381,6 @@ public:
     Expr *value() const { return _val; }
 private:
     Expr *_val;
-};
-
-class BaseExpr : public Expr {
-public:
-    BaseExpr(SourceSpan span) : Expr(TO_BASE, span) {}
-
-    void visitChildren(Visitor *visitor) {}
-    void transformChildren(Transformer *transformer) {}
 };
 
 class RootTableAccessExpr : public Expr {
@@ -553,6 +543,7 @@ public:
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
 
+    const char *name = nullptr;
     uint32_t setFlags = 0, clearFlags = 0;
     bool applyToDefault = false;
 };
@@ -1210,7 +1201,6 @@ public:
     virtual void visitSetFieldExpr(SetFieldExpr *expr) { visitAccessExpr(expr); }
     virtual void visitGetSlotExpr(GetSlotExpr *expr) { visitAccessExpr(expr); }
     virtual void visitSetSlotExpr(SetSlotExpr *expr) { visitAccessExpr(expr); }
-    virtual void visitBaseExpr(BaseExpr *expr) { visitExpr(expr); }
     virtual void visitRootTableAccessExpr(RootTableAccessExpr *expr) { visitExpr(expr); }
     virtual void visitLiteralExpr(LiteralExpr *expr) { visitExpr(expr); }
     virtual void visitIncExpr(IncExpr *expr) { visitExpr(expr); }
@@ -1271,7 +1261,6 @@ public:
   virtual Node *transformSetFieldExpr(SetFieldExpr *expr) { return transformExpr(expr); }
   virtual Node *transformGetSlotExpr(GetSlotExpr *expr) { return transformExpr(expr); }
   virtual Node *transformSetSlotExpr(SetSlotExpr *expr) { return transformExpr(expr); }
-  virtual Node *transformBaseExpr(BaseExpr *expr) { return transformExpr(expr); }
   virtual Node *transformRootTableAccessExpr(RootTableAccessExpr *expr) { return transformExpr(expr); }
   virtual Node *transformLiteralExpr(LiteralExpr *expr) { return transformExpr(expr); }
   virtual Node *transformIncExpr(IncExpr *expr) { return transformExpr(expr); }
@@ -1373,7 +1362,6 @@ void Node::visit(V *visitor) {
     case TO_CLONE:
     case TO_PAREN:
     case TO_DELETE:
-    case TO_STATIC_MEMO:
     case TO_SPREAD:
     case TO_INLINE_CONST:
         visitor->visitUnExpr(static_cast<UnExpr *>(this)); return;
@@ -1381,8 +1369,6 @@ void Node::visit(V *visitor) {
         visitor->visitCodeBlockExpr(static_cast<CodeBlockExpr *>(this)); return;
     case TO_LITERAL:
         visitor->visitLiteralExpr(static_cast<LiteralExpr *>(this)); return;
-    case TO_BASE:
-        visitor->visitBaseExpr(static_cast<BaseExpr *>(this)); return;
     case TO_ROOT_TABLE_ACCESS:
         visitor->visitRootTableAccessExpr(static_cast<RootTableAccessExpr *>(this)); return;
     case TO_INC:
@@ -1491,7 +1477,6 @@ Node *Node::transform(T *transformer) {
   case TO_CLONE:
   case TO_PAREN:
   case TO_DELETE:
-  case TO_STATIC_MEMO:
   case TO_SPREAD:
   case TO_INLINE_CONST:
     return transformer->transformUnExpr(static_cast<UnExpr *>(this));
@@ -1499,8 +1484,6 @@ Node *Node::transform(T *transformer) {
     return transformer->transformCodeBlockExpr(static_cast<CodeBlockExpr *>(this));
   case TO_LITERAL:
     return transformer->transformLiteralExpr(static_cast<LiteralExpr *>(this));
-  case TO_BASE:
-    return transformer->transformBaseExpr(static_cast<BaseExpr *>(this));
   case TO_ROOT_TABLE_ACCESS:
     return transformer->transformRootTableAccessExpr(static_cast<RootTableAccessExpr *>(this));
   case TO_INC:

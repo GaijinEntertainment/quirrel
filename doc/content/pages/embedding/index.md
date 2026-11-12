@@ -33,9 +33,10 @@ many VMs, and they share nothing. `sq_newthread` is different: it makes a friend
 VM that shares the parent's globals and registry. A script-level
 [thread](sym:types.Thread) is such a friend VM.
 
-The standard library is not loaded by default. A host that does not register
-`io` and `system` gives its scripts no way to reach the file system. This is the
-sandbox, so choose the registered modules on purpose.
+The standard library is not loaded by default, except `deep` in a host that
+uses SqModules. A host that does not register `io` and `system` gives its
+scripts no way to reach the file system. This is the sandbox, so choose the
+registered modules on purpose.
 
 ## Error conventions
 

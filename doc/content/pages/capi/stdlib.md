@@ -7,8 +7,9 @@ summary: Registering the standard modules from a host.
 
 Registering the standard modules, and the C entry points they expose to a host.
 
-No part of the standard library is loaded automatically. A host registers the
-modules it wants a script to reach. This is how a sandbox is built: leave out
+No `sqstd_register_*` module is loaded automatically, except `deep` in a host
+that uses SqModules. A host registers the modules it wants a script to reach.
+This is how a sandbox is built: leave out
 `io` and `system`, and no script can open a file or run a command.
 
 Each `sqstd_register_*lib` expects the target table on the stack. The other
@@ -39,7 +40,7 @@ The `sqstd_rex_*` family is the regular expression engine behind
 
 ## The remaining modules
 
-{{capi:stdmath,stddatetime,stddebug,stdsystem}}
+{{capi:stdmath,stddatetime,stddebug,stddeep,stdsystem}}
 
 ## Extras
 

@@ -27,10 +27,7 @@ throw a wrong-number-of-parameters error.
 Unlike the assignment operator `t.k = value`, which requires the slot to
 already exist (use `t.k <- value` to create one), `rawset` always creates a
 missing slot - there is no separate "raw newslot" method, `rawset` covers
-both cases. It also never calls a `_set` or `_newslot` metamethod, for the
-same reason [`rawget`](sym:types.Table.rawget) never calls `_get`: a table's
-metamethods are only reachable through a delegate, which script code cannot
-attach.
+both cases.
 
 ## Example
 

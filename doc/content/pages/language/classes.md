@@ -13,20 +13,24 @@ methods of every instance made from it.
 
 `class Name { ... }` declares fields with a default value and methods,
 either as `function name() { ... }` or as a field assigned a function or a
-lambda. `constructor` is a reserved method name, called automatically for
-every new instance. Inside a method, a field is always reached through
+lambda. The method named `constructor` runs for every new instance. In a
+class body it can also be written without `function`, as
+`constructor(x) { ... }`. The word is not a keyword: elsewhere it is an
+ordinary name. Inside a method, a field is always reached through
 `this.`. Unlike some other object-oriented languages, a bare name does not
 mean `this.name`.
 
 {{example:language/classes-basics}}
 
-## Inheritance and base
+## Inheritance
 
 A derived class copies every field, static and method from its base first,
-then applies its own body over that: `class Tank(Vehicle) { ... }`. `base`
-reaches the shadowed implementation from inside an override, most often
-`base.constructor(...)` or `base.someMethod(...)`. There is no `super`
-keyword. `super` is an unknown variable and fails to compile.
+then applies its own body over that: `class Tank(Vehicle) { ... }`. An
+override reaches the shadowed implementation through the parent class and
+gives it the instance with [`call`](sym:types.Function.call):
+`Vehicle.constructor.call(this, ...)` or `Vehicle.describe.call(this, ...)`.
+Without `call`, `Vehicle.describe()` runs with the class as `this`. There is
+no `super` or `base` keyword.
 
 A derived class that declares no `constructor` of its own inherits the
 base's, called with the arguments the instantiation call passes.
@@ -35,8 +39,7 @@ parentheses, or `null` for a class with none.
 
 {{example:language/classes-inheritance}}
 
-The keyword `extends` appears in the grammar (`class Tank extends Vehicle`)
-but the lexer never produces it. It is dead syntax and fails to parse with
+There is no `extends` keyword: `class Tank extends Vehicle` fails with
 `expected '{'`. Use the parenthesized form above.
 
 ## Static members
@@ -46,7 +49,7 @@ every instance, not a per-instance default. A static is read-only after
 declaration. `ClassName.name = value` throws `trying to set 'class'`.
 `this.name = value` from a method throws `the index 'name' (type='string')
 does not exist`, because a static is not stored per instance. The only way
-to add or replace a static after the class exists is
+to add or replace a static after the class exists, and before it locks, is
 [`newmember`](sym:types.Class.newmember) with its third argument set to
 `true`.
 
@@ -81,13 +84,11 @@ instance's `instanceof` against the built-in placeholder
 
 A class locks permanently the first time it gains an instance, becomes the
 base of another class, or has [`lock()`](sym:types.Class.lock) called on it
-directly, whichever happens first. After the lock, a new plain field cannot
-be added: `ClassName.newField <- value` throws `trying to modify a class
-that has already been instantiated, inherited or is locked manually`. The
-lock does not stop a method from being added or replaced the same way, since
-`<-` with a function value bypasses the lock check. It also does not stop
-[`newmember`](sym:types.Class.newmember) from adding a new **static**, when
-its third argument asks for one.
+directly, whichever happens first. The classes of the `types` module, such as
+`String`, are locked from the start. A locked class is read-only: any change
+throws `trying to modify a class that has already been instantiated, inherited
+or is locked manually`. Add members before that: in the class body, with `<-`,
+or from a [`_lock`](page:language/metamethods#lock) metamethod.
 
 ## Metamethods
 

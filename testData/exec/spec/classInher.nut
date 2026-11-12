@@ -13,7 +13,7 @@ class SuperFoo(Foo) {
         println("I'm the derived")
     }
     function DoIt() {
-        base.DoIt()
+        Foo.DoIt.call(this)
     }
 }
 

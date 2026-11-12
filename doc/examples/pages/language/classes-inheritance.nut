@@ -11,9 +11,9 @@ class Tank(Vehicle) {
   constructor() {
     this.hitPoints = 250
   }
-  // base reaches the overridden implementation; there is no super keyword
+  // the parent class reaches the overridden implementation; there is no super keyword
   function describe() {
-    return base.describe() + $", turret {this.turretAngle}"
+    return Vehicle.describe.call(this) + $", turret {this.turretAngle}"
   }
 }
 

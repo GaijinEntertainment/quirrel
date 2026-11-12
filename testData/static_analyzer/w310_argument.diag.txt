@@ -1,0 +1,68 @@
+WARNING: w310 (destructured-type) Destructured type mismatch, right side is array.
+testData/static_analyzer/w310_argument.nut:15:5
+
+function g(src) {
+  f2([ 1 ])
+     ^----
+  f3({ x = 1 })
+
+
+HINT: h314 (see-other) You can find the parameter here.
+testData/static_analyzer/w310_argument.nut:6:12
+
+function f2({ a }) {
+            ^----
+  return a
+
+
+WARNING: w310 (destructured-type) Destructured type mismatch, right side is table.
+testData/static_analyzer/w310_argument.nut:16:5
+
+  f2([ 1 ])
+  f3({ x = 1 })
+     ^--------
+  f3(C)
+
+
+HINT: h314 (see-other) You can find the parameter here.
+testData/static_analyzer/w310_argument.nut:10:12
+
+function f3([ x ]) {
+            ^----
+  return x
+
+
+WARNING: w310 (destructured-type) Destructured type mismatch, right side is table.
+testData/static_analyzer/w310_argument.nut:17:5
+
+  f3({ x = 1 })
+  f3(C)
+     ^
+  let tbl = { x = 1 }
+
+
+HINT: h314 (see-other) You can find the parameter here.
+testData/static_analyzer/w310_argument.nut:10:12
+
+function f3([ x ]) {
+            ^----
+  return x
+
+
+WARNING: w310 (destructured-type) Destructured type mismatch, right side is table.
+testData/static_analyzer/w310_argument.nut:19:5
+
+  let tbl = { x = 1 }
+  f3(tbl)
+     ^--
+  local loc = { x = 1 }
+
+
+HINT: h314 (see-other) You can find the parameter here.
+testData/static_analyzer/w310_argument.nut:10:12
+
+function f3([ x ]) {
+            ^----
+  return x
+
+

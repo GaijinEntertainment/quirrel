@@ -19,7 +19,7 @@ Takes exactly one argument; `t.hasindex()` throws a wrong-number-of-parameters
 error.
 
 Implemented the same way as [`rawin`](sym:types.Table.rawin): both call
-`sq_rawget` directly, so neither ever consults a `_get` metamethod. The two
+`sq_rawget` directly. The two
 exist as separate methods because the shared C++ function also backs
 `class` and `instance`, where `hasindex` additionally accepts those types;
 on a table the two methods behave identically.

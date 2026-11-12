@@ -3,7 +3,7 @@ params: [key]
 see_also: [types.Table.rawset, types.Table.rawin, types.Table.hasindex]
 ---
 
-Returns the value stored under `key`, without going through a metamethod.
+Returns the value stored under `key`.
 
 ## Parameters
 
@@ -24,12 +24,10 @@ a wrong-number-of-parameters error rather than reaching this code.
 
 Plain indexing, `t[key]`, and `rawget` both throw on a missing key for an
 ordinary table (with different wording - `t[key]` throws
-`the index 'key' (type='...') does not exist`), because a table's own `_get`
-metamethod can only come from a delegate, and a delegate can only be
-attached from C++ (see [`getfuncinfos`](sym:types.Table.getfuncinfos)). The
-distinction between raw and plain access matters far more for `class`/
-`instance`, where `_get` is reachable from script and can turn a "missing"
-key into a computed value.
+`the index 'key' (type='...') does not exist`), because a table has no `_get`
+metamethod. The distinction between raw and plain access matters far more for
+an instance, where `_get` is reachable from script and can turn a "missing" key
+into a computed value.
 
 ## Example
 

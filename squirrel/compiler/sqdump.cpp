@@ -49,8 +49,7 @@ static void DumpLiteral(const StreamCB &stream, const SQObjectPtr &o)
         case OT_CLOSURE:
         {
             SQFunctionProto *func = _closure(o)->_function;
-            const char *funcName = sq_isstring(func->_name) ? _stringval(func->_name) : "<null-name>";
-            streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)func, funcName);
+            streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)func, _stringval(func->GetName()));
             break;
         }
         case OT_NATIVECLOSURE:
@@ -63,15 +62,13 @@ static void DumpLiteral(const StreamCB &stream, const SQObjectPtr &o)
         case OT_FUNCPROTO:
         {
             SQFunctionProto *func = _funcproto(o);
-            const char* funcName = sq_isstring(func->_name) ? _stringval(func->_name) : "<null-name>";
-            streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)func, funcName);
+            streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)func, _stringval(func->GetName()));
             break;
         }
         case OT_GENERATOR:
         {
             SQGenerator *gen = _generator(o);
-            SQObjectPtr nameObj = _closure(gen->_closure)->_function->_name;
-            const char* funcName = sq_isstring(nameObj) ? _stringval(nameObj) : "<null-name>";
+            const char* funcName = _stringval(_closure(gen->_closure)->_function->GetName());
             streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)gen, funcName);
             break;
         }
@@ -195,29 +192,6 @@ void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int 
                 break;
             }
 
-            case _OP_DATA_NOP: {
-                    int saveInstr = i + ((inst._arg2 << 8) + inst._arg3);
-                    if ((inst._arg0 || inst._arg1 || inst._arg2 || inst._arg3) && saveInstr > 0 && saveInstr < i_count &&
-                        ii[saveInstr].op == _OP_SAVE_STATIC_MEMO)
-                    {
-                        int loadInstr = saveInstr + 1 - ((ii[saveInstr]._arg2 << 8) + ii[saveInstr]._arg3);
-                        if (loadInstr == i) {
-                            streamprintf(stream, "  // LOAD_STATIC_MEMO: staticmemo[%d] -> r%d, jump to %d%s",
-                                int(inst._arg1 & STATIC_MEMO_IDX_MASK), int(inst._arg0), saveInstr + 1,
-                                (inst._arg1 & STATIC_MEMO_AUTO_FLAG) ? " (auto)" : "");
-                        }
-                    }
-                }
-                break;
-
-            case _OP_SAVE_STATIC_MEMO: {
-                    int loadInstr = i + 1 - ((inst._arg2 << 8) + inst._arg3);
-                    streamprintf(stream, "  // r%d -> staticmemo[%d], r%d -> r%d, modify instr at %d%s",
-                        int(inst._arg0), int(inst._arg1 & STATIC_MEMO_IDX_MASK), int(inst._arg0), int(ii[loadInstr]._arg0), loadInstr,
-                        (inst._arg1 & STATIC_MEMO_AUTO_FLAG) ? " (auto)" : "");
-                }
-                break;
-
             case _OP_CALL:
                 streamprintf(stream, "  // (call r%d) -> r%d", int(inst._arg1), int(inst._arg0));
                 break;
@@ -248,9 +222,7 @@ void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int 
             case _OP_CLOSURE: {
                 streamprintf(stream, "  // closure ");
                 if (unsigned(inst._arg1) < unsigned(_nfunctions) && sq_isfunction(_functions[inst._arg1])) {
-                    SQFunctionProto *fp = _funcproto(_functions[inst._arg1]);
-                    if (sq_type(fp->_name) == OT_STRING)
-                        streamprintf(stream, "%s", _stringval(fp->_name));
+                    streamprintf(stream, "%s", _stringval(_funcproto(_functions[inst._arg1])->GetName()));
                 }
                 streamprintf(stream, " -> r%d", int(inst._arg0));
                 break;
@@ -436,7 +408,10 @@ void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int 
                 break;
 
             case _OP_ADDI:
-                streamprintf(stream, "  // r%d + %d -> r%d", int(inst._arg2), int(inst._arg1), int(inst._arg0));
+                if (inst._arg3 == ADDI_SUB)
+                    streamprintf(stream, "  // r%d - %d -> r%d", int(inst._arg2), -int(inst._arg1), int(inst._arg0));
+                else
+                    streamprintf(stream, "  // r%d + %d -> r%d", int(inst._arg2), int(inst._arg1), int(inst._arg0));
                 break;
 
             case _OP_BITW: {
@@ -510,19 +485,19 @@ void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int 
                 break;
 
             case _OP_INC:
-                streamprintf(stream, "  // r%d[r%d] += %d -> r%d", int(inst._arg1), int(inst._arg2), int(inst._sarg3()), int(inst._arg0));
+                streamprintf(stream, "  // r%d[r%d] %c= %d -> r%d", int(inst._arg1), int(inst._arg2), inst._sarg3() < 0 ? '-' : '+', abs(int(inst._sarg3())), int(inst._arg0));
                 break;
 
             case _OP_INCL:
-                streamprintf(stream, "  // r%d += %d", int(inst._arg1), int(inst._sarg3()));
+                streamprintf(stream, "  // r%d %c= %d", int(inst._arg1), inst._sarg3() < 0 ? '-' : '+', abs(int(inst._sarg3())));
                 break;
 
             case _OP_PINC:
-                streamprintf(stream, "  // r%d[r%d] (old -> r%d) += %d", int(inst._arg1), int(inst._arg2), int(inst._arg0), int(inst._sarg3()));
+                streamprintf(stream, "  // r%d[r%d] (old -> r%d) %c= %d", int(inst._arg1), int(inst._arg2), int(inst._arg0), inst._sarg3() < 0 ? '-' : '+', abs(int(inst._sarg3())));
                 break;
 
             case _OP_PINCL:
-                streamprintf(stream, "  // r%d (old -> r%d) += %d", int(inst._arg1), int(inst._arg0), int(inst._sarg3()));
+                streamprintf(stream, "  // r%d (old -> r%d) %c= %d", int(inst._arg1), int(inst._arg0), inst._sarg3() < 0 ? '-' : '+', abs(int(inst._sarg3())));
                 break;
 
             case _OP_COMPARITH: {
@@ -571,10 +546,6 @@ void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int 
                 streamprintf(stream, "  // throw r%d", int(inst._arg0));
                 break;
 
-            case _OP_GETBASE:
-                streamprintf(stream, "  // base -> r%d", int(inst._arg0));
-                break;
-
             case _OP_CLOSE:
                 streamprintf(stream, "  // close outers from r%d", int(inst._arg1));
                 break;
@@ -589,10 +560,6 @@ void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int 
 
             case _OP_POSTFOREACH:
                 streamprintf(stream, "  // if iter r%d dead jump to %d", int(inst._arg0), i + inst._arg1 + 1);
-                break;
-
-            case _OP_FREEZE:
-                streamprintf(stream, "  // freeze r%d -> r%d", int(inst._arg1), int(inst._arg0));
                 break;
 
             case _OP_CHECK_TYPE:
@@ -628,7 +595,8 @@ void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int 
                     case CMP_GE: cmpop = negate ? "<" : ">="; break;
                     case CMP_L: cmpop = negate ? ">=" : "<"; break;
                     case CMP_LE: cmpop = negate ? ">" : "<="; break;
-                    case CMP_3W: cmpop = "<=>"; break;
+                    case CMP_REL_EQUAL: cmpop = negate ? "!=" : "=="; break;
+                    case CMP_3W: cmpop = negate ? "==" : "!="; break;
                 }
                 streamprintf(stream, "  // if r%d %s ", int(inst._arg2), cmpop);
                 if (unsigned(inst._arg0) < unsigned(_nliterals)) {
@@ -670,10 +638,6 @@ void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int 
                 break;
             }
 
-            case _OP_LOAD_STATIC_MEMO:
-                streamprintf(stream, "  // staticmemo[%d] -> r%d, jump to %d", int(inst._arg1), int(inst._arg0), i + (inst._arg2 << 8) + inst._arg3 + 1);
-                break;
-
             case _OP_PUSHTRAP:
                 streamprintf(stream, "  // catch -> r%d, jump to %d", int(inst._arg0), i + inst._arg1 + 1);
                 break;
@@ -704,23 +668,15 @@ static void DumpLiterals(const StreamCB &stream, const SQObjectPtr *_literals, S
     }
 }
 
-static void DumpStaticMemos(const StreamCB &stream, const SQObjectPtr *_staticmemos, SQInt32 _nstaticmemos)
-{
-    streamprintf(stream, "-----STATIC MEMOS\n");
-    for (SQInt32 i = 0; i < _nstaticmemos; ++i) {
-        streamprintf(stream, "[%d] ", (SQInt32)i);
-        DumpLiteral(stream, _staticmemos[i]);
-        streamprintf(stream, "\n");
-    }
-}
-
-static void DumpLocals(const StreamCB &stream, const SQLocalVarInfo *_localvarinfos, SQInt32 _nlocalvarinfos)
+static void DumpLocals(const StreamCB &stream, const SQFunctionProto *func)
 {
     streamprintf(stream, "-----LOCALS\n");
-    for (SQInt32 si = 0; si < _nlocalvarinfos; si++) {
-        SQLocalVarInfo lvi = _localvarinfos[si];
-        streamprintf(stream, "[%d] %s \t%d %d\n", (SQInt32)lvi._pos, _stringval(lvi._name), (SQInt32)lvi._start_op, (SQInt32)lvi._end_op);
+    for (SQInt32 si = 0; si < func->_nlocalvarinfos; si++) {
+        const SQFuncLocalVar &lv = func->_localvarinfos[si];
+        streamprintf(stream, "[%d] %s \t%d %d\n", (SQInt32)func->GetLocalVarSlots()[si], lv._name->_val, (SQInt32)lv._start_op, (SQInt32)lv._end_op);
     }
+    for (SQInt32 pos = func->_nparameters - 1; pos >= 0; pos--)
+        streamprintf(stream, "[%d] %s \t%d %d\n", pos, _stringval(func->_parameters[pos]), 0, func->_ninstructions - 1);
 }
 
 static void DumpLineInfo(const StreamCB &stream, const SQLineInfosHeader *_lineinfos, SQInt32 _nlineinfos)
@@ -760,9 +716,8 @@ static void DumpImpl(const StreamCB &stream, SQFunctionProto *func, bool deep, i
     streamprintf(stream, "SQInstruction sizeof %d\n", (SQInt32)sizeof(SQInstruction));
     streamprintf(stream, "SQObject sizeof %d\n", (SQInt32)sizeof(SQObject));
     streamprintf(stream, "--------------------------------------------------------------------\n");
-    streamprintf(stream, "*****FUNCTION [%s]\n", sq_type(func->_name) == OT_STRING ? _stringval(func->_name) : "unknown");
+    streamprintf(stream, "*****FUNCTION [%s]\n", _stringval(func->GetName()));
     DumpLiterals(stream, func->_literals, func->_nliterals);
-    DumpStaticMemos(stream, func->_staticmemos, func->_nstaticmemos);
     streamprintf(stream, "-----RESULT TYPE MASK = 0x%X\n", func->_result_type_mask);
     if (func->_isAsync)
         streamprintf(stream, "-----ASYNC\n");
@@ -773,10 +728,10 @@ static void DumpImpl(const StreamCB &stream, SQFunctionProto *func, bool deep, i
     for (i = 0; i < func->_nparameters; i++) {
         streamprintf(stream, "[%d] ", (SQInt32)n);
         DumpLiteral(stream, func->_parameters[i]);
-        streamprintf(stream, ", type mask = 0x%X\n", func->_param_type_masks[i]);
+        streamprintf(stream, ", type mask = 0x%X\n", func->GetParamTypeMask(i));
         n++;
     }
-    DumpLocals(stream, func->_localvarinfos, func->_nlocalvarinfos);
+    DumpLocals(stream, func);
     DumpLineInfo(stream, func->_lineinfos, func->_nlineinfos);
     streamprintf(stream, "-----dump\n");
     DumpInstructions(stream, func->_lineinfos, func->_nlineinfos,

@@ -28,7 +28,7 @@ start a worker served as that. The site then reports that it has no VM.
 | one-line summary | the `docstring` field of the C++ binding |
 | prose sections | `content/<module>/<name>.md` |
 | example and its output | `examples/<module>/<name>.nut` and `.out` |
-| the numbers on the Performance page | `content/_bench.json` and `content/_vm_bench.json`, written by `../bench/` |
+| the numbers on the Performance page | `content/_bench.json`, written by `../bench/benchmarks.py` |
 
 Nothing on a page restates what the VM already knows, so a signature cannot drift
 from the implementation.
@@ -46,7 +46,7 @@ records the interpreter that produced the file, and CI builds the interpreter fr
 source, so a release bump alone would otherwise fail a commit that changed no API.
 
 Use the interpreter built from this tree, so the dump can never describe a
-different version than the source. It reaches every built-in type delegate:
+different version than the source. It reaches every built-in type class:
 `SqModules`'s constructor calls `registerTypesLib()` and `registerModulesLib()`
 unconditionally, whatever the host does.
 
@@ -78,7 +78,7 @@ Output is JSON Lines because the host print function breaks a line longer than 6
 `content/_meta.json` lists the containers the dump may have. A class nested in a
 module is part of the module's page when the two share a `group`: `io.file` becomes
 a section of `io/index.html`, so the group index lists modules only. A class the
-file puts in a group of its own keeps its own page, which is how the type delegates
+file puts in a group of its own keeps its own page, which is how the type classes
 (`types.String` and the rest) stay separate.
 
 A container page is ordered description, values, functions, then one section per
@@ -162,7 +162,7 @@ needs no emscripten at all. Refresh them when you change VM behaviour a sample
 exercises:
 
     wasm/build_wasm.sh            # Linux, WSL, macOS
-    wasm/build_wasm.bat           # Windows; needs python3 and cmake on PATH
+    wasm/build_wasm.bat           # Windows; needs python and cmake on PATH
 
 Either one does nothing when `wasm/quirrel.version` already matches the header:
 no SDK is fetched and nothing is compiled, so running it on a current tree costs

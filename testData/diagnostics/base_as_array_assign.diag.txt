@@ -1,7 +1,0 @@
-ERROR: can't assign to expression
-testData/diagnostics/base_as_array_assign.nut:1:0
-
-base["x"] = 1
-^--------
-
-

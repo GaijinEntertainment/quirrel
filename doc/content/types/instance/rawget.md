@@ -22,11 +22,10 @@ method of the instance's class; check with `rawin` first to avoid the throw.
 
 ## Notes
 
-Unlike a table's delegate, an instance's methods are not something `rawget`
-skips: they come from the class's own member layout, not from a `_get`
-fallback, so `rawget` sees them exactly as plain indexing would. What `rawget`
-does skip is a `_get` metamethod the class defines for keys that are not real
-members.
+An instance's methods are not something `rawget` skips: they come from the
+class's own member layout, not from a `_get` fallback, so `rawget` sees them
+exactly as plain indexing would. What `rawget` does skip is a `_get` metamethod
+the class defines for keys that are not real members.
 
 That skip only applies to the `key` argument, not to resolving the name
 `rawget` itself: a `_get` that returns a value for every key, instead of

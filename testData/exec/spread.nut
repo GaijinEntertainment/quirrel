@@ -79,6 +79,7 @@ dumpArray(SPREAD_CONST_ARRAY)
 const CONST_TABLE = { a = 1, b = 2 }
 const SPREAD_CONST_TABLE = { ...CONST_TABLE, b = 20, c = 3 }
 dumpTable(SPREAD_CONST_TABLE)
+dumpTable(const { ...CONST_TABLE, b = 20, c = 3 })
 
 const CONST_NOTHING = null
 const SPREAD_CONST_NULL_ARRAY = [1, ...CONST_NOTHING, 2]
@@ -144,5 +145,21 @@ let frozenSource = freeze({ p = { q = 1 } })
 expectError(@() copyLeadingSpread(frozenSource).p.q = 5)
 expectError(@() copyTrailingSpread(frozenSource).p.q = 5)
 
+let weakTarget = { id = 1 }
+let frozenMixed = freeze({ t = { q = 1 }, a = [1], w = weakTarget.weakref(), [{ k = 1 }] = "table key" })
+foreach (copy in [copyLeadingSpread(frozenMixed), copyTrailingSpread(frozenMixed)]) {
+  local keyFrozen = null
+  foreach (k, _ in copy)
+    if (type(k) == "table")
+      keyFrozen = k.is_frozen()
+  println($"copy {copy.is_frozen()}, t {copy.t.is_frozen()}, a {copy.a.is_frozen()}, w {type(copy.w)} {copy.w.is_frozen()}, key {keyFrozen}")
+}
+foreach (copy in [copyLeadingSpread({ t = {} }), copyTrailingSpread({ t = {} })])
+  println($"mutable source: t {copy.t.is_frozen()}")
+
 dumpTable(copyLeadingSpread(t))
 dumpTable(copyTrailingSpread(t))
+
+let shorthand = 0
+dumpTable({ shorthand
+  ...t })

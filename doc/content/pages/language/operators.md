@@ -23,6 +23,8 @@ compile errors. Write `flags = flags & mask` instead.
 `+ - * /` and `%` work on `int` and `float`. Division of two `int` truncates
 toward zero. An `int` mixed with a `float` gives a `float`. `%` keeps the
 sign of the left operand, like C; it is not the mathematical modulo.
+Another operand type throws, `null` too: write `(x ?? 0) + 1` for an `x`
+that can be `null`.
 
 `+` also concatenates: if either side is a string, it converts the other side
 to a string, so `1 + "2"` is `"12"` and not an error. Prefer `$"...{...}"`
@@ -137,11 +139,13 @@ local binding is not a container that can hold new slots.
 
 ## Compound assignment and increment/decrement
 
-`+= -= *= /= %=` read the current value, combine it, and write it back, so
-(like plain `=`) they need the slot to exist already. `++` and `--` work as
-in C. As a statement the two forms do the same thing. As an expression the
-prefix form yields the value after the step and the postfix form yields the
-value before it.
+`+= -= *= /= %=` read the current value, combine it, and write it back,
+so (like plain `=`) they need the slot to exist already.
+`++` and `--` work as in C. As a statement the two forms do the same thing.
+As an expression, the prefix form yields the value after the step
+and the postfix form yields the value before it.
+For a value that is not a number, `++` acts as `+= 1` and `--` as `-= 1`:
+`_add(1)` and `_sub(1)` on an instance, "1" appended and an error on a string.
 
 {{example:language/operators-compound}}
 
@@ -175,42 +179,6 @@ fallback. An instance that defines `_add` but not `_sub` cannot be subtracted.
 [Metamethods](page:language/metamethods) gives the contract of each one: what it
 receives, which operand supplies it, and what the VM does with the returned
 value.
-
-## The static memoisation operator
-
-`static` has two unrelated meanings. Inside a class body it declares a shared
-member, described in
-[Classes and instances](page:language/classes#static-members). In an expression it
-is the memoisation operator described here.
-
-`static expr` evaluates `expr` the first time control reaches it and caches the
-result. Every later pass over the same place in the code reuses the cached value
-and evaluates nothing. It binds like the other unary operators (`typeof`,
-`clone`, unary `-`), so it takes the whole postfix expression after it.
-
-Two consequences follow from "the same place in the code":
-
-- **The cache belongs to the code location, not to the call.** A `static` inside a
-  loop body evaluates on the first pass only, and every later iteration gets that
-  first value. Two calls to the same function share one cache, because it is one
-  location. Two identical `static` expressions written in two places have two
-  separate caches.
-- **A cached container is frozen.** An `array`, `table`, `instance`, `class` or
-  `userdata` result is made immutable, as [freeze](sym:freeze) does, so a later
-  write throws `trying to modify immutable 'table'`. This makes the shared value
-  safe to hand out. A number, string or bool has nothing to freeze and is cached
-  as is.
-
-{{example:language/operators-static}}
-
-Use it for work that is expensive and gives the same answer every time: a parsed
-table, a lookup built from constants, a colour palette. Do not use it for
-anything that depends on state the expression does not name, because nothing
-re-runs it when that state changes.
-
-[modules.reset_static_memos](sym:modules.reset_static_memos) empties every cache
-in the VM. It is the only way to force re-evaluation. It exists for events like a
-script reload or a resolution change, and it is too expensive to call often.
 
 ## Precedence traps
 

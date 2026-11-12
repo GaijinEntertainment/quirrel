@@ -13,17 +13,12 @@ value it returns.
 
 ## Where a metamethod can live
 
-The VM looks for a metamethod in the object's **delegate**. For an instance the
-delegate is its class, so a method named `_add` in a class body is enough.
+The VM looks for a metamethod in the class of an instance, so a method named
+`_add` in a class body is enough.
 
-A table or a userdata can carry metamethods too, but only the host can set this
-up. The delegate is set through `sq_setdelegate`, and the script API has no
-equivalent. A table built in script has no delegate, so none of its metamethods
-can fire, regardless of slot names. Classes and instances are the carriers a
-script can build.
-
-This matters most for `_get`: a plain table reports a missing key, and a `_get`
-slot in it is inert data.
+Only a class carries metamethods. A table has none, regardless of slot names. This
+matters most for `_get`: a plain table reports a missing key, and a `_get` slot in
+it is inert data. A host that needs them on a native value binds a class.
 
 ## All metamethods
 
@@ -66,11 +61,6 @@ no reversed form. If the left operand is an integer and the right is your
 instance, the integer decides, and the call fails with
 `arith op - between 'integer' and 'instance'`.
 
-The one exception is an integer literal on the left of `+`. The compiler emits
-it as `object + literal`, because addition of numbers is commutative, so `_add`
-runs and sees the object as `this`. Do not rely on this to make a
-non-commutative operator work from either side.
-
 An operator with no metamethod throws; there is no default fallback. An
 instance that defines `_add` but not `_sub` cannot be subtracted.
 
@@ -111,8 +101,7 @@ the copy its own nested containers.
 `_newslot` intercepts `<-`. On an instance it runs, but it cannot complete the
 job. Instance storage is a fixed-size block sized when the instance is built, so
 the slot still cannot appear. Use it to route the value somewhere else, such as
-a side table. On a table it runs only if the table has a delegate and the key is
-new; an assignment over an existing key is a plain write.
+a side table.
 
 `_delslot` is unreachable from ordinary script. The `delete` operator is
 forbidden by default, and [rawdelete](sym:types.Table.rawdelete), which the
